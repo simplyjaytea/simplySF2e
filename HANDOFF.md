@@ -11,6 +11,7 @@ Read this first, then CLAUDE.md. HISTORY.md is the PF2e-era scaffold narrative; 
 - Complete-only: `COMPLETE_PC_CLASS_SLUGS` is empty. All six classes grant a mandatory level-1 path (Leadership Style, Connection, Specialization, Solar Manifestations, Fighting Style, Paradox). None proven to share the existing `item:tag:` staging path.
 - Rest: v14-dev `rest-for-the-night.ts` still calls `Hooks.callAll("pf2e.restForTheNight", actor)`. Module keeps that exact string. No `sf2e.restForTheNight` cited.
 - Generator chrome is retokenized to cited SF2e navy/cyan (`src/styles/sf2e/index.scss`); no system sheet art. Focus rings and `prefers-reduced-motion` are unchanged.
+- Prompt honesty: creature/PC/loot prompts no longer exemplify PF2e feat/glossary/item names as Starfinder 2e, and no longer claim SF2e Building Creatures tables.
 - Coins: `OFFICIAL_COIN_PACK` is `sf2e.equipment`. Cited gold-piece document ids still miss in SF2e packs; credits/UPB (`credstick.json` / `upb.json`) are Phase B.
 
 ## Exact next step

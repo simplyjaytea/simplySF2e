@@ -26,5 +26,8 @@ exc(creature, "the character's backstory", "creature prompt must not cite backst
 inc(lootGuide("generous", "character"), "lean to the HIGH end", "generous guide must apply");
 inc(lootGuide("stingy", "creature"), "lean to the LOW end", "stingy guide must apply");
 inc(lootGuide("bogus", "creature"), "Use the ranges below as written", "unknown amount must use standard guide");
+exc(creature, "Healing Potion (Lesser)", "lootGuide must not exemplify PF2e item names as SF2e");
+exc(creature, "Elixir of Life", "lootGuide must not exemplify PF2e item names as SF2e");
+exc(creature, "Smokestick", "lootGuide must not exemplify PF2e item names as SF2e");
 
 console.log("ai.lootGuide.test.mjs: all production lootGuide assertions passed");

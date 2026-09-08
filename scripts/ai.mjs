@@ -79,7 +79,7 @@ export async function listProviderModels() {
  * for, silently undoing every runed weapon/armor the concept called for.
  * builder.mjs's parseRunes reads the prefix back off and applies real rune
  * data, and capRunes clamps the tier to what the level actually allows. */
-const RUNE_PREFIX_NOTE = `ONE allowed deviation: a weapon or armor from the list may keep a fundamental-rune prefix in front of its exact listed name ("+1 striking longsword", "+2 greater resilient half plate") when the first draft asked for one — the base name after the prefix must still be copied exactly. Never invent any other variation on a listed name.`;
+const RUNE_PREFIX_NOTE = `ONE allowed deviation: a weapon or armor from the list may keep a fundamental-rune prefix in front of its exact listed name when the first draft asked for one — the base name after the prefix must still be copied exactly. Never invent any other variation on a listed name.`;
 
 /* How the GM's Treasure amount setting (Stingy/Standard/Generous — see
  * TREASURE_AMOUNT_MULTIPLIER in tables.mjs) should bend the item COUNT and
@@ -102,7 +102,7 @@ export function lootGuide(amount, subject = "creature") {
     ? "a DISTINCT set of items bought with MOST of their starting wealth (not everyday adventuring gear, which is handled separately — spend the bulk of the budget on worthwhile gear, keeping only a modest coin reserve rather than leaving most of it as gold)"
     : "3-8 items dropped on defeat";
   const hoardTrigger = subject === "character" ? "the character's backstory" : "the creature's description";
-  return `${amountNote} ${origin}; "value" is the approximate price of ONE unit in gold pieces (used when an item has no compendium match). Coins: use "Gold Coins" or "Silver Coins" with quantity = the number of coins (e.g. {"name": "Gold Coins", "quantity": 35, "value": 1}), scaled to level and rarity. Spell scrolls: "Scroll of {exact Starfinder 2e spell name} (Rank {n})" with a real non-cantrip spell and a rank it exists at, castable at the ${subject}'s level (rank <= ceil((level+2)/2)). Other items MUST be EXACT published item names ${REMASTER_NOTE}, including the grade in parentheses where one exists (e.g. "Healing Potion (Lesser)", "Elixir of Life (Minor)", "Smokestick (Lesser)"); NO invented items. Prefer a smaller set of DISTINCT items over padding the count — never repeat the same item to hit a number. Include 1-2 coin entries, 1-2 consumables, and 1-2 treasure or magic items of the ${subject}'s level or lower (adjusted per the amount guidance above). EXCEPTION: if ${hoardTrigger} or the GM's request explicitly calls for abundant loot (a hoard, riches, a wealthy creature, a dragon's hoard, "lots of loot", etc.), scale UP to roughly 12-20 items with proportionally more coin, treasure, and magic-item entries regardless of the amount setting; otherwise stay within the guidance above.`;
+  return `${amountNote} ${origin}; "value" is the approximate price of ONE unit in gold pieces (used when an item has no compendium match). Coins: use "Gold Coins" or "Silver Coins" with quantity = the number of coins (e.g. {"name": "Gold Coins", "quantity": 35, "value": 1}), scaled to level and rarity. Spell scrolls: "Scroll of {exact Starfinder 2e spell name} (Rank {n})" with a real non-cantrip spell and a rank it exists at, castable at the ${subject}'s level (rank <= ceil((level+2)/2)). Other items MUST be EXACT published item names ${REMASTER_NOTE}, including the grade in parentheses where one exists; NO invented items. Prefer a smaller set of DISTINCT items over padding the count — never repeat the same item to hit a number. Include 1-2 coin entries, 1-2 consumables, and 1-2 treasure or magic items of the ${subject}'s level or lower (adjusted per the amount guidance above). EXCEPTION: if ${hoardTrigger} or the GM's request explicitly calls for abundant loot (a hoard, riches, a wealthy creature, "lots of loot", etc.), scale UP to roughly 12-20 items with proportionally more coin, treasure, and magic-item entries regardless of the amount setting; otherwise stay within the guidance above.`;
 }
 
 /**
@@ -113,7 +113,7 @@ export function lootGuide(amount, subject = "creature") {
 const GM_CONCEPT_PRIORITY = "The GM's explicit concept constraints override preset suggestions and default item/spell counts. If the GM requests no equipment, no loot, or no spellcasting, omit that category (use [] or null). For a minimal concept, use a small relevant selection and do not add filler. Spellcasting being allowed is permission, never a requirement. Equipment and loot are distinct holdings: do not repeat carried gear as extra loot unless the GM explicitly requests spares. Preserve these constraints when refining the draft.";
 
 function systemPrompt(amount) {
-  return `You are an expert Starfinder 2e creature designer. You design creature CONCEPTS; numbers are computed elsewhere from the official Building Creatures benchmark tables, so choose only named scales, never numeric statistics.
+  return `You are an expert Starfinder 2e creature designer. You design creature CONCEPTS; choose only named scales, never numeric statistics — the module supplies values.
 
 ${GM_CONCEPT_PRIORITY}
 
@@ -144,15 +144,15 @@ JSON schema (all keys required unless marked optional):
       "attackScale": "extreme"|"high"|"moderate"|"low",
       "damageScale": "extreme"|"high"|"moderate"|"low",
       "damageType": string, // e.g. "piercing", "fire"
-      "traits": string[], // e.g. "agile", "reach-10", "deadly-d8"; [] if none
+      "traits": string[], // [] if none
       "range": number|null, // range increment in feet for ranged strikes
-      "attackEffects": string[] // e.g. ["grab"], [] if none
+      "attackEffects": string[] // [] if none
     }
   ],
   "specialAbilities": [ // 1-4 abilities
     {
       "name": string,
-      "glossary": string|null, // EXACT standard Starfinder 2e bestiary glossary ability name (e.g. "Grab", "Knockdown", "Frightful Presence", "Attack of Opportunity") if this is one, else null
+      "glossary": string|null, // EXACT published Starfinder 2e bestiary glossary ability name if this is one, else null
       "description": string // for glossary abilities, a brief thematic hint only; otherwise a short narrative-only description with NO rules, damage, DCs, actions, traits, conditions, or numeric mechanics
     }
   ],
@@ -162,26 +162,26 @@ JSON schema (all keys required unless marked optional):
     "spells": [ { "name": string, "rank": number } ] // rank 0 = cantrip; real Starfinder 2e spell names as a first draft (${REMASTER_NOTE}; the final list is chosen from the compendium in a second step); max rank = ceil(level/2)
   },
   "focusSpells": string[], // EXACT published Starfinder 2e focus spell names (they carry the "focus" trait), 1-3 names, ONLY when "spellcasting" is also set — [] otherwise; first draft, grounded against the real compendium afterward
-  "feats": string[], // EXACT published Starfinder 2e feat names (e.g. "Power Attack", "Sudden Charge") for creatures with class-like training (soldiers, operatives); [] for beasts, mindless creatures, and anything untrained; max 3. IMPORTANT: when a feat grants a distinct attack or Strike-based action (Power Attack, Sudden Charge, Ki Strike, ...), ALSO add a strike named after the feat to "strikes" — same weapon and damageType as the base strike it modifies, damageScale one step higher (extreme stays extreme), plus the feat's traits — and keep the feat in "feats" too.
-  "equipment": [ { "name": string, "quantity": number, "value": number } ], // 3-8 logical carried items with EXACT Starfinder 2e item names (${REMASTER_NOTE}), drawn from: the weapons it wields; sensible consumables (healing potions, elixirs of life, alchemical bombs, talismans, poisons it applies); and everyday adventuring gear it would plausibly carry (rope, torches, rations, thieves' tools, a crowbar). NO coins or currency here — those belong only in "loot". "value" is the approximate gp price of ONE unit, used only as a fallback when the name finds no compendium match. Include armor only when the creature would plausibly wear it (skip beasts, oozes, mindless and naturally-armored creatures), and pick armor that roughly fits its AC and level. At level 2+, consider ONE magic item appropriate to its level; fundamental-rune gear is written like "+1 striking rapier" or "+1 resilient studded leather armor". [] for beasts and mindless creatures.
+  "feats": string[], // EXACT published Starfinder 2e feat names for creatures with class-like training (soldiers, operatives); [] for beasts, mindless creatures, and anything untrained; max 3. IMPORTANT: when a feat grants a distinct attack or Strike-based action, ALSO add a strike named after the feat to "strikes" — same weapon and damageType as the base strike it modifies, damageScale one step higher (extreme stays extreme), plus the feat's traits — and keep the feat in "feats" too.
+  "equipment": [ { "name": string, "quantity": number, "value": number } ], // 3-8 logical carried items with EXACT Starfinder 2e item names (${REMASTER_NOTE}), drawn from: the weapons it wields; sensible consumables; and everyday adventuring gear it would plausibly carry. NO coins or currency here — those belong only in "loot". "value" is the approximate gp price of ONE unit, used only as a fallback when the name finds no compendium match. Include armor only when the creature would plausibly wear it (skip beasts, oozes, mindless and naturally-armored creatures), and pick armor that roughly fits its AC and level. At level 2+, consider ONE magic item appropriate to its level; fundamental-rune gear keeps a rune prefix in front of an exact published base name. [] for beasts and mindless creatures.
   "loot": [ { "name": string, "quantity": number, "value": number } ], // ${lootGuide(amount)}
   "resistances": [ { "type": string } ], // damage types only, values computed from tables; [] if none
   "weaknesses": [ { "type": string } ],
-  "immunities": string[] // e.g. ["death-effects", "poison"], [] if none
+  "immunities": string[] // lowercase damage-type or effect slugs; [] if none
 }
 
 SCALE = "extreme"|"high"|"moderate"|"low". SCALE5 also allows "terrible".
 
-Design guidance (GM Core road maps):
+Design guidance (scale road maps):
 - At most ONE extreme stat, balanced by a low or terrible stat.
 - Brute: low perception; moderate+ AC; high Fort, low Ref/Will; high HP; high attack & damage.
 - Sneak: high dex; low Fort, high Ref; high stealth; moderate HP.
 - Skirmisher: high Ref, fast speeds, moderate everything else.
-- Soldier: high AC, high Fort, high attack with moderate damage; disciplined soldiers/guards/knights should usually get the Attack of Opportunity glossary reaction.
+- Soldier: high AC, high Fort, high attack with moderate damage.
 - Spellcaster: casting tradition matching key ability at high or extreme; low-or-moderate AC, HP and attack; DC one scale above attacks.
 - Include spellcasting only when it truly fits the concept and the user allows it.
-- "focusSpells": fit priests/cultists (a domain spell), ki-using martial casters, druid/shaman-like creatures, witch-like hexers — only when the concept has spellcasting AND genuinely fits one of these archetypes; leave [] otherwise. Uncommon, not the default.
-- Use standard glossary abilities (Grab, Push, Knockdown, Trample, Swallow Whole, Frightful Presence, Regeneration, Attack of Opportunity, ...) wherever they fit. They are selected from the compendium afterward and retain their real working automation.
+- "focusSpells": only when the concept has spellcasting AND genuinely uses focus magic; leave [] otherwise. Uncommon, not the default.
+- Use published bestiary glossary abilities wherever they fit, copying exact names. They are selected from the compendium afterward and retain their real working automation.
 - A bespoke signature ability is allowed only as a short, clearly narrative description (a scent, texture, visual aura, or mannerism). Do not give it rules text or mechanical effects; the module will label it narrative-only rather than create custom mechanics.
 - Traits, languages, senses and speeds must follow Starfinder 2e conventions.`;
 }
@@ -327,7 +327,7 @@ JSON schema (loot key required):
   "loot": [ { "name": string, "quantity": number, "value": number } ]
 }
 
-${lootGuide(amount, "character")} Favor items that reinforce the character's class and concept (a caster's wand or backup scroll, a martial's precious-material trinket, a rogue's utility gear) over generic treasure — this represents deliberate purchases, not random battlefield loot. When the character's level affords it, spend on runed weapons/armor written in the "+1 striking longsword" / "+1 resilient half plate" style (roughly +1 potency from level 2, striking/resilient from level 4, +2 potency from level 10) — a real, level-appropriate upgrade is a better buy than a pile of consumables.`;
+${lootGuide(amount, "character")} Favor items that reinforce the character's class and concept (a caster's backup scroll, a martial's signature weapon, skill-focused utility gear) over generic treasure — this represents deliberate purchases, not random battlefield loot. When the character's level affords it, spend on runed weapons/armor written with a fundamental-rune prefix in front of an exact published base name (roughly +1 potency from level 2, striking/resilient from level 4, +2 potency from level 10) — a real, level-appropriate upgrade is a better buy than a pile of consumables.`;
 
   const user = [
     `Character: ${concept.name} (level ${concept.level})`,
@@ -404,20 +404,20 @@ JSON schema (all keys required unless marked optional):
   "allies": string, // 1-2 sentences naming allies, mentors, or loyal companions (can be "" if none fit)
   "enemies": string, // 1-2 sentences naming rivals, enemies, or things the character is hunted by (can be "" if none fit)
   "organizations": string, // 1-2 sentences naming factions, guilds, or organizations the character belongs to (can be "" if none fit)
-  "languages": string[], // EXACT Starfinder 2e language names beyond the ancestry's automatic ones (e.g. "Common"), fitting the character's background/culture — lowercase is fine, [] if none fit. A character learns bonus languages equal to their Intelligence modifier ON TOP of the ancestry's own, so size this to the concept: 1-2 for an average character, but 4-6 for a high-Intelligence class (Witchwarper, Mystic, Envoy) or a well-travelled scholar/diplomat
+  "languages": string[], // EXACT Starfinder 2e language names beyond the ancestry's automatic ones, fitting the character's background/culture — lowercase is fine, [] if none fit. A character learns bonus languages equal to their Intelligence modifier ON TOP of the ancestry's own, so size this to the concept: 1-2 for an average character, but 4-6 for a high-Intelligence class (Witchwarper, Mystic, Envoy) or a well-travelled scholar/diplomat
   "feats": string[], // 3-6 EXACT published Starfinder 2e feat names fitting the concept as a first draft wishlist — inspiration only, the final picks are chosen from real compendium lists per level in a second step
   "skillPriorities": string[], // optional ordered core-skill preferences, most important first; choose unique slugs from: ${CORE_SKILLS.join(", ")}. Match the concept and intended role. Never provide ranks, counts, scores, or new Lore skills; the module allocates legal training and increases
   "spellcasting": null | {
     "tradition": "arcane"|"divine"|"occult"|"primal",
     "spells": [ { "name": string, "rank": number } ] // rank 0 = cantrip; real Starfinder 2e spell names as a first draft (${REMASTER_NOTE}; the final list is chosen from the compendium in a second step)
   }, // null if the class you chose isn't a caster, or spellcasting is disallowed
-  "focusSpells": string[], // EXACT published Starfinder 2e focus spell names (they carry the "focus" trait) granted by this character's class/subclass, 1-3 names, [] if none apply — first draft, grounded against the real compendium afterward. Independent of "spellcasting": a Mystic has focus spells but no spell slots
-  "equipment": [ { "name": string, "quantity": number, "value": number } ] // 4-8 first-draft carried items with EXACT Starfinder 2e item names (${REMASTER_NOTE}) fitting the class, level and concept — include STARTING ARMOR appropriate to the class's armor proficiency (e.g. plate/chain for heavy-armor martials, leather/studded for light-armor types), a weapon, useful mundane gear, AND at least 1-2 level-appropriate magic items (a potion or elixir; for a spellcaster, a spell scroll of a real Starfinder 2e spell in their tradition they'd want as backup) when the character's level plausibly affords them; lightly-armored casters may deliberately carry no armor. When the level affords it, write the main weapon and armor with their fundamental runes in the name ("+1 striking longsword", "+1 resilient half plate" — roughly +1 potency from level 2, striking/resilient from level 4, +2 potency from level 10). Also include skill-supporting gear matching the character's likely trained skills — Thieves' Tools for Thievery, a Climbing Kit or Grappling Hook for Athletics, Healer's Tools for Medicine, a Disguise Kit for Deception, an Alchemist's Tools kit for Crafting, and general utility items (a Spacious Pouch, a Sturdy Shield). Inspiration only, the final picks are chosen from the compendium in a second step
+  "focusSpells": string[], // EXACT published Starfinder 2e focus spell names (they carry the "focus" trait) granted by this character's class/subclass, 1-3 names, [] if none apply — first draft, grounded against the real compendium afterward. Independent of "spellcasting": include focus spells when the class grants them, even if the class has no spell slots
+  "equipment": [ { "name": string, "quantity": number, "value": number } ] // 4-8 first-draft carried items with EXACT Starfinder 2e item names (${REMASTER_NOTE}) fitting the class, level and concept — include starting armor appropriate to the class's armor proficiency when they would wear armor, a weapon, useful mundane gear, AND at least 1-2 level-appropriate magic items (a potion or elixir; for a spellcaster, a spell scroll of a real Starfinder 2e spell in their tradition they'd want as backup) when the character's level plausibly affords them; lightly-armored casters may deliberately carry no armor. When the level affords it, write the main weapon and armor with a fundamental-rune prefix in front of an exact published base name (roughly +1 potency from level 2, striking/resilient from level 4, +2 potency from level 10). Also include skill-supporting gear matching the character's likely trained skills, plus general utility items. Inspiration only, the final picks are chosen from the compendium in a second step
 }
 
 Design guidance:
 - Pick an ancestry, background and class that together tell a coherent, thematic character matching the GM's concept.
-- Default to common ancestries (Human, Android, Ysoki, Vesk, Lashunta, Kasatha, Shirren, Skittermander) unless the concept specifically calls for something exotic — use rare or uncommon ancestries sparingly, only when they genuinely fit.
+- Default to common ancestries unless the concept specifically calls for something exotic — use rare or uncommon ancestries sparingly, only when they genuinely fit.
 - "keyAbility" MUST be a legal key ability for the Starfinder 2e class you chose. Classes are Envoy, Mystic, Operative, Solarian, Soldier, and Witchwarper only — never Pathfinder classes.
 - Only include "spellcasting" for classes that actually cast spells (Mystic, Witchwarper) and only when spellcasting is allowed.
 - "focusSpells": name 1-3 published Starfinder 2e focus spells that plausibly fit this build when the class grants them; leave [] if the class/concept doesn't have any.
@@ -683,7 +683,7 @@ export async function selectEquipment({ concept, candidates, onProgress, signal 
   const system = `${GM_CONCEPT_PRIORITY}\n\nYou are selecting carried equipment for a Starfinder 2e creature. Choose ONLY from the provided list, copying each name EXACTLY as written. Respond with a single JSON object and nothing else:
 { "equipment": [ { "id": string, "quantity": number } ] }
 ${RUNE_PREFIX_NOTE}
-Pick the logical items the creature would carry: the weapons it wields (match its strikes), sensible consumables (healing potions, elixirs, bombs, talismans, poisons it applies), and everyday adventuring gear it would plausibly use (rope, torches, rations, tools). Include armor only when the creature would plausibly wear it (skip beasts, oozes, mindless and naturally-armored creatures), and pick armor that roughly fits its role and level. Pick each DISTINCT item at most once — a smaller focused set is fine; never repeat an item or add filler to reach a count. NO coins or currency. "quantity" is usually 1; use 2-5 only for ammunition and stackable consumables.`;
+Pick the logical items the creature would carry: the weapons it wields (match its strikes), sensible consumables, and everyday adventuring gear it would plausibly use. Include armor only when the creature would plausibly wear it (skip beasts, oozes, mindless and naturally-armored creatures), and pick armor that roughly fits its role and level. Pick each DISTINCT item at most once — a smaller focused set is fine; never repeat an item or add filler to reach a count. NO coins or currency. "quantity" is usually 1; use 2-5 only for ammunition and stackable consumables.`;
 
   const user = [
     concept.gmPrompt ? `Original GM request: ${concept.gmPrompt}` : null,
@@ -722,10 +722,9 @@ Pick the logical items the creature would carry: the weapons it wields (match it
  * Grounded loot pass: given real compendium items (treasure included, level
  * capped like resolveLoot's filter), have the model re-pick the first-draft
  * haul from names guaranteed to exist — the loot counterpart of
- * selectEquipment(). Without this, a pre-Remaster name the model recalls
- * ("Bag of Holding") cannot be substituted for its Remaster item ("Spacious Pouch")
- * after the selection catalog is issued. Coins and spell
- * scrolls stay free-form: they are not plain compendium items
+ * selectEquipment(). Without this, a recalled first-draft name cannot be
+ * substituted for its published equivalent after the selection catalog is issued.
+ * Coins and spell scrolls stay free-form: they are not plain compendium items
  * (parseCoins/parseScroll in builder.mjs build them specially).
  * @param {object} args
  * @param {object} args.concept       normalized concept (for context)
@@ -1137,7 +1136,7 @@ ${runeList}
 Design guidance:
 - Never emit numeric fields, dice formulas, or code. Copy names and choose the offered tier enums; the module supplies all values.
 - Pick a base ${kind} and runes that together tell a clear, thematic story for the GM's concept.
-- Avoid combining runes that are thematically opposed (e.g. never pick both Holy and Unholy, or both Anarchic and Axiomatic) unless the concept explicitly wants that tension.
+- Avoid combining runes that are thematically opposed unless the concept explicitly wants that tension.
 - "propertyRunes" length must never exceed "potency" (potency N grants N property rune slots) — prefer fewer, more thematic runes over maxing out every slot.${kind === "armor" ? `
 - A property rune marked "light armor only" / "heavy armor only" / "medium/heavy armor only" may ONLY be picked when the chosen base armor's category matches — a mismatched rune is dropped.` : ""}`;
 

@@ -45,6 +45,7 @@ const runedPrompt = requests[1].messages[0].content;
 assert.match(runedPrompt, /enum: single, double/);
 assert.match(runedPrompt, /enum: none, standard, greater/);
 assert.doesNotMatch(runedPrompt, /"(?:potency|secondaryTier)":\s*number/);
+assert.doesNotMatch(runedPrompt, /Holy and Unholy|Anarchic and Axiomatic/);
 assert.equal(requests.length, 2, "both forge schemas work through the normal bounded request path");
 assert.match(taskResponseProblem(AI_TASK.RUNED_ITEM_CONCEPT, {
   baseItemName: "Longsword", potency: 3, secondaryTier: 1, propertyRunes: [], description: "A sword."
