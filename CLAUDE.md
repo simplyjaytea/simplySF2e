@@ -9,7 +9,7 @@ Foundry VTT module. An AI generates Starfinder 2e NPCs/monsters, Player Characte
 - **Foundry** — the VTT this is a module for. **Actor** = a character/creature sheet. **Item** = anything embedded on one.
 - **sf2e system** — Starfinder Second Edition (`sf2e`), sourced from the PF2e monorepo branch **v14-dev**, manifest `system.sf2e.json` **1.5.0** (Foundry compat minimum 14.361 / verified 14.367). Pack collection ids are `sf2e.<packs[].name>`. "Real source" = that repo's actual TS/JSON, fetched live, not recalled from PF2e memory.
 - **Compendium / pack** — a bundled library of real game content. The module never invents content: a pick either matches a real document or is marked custom.
-- **GM Core** — PF2e-era Building Creatures tables still hardcoded in `tables.mjs` until a later phase cites SF2e creature-building numbers. **Do not invent SF2e document field shapes.**
+- **GM Core** — PF2e-era Building Creatures / Treasure by Level **numbers** still hardcoded in `tables.mjs`. Comments now state they are inherited PF2e-compatible values pending a cited Starfinder 2e source. **Do not invent SF2e table numbers.**
 - **ABC item** — Ancestry/Background/Class, the real items a PC embeds to derive stats. **Heritage** — a 4th, in its own pack.
 - **Grant** — an item that auto-bundles another when embedded (an ancestry grants its features), via `system.items` on the granting doc.
 - **Rule Element (RE)** — a JSON rule object in `system.rules` that makes something mechanically happen. Foundry fails **silently** on a wrong key, so a hand-typed RE can look right and do nothing.
@@ -53,6 +53,7 @@ Encounter mode: `designEncounter()` picks a theme + per-role briefs once, then t
 | `ai-task-profiles.mjs` / `ai-candidate-format.mjs` | Pure per-operation token/sampling caps (`taskMaxTokens`) and compact grounded-candidate encoding. |
 | `settings.mjs` | Foundry settings, exact-endpoint API-key binding, local/keyless provider readiness, and the client-side named connection bank. |
 | `builder.mjs` | NPC pipeline + shared resolve/build helpers used by both actor pipelines (`resolveEquipment`, `resolveLoot`, `resolveFocusSpells`, `buildEquipmentItems`, `buildLootItems`, `filterItemTypes`, `applyTreasureBudget`, `enrichDescription`). |
+| `currency.mjs` | Cited SF2e Credstick/UPB templates and gold-to-credit mapping. |
 | `pc-builder.mjs` | PC pipeline. First file to check when PC generation misbehaves. |
 | `completion.mjs` / `post-create.mjs` | Required-content manifests, persisted-source checks, and new-document commit/rollback boundaries. |
 | `pc-support.mjs` / `class-paths.mjs` | Complete-only class eligibility and exact native Rogue/Investigator path staging. |
@@ -63,7 +64,7 @@ Encounter mode: `designEncounter()` picks a theme + per-role briefs once, then t
 | `compendium.mjs` | `findEntry` fuzzy match, pack indexes (incl. the extended equipment index), candidate lists, `getPacksFor`/`getAllPacksFor`, `priceToGp`, `RARITY_RANK`. |
 | `runes.mjs` | All rune knowledge: parse out of a name, apply as system data, cap tiers to level, price from real rune docs, item-forge candidate lists. Never hardcodes a rune level or price. |
 | `text.mjs` | `slugify`, `capitalized`, `esc`, `toHtml`. Pure shared HTML escaping with no Foundry dependency; node-testable. |
-| `tables.mjs` | GM Core Building Creatures benchmarks + Treasure by Level (NPC-only). |
+| `tables.mjs` | Inherited PF2e-compatible Building Creatures / Treasure by Level numbers — not Starfinder-authored. |
 | `pc-tables.mjs` | PC leveling cadence (boost/skill/feat-slot levels), source-qualified Remaster casting profiles, and base spell-slot counts. |
 | `rule-templates.mjs` | Harvests real RE exemplars from installed packs at runtime. Used by the forge and the PC focus-pool rule. |
 | `item-builder.mjs` | Item forge: normalize, empirical pricing, item assembly. |
@@ -103,18 +104,20 @@ Inherited PF2e-era notes for the scaffolded builders. They are **not** SF2e sche
 - `details.languages.value` is **not** truncated to max, and the system already adds Int mod to `build.languages.max` itself.
 - Not writing `system.price`/`system.level` on a runed item is **correct** — `physical/document.ts` recomputes both via `computeLevelRarityPrice()` every prep.
 - A character's `resources.focus.max` is zeroed every prep and rebuilt only from ActiveEffectLike rules, so the PC focus pool needs a cloned RE; an NPC's can be plain actor data.
-- v14-dev `ActorInventory.addCurrency` still lists PF2e gold-piece UUIDs on `pf2e.equipment-srd`, and SF2e credits/UPB come from bundled `credstick.json` / `upb.json` (`src/module/actor/inventory/index.ts`). Do not invent coin/credit item data; clone published documents. Credits/UPB assembly is Phase B.
+- v14-dev `ActorInventory.addCurrency` clones bundled `credstick.json` / `upb.json` for credits/UPB and still lists classic coin UUIDs on `pf2e.equipment-srd` (`src/module/actor/inventory/index.ts`). Credits quantity is stored on `system.price.value` (`sp` on create; prepared `.credits`). Do not invent sf2e gold-piece UUIDs. This module maps gold-piece loot language onto Credstick and assembles those cited templates.
 
 ## Current state (2026-09-08)
 
-**Phase A working foundations.** simplySF2e identity is `simplysf2e` / SimplySF2e, targeting system **`sf2e` 1.5.0**. Published GitHub release is **v0.0.1**; source `module.json` is **0.0.2** (next auto-release). **Not play-ready.** Git is authoritative for branch state; [HANDOFF.md](HANDOFF.md) is the live baton.
+**Phase B first slice (currency / table honesty / copy).** simplySF2e identity is `simplysf2e` / SimplySF2e, targeting system **`sf2e` 1.5.0**. Published GitHub release is **v0.0.2** (Phase A); this PR auto-releases as **v0.0.3** on merge. **Not play-ready.** Git is authoritative for branch state; [HANDOFF.md](HANDOFF.md) is the live baton.
 
 - **Pack defaults:** `DEFAULT_PACKS` uses real `sf2e.*` collection ids from `system.sf2e.json` 1.5.0 (`classes`, `class-features`, `feats`, `spells`, `equipment`, `ancestries`, `heritages`, `backgrounds`, `bestiary-ability-glossary-srd`, `alien-core-bestiary`).
 - **Chrome:** generator/forge/provider/preset windows use cited SF2e navy/cyan tokens (`src/styles/sf2e/index.scss`); no system artwork.
 - **Standard presets:** the six published SF2e classes only (envoy, mystic, operative, solarian, soldier, witchwarper). Flavor guides; scale-words only.
+- **Currency:** generated loot/wealth prefers **credits** (Credstick) and **UPB** via verbatim copies of v14-dev `credstick.json` / `upb.json`. Gold-piece AI language converts through cited `DENOMINATION_RATES` (1 gp = 10 credits). Classic `pf2e.equipment-srd` coin UUIDs are not the happy path and are not invented under `sf2e.equipment`.
+- **Tables:** `tables.mjs` numbers are unchanged inherited PF2e-compatible benchmarks. Header/README/HANDOFF state they are **not** Starfinder-authored.
 - **Complete-only registry:** empty. All six classes grant a mandatory level-1 path; none are proven to share the existing Fighter/Rogue/Investigator staging path. Fail closed.
 - **Rest hook residual:** v14-dev still fires `Hooks.callAll("pf2e.restForTheNight", actor)`. No `sf2e.restForTheNight` is cited. The module keeps that exact string.
-- **Out of scope (Phase B+):** Building Creatures tables, NPC strike catalogs, feat prerequisite graphs, wealth/credits, rune systems, SF2e document field shapes.
+- **Still later (Phase B2+):** rune rewrite, complete-only PC unlock for the six classes, citing SF2e Building Creatures numbers, wealth-table units in credits rather than gp-equivalent, class-feature grant shapes.
 - **Inherited code:** NPC/PC/forge pipelines, fail-closed grounding, cloned Rule Elements. Treat [HISTORY.md](HISTORY.md) as parent-project history, not simplySF2e releases.
 
 **Recorded live evidence:** none for simplySF2e.

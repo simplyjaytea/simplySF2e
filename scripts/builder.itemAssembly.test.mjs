@@ -43,7 +43,6 @@ const missing = { packId, _id: "deleted-source" };
 for (const changes of [
   { equipment: [{ ...line, entry: missing }] },
   { loot: [{ ...line, entry: missing }] },
-  { loot: [{ name: "Gold Pieces", quantity: 1, entry: missing }] },
   { loot: [{ name: "Scroll of Spark (Rank 1)", quantity: 1, entry: missing, scroll: { rank: 1 } }] },
   { abilities: [{ ability: { name: "Grab" }, entry: missing }] },
   { feats: [{ name: "Sudden Charge", entry: missing }] },

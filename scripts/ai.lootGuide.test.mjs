@@ -29,5 +29,9 @@ inc(lootGuide("bogus", "creature"), "Use the ranges below as written", "unknown 
 exc(creature, "Healing Potion (Lesser)", "lootGuide must not exemplify PF2e item names as SF2e");
 exc(creature, "Elixir of Life", "lootGuide must not exemplify PF2e item names as SF2e");
 exc(creature, "Smokestick", "lootGuide must not exemplify PF2e item names as SF2e");
+inc(creature, "Credits", "lootGuide must ask for credits");
+inc(creature, "UPB", "lootGuide may use UPB for materials");
+exc(creature, "Gold Coins", "lootGuide must not prefer gold-piece coin names");
+exc(pc, "as gold", "character wealth prompt must not treat leftover budget as gold");
 
 console.log("ai.lootGuide.test.mjs: all production lootGuide assertions passed");

@@ -2,12 +2,17 @@ import * as T from "./tables.mjs";
 import { getPacksFor, findEntry, getDocument, toItemData, priceToGp, isIssuedCandidate } from "./compendium.mjs";
 import { slugify, capitalized, esc, toHtml } from "./text.mjs";
 import { parseRunes, applyRunes, capRunes, runeGp, hasRunes } from "./runes.mjs";
+import {
+  parseCoins, currencyQuantity, isCurrencyDocument,
+  assembleCurrency, resolveCurrencyTemplate, CREDIT_UNIT_GP
+} from "./currency.mjs";
 
 /* Re-exported so the rest of the module keeps importing its shared helpers
    from one place; the definitions live in text.mjs / runes.mjs / compendium.mjs. */
 export { slugify, capitalized, esc, toHtml } from "./text.mjs";
 export { parseRunes, applyRunes } from "./runes.mjs";
 export { priceToGp } from "./compendium.mjs";
+export { parseCoins, isCoinageDocument, isCurrencyDocument, assembleCurrency } from "./currency.mjs";
 
 const SIZES = new Set(["tiny", "sm", "med", "lg", "huge", "grg"]);
 const RARITIES = new Set(["common", "uncommon", "rare", "unique"]);
@@ -387,8 +392,8 @@ export function normalizeConcept(raw, { level, rarity }) {
         }
         return null;
       })
-      // Coins belong in loot only; drop any that slip into equipment
-      // (parseCoins recognizes "Gold Coins", "150 gold pieces", "20 gp", ...).
+      // Currency belongs in loot only; drop any that slip into equipment
+      // (parseCoins maps credits/UPB and leftover gold-piece language).
       .filter((e) => e && !parseCoins(e.name))
       .slice(0, 12),
     loot: normalizeLoot(c.loot),
@@ -407,95 +412,10 @@ export function normalizeConcept(raw, { level, rarity }) {
   };
 }
 
-const COIN_ITEM_NAMES = {
-  pp: "Platinum Pieces", platinum: "Platinum Pieces",
-  gp: "Gold Pieces", gold: "Gold Pieces",
-  sp: "Silver Pieces", silver: "Silver Pieces",
-  cp: "Copper Pieces", copper: "Copper Pieces"
-};
-const COIN_DENOMINATION = {
-  "Platinum Pieces": "pp",
-  "Gold Pieces": "gp",
-  "Silver Pieces": "sp",
-  "Copper Pieces": "cp"
-};
-const COIN_UNIT_GP = { "Platinum Pieces": 10, "Gold Pieces": 1, "Silver Pieces": 0.1, "Copper Pieces": 0.01 };
-/* v14-dev ActorInventory.addCurrency still lists these document ids on
- * `Compendium.pf2e.equipment-srd` (src/module/actor/inventory/index.ts).
- * SF2e native currency is credits/UPB via bundled credstick.json / upb.json
- * in that same file — not cloned here (Phase B; do not invent field shapes).
- * Lookup prefers these ids inside sf2e.equipment, then exact-name treasure.
- * Misses fail closed. */
-const COIN_COMPENDIUM_IDS = {
-  pp: "JuNPeK5Qm1w6wpb4",
-  gp: "B6B7tBWJSqOBz5zz",
-  sp: "5Ew82vBF9YfaiY9f",
-  cp: "lzJ8AVhRcbFul5fh"
-};
-const OFFICIAL_COIN_PACK = "sf2e.equipment";
-
 /**
- * Recognize coin loot like "Gold Coins", "150 gold pieces" or "20 gp" and map
- * it to a canonical PF2e coinage name. Unknown denominations return null —
- * they are not currency and must not be forced onto the sheet as coins.
- */
-export function parseCoins(name) {
-  const match = /^\s*(\d+)?\s*(platinum|gold|silver|copper|pp|gp|sp|cp)\s*(?:coins?|pieces?)?\s*$/i
-    .exec(String(name ?? ""));
-  if (!match) return null;
-  return { name: COIN_ITEM_NAMES[match[2].toLowerCase()], count: match[1] ? Number(match[1]) : null };
-}
-
-/**
- * PF2e 8.4.1 TreasurePF2e#isCoinage is `system.category === "coin"`.
- * `stackGroup === "coins"` is the pre-8.4.1 source field; 8.4.1 migrateData
- * maps it onto category. Accept either so a cloned pack document is coinage
- * whether or not the data model has already migrated it.
- */
-export function isCoinageDocument(doc) {
-  return doc?.type === "treasure"
-    && (doc.system?.category === "coin" || doc.system?.stackGroup === "coins");
-}
-
-/** PF2e 8.4.1 TreasurePF2e#unit for coinage: the single priced denomination. */
-function coinUnit(doc) {
-  const price = doc?.system?.price?.value ?? {};
-  const hits = ["pp", "gp", "sp", "cp"].filter((d) => price[d]);
-  return hits.length === 1 ? hits[0] : null;
-}
-
-/**
- * Load the published coinage document for a canonical name. Prefers the
- * cited v14-dev coin document ids inside sf2e.equipment, then an exact-name
- * treasure in the enabled equipment packs. Fail closed: a lookalike that is
- * not coinage is not used. Credits/UPB assembly is not implemented.
- */
-async function resolveCoinage(canonicalName) {
-  const denom = COIN_DENOMINATION[canonicalName];
-  if (!denom) return null;
-  const accept = async (entry) => {
-    const doc = await getDocument(entry);
-    if (!isCoinageDocument(doc) || coinUnit(doc) !== denom) return null;
-    const gp = priceToGp(doc.system?.price?.value);
-    return { entry, resolvedValue: gp > 0 ? gp : (COIN_UNIT_GP[canonicalName] ?? 0) };
-  };
-  try {
-    const official = await accept({ packId: OFFICIAL_COIN_PACK, _id: COIN_COMPENDIUM_IDS[denom] });
-    if (official) return official;
-  } catch (err) {
-    console.warn("simplysf2e | official coinage document lookup failed", err);
-  }
-  return accept(await findEntry(
-    getPacksFor("equipment"),
-    canonicalName,
-    (e) => e.type === "treasure" && e.name === canonicalName
-  ));
-}
-
-/**
- * Coerce a raw AI loot array into {name, quantity} entries. Coin entries are
- * folded into their canonical treasure item name and may carry the large
- * quantities coins need; everything else keeps the equipment quantity cap.
+ * Coerce a raw AI loot array into {name, quantity} entries. Currency entries
+ * are folded onto Credstick/UPB (gold-piece language converts through cited
+ * denomination rates); everything else keeps the equipment quantity cap.
  */
 export function normalizeLoot(raw) {
   return (Array.isArray(raw) ? raw : [])
@@ -508,7 +428,7 @@ export function normalizeLoot(raw) {
       const scrollCandidate = e?.scrollCandidate?.packId && e?.scrollCandidate?._id ? e.scrollCandidate : null;
       const coins = parseCoins(name);
       if (coins) {
-        return { name: coins.name, quantity: Math.min(coins.count ? coins.count * quantity : quantity, 100000), value };
+        return { name: coins.name, quantity: currencyQuantity(coins, quantity), value: CREDIT_UNIT_GP };
       }
       return {
         name: String(name), quantity: Math.min(quantity, 10), value,
@@ -544,14 +464,13 @@ export function parseScroll(name) {
 export async function resolveLoot(concept, { exactContent = false } = {}) {
   const loot = [];
   for (const { name, quantity, value, candidate, scrollCandidate } of concept.loot) {
-    // Coins are module-built currency, not AI-selected equipment. Always
-    // resolve the published coinage document, even under exactContent —
-    // there is no candidate catalog for "Gold Coins".
+    // Currency is module-built from cited credstick/UPB templates, not
+    // AI-selected equipment. Always resolve even under exactContent.
     const coins = parseCoins(name);
     if (coins) {
-      const resolved = await resolveCoinage(coins.name);
+      const resolved = resolveCurrencyTemplate(coins.name);
       if (!resolved) {
-        console.warn(`simplysf2e | dropped coin loot "${name}": no published ${coins.name} coinage document`);
+        console.warn(`simplysf2e | dropped currency loot "${name}": cited ${coins.name} template is unusable`);
         continue;
       }
       loot.push({
@@ -620,19 +539,18 @@ const coinUnitGp = (line) => {
   const coins = parseCoins(line.name);
   if (!coins) return 0;
   const resolved = Number(line.resolvedValue) || 0;
-  return resolved > 0 ? resolved : (COIN_UNIT_GP[coins.name] ?? 0);
+  return resolved > 0 ? resolved : CREDIT_UNIT_GP;
 };
 
 /**
  * Nudge a resolved loot list toward the target gp budget (from
- * tables.treasureBudget). Only the fungible coin entries flex — the same
- * lever published adventures use to pad treasure: if the haul is more than
- * ~20% short, coins are added (or a Gold Pieces line is created) to close
- * the gap; if more than ~20% over, coin quantities shrink, largest
- * denomination first. Named items are NEVER deleted or shrunk to hit a
- * budget — with no coins left to trim, an overshoot just gets a console
- * note. Defensive by design: any failure returns the loot unchanged rather
- * than blocking actor creation.
+ * tables.treasureBudget). Only fungible currency entries flex: if the haul
+ * is more than ~20% short, credits are added (or a Credstick line is
+ * created) to close the gap; if more than ~20% over, currency quantities
+ * shrink, largest unit first. Named items are NEVER deleted or shrunk to
+ * hit a budget — with no currency left to trim, an overshoot just gets a
+ * console note. Defensive by design: any failure returns the loot unchanged
+ * rather than blocking actor creation.
  */
 export async function applyTreasureBudget(loot, targetGp) {
   try {
@@ -642,23 +560,24 @@ export async function applyTreasureBudget(loot, targetGp) {
 
     if (total < targetGp * 0.8) {
       const gap = targetGp - total;
-      const gold = loot.find((l) => parseCoins(l.name)?.name === "Gold Pieces");
-      if (gold) {
-        const unit = coinUnitGp(gold) || 1;
-        gold.quantity = Math.min(gold.quantity + Math.max(Math.round(gap / unit), 1), 100000);
+      const credits = loot.find((l) => parseCoins(l.name)?.name === "Credstick");
+      if (credits) {
+        const unit = coinUnitGp(credits) || CREDIT_UNIT_GP;
+        credits.quantity = Math.min(credits.quantity + Math.max(Math.round(gap / unit), 1), 100000);
       } else {
-        const resolved = await resolveCoinage("Gold Pieces");
+        const resolved = resolveCurrencyTemplate("Credstick");
         if (!resolved) {
-          console.warn("simplysf2e | treasure-budget coin padding skipped: no published Gold Pieces coinage document");
+          console.warn("simplysf2e | treasure-budget credit padding skipped: cited Credstick template is unusable");
           return loot;
         }
+        const unit = resolved.resolvedValue || CREDIT_UNIT_GP;
         loot.push({
-          name: "Gold Pieces",
-          quantity: Math.min(Math.max(Math.round(gap), 1), 100000),
-          value: 1,
-          runes: parseRunes("Gold Pieces"),
+          name: "Credstick",
+          quantity: Math.min(Math.max(Math.round(gap / unit), 1), 100000),
+          value: unit,
+          runes: parseRunes("Credstick"),
           entry: resolved.entry,
-          resolvedValue: resolved.resolvedValue || 1
+          resolvedValue: unit
         });
       }
       return loot;
@@ -1213,13 +1132,13 @@ export function applySourceEquipState(data) {
 
 /**
  * Turn resolved loot into embeddable item data (unequipped, in inventory):
- * published coinage clones (sheet currency via TreasurePF2e#isCoinage),
+ * cited credstick/UPB clones (sheet currency via TreasurePF2e#isCurrency),
  * scrolls assembled from their rank template, everything else a real
- * compendium clone with quantities and runes, and unmatched non-coin names a
- * custom treasure item at the AI's estimated value so the haul keeps its
- * worth. Coin lines never use that custom fallback. Shared by the NPC
- * pipeline (dropped loot) and the PC one (starting wealth). Deduped by name
- * for the same reason equipment is, except coins which may repeat.
+ * compendium clone with quantities and runes, and unmatched non-currency
+ * names a custom treasure item at the AI's estimated value so the haul
+ * keeps its worth. Currency lines never use that custom fallback. Shared by
+ * the NPC pipeline (dropped loot) and the PC one (starting wealth). Deduped
+ * by name for the same reason equipment is, except currency which may repeat.
  * @param {object[]} loot  entries from resolveLoot()
  * @returns {Promise<object[]>} item data ready to embed
  */
@@ -1228,19 +1147,21 @@ export async function buildLootItems(loot) {
   const seen = new Set();
   for (const { name, quantity, value, runes, entry, scroll } of loot ?? []) {
     const coins = parseCoins(name);
-    // Coins are the one line that legitimately repeats (applyTreasureBudget
-    // may add a Gold Pieces line next to an AI-drafted one), so they skip
-    // dedup and simply stack on the sheet.
+    // Currency is the one line that legitimately repeats (applyTreasureBudget
+    // may add a Credstick line next to an AI-drafted one), so it skips
+    // dedup. Credits stack on one stick via price.value; a second stick is
+    // valid per the cited credstick description.
     if (!coins) {
       const key = slugify(name);
       if (seen.has(key)) continue;
       seen.add(key);
     } else {
-      const doc = await getDocument(entry);
-      if (!isCoinageDocument(doc) || coinUnit(doc) !== COIN_DENOMINATION[coins.name]) {
-        throw new Error(`Cannot create coin loot "${name}": no published coinage source`);
+      const unit = coins.unit ?? entry?.currency;
+      const item = assembleCurrency(unit, quantity);
+      if (!item || !isCurrencyDocument(item)) {
+        throw new Error(`Cannot create currency loot "${name}": cited ${coins.name} template is unusable`);
       }
-      items.push(setQuantity(toItemData(doc), quantity));
+      items.push(item);
       continue;
     }
     if (scroll) {

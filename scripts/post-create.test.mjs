@@ -11,7 +11,7 @@ const expected = [
     name: "Fireball", type: "spell", system: { location: { value: "arcane" } }
   }),
   { _id: "arcane", name: "Arcane Spells", type: "spellcastingEntry" },
-  { name: "Gold Pieces", type: "treasure" },
+  { name: "Credstick", type: "treasure" },
   { name: "Narrative: Eerie Howl", type: "action" }
 ];
 const created = [
@@ -20,7 +20,7 @@ const created = [
     name: "Fireball", type: "spell", system: { location: { value: "arcane" } }
   }),
   { id: "arcane", name: "Arcane Spells", type: "spellcastingEntry" },
-  { name: "Gold Pieces", type: "treasure" },
+  { name: "Credstick", type: "treasure" },
   { name: "Narrative: Eerie Howl", type: "action" }
 ];
 
