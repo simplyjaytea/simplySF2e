@@ -18,4 +18,3 @@ Live Foundry QA of complete-only Envoy/Mystic/Solarian/Soldier/Witchwarper (path
 - Alpha, not a finished product. Mystic/Witchwarper spell slot tables are still inherited PF2e Remaster approximations. Item Forge rune assembly is still PF2e-era.
 - Live Foundry QA is not in this environment. Foundry core/theme CSS can still override window-header/input backgrounds; residual listed on the PR.
 - HISTORY.md is inherited from the PF2e scaffold; do not rewrite it as SF2e history.
-
