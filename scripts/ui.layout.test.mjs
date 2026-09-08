@@ -186,7 +186,7 @@ assert.match(generatorApp, /selectChoices: async \(groups\) =>[\s\S]*?selectChar
 assert.match(generatorApp, /finally \{\s*this\.#busy = false;\s*this\.#busyMessage = null;\s*this\._finishRun\(\);/,
   "character success and failure must clear both native and AI progress state");
 const messages = JSON.parse(langJson).SIMPLYSF2E;
-assert.match(messages.Progress.ApplyingCharacter, /PF2e choice dialogs/);
+assert.match(messages.Progress.ApplyingCharacter, /SF2e choice dialogs/);
 assert.match(messages.Generator.ChoicesNeedInput, /could not be selected automatically/);
 
 // --- Shared visual system (UI overhaul) ---------------------------------
