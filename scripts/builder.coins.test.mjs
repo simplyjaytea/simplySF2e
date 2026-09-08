@@ -8,7 +8,7 @@ import { priceToGp } from "./compendium.mjs";
 import {
   parseCoins, currencyQuantity, isCoinageDocument, isCurrencyDocument,
   assembleCurrency, resolveCurrencyTemplate, CREDSTICK_SOURCE, UPB_SOURCE,
-  CREDIT_UNIT_GP, DENOMINATION_RATES
+  CREDIT_UNIT_GP, DENOMINATION_RATES, gpToCredits
 } from "./currency.mjs";
 
 globalThis.game = {
@@ -61,6 +61,9 @@ assert.equal(priceToGp({ upb: 10 }), 1);
 
   assert.equal(parseCoins("Gold Coins").name, "Credstick");
   assert.equal(parseCoins("20 gp").count, 200, "1 gp = 10 credits");
+assert.equal(gpToCredits(15), 150, "Table 10-10 level-1 lump sum surfaces as 150 credits");
+assert.equal(gpToCredits(0), 0);
+assert.equal(gpToCredits(0.1), 1, "one credit (0.1 gp) does not round to zero");
   assert.equal(parseCoins("5 sp").count, 5, "1 sp = 1 credit");
   assert.equal(parseCoins("pp").name, "Credstick");
   assert.deepEqual(

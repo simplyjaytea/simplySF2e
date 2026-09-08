@@ -33,5 +33,7 @@ inc(creature, "Credits", "lootGuide must ask for credits");
 inc(creature, "UPB", "lootGuide may use UPB for materials");
 exc(creature, "Gold Coins", "lootGuide must not prefer gold-piece coin names");
 exc(pc, "as gold", "character wealth prompt must not treat leftover budget as gold");
+exc(creature, "fundamental-rune prefix in front", "lootGuide must not ask for PF2e rune prefixes");
+inc(creature, "invented grade suffixes", "lootGuide must forbid unpublished grades");
 
 console.log("ai.lootGuide.test.mjs: all production lootGuide assertions passed");

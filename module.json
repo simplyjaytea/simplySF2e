@@ -1,7 +1,7 @@
 {
   "id": "simplysf2e",
   "title": "SimplySF2e",
-  "description": "AI generator for Starfinder 2e (SF2e) actors in Foundry VTT. Ported from SimplyPF2e; under construction and not play-ready.",
+  "description": "AI generator for Starfinder 2e (SF2e) actors in Foundry VTT. Alpha: monster/NPC/encounter generation plus complete-only Character for five cited SF2e classes.",
   "version": "0.0.2",
   "authors": [
     {

@@ -2,16 +2,20 @@ import { getClassFeatureCandidates, getPacksFor, toItemData } from "./compendium
 import { choiceSetOptions, normalizeChoiceFlag, preselectChoiceSets } from "./choice-set.mjs";
 
 /**
- * Stage the small, mandatory level-one class-path bridge that PF2e normally
- * re-fetches from `Class.system.items` (Rogue's Racket, Methodology, and
- * similar features). The class remains native and keeps every other grant;
- * only the selected bridge is embedded directly, linked to that class, so its
- * exact enabled-source selection can be resolved before any world write.
+ * Stage the small, mandatory level-one class-path bridge that the system
+ * normally re-fetches from `Class.system.items`. Cited SF2e bridges use the
+ * same ChoiceSet `item:tag:<tag>` + GrantItem selection uuid as PF2e
+ * Racket/Methodology — not a renamed copy of those features. Sample:
+ * `packs/sf2e/class-features/soldier/soldier-fighting-style.json`
+ * (`item:tag:soldier-fighting-style`). The class remains native and keeps
+ * every other grant; only the selected bridge is embedded directly, linked
+ * to that class, so its exact enabled-source selection can be resolved
+ * before any world write.
  *
  * This is intentionally conservative. A path is eligible only when the
  * bridge's filter is a single `item:tag:<tag>` query, every selected feature
  * choice is static, and no descendant grant contains another choice. Anything
- * wider remains an unsupported class path rather than opening a PF2e dialog
+ * wider remains an unsupported class path rather than opening a native dialog
  * after a one-click build has started.
  */
 

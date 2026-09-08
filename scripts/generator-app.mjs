@@ -22,6 +22,7 @@ import { pcSpellcastingProfile, pcSpellPlan } from "./pc-tables.mjs";
 import { reviewUnresolvedChoices } from "./choice-set.mjs";
 import { normalizeSkillPriorities, skillPriorityOrder } from "./pc-skills.mjs";
 import { treasureBudget, TREASURE_AMOUNT_MULTIPLIER } from "./tables.mjs";
+import { gpToCredits } from "./currency.mjs";
 import { getCustomPresets, findPreset, examplePrompt, randomBrief, presetPickerGroups } from "./presets.mjs";
 import { ManagePresetsApp } from "./manage-presets-app.mjs";
 import { SourcesConfigApp } from "./sources-app.mjs";
@@ -1011,7 +1012,7 @@ export class GeneratorApp extends SpfApp {
       const wealthTarget = pcStartingWealthGp(concept.level, this.#input.treasureAmount);
       const equipmentGp = await equipmentValueGp(resolved.equipment);
       if (equipmentGp > wealthTarget) {
-        console.warn(`${MODULE_ID} | PC equipment (${equipmentGp} gp) alone exceeds the starting wealth target (${wealthTarget} gp) — keeping the gear and flooring the loot budget at 0`);
+        console.warn(`${MODULE_ID} | PC equipment (${gpToCredits(equipmentGp)} credits) alone exceeds the starting wealth target (${gpToCredits(wealthTarget)} credits) — keeping the gear and flooring the loot budget at 0`);
       }
       const lootBudget = Math.max(wealthTarget - equipmentGp, 0);
       // PC-only: applyTreasureBudget() never trims NAMED items (by design,

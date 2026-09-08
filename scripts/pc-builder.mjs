@@ -13,6 +13,7 @@ import { CORE_SKILLS, SKILL_ATTRIBUTES, normalizeSkillPriorities, initialSkillTr
 import { applyCharacterLoadout } from "./pc-loadout.mjs";
 import { stageClassPaths } from "./class-paths.mjs";
 import { stagedActorContext } from "./pc-prerequisites.mjs";
+import { gpToCredits } from "./currency.mjs";
 
 /**
  * Player-character counterpart of builder.mjs. PCs get their AC/HP/saves/
@@ -141,10 +142,10 @@ export function normalizePCConcept(raw, { level }) {
 }
 
 /**
- * Expected starting wealth (gp) for a character created at `level`: the lump
- * sum from GM Core Table 10-10 "Character Wealth" (see PC_WEALTH_BY_LEVEL in
- * pc-tables.mjs for the verified source and column), scaled by the GM's
- * Treasure amount setting.
+ * Expected starting wealth (gp-equivalent) for a character created at `level`:
+ * the lump sum from inherited Table 10-10 numbers (see PC_WEALTH_BY_LEVEL),
+ * scaled by the GM's Treasure amount setting. Surface that budget in credits
+ * with `pcStartingWealthCredits` (1 gp = 10 credits, cited DENOMINATION_RATES).
  *
  * Deliberately NOT tables.mjs's TREASURE_BY_LEVEL, which this function used
  * to read: that is Table 10-9 Treasure by Level, the total treasure a whole
@@ -161,6 +162,11 @@ export function pcStartingWealthGp(level, amount = "standard") {
   const lv = Math.min(Math.max(Math.round(Number(level)) || 1, 1), 20);
   const gp = PC_WEALTH_BY_LEVEL[lv - 1];
   return Math.round(gp * (T.TREASURE_AMOUNT_MULTIPLIER[amount] ?? 1));
+}
+
+/** Same lump sum as `pcStartingWealthGp`, surfaced in credits at 1 gp = 10 credits. */
+export function pcStartingWealthCredits(level, amount = "standard") {
+  return gpToCredits(pcStartingWealthGp(level, amount));
 }
 
 /**

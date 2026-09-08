@@ -1,7 +1,7 @@
 import * as T from "./tables.mjs";
 import { getPacksFor, findEntry, getDocument, toItemData, priceToGp, isIssuedCandidate } from "./compendium.mjs";
 import { slugify, capitalized, esc, toHtml } from "./text.mjs";
-import { parseRunes, applyRunes, capRunes, runeGp, hasRunes } from "./runes.mjs";
+import { parseRunes, applyRunes, dropUncitedRunePrefix, runeGp, hasRunes } from "./runes.mjs";
 import {
   parseCoins, currencyQuantity, isCurrencyDocument,
   assembleCurrency, resolveCurrencyTemplate, CREDIT_UNIT_GP
@@ -10,7 +10,7 @@ import {
 /* Re-exported so the rest of the module keeps importing its shared helpers
    from one place; the definitions live in text.mjs / runes.mjs / compendium.mjs. */
 export { slugify, capitalized, esc, toHtml } from "./text.mjs";
-export { parseRunes, applyRunes } from "./runes.mjs";
+export { parseRunes, applyRunes, dropUncitedRunePrefix } from "./runes.mjs";
 export { priceToGp } from "./compendium.mjs";
 export { parseCoins, isCoinageDocument, isCurrencyDocument, assembleCurrency } from "./currency.mjs";
 
@@ -474,7 +474,7 @@ export async function resolveLoot(concept, { exactContent = false } = {}) {
         continue;
       }
       loot.push({
-        name: coins.name, quantity, value, runes: parseRunes(coins.name),
+        name: coins.name, quantity, value, runes: dropUncitedRunePrefix(coins.name).runes,
         entry: resolved.entry, resolvedValue: resolved.resolvedValue
       });
       continue;
@@ -499,30 +499,34 @@ export async function resolveLoot(concept, { exactContent = false } = {}) {
       const templateDoc = await getDocument(await findScrollTemplate(rank));
       const templateGp = priceToGp(templateDoc?.system?.price?.value);
       loot.push({
-        name, quantity, value, runes: parseRunes(name), entry, scroll: { rank },
+        name, quantity, value, runes: dropUncitedRunePrefix(name).runes, entry, scroll: { rank },
         resolvedValue: templateGp > 0 ? templateGp : value
       });
       continue;
     }
-    // Loot may sit up to 2 levels above the creature, so the runes are capped
-    // at that same level rather than the creature's own.
+    // Loot may sit up to 2 levels above the creature. SF2e tech/analog items
+    // use published grades, not PF2e fundamental-rune prefixes (v14-dev
+    // Migration942EquipmentGrade). Drop an uncited prefix and match the base.
     const maxLevel = Math.max(concept.level + 2, 0);
+    const stripped = dropUncitedRunePrefix(name);
+    if (stripped.dropped) {
+      console.warn(`simplysf2e | ignored uncited fundamental-rune prefix on loot "${name}"`);
+    }
     const entry = isIssuedCandidate(candidate, getPacksFor("equipment"))
       ? candidate : (exactContent ? null : await findEntry(
         getPacksFor("equipment"),
-        parseRunes(name).base,
+        stripped.name,
         (e) => (e.system?.level?.value ?? 0) <= maxLevel
       ));
-    const runes = await capRunes(parseRunes(name), entry?.type, maxLevel);
+    const runes = stripped.runes;
     let resolvedValue = value;
     if (entry) {
       const doc = await getDocument(entry);
       const gp = unitPriceGp(doc);
-      // The matched entry is the BASE item, so add the runes' own real price.
       if (gp > 0) resolvedValue = gp + await runeGp(runes, entry.type);
       else if (hasRunes(runes)) resolvedValue = value + await runeGp(runes, entry.type);
     }
-    loot.push({ name, quantity, value, runes, entry, resolvedValue });
+    loot.push({ name: stripped.dropped ? stripped.name : name, quantity, value, runes, entry, resolvedValue });
   }
   return loot;
 }
@@ -765,19 +769,20 @@ export async function resolveEquipment(concept, { exactContent = false } = {}) {
   const equipment = [];
   const maxLevel = Math.max(concept.level, 0);
   for (const { name, quantity, value, candidate } of concept.equipment) {
-    // Strip fundamental runes ("+1 striking rapier" -> "rapier") so the base
-    // item matches; the runes are re-applied as system data at creation.
+    // SF2e tech/analog items use published grades (`system.grade`), not PF2e
+    // fundamental-rune prefixes. Drop an uncited "+1 striking" prefix and
+    // match the published base name.
+    const stripped = dropUncitedRunePrefix(name);
+    if (stripped.dropped) {
+      console.warn(`simplysf2e | ignored uncited fundamental-rune prefix on equipment "${name}"`);
+    }
     const entry = isIssuedCandidate(candidate, getPacksFor("equipment"))
       ? candidate : (exactContent ? null : await findEntry(
         getPacksFor("equipment"),
-        parseRunes(name).base,
+        stripped.name,
         (e) => (e.system?.level?.value ?? 0) <= maxLevel
       ));
-    // The item-level cap above only gates the BASE item — without this the AI's
-    // chosen rune tier is ungated, so a level-1 character asked for "+1
-    // striking" could be handed "+3 major striking" (a level-19 item).
-    const runes = await capRunes(parseRunes(name), entry?.type, maxLevel);
-    equipment.push({ name, quantity, value, runes, entry });
+    equipment.push({ name: stripped.dropped ? stripped.name : name, quantity, value, runes: stripped.runes, entry });
   }
   return equipment;
 }

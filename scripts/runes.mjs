@@ -122,6 +122,26 @@ export const hasRunes = (runes) =>
   Boolean(runes && (runes.potency || runes.striking || runes.resilient));
 
 /**
+ * SF2e tech/analog items use `system.grade` (commercial/tactical/…) rather
+ * than PF2e `+1 striking` prefixes. Cited v14-dev
+ * `src/module/migration/migrations/942-equipment-grade.ts` maps potency/striking
+ * onto grades and zeros runes. `sf2e.equipment` has no Weapon Potency /
+ * Striking / Resilient documents (solarian crystals are a separate item).
+ * Fail closed: drop the uncited prefix and keep the published base name.
+ */
+export function dropUncitedRunePrefix(name) {
+  const parsed = parseRunes(name);
+  if (!hasRunes(parsed)) {
+    return { name: String(name ?? "").trim(), runes: parsed, dropped: false };
+  }
+  return {
+    name: parsed.base,
+    runes: { ...parsed, potency: 0, striking: 0, resilient: 0 },
+    dropped: true
+  };
+}
+
+/**
  * The standard PF2e display name for a runed item: "+2 Greater Striking
  * Rapier". Built from the runes actually applied and the REAL base item's
  * name, so a capped tier (see capRunes) or an imperfectly-worded AI base name

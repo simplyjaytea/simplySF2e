@@ -62,8 +62,8 @@ const lang = JSON.parse(await readFile(new URL("../lang/en.json", import.meta.ur
 const keys = lang.SIMPLYSF2E.Presets;
 assert.equal(keys.StandardGroup, "Standard classes");
 assert.equal(keys.CustomGroup, "Custom presets");
-assert.match(keys.FlavorGuide, /flavor guides only/i);
-assert.match(keys.FlavorGuide, /not yet available/i);
+assert.match(keys.FlavorGuide, /flavor guides/i);
+assert.match(keys.FlavorGuide, /Operative stays locked/);
 assert.doesNotMatch(keys.FlavorGuide, /Fighter|Rogue|Investigator|Magus|Witch\b/);
 for (const dropped of [
   "Alchemist", "Barbarian", "Bard", "Champion", "Cleric", "Druid", "Fighter",
@@ -84,7 +84,8 @@ assert.match(readme, /^# SimplySF2e/m);
 assert.match(readme, /Starfinder 2e/);
 assert.match(readme, /simplyjaytea\/simplySF2e\/releases\/latest\/download\/module\.json/);
 assert.doesNotMatch(readme, /placeholder until the first release/i);
-assert.match(readme, /not play-ready/i);
+assert.match(readme, /\*\*Alpha\.\*\*/);
+assert.doesNotMatch(readme, /not play-ready/i);
 assert.match(readme, /`sf2e`/);
 assert.doesNotMatch(readme, /\*\*Standard\*\*.*23 Remaster/s);
 assert.doesNotMatch(readme, /complete-only still finishes \*\*Fighter\*\*/);
