@@ -108,7 +108,7 @@ Inherited PF2e-era notes for the scaffolded builders. They are **not** SF2e sche
 
 ## Current state (2026-09-08)
 
-**Phase B first slice (currency / table honesty / copy).** simplySF2e identity is `simplysf2e` / SimplySF2e, targeting system **`sf2e` 1.5.0**. Published GitHub release is **v0.0.1**; source `module.json` is **0.0.2**. **Not play-ready.** Git is authoritative for branch state; [HANDOFF.md](HANDOFF.md) is the live baton.
+**Phase B first slice (currency / table honesty / copy).** simplySF2e identity is `simplysf2e` / SimplySF2e, targeting system **`sf2e` 1.5.0**. Published GitHub release is **v0.0.2** (Phase A); this PR auto-releases as **v0.0.3** on merge. **Not play-ready.** Git is authoritative for branch state; [HANDOFF.md](HANDOFF.md) is the live baton.
 
 - **Pack defaults:** `DEFAULT_PACKS` uses real `sf2e.*` collection ids from `system.sf2e.json` 1.5.0 (`classes`, `class-features`, `feats`, `spells`, `equipment`, `ancestries`, `heritages`, `backgrounds`, `bestiary-ability-glossary-srd`, `alien-core-bestiary`).
 - **Chrome:** generator/forge/provider/preset windows use cited SF2e navy/cyan tokens (`src/styles/sf2e/index.scss`); no system artwork.
