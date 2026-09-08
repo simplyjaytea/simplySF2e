@@ -286,6 +286,13 @@ assert.match(messages.Errors.Cancelled, /cancelled/i);
 assert.match(css, /prefers-reduced-motion:\s*reduce/, "generating animation must yield to reduced motion");
 assert.match(css, /--spf-brand-dark:\s*#1d3c53/, "brand dark is cited SF2e primary navy");
 assert.match(css, /--spf-brand-accent:\s*#9edae6/, "brand accent is cited SF2e trait cyan");
+assert.match(css, /--spf-brand-secondary:\s*#40256f/, "brand secondary is cited SF2e violet");
+assert.match(css, /--spf-warning:\s*#98503d/, "warning token is cited SF2e legendary orange");
+assert.match(css, /\.simplysf2e button\.spf-secondary\s*\{/, "quiet companion actions share HUD chrome");
+assert.match(css, /\.application\.simplysf2e \.window-header\s*\{/, "module windows restyle the Foundry header toward SF2e navy");
+assert.match(generator, /simplysf2e-generator\{\{#if busy\}\} spf-busy\{\{\/if\}\}/,
+  "generator root must flag busy for HUD chrome without inventing progress copy");
+assert.match(generatorApp, /classList\?\.toggle\("spf-busy"/, "generator window must toggle busy chrome from context");
 assert.doesNotMatch(css, /#58180d|#a3512c|#d8c384/, "PF2e maroon/gold tokens must not remain");
 assert.match(css, /\.simplysf2e \.spf-progress-thinking/, "thinking must have a distinct phase treatment");
 assert.match(css, /\.simplysf2e \.spf-progress-writing/, "writing must have a distinct phase treatment");

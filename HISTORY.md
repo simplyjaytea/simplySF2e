@@ -4,6 +4,10 @@ This file is inherited from the simplyPF2e scaffold. It is PF2e-era history, not
 
 Full session-by-session narrative, process notes, and the bug log. Not loaded by default context the way CLAUDE.md is — read this when you need to know *why* something is the way it is, whether a past session already investigated something, or what a specific PR actually changed. Newest first.
 
+## 2026-09-08 — Chrome S: generator HUD polish
+
+- Started from `origin/main` `2c07cc6` (PR #4 Phase B2 alpha). Cited `foundryvtt/pf2e` **v14-dev** `src/styles/sf2e/index.scss` tokens only. Deepened existing navy/cyan Application chrome (window header, cards, mode radios, Advanced, generate/cancel, progress sheen, trust/status contrast). No custom art. Busy class on generator root + Application element. README Status notes Alpha HUD polish honestly.
+
 ## 2026-09-08 — Phase B2 alpha: cited class paths, credits surface, rune prefix fail-closed
 
 - Started from `origin/main` `4a4fa38` (PR #3 Phase B1 / v0.0.3). Cited `foundryvtt/pf2e` **v14-dev** class JSON: `packs/sf2e/classes/{envoy,mystic,operative,solarian,soldier,witchwarper}.json` `system.items` dict of `{img, level, name, uuid}` grants. L1 path features use ChoiceSet `item:tag:` + GrantItem (soldier-fighting-style, envoy-leadership-style, mystic-connection, witchwarper-paradox, witchwarper-anchor). Solarian Solar Manifestations is GrantItem/Strike REs, not an item:tag ChoiceSet. Operative specializations all carry `choices.filter: ["item:category:skill", "item:level:1"]` — not closed under `stageClassPaths`. Unlocked complete-only: envoy, mystic, solarian, soldier, witchwarper.
