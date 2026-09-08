@@ -10,6 +10,7 @@ Read this first, then CLAUDE.md. HISTORY.md is the PF2e-era scaffold narrative; 
 - Entrypoints: `scripts/simplysf2e.mjs`, `styles/simplysf2e.css`. `MODULE_ID`, settings namespace, CSS root class, i18n root `SIMPLYSF2E`, and Foundry flags namespace follow the new id. Runtime app gate checks `game.system.id === "sf2e"`. The PF2e rest hook name is unchanged (mechanics later).
 - `.github/workflows/` restored from simplyPF2e (`auto-release.yml`, `pull-request.yml`, `release.yml`); push of workflow files succeeded.
 - Local verification on this branch: `node --check` on 117 scripts, JSON parse of `module.json` + `lang/en.json`, **82/82** `scripts/*.test.mjs` passed. Two identity tests (`presets.catalog.test.mjs`, `ui.layout.test.mjs`) were updated so they no longer require the wiped PF2e README / “PF2e choice dialogs” copy.
+- Sentinel revise: neutralized `lang/en.json` copy that claimed SF2e system/equipment/glossary packs while `DEFAULT_PACKS` is still `pf2e.*`. No pack ids invented or retargeted.
 
 ## Exact next step
 

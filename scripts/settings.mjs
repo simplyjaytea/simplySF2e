@@ -35,7 +35,7 @@ export function registerSettings(SourcesConfigApp, ProviderSetupApp) {
   });
 
   // Per-category pack selection, managed by the Compendium Sources menu.
-  // An unset or empty category means "use the SF2e system defaults".
+  // An unset or empty category means "use the scaffold's system pack defaults".
   game.settings.register(MODULE_ID, SETTINGS.sourcePacks, {
     scope: "world",
     config: false,
