@@ -8,11 +8,12 @@ Read this first, then CLAUDE.md. HISTORY.md is the PF2e-era scaffold narrative; 
 - This slice is **identity and docs only**: module id `simplysf2e`, title SimplySF2e, Foundry system `sf2e`, version `0.1.0`, README stub, package constants/entrypoints renamed. **No SF2e mechanics port.**
 - `relationships.systems` is `{ id: "sf2e", type: "system" }` with **no minimum** — public Foundry listing currently shows sf2e **1.5.0**, but this scaffold has not been verified against any SF2e version.
 - Entrypoints: `scripts/simplysf2e.mjs`, `styles/simplysf2e.css`. `MODULE_ID`, settings namespace, CSS root class, i18n root `SIMPLYSF2E`, and Foundry flags namespace follow the new id. Runtime app gate checks `game.system.id === "sf2e"`. The PF2e rest hook name is unchanged (mechanics later).
-- `.github/workflows/` restored from simplyPF2e and pointed at this repo if the environment can push workflow files; otherwise note that in the PR.
+- `.github/workflows/` restored from simplyPF2e (`auto-release.yml`, `pull-request.yml`, `release.yml`); push of workflow files succeeded.
+- Local verification on this branch: `node --check` on 117 scripts, JSON parse of `module.json` + `lang/en.json`, **82/82** `scripts/*.test.mjs` passed. Two identity tests (`presets.catalog.test.mjs`, `ui.layout.test.mjs`) were updated so they no longer require the wiped PF2e README / “PF2e choice dialogs” copy.
 
 ## Exact next step
 
-**SF2e schema discovery** — fetch real `sf2e` system source (do not recall PF2e shapes) and map actor/item/compendium/pack differences before any builder/table/preset port.
+PR #1 (`cursor/identity-rebrand-77c0`) is the identity rebrand. **Next parked: SF2e schema discovery** — fetch real `sf2e` system source (do not recall PF2e shapes) and map actor/item/compendium/pack differences before any builder/table/preset port.
 
 ## Material limits
 
