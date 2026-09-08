@@ -5,7 +5,7 @@ const entries = [
   { _id: "best", type: "npc", img: "best.webp", system: { traits: { value: ["undead", "skeleton"], size: { value: "med" } }, details: { level: { value: 5 } } } }
 ];
 const pack = { getIndex: async () => entries, getDocument: async (id) => ({ toObject: () => ({ img: entries.find((entry) => entry._id === id).img, prototypeToken: { disposition: -1 } }) }) };
-globalThis.game = { packs: { get: (id) => id === "pf2e.pathfinder-bestiary" ? pack : null }, settings: { get: () => ({ bestiaryActors: ["pf2e.pathfinder-bestiary"] }) } };
+globalThis.game = { packs: { get: (id) => id === "sf2e.alien-core-bestiary" ? pack : null }, settings: { get: () => ({ bestiaryActors: ["sf2e.alien-core-bestiary"] }) } };
 const { findBestiaryScaffold } = await import("./art.mjs");
 const scaffold = await findBestiaryScaffold({ traits: ["undead", "skeleton"], size: "med", level: 5 });
 assert.equal(scaffold.img, "best.webp");

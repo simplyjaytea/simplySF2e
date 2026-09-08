@@ -4,18 +4,20 @@ AI generator for Starfinder 2e actors in Foundry VTT. Ported from [SimplyPF2e](h
 
 ## Install
 
-Paste this manifest URL into **Foundry → Add-on Modules → Install Module** (placeholder until the first release exists):
+Paste this manifest URL into **Foundry → Add-on Modules → Install Module**:
 
 ```
 https://github.com/simplyjaytea/simplySF2e/releases/latest/download/module.json
 ```
 
+Current published release: **v0.0.1** (identity rebrand). This branch targets **v0.0.2**. Auto-release stamps `module.json` on each merge to `main`.
+
 ## Status
 
-Scaffold / early port — **not play-ready**. Identity is `simplysf2e` targeting system `sf2e`. PF2e-era builders, tables, presets, and schema assumptions are still present under the hood until later slices.
+Phase A working foundations — **not play-ready**. Identity is `simplysf2e` targeting system `sf2e` **1.5.0** (Foundry 14.361+ / verified 14.367). Pack defaults and Standard presets are retargeted to Starfinder 2e; generator chrome uses an SF2e-inspired navy/cyan theme (no system sheet art). GM Core tables, rune/wealth math, and complete-only PC staging remain PF2e-era until later phases. Complete one-click Character generation is not offered for SF2e classes yet.
 
 ## Links
 
 - Repository: https://github.com/simplyjaytea/simplySF2e
-- Foundry: v14
-- Game system: [`sf2e`](https://foundryvtt.com/packages/sf2e) (Starfinder Second Edition)
+- Foundry: v14 (compat minimum 14.361)
+- Game system: [`sf2e`](https://foundryvtt.com/packages/sf2e) 1.5.0 (Starfinder Second Edition)

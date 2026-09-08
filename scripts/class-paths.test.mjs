@@ -4,9 +4,9 @@
 import assert from "node:assert/strict";
 
 const docs = new Map();
-const uuid = (id) => `Compendium.pf2e.classfeatures.Item.${id}`;
+const uuid = (id) => `Compendium.sf2e.class-features.Item.${id}`;
 const doc = (id, name, system) => ({
-  pack: "pf2e.classfeatures", uuid: uuid(id), name,
+  pack: "sf2e.class-features", uuid: uuid(id), name,
   toObject: () => ({ _id: id, name, type: "feat", system: structuredClone(system) })
 });
 docs.set(uuid("bridge"), doc("bridge", "Methodology", { rules: [
@@ -32,12 +32,12 @@ const pack = {
   getDocument: async (id) => docs.get(uuid(id)) ?? null
 };
 let configuredSources = {};
-globalThis.game = { packs: { get: (id) => id === "pf2e.classfeatures" || id === "module.other-features" ? pack : null }, settings: { get: () => configuredSources } };
+globalThis.game = { packs: { get: (id) => id === "sf2e.class-features" || id === "module.other-features" ? pack : null }, settings: { get: () => configuredSources } };
 globalThis.CONFIG = { PF2E: {} };
 globalThis.fromUuid = async (id) => docs.get(id) ?? null;
 
 const { stageClassPaths } = await import("./class-paths.mjs");
-const classData = { system: { items: { bridge: { level: 1, uuid: uuid("bridge") }, ordinary: { level: 1, uuid: "Compendium.pf2e.classfeatures.Item.NotAPath" } } } };
+const classData = { system: { items: { bridge: { level: 1, uuid: uuid("bridge") }, ordinary: { level: 1, uuid: "Compendium.sf2e.class-features.Item.NotAPath" } } } };
 const calls = [];
 const staged = await stageClassPaths(classData, "class-id", {
   context: {},

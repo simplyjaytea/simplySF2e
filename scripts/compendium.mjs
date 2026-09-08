@@ -2,7 +2,7 @@
  * Fuzzy lookups against compendium packs so the AI can reference abilities,
  * spells, feats and equipment by name and we pull the real documents. Which
  * packs each category draws from is configurable (Compendium Sources menu);
- * the PF2e system packs are the defaults.
+ * the SF2e system packs are the defaults (system.sf2e.json 1.5.0 on v14-dev).
  */
 
 import { SETTINGS, getSetting } from "./settings.mjs";
@@ -14,26 +14,22 @@ export const CATEGORIES = [
 ];
 
 export const DEFAULT_PACKS = {
-  // PF2e 8 removed the `-srd` suffix from the family glossary collection.
-  // Keep both identifiers so the supported PF2e 6+ range selects whichever
-  // version its installed system exposes.
-  abilities: [
-    "pf2e.bestiary-ability-glossary-srd",
-    "pf2e.bestiary-family-ability-glossary",
-    "pf2e.bestiary-family-ability-glossary-srd"
-  ],
-  spells: ["pf2e.spells-srd"],
-  equipment: ["pf2e.equipment-srd"],
-  feats: ["pf2e.feats-srd"],
-  ancestries: ["pf2e.ancestries"],
-  backgrounds: ["pf2e.backgrounds"],
-  classes: ["pf2e.classes"],
-  // Class-path features (rackets, methodologies, schools, theses) are
-  // selected from this explicitly enabled source. They are not ordinary PC
-  // feat candidates: the native class grant graph owns their creation.
-  classFeatures: ["pf2e.classfeatures"],
-  heritages: ["pf2e.heritages"],
-  bestiaryActors: ["pf2e.pathfinder-monster-core", "pf2e.pathfinder-bestiary"]
+  // Collection ids are `sf2e.<packs[].name>` from system.sf2e.json 1.5.0
+  // (foundryvtt/pf2e v14-dev). SF2e has no family-ability glossary packs.
+  abilities: ["sf2e.bestiary-ability-glossary-srd"],
+  spells: ["sf2e.spells"],
+  equipment: ["sf2e.equipment"],
+  feats: ["sf2e.feats"],
+  ancestries: ["sf2e.ancestries"],
+  backgrounds: ["sf2e.backgrounds"],
+  classes: ["sf2e.classes"],
+  // Class-path features are selected from this explicitly enabled source.
+  // They are not ordinary PC feat candidates: the native class grant graph
+  // owns their creation. Pack name is hyphenated (`class-features`), unlike
+  // PF2e's `classfeatures`.
+  classFeatures: ["sf2e.class-features"],
+  heritages: ["sf2e.heritages"],
+  bestiaryActors: ["sf2e.alien-core-bestiary"]
 };
 
 export const EQUIPMENT_TYPES = new Set([
@@ -95,7 +91,7 @@ export function sourceReadiness(mode, { allowSpellcasting = true } = {}) {
 /**
  * Every pack that can serve `category`: the configured/default packs UNION all
  * installed Item packs auto-detected to contain that type. Fixes ABC lookups
- * failing when a legit AI pick lives in a Lost Omens / add-on compendium the
+ * failing when a legit AI pick lives in an add-on compendium the
  * hardcoded DEFAULT_PACKS list doesn't name (issue #51). Reuses the cached
  * detectAvailablePacks() scan (same runtime-discovery pattern as the item
  * forge's equipment-pack scan), so it does not rescan per lookup.
@@ -780,7 +776,7 @@ export function getHeritageCandidates(maxRarity) {
 
 /**
  * List real feats a PC could take for one feat slot, drawn from the existing
- * feats packs (pf2e.feats-srd, already wired via getPacksFor("feats")).
+ * feats packs (sf2e.feats, already wired via getPacksFor("feats")).
  * Filters by item level <= the slot's level, and (when given) by the feat's
  * `system.category` ("ancestry"|"class"|"skill"|"general" — the PF2e system's
  * own discriminator) and a trait intersection (e.g. the ancestry's own trait

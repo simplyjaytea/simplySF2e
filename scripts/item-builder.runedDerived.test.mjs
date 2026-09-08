@@ -8,7 +8,7 @@ const docs = new Map();
 const entry = (id, name, type) => ({ _id: id, name, type });
 const makeDoc = (id, name, type, system) => ({
   name,
-  uuid: `Compendium.pf2e.equipment-srd.Item.${id}`,
+  uuid: `Compendium.sf2e.equipment.Item.${id}`,
   system,
   toObject: () => ({ _id: id, name, type, system: structuredClone(system) })
 });
@@ -34,7 +34,7 @@ const entries = [
 globalThis.game = {
   settings: { get: (_moduleId, key) => key === SETTINGS.sourcePacks ? {} : null },
   i18n: { localize: (key) => key },
-  packs: new Map([["pf2e.equipment-srd", {
+  packs: new Map([["sf2e.equipment", {
     getIndex: async () => entries,
     getDocument: async (id) => docs.get(id)
   }]])

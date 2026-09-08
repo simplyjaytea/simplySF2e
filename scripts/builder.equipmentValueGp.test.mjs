@@ -17,7 +17,7 @@ import { readFile } from "node:fs/promises";
 
 /* ---- minimal Foundry `game` mock: one equipment pack with a plain item,
    a +1 potency rune, and a Striking rune, all with real-shaped price data. ---- */
-const PACK_ID = "pf2e.equipment-srd";
+const PACK_ID = "sf2e.equipment";
 
 const LONGSWORD = { _id: "longsword001", name: "Longsword", type: "weapon", system: { price: { value: { gp: 1 } } } };
 const POTENCY_1 = { name: "Weapon Potency (+1)", type: "equipment", system: { level: { value: 2 }, price: { value: { gp: 35 } } } };

@@ -4,6 +4,11 @@ This file is inherited from the simplyPF2e scaffold. It is PF2e-era history, not
 
 Full session-by-session narrative, process notes, and the bug log. Not loaded by default context the way CLAUDE.md is — read this when you need to know *why* something is the way it is, whether a past session already investigated something, or what a specific PR actually changed. Newest first.
 
+## 2026-09-08 — Phase A SF2e pack defaults and presets
+
+- Started from `origin/main` `2d038b3` (PR #1 identity rebrand; published **v0.0.1**). Cited `foundryvtt/pf2e` **v14-dev** `system.sf2e.json` **1.5.0**.
+- `DEFAULT_PACKS` retargeted to real `sf2e.*` collection ids. Standard presets are the six SF2e classes only. `COMPLETE_PC_CLASS_SLUGS` emptied (mandatory L1 paths on every class; no invented staging). Rest hook kept as cited `pf2e.restForTheNight`. Credits/UPB not implemented. README/`module.json` 0.0.2 honesty. Generator CSS retokenized to cited SF2e navy/cyan (no sheet art). Creature/PC/loot prompts drop PF2e named exemplars and do not claim SF2e Building Creatures tables.
+
 ## 2026-09-05 — Authorized audit publication
 
 - The user explicitly requested pushing and merging the independently reviewed audit commit `1ee5b5b`. Publish `codex/forge-generator-audit` through a PR after CI, then verify the automatic release. Runtime code is unchanged since the final review. Revised-code installation/native Foundry acceptance remains outstanding.

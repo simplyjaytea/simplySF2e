@@ -1,15 +1,15 @@
 # simplySF2e — project brief
 
-Foundry VTT module. An AI generator for Starfinder 2e (`sf2e`) actors, ported from simplyPF2e. **Scaffold / early port — not play-ready.** Identity is `simplysf2e`; PF2e-era builders, tables, and schema assumptions remain until later slices. Repo: `simplyjaytea/simplySF2e`.
+Foundry VTT module. An AI generates Starfinder 2e NPCs/monsters, Player Characters, and magic items from a text prompt. Every named pick is grounded against the real installed `sf2e` compendium. Repo: `simplyjaytea/simplySF2e`.
 
 **Session history, the full bug log, and PR narrative are in [HISTORY.md](HISTORY.md) — check there before re-investigating anything.** This file holds only what is true right now.
 
 ## Glossary
 
 - **Foundry** — the VTT this is a module for. **Actor** = a character/creature sheet. **Item** = anything embedded on one.
-- **sf2e system** — the Foundry package id for Starfinder Second Edition (`sf2e`). The scaffolded builders still contain PF2e-era pack/schema assumptions until schema discovery. "Real source" = the installed system's actual TS/JSON, fetched live, not recalled from PF2e memory.
+- **sf2e system** — Starfinder Second Edition (`sf2e`), sourced from the PF2e monorepo branch **v14-dev**, manifest `system.sf2e.json` **1.5.0** (Foundry compat minimum 14.361 / verified 14.367). Pack collection ids are `sf2e.<packs[].name>`. "Real source" = that repo's actual TS/JSON, fetched live, not recalled from PF2e memory.
 - **Compendium / pack** — a bundled library of real game content. The module never invents content: a pick either matches a real document or is marked custom.
-- **GM Core** — the sourcebook whose Building Creatures benchmark tables (AC/HP/save/attack by level) `tables.mjs` hardcodes. **Remaster** — the 2023+ edition; the AI is repeatedly reminded to use Remaster names.
+- **GM Core** — PF2e-era Building Creatures tables still hardcoded in `tables.mjs` until a later phase cites SF2e creature-building numbers. **Do not invent SF2e document field shapes.**
 - **ABC item** — Ancestry/Background/Class, the real items a PC embeds to derive stats. **Heritage** — a 4th, in its own pack.
 - **Grant** — an item that auto-bundles another when embedded (an ancestry grants its features), via `system.items` on the granting doc.
 - **Rule Element (RE)** — a JSON rule object in `system.rules` that makes something mechanically happen. Foundry fails **silently** on a wrong key, so a hand-typed RE can look right and do nothing.
@@ -72,7 +72,7 @@ Encounter mode: `designEncounter()` picks a theme + per-role briefs once, then t
 | `progress.mjs` | Pure weighted/monotonic generation-progress math (step budgets, stream mapping). |
 | `tokens.mjs` | Token estimate + `normalizeUsage`; fallback counts are labeled estimated and coarsened on display. |
 | `encounter.mjs` | XP budget/composition math. |
-| `presets.mjs` | 23 Remaster class flavor presets (Standard) + custom preset CRUD + random briefs. |
+| `presets.mjs` | Six SF2e class flavor presets (Standard) + custom preset CRUD + random briefs. |
 | `*.test.mjs` | Standalone regression checks (`node scripts/<name>.test.mjs`); CI runs every check before release. |
 
 ## Agent workflow
@@ -83,7 +83,7 @@ Claude-side orchestration (when running as Fable/Opus with subagent tools):
 
 - **Fable acts as coordinator**: plans, delegates, verifies, integrates, and owns the final report. It writes HANDOFF.md itself.
 - **Delegate down aggressively**: Sonnet for mechanical execution of an already-specified plan (apply a mapped-out fix, write a test mirroring an existing one, mechanical renames). Opus for open-ended design, hard debugging, or anything where the plan itself is the hard part. Haiku only for trivial bulk text operations — this repo rarely has any.
-- **Never delegate the two things that bite this repo**: (1) pf2e schema verification — the delegate must be explicitly told to fetch real `foundryvtt/pf2e` source, and the coordinator spot-checks the citation; (2) release/workflow `.yml` reasoning.
+- **Never delegate the two things that bite this repo**: (1) sf2e schema verification — the delegate must be explicitly told to fetch real `foundryvtt/pf2e` **v14-dev** source (`system.sf2e.json` / `packs/sf2e/`), and the coordinator spot-checks the citation; (2) release/workflow `.yml` reasoning.
 - **Every schema-dependent or balance-sensitive diff gets an independent reviewer agent** (fresh context, not the builder) before the PR is called done — proven to catch real bugs three separate times (HISTORY.md process notes).
 - Subagent claims of "verified" require a quoted source line; treat unquoted verification claims as recalled, i.e. unverified.
 
@@ -103,17 +103,21 @@ Inherited PF2e-era notes for the scaffolded builders. They are **not** SF2e sche
 - `details.languages.value` is **not** truncated to max, and the system already adds Int mod to `build.languages.max` itself.
 - Not writing `system.price`/`system.level` on a runed item is **correct** — `physical/document.ts` recomputes both via `computeLevelRarityPrice()` every prep.
 - A character's `resources.focus.max` is zeroed every prep and rebuilt only from ActiveEffectLike rules, so the PC focus pool needs a cloned RE; an NPC's can be plain actor data.
-- PF2e 8.4.1 `TreasurePF2e#isCoinage` is `system.category === "coin"` (`src/module/item/treasure/document.ts`). `stackGroup === "coins"` is the pre-8.4.1 source field; 8.4.1 `TreasureSystemData.migrateData` maps it to `category: "coin"`. Do not hand-author coin items; clone the published Gold/Silver/Copper/Platinum Pieces documents. `ActorInventory.addCurrency` loads those same docs from `coinCompendiumUuids` in `src/module/actor/inventory/index.ts`.
+- v14-dev `ActorInventory.addCurrency` still lists PF2e gold-piece UUIDs on `pf2e.equipment-srd`, and SF2e credits/UPB come from bundled `credstick.json` / `upb.json` (`src/module/actor/inventory/index.ts`). Do not invent coin/credit item data; clone published documents. Credits/UPB assembly is Phase B.
 
 ## Current state (2026-09-08)
 
-**Scaffold.** simplySF2e is a Foundry module cloned from simplyPF2e. Identity is `simplysf2e` / SimplySF2e / version **0.1.0**, targeting system **`sf2e`**. README is a stub. **Not play-ready** — PF2e-era builders, GM Core tables, Remaster presets, and schema assumptions remain until later slices. Git is authoritative for branch state; [HANDOFF.md](HANDOFF.md) is the live baton.
+**Phase A working foundations.** simplySF2e identity is `simplysf2e` / SimplySF2e, targeting system **`sf2e` 1.5.0**. Published GitHub release is **v0.0.1**; source `module.json` is **0.0.2** (next auto-release). **Not play-ready.** Git is authoritative for branch state; [HANDOFF.md](HANDOFF.md) is the live baton.
 
-- **This slice:** package identity + docs only. No SF2e mechanics port. No live Foundry QA.
-- **Next parked:** SF2e schema discovery (fetch real `sf2e` source; do not recall PF2e shapes).
-- **Inherited code:** the three pipelines (NPC/creature, PC, item forge), fail-closed grounding, cloned Rule Elements, and node regression suite still describe the PF2e-era scaffold. Treat [HISTORY.md](HISTORY.md) as parent-project history, not simplySF2e releases.
+- **Pack defaults:** `DEFAULT_PACKS` uses real `sf2e.*` collection ids from `system.sf2e.json` 1.5.0 (`classes`, `class-features`, `feats`, `spells`, `equipment`, `ancestries`, `heritages`, `backgrounds`, `bestiary-ability-glossary-srd`, `alien-core-bestiary`).
+- **Chrome:** generator/forge/provider/preset windows use cited SF2e navy/cyan tokens (`src/styles/sf2e/index.scss`); no system artwork.
+- **Standard presets:** the six published SF2e classes only (envoy, mystic, operative, solarian, soldier, witchwarper). Flavor guides; scale-words only.
+- **Complete-only registry:** empty. All six classes grant a mandatory level-1 path; none are proven to share the existing Fighter/Rogue/Investigator staging path. Fail closed.
+- **Rest hook residual:** v14-dev still fires `Hooks.callAll("pf2e.restForTheNight", actor)`. No `sf2e.restForTheNight` is cited. The module keeps that exact string.
+- **Out of scope (Phase B+):** Building Creatures tables, NPC strike catalogs, feat prerequisite graphs, wealth/credits, rune systems, SF2e document field shapes.
+- **Inherited code:** NPC/PC/forge pipelines, fail-closed grounding, cloned Rule Elements. Treat [HISTORY.md](HISTORY.md) as parent-project history, not simplySF2e releases.
 
-**Recorded live evidence:** none for simplySF2e. PF2e-era QA listed below in Known gaps / HISTORY.md does not apply to this module until an SF2e port lands.
+**Recorded live evidence:** none for simplySF2e.
 
 ## Known gaps
 
@@ -121,7 +125,7 @@ Inherited from the PF2e scaffold and **not re-evaluated for SF2e**. Do not treat
 
 - **Skill completion limits:** unknown grant timing, non-floor native rank transformations, and missing class data are warned rather than inferred. Duplicate native feat grants and arbitrary new Lore replacements remain manual; this is not full feat-prerequisite validation or a historical level-up simulator. The latest native-clone/skill-write workflow has not been live-tested.
 
-- **PC casting coverage:** base-slot regressions verify the seven supported casting profiles for Remaster Bard, Cleric, Druid, Oracle, Sorcerer, Witch, Wizard against all 140 rows of the PF2e 8.4.1 class tables. Ordinary signatures for the three qualified spontaneous classes are selected in the existing spell pass; missing/conflicting/invalid designations remain regular spells, not guessed replacements. Legacy/complex profiles, subclass-granted spells, restricted font/curriculum slots, bonus signature feats, variable-tradition consistency, and full spellbook/familiar inventories still need manual handling. Empty/invalid plans never invent preparations. Live PC casting/expending acceptance is still outstanding; complete-only class selection remains restricted as described above.
+- **PC casting coverage:** inherited PF2e Remaster profiles remain in `pc-tables.mjs` and are not SF2e casting tables. Complete-only class selection is empty until an SF2e staging path is cited.
 - **Free Archetype prerequisite graph is unbuilt** — level-2+ complete one-click generation stops before provider spend because that extra feat graph is not evaluated. Ordinary (non-variant) feat prerequisites now use the fail-closed staged-actor evaluator. Native `archetype-<level>` slot placement is exact.
 - **Focus spells, v1 scope:** a focus-only NPC (no casting tradition, so no DC) is unsupported, and the pool-size convention (spell count, capped at 3) is a module default, not GM Core guidance. Both are signed-off decisions.
 - **Rarity cap covers ancestry/background/heritage only** — feats/spells/equipment were explicitly excluded. `getFullCandidates()`'s `maxRarity` + `RARITY_RANK` are already in place if extending is wanted.

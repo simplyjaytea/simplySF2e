@@ -137,9 +137,14 @@ Hooks.on("deleteItem", async (item, _options, userId) => {
 });
 
 /*
- * PF2e calls this hook locally on the client performing Rest for the Night
- * (src/scripts/macros/rest-for-the-night.ts), including player clients. The
- * initiating owner resets only their actor's forged daily counters.
+ * The shared v14-dev rest macro still fires this exact hook name on the
+ * initiating client, including player clients:
+ *   foundryvtt/pf2e@v14-dev src/scripts/macros/rest-for-the-night.ts
+ *   `Hooks.callAll("pf2e.restForTheNight", actor)`
+ * No `sf2e.restForTheNight` (or other renamed hook) is cited in that source.
+ * Residual: the event string remains `pf2e.*` even when game.system.id is
+ * sf2e. Do not invent a replacement name. The owner resets only their
+ * actor's forged daily counters.
  */
 Hooks.on("pf2e.restForTheNight", async (actor) => {
   if (!actor?.isOwner || !actor.items) return;

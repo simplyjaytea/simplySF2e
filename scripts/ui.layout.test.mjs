@@ -232,7 +232,7 @@ assert.match(generator, /<details class="spf-advanced">[\s\S]*?<summary>\{\{loca
 assert.match(generator, /data-action="managePresets"[\s\S]*?SIMPLYSF2E\.Presets\.Manage/,
   "the generator exposes one labeled Manage Presets control instead of edit icons");
 assert.match(generator, /<optgroup label="\{\{localize 'SIMPLYSF2E\.Presets\.StandardGroup'\}\}">/,
-  "built-in Remaster classes must render in a Standard optgroup");
+  "built-in SF2e classes must render in a Standard optgroup");
 assert.match(generator, /\{\{#if customPresets\.length\}\}[\s\S]*?<optgroup label="\{\{localize 'SIMPLYSF2E\.Presets\.CustomGroup'\}\}">/,
   "the Custom optgroup must be omitted when this world has no custom presets");
 assert.match(generator, /class="spf-hint spf-preset-trust" role="note"/,
@@ -284,6 +284,9 @@ assert.match(messages.Tokens.LastRun, /^last: \{total\} tokens$/);
 assert.match(messages.Tokens.LastRunEstimated, /≈ \{total\} tokens/, "estimated last-run copy must keep ≈");
 assert.match(messages.Errors.Cancelled, /cancelled/i);
 assert.match(css, /prefers-reduced-motion:\s*reduce/, "generating animation must yield to reduced motion");
+assert.match(css, /--spf-brand-dark:\s*#1d3c53/, "brand dark is cited SF2e primary navy");
+assert.match(css, /--spf-brand-accent:\s*#9edae6/, "brand accent is cited SF2e trait cyan");
+assert.doesNotMatch(css, /#58180d|#a3512c|#d8c384/, "PF2e maroon/gold tokens must not remain");
 assert.match(css, /\.simplysf2e \.spf-progress-thinking/, "thinking must have a distinct phase treatment");
 assert.match(css, /\.simplysf2e \.spf-progress-writing/, "writing must have a distinct phase treatment");
 assert.match(css, /\.simplysf2e \.spf-last-run\s*\{/, "last-run cost must be a compact secondary near the provider strip");

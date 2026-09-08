@@ -420,16 +420,19 @@ const COIN_DENOMINATION = {
   "Copper Pieces": "cp"
 };
 const COIN_UNIT_GP = { "Platinum Pieces": 10, "Gold Pieces": 1, "Silver Pieces": 0.1, "Copper Pieces": 0.01 };
-/* PF2e 8.4.1 ActorInventory.addCurrency `coinCompendiumUuids`
- * (src/module/actor/inventory/index.ts). Same documents the sheet uses for
- * currency. Do not invent coin item data; clone these or an exact-name match. */
+/* v14-dev ActorInventory.addCurrency still lists these document ids on
+ * `Compendium.pf2e.equipment-srd` (src/module/actor/inventory/index.ts).
+ * SF2e native currency is credits/UPB via bundled credstick.json / upb.json
+ * in that same file — not cloned here (Phase B; do not invent field shapes).
+ * Lookup prefers these ids inside sf2e.equipment, then exact-name treasure.
+ * Misses fail closed. */
 const COIN_COMPENDIUM_IDS = {
   pp: "JuNPeK5Qm1w6wpb4",
   gp: "B6B7tBWJSqOBz5zz",
   sp: "5Ew82vBF9YfaiY9f",
   cp: "lzJ8AVhRcbFul5fh"
 };
-const OFFICIAL_COIN_PACK = "pf2e.equipment-srd";
+const OFFICIAL_COIN_PACK = "sf2e.equipment";
 
 /**
  * Recognize coin loot like "Gold Coins", "150 gold pieces" or "20 gp" and map
@@ -462,10 +465,10 @@ function coinUnit(doc) {
 }
 
 /**
- * Load the published coinage document for a canonical name. Prefers the same
- * pf2e.equipment-srd UUIDs addCurrency uses, then an exact-name treasure in
- * the enabled equipment packs. Fail closed: a lookalike treasure that is not
- * coinage is not used.
+ * Load the published coinage document for a canonical name. Prefers the
+ * cited v14-dev coin document ids inside sf2e.equipment, then an exact-name
+ * treasure in the enabled equipment packs. Fail closed: a lookalike that is
+ * not coinage is not used. Credits/UPB assembly is not implemented.
  */
 async function resolveCoinage(canonicalName) {
   const denom = COIN_DENOMINATION[canonicalName];

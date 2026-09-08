@@ -1,15 +1,18 @@
 import assert from "node:assert/strict";
 import {
-  freeArchetypeNeedsPrerequisiteValidation, isCompletePCClass, supportedClassCandidates
+  COMPLETE_PC_CLASS_SLUGS, freeArchetypeNeedsPrerequisiteValidation,
+  isCompletePCClass, supportedClassCandidates
 } from "./pc-support.mjs";
 
-const candidates = ["Fighter", "Wizard", "Bard", "Rogue", "Investigator"].map((name) => ({ name }));
-assert.deepEqual(supportedClassCandidates(candidates).map((candidate) => candidate.name),
-  ["Fighter", "Rogue", "Investigator"]);
-assert.equal(isCompletePCClass("Fighter"), true);
-assert.equal(isCompletePCClass("Rogue"), true);
-assert.equal(isCompletePCClass("Investigator"), true);
-assert.equal(isCompletePCClass("Bard"), false);
+assert.equal(COMPLETE_PC_CLASS_SLUGS.size, 0, "no SF2e class is proven complete-only yet");
+const candidates = ["Soldier", "Envoy", "Fighter", "Rogue", "Investigator", "Witchwarper"].map((name) => ({ name }));
+assert.deepEqual(supportedClassCandidates(candidates), [],
+  "complete-only selection must stay empty until an SF2e staging path is cited");
+assert.equal(isCompletePCClass("Soldier"), false);
+assert.equal(isCompletePCClass("Envoy"), false);
+assert.equal(isCompletePCClass("Fighter"), false);
+assert.equal(isCompletePCClass("Rogue"), false);
+assert.equal(isCompletePCClass("Investigator"), false);
 assert.equal(freeArchetypeNeedsPrerequisiteValidation(1, true), false,
   "Free Archetype has no feat slot at level 1");
 assert.equal(freeArchetypeNeedsPrerequisiteValidation(2, true), true,

@@ -38,6 +38,7 @@ try {
     assert.match(system, /"skillPriorities": string\[\]/);
     assert.match(system, /Never provide ranks, counts, scores/);
     for (const slug of CORE_SKILLS) assert.ok(system.includes(slug));
+    assert.doesNotMatch(system, /Power Attack|Sudden Charge|Ki Strike|"\+1 striking longsword"|Thieves' Tools|Spacious Pouch/);
     assert.deepEqual(normalizePCConcept(result.concept, { level: 5 }).skillPriorities, expected);
   }
 } finally { globalThis.fetch = originalFetch; }

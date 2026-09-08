@@ -33,6 +33,10 @@ await generateConcept({ prompt: gmPrompt, level: 4, rarity: "common", allowSpell
 assertPrompt();
 assertPriority();
 assert.match(requests.at(-1).messages[1].content, /suggestions only; the GM's explicit concept takes priority/);
+const creatureSystem = requests.at(-1).messages[0].content;
+assert.doesNotMatch(creatureSystem, /Power Attack|Sudden Charge|Ki Strike|Frightful Presence|Attack of Opportunity/);
+assert.doesNotMatch(creatureSystem, /Building Creatures|GM Core/);
+assert.doesNotMatch(creatureSystem, /"Grab"|"Knockdown"|Swallow Whole/);
 reply = { keywords: [] };
 await chooseSpellFocus({ concept, tradition: "occult" });
 assertPrompt();

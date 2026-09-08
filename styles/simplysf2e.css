@@ -7,36 +7,37 @@
    - .spf-primary     the ONE main action of a window (generate/forge/create)
    - .spf-hint        secondary explanatory text
    - .spf-empty       dashed empty-state panel
-   Colors lean on Foundry's own custom properties (with fallbacks) so the
-   apps sit naturally in the V13/V14 dark UI; the maroon/gold accents echo
-   the PF2e statblock look.
+   Palette is inspired by SF2e system chrome (foundryvtt/pf2e v14-dev
+   src/styles/sf2e/index.scss): primary #1d3c53, trait fill #2d4f6a, trait
+   border #9edae6. No system sheet art or logos are loaded.
    ========================================================================== */
 
 .simplysf2e {
-  /* Brand (PF2e statblock maroon/gold) */
-  --spf-brand-dark: #58180d;
-  --spf-brand-accent: #a3512c;
-  --spf-brand-soft: rgba(163, 81, 44, 0.16);
-  --spf-trait-border: #d8c384;
-  --spf-success: #4a6741;
+  /* Brand (SF2e navy / cyan — cited from src/styles/sf2e/index.scss) */
+  --spf-brand-dark: #1d3c53;
+  --spf-brand-mid: #2d4f6a;
+  --spf-brand-accent: #9edae6;
+  --spf-brand-soft: rgba(158, 218, 230, 0.14);
+  --spf-trait-border: #9edae6;
+  --spf-success: #3a7b59;
   --spf-danger: #b0413e;
-  /* Foundry-derived */
-  --spf-border: var(--color-border, #7a7971);
-  --spf-focus: var(--color-border-highlight, var(--spf-brand-accent));
-  --spf-surface: rgba(0, 0, 0, 0.12);
-  --spf-surface-raised: rgba(255, 255, 255, 0.03);
+  /* Foundry-derived, tinted toward deep-space charcoal */
+  --spf-border: color-mix(in srgb, var(--spf-brand-accent) 32%, #1a2430);
+  --spf-focus: var(--spf-brand-accent);
+  --spf-surface: rgba(10, 18, 28, 0.42);
+  --spf-surface-raised: rgba(29, 60, 83, 0.32);
   /* Spacing scale */
   --spf-space-xs: 0.25rem;
   --spf-space-sm: 0.35rem;
   --spf-space-md: 0.5rem;
   --spf-space-lg: 0.75rem;
   --spf-space-xl: 1rem;
-  /* Type + shape */
+  /* Type + shape: sans + sharper corners, not PF2e parchment */
   --spf-text-sm: 0.85em;
   --spf-text-xs: 0.72em;
-  --spf-font-display: var(--serif, "Palatino Linotype", Palatino, serif);
-  --spf-radius: 6px;
-  --spf-radius-sm: 3px;
+  --spf-font-display: var(--font-sans, "Signika", sans-serif);
+  --spf-radius: 2px;
+  --spf-radius-sm: 1px;
   --spf-icon-btn: 1.8rem;
 }
 
@@ -48,6 +49,7 @@
   min-width: 340px;
   min-height: 220px;
   max-width: 100vw;
+  box-shadow: inset 0 1px 0 color-mix(in srgb, #9edae6 50%, transparent);
 }
 
 /* --------------------------------------------------------------------------
@@ -58,6 +60,7 @@
   border-radius: var(--spf-radius);
   background: var(--spf-surface-raised);
   padding: var(--spf-space-md) var(--spf-space-lg);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--spf-brand-accent) 16%, transparent);
 }
 
 .simplysf2e .spf-icon-btn {
@@ -72,9 +75,9 @@
 
 /* Primary action: exactly one per window (Generate/Forge/Create/Save). */
 .simplysf2e button.spf-primary {
-  background: linear-gradient(180deg, var(--spf-brand-accent), var(--spf-brand-dark));
-  border: 1px solid var(--spf-brand-dark);
-  color: #f5efe0;
+  background: linear-gradient(180deg, var(--spf-brand-mid), var(--spf-brand-dark));
+  border: 1px solid var(--spf-brand-accent);
+  color: #e8f6fa;
   font-weight: 600;
   text-shadow: none;
 }
@@ -269,9 +272,11 @@
    -------------------------------------------------------------------------- */
 .simplysf2e .spf-inputs legend {
   font-family: var(--spf-font-display);
-  font-variant: small-caps;
+  font-variant: normal;
   font-weight: 700;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: var(--spf-text-sm);
   padding: 0 var(--spf-space-sm);
 }
 
@@ -582,15 +587,15 @@
 
 .simplysf2e .spf-progress-bar {
   height: 0.6rem;
-  border-radius: 0.3rem;
-  background: rgba(0, 0, 0, 0.25);
+  border-radius: var(--spf-radius-sm);
+  background: rgba(8, 16, 28, 0.55);
   overflow: hidden;
 }
 
 .simplysf2e .spf-progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--spf-brand-dark), var(--spf-brand-accent));
-  border-radius: 0.3rem;
+  background: linear-gradient(90deg, var(--spf-brand-dark), var(--spf-brand-mid), var(--spf-brand-accent));
+  border-radius: var(--spf-radius-sm);
   transition: width 0.55s ease-out;
   position: relative;
   overflow: hidden;
@@ -603,12 +608,12 @@
   position: absolute;
   inset: 0;
   width: 40%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--spf-brand-accent) 45%, transparent), transparent);
   animation: spf-step-slide 1.2s ease-in-out infinite;
 }
 
 .simplysf2e .spf-progress-thinking .spf-progress-fill {
-  background: linear-gradient(90deg, #3d4450, var(--spf-brand-accent));
+  background: linear-gradient(90deg, var(--spf-brand-dark), var(--spf-brand-accent));
 }
 
 .simplysf2e .spf-progress-thinking .spf-progress-fill::after {
@@ -701,8 +706,9 @@
   margin: 0;
   border: none;
   font-family: var(--spf-font-display);
-  font-variant: small-caps;
-  letter-spacing: 0.02em;
+  font-variant: normal;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .simplysf2e .spf-level {
@@ -725,7 +731,7 @@
 
 .simplysf2e .spf-trait {
   background: var(--spf-brand-dark);
-  color: #fff;
+  color: #e8f6fa;
   border: 1px solid var(--spf-trait-border);
   border-radius: var(--spf-radius-sm);
   padding: 0 var(--spf-space-sm);
@@ -762,7 +768,9 @@
   border-bottom: 1px solid var(--spf-border);
   font-family: var(--spf-font-display);
   font-size: 1em;
-  font-variant: small-caps;
+  font-variant: normal;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .simplysf2e .spf-spell-dc {
@@ -1043,7 +1051,10 @@
 .simplysf2e .spf-source-category legend {
   font-family: var(--spf-font-display);
   font-weight: bold;
-  font-variant: small-caps;
+  font-variant: normal;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: var(--spf-text-sm);
   padding: 0 0.3rem;
 }
 
