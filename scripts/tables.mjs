@@ -1,11 +1,15 @@
 /**
- * Benchmark tables from the Pathfinder 2e GM Core "Building Creatures" chapter
- * (Tables: Ability Modifier Scales, Perception, Skills, Armor Class, Saving
- * Throws, Hit Points, Strike Attack Bonus, Strike Damage, Spell DC & Attack,
- * Resistances & Weaknesses), plus Table 10-9 Treasure by Level from the
- * GM Core treasure chapter.
+ * Inherited PF2e-compatible benchmark numbers pending a cited Starfinder 2e
+ * GM Core (or equivalent) Building Creatures / Treasure by Level source.
+ * These arrays are **not** Starfinder-authored. Do not treat them as SF2e
+ * published statistics. Numbers are unchanged from the PF2e-era scaffold
+ * until a real SF2e table can be transcribed.
  *
- * Every array is indexed by creature level, from -1 to 24 (use `idx(level)`).
+ * Historically these matched Pathfinder 2e GM Core "Building Creatures"
+ * (ability modifiers, Perception, skills, AC, saves, HP, Strike attack and
+ * damage, spell DC) plus Table 10-9 Treasure by Level. Every array is
+ * indexed by creature level, from -1 to 24 (use `idx(level)`).
+ *
  * Rules data used under the ORC License; see README for attribution.
  */
 
@@ -126,9 +130,10 @@ export const RESISTANCE = {
 /* ------------------------------------------------------------------ */
 /* Treasure budgets.
  *
- * PF2e GM Core / Core Rulebook Table 10-9 Treasure by Level (Total Value
- * column), ORC-licensed reference data — see README attribution section,
- * same as the other benchmark tables in this file.
+ * Inherited PF2e-compatible Total Value column (historically GM Core /
+ * Core Rulebook Table 10-9). **Not** a cited Starfinder 2e treasure table;
+ * numbers are unchanged pending an SF2e source. ORC-licensed reference
+ * data — see README attribution section.
  *
  * The published table covers CHARACTER levels 1-20 only (this is a
  * party-progression table, not a creature table): it is the total treasure a

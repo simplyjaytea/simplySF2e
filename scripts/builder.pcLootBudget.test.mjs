@@ -44,7 +44,7 @@ const { dedupeLootAgainstEquipment, enforceNamedLootBudget } = await import("./b
 {
   // No overlap: loot passes through unchanged.
   const equipment = [{ name: "Longsword", quantity: 1, value: 1, entry: {} }];
-  const loot = [{ name: "Gold Pieces", quantity: 15, resolvedValue: 1, entry: {} }];
+  const loot = [{ name: "Credstick", quantity: 15, resolvedValue: 0.1, entry: {} }];
   const result = dedupeLootAgainstEquipment(loot, equipment);
   assert.deepEqual(result, loot, "loot with no name overlap must be returned unchanged");
 }
@@ -69,7 +69,7 @@ const { dedupeLootAgainstEquipment, enforceNamedLootBudget } = await import("./b
     { name: "+1 Resilient Armor", quantity: 1, resolvedValue: 700, entry: {} },
     { name: "+1 Armor", quantity: 1, resolvedValue: 160, entry: {} },
     { name: "Potion of Healing (Minor)", quantity: 2, resolvedValue: 4, entry: {} },
-    { name: "Gold Pieces", quantity: 20, resolvedValue: 1, entry: {} }
+    { name: "Credstick", quantity: 20, resolvedValue: 0.1, entry: {} }
   ];
   const budget = 200; // enough for both potions (8gp) + the cheapest armor (160gp) but not the pricier two
   const result = enforceNamedLootBudget(loot, budget);
@@ -78,7 +78,7 @@ const { dedupeLootAgainstEquipment, enforceNamedLootBudget } = await import("./b
   assert.ok(names.includes("+1 Armor"), "the cheapest named item that fits must be kept");
   assert.ok(!names.includes("+1 Glamered Armor"), "overflow named items must be dropped");
   assert.ok(!names.includes("+1 Resilient Armor"), "overflow named items must be dropped");
-  assert.ok(names.includes("Gold Pieces"), "coin lines must pass through untouched for applyTreasureBudget to handle");
+  assert.ok(names.includes("Credstick"), "currency lines must pass through untouched for applyTreasureBudget to handle");
 }
 
 {
@@ -99,12 +99,12 @@ const { dedupeLootAgainstEquipment, enforceNamedLootBudget } = await import("./b
   // if any, still pass through since applyTreasureBudget handles those).
   const loot = [
     { name: "+1 Armor", quantity: 1, resolvedValue: 160, entry: {} },
-    { name: "Gold Pieces", quantity: 5, resolvedValue: 1, entry: {} }
+    { name: "Credstick", quantity: 5, resolvedValue: 0.1, entry: {} }
   ];
   assert.doesNotThrow(() => enforceNamedLootBudget(loot, 0));
   const zero = enforceNamedLootBudget(loot, 0);
   assert.ok(!zero.some((l) => l.name === "+1 Armor"), "a zero budget must keep no named items");
-  assert.ok(zero.some((l) => l.name === "Gold Pieces"), "coin lines pass through even at zero budget");
+  assert.ok(zero.some((l) => l.name === "Credstick"), "currency lines pass through even at zero budget");
 
   assert.doesNotThrow(() => enforceNamedLootBudget(loot, -50));
   assert.doesNotThrow(() => enforceNamedLootBudget(loot, NaN));

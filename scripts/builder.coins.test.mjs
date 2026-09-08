@@ -1,98 +1,93 @@
-// Coin loot must clone published PF2e coinage documents (sheet currency),
-// never the custom-treasure fallback. parseCoins only accepts the four
-// PF2e denominations. Coins resolve even under exactContent because they
-// are module-built, not AI-selected equipment.
-// Run: node scripts/builder.coins.test.mjs
+// Currency loot must clone cited SF2e credstick/UPB templates (the same
+// JSON addCurrency uses), never the custom-treasure fallback and never
+// invented sf2e gold-piece UUIDs. Gold-piece language maps onto credits
+// through DENOMINATION_RATES. Run: node scripts/builder.coins.test.mjs
 
 import assert from "node:assert/strict";
-
-const GOLD_ID = "B6B7tBWJSqOBz5zz";
-const SILVER_ID = "5Ew82vBF9YfaiY9f";
-const COPPER_ID = "lzJ8AVhRcbFul5fh";
-const PLATINUM_ID = "JuNPeK5Qm1w6wpb4";
-
-function coinDoc(id, name, denom) {
-  return {
-    _id: id,
-    name,
-    type: "treasure",
-    uuid: `Compendium.sf2e.equipment.Item.${id}`,
-    system: {
-      category: "coin",
-      quantity: 1,
-      price: { value: { [denom]: 1 } },
-      level: { value: 0 }
-    },
-    toObject() {
-      return {
-        name: this.name,
-        type: this.type,
-        img: `systems/pf2e/icons/equipment/treasure/currency/${name.toLowerCase().replaceAll(" ", "-")}.webp`,
-        system: structuredClone(this.system)
-      };
-    }
-  };
-}
-
-const docs = {
-  [GOLD_ID]: coinDoc(GOLD_ID, "Gold Pieces", "gp"),
-  [SILVER_ID]: coinDoc(SILVER_ID, "Silver Pieces", "sp"),
-  [COPPER_ID]: coinDoc(COPPER_ID, "Copper Pieces", "cp"),
-  [PLATINUM_ID]: coinDoc(PLATINUM_ID, "Platinum Pieces", "pp")
-};
-
-const index = Object.values(docs).map((doc) => ({
-  _id: doc._id, name: doc.name, type: doc.type, system: { level: { value: 0 } }
-}));
-
-const equipmentPack = {
-  getIndex: async () => index.map((entry) => ({ ...entry })),
-  getDocument: async (id) => docs[id] ?? null
-};
+import { priceToGp } from "./compendium.mjs";
+import {
+  parseCoins, currencyQuantity, isCoinageDocument, isCurrencyDocument,
+  assembleCurrency, resolveCurrencyTemplate, CREDSTICK_SOURCE, UPB_SOURCE,
+  CREDIT_UNIT_GP, DENOMINATION_RATES
+} from "./currency.mjs";
 
 globalThis.game = {
   settings: { get: () => undefined },
   i18n: { localize: (key) => key },
-  packs: { get: (id) => (id === "sf2e.equipment" ? equipmentPack : undefined) }
+  packs: { get: (id) => (id === "sf2e.equipment" ? { getIndex: async () => [], getDocument: async () => null } : undefined) }
 };
 
 const {
-  parseCoins, isCoinageDocument, normalizeLoot, resolveLoot, buildLootItems, applyTreasureBudget
+  normalizeLoot, resolveLoot, buildLootItems, applyTreasureBudget
 } = await import("./builder.mjs");
 
 /* ---------------------------------------------------------------------- *
- * parseCoins: known denominations map to canonical names; unknown fail closed
+ * Cited templates match v14-dev inventory JSON, not invented field shapes
+ * ---------------------------------------------------------------------- */
+
+assert.equal(CREDSTICK_SOURCE._id, "penfpVFkOqZYpmkU");
+assert.equal(CREDSTICK_SOURCE.name, "Credstick");
+assert.equal(CREDSTICK_SOURCE.type, "treasure");
+assert.equal(CREDSTICK_SOURCE.system.category, "credstick");
+assert.equal(CREDSTICK_SOURCE.system.slug, "credstick");
+assert.equal(CREDSTICK_SOURCE.system.price.value.sp, 1);
+assert.equal(UPB_SOURCE._id, "ALqTYbYspMMrJIDs");
+assert.equal(UPB_SOURCE.name, "UPB");
+assert.equal(UPB_SOURCE.system.slug, "upb");
+assert.equal(UPB_SOURCE.system.category, "material");
+assert.equal(UPB_SOURCE.system.price.value.sp, 1);
+assert.deepEqual(DENOMINATION_RATES, {
+  cp: 1, sp: 10, gp: 100, pp: 1000, credits: 10, upb: 10
+});
+assert.equal(CREDIT_UNIT_GP, 0.1);
+
+assert.equal(priceToGp({ sp: 10 }), 1, "persisted credstick sp path is 0.1 gp per credit");
+assert.equal(priceToGp({ credits: 10 }), 1, "prepared credits field uses the same rate as sp");
+assert.equal(priceToGp({ credits: 10, sp: 10 }), 1, "do not double-count credits merged into sp");
+assert.equal(priceToGp({ upb: 10 }), 1);
+
+/* ---------------------------------------------------------------------- *
+ * parseCoins: SF2e names + leftover gold-piece language; unknown fail closed
  * ---------------------------------------------------------------------- */
 
 {
-  assert.deepEqual(parseCoins("Gold Coins"), { name: "Gold Pieces", count: null });
-  assert.deepEqual(parseCoins("10 gold coins"), { name: "Gold Pieces", count: 10 });
-  assert.deepEqual(parseCoins("150 gold pieces"), { name: "Gold Pieces", count: 150 });
-  assert.deepEqual(parseCoins("20 gp"), { name: "Gold Pieces", count: 20 });
-  assert.deepEqual(parseCoins("Gold Pieces"), { name: "Gold Pieces", count: null });
-  assert.deepEqual(parseCoins("Silver Coins"), { name: "Silver Pieces", count: null });
-  assert.deepEqual(parseCoins("5 sp"), { name: "Silver Pieces", count: 5 });
-  assert.deepEqual(parseCoins("Copper Pieces"), { name: "Copper Pieces", count: null });
-  assert.deepEqual(parseCoins("pp"), { name: "Platinum Pieces", count: null });
-  assert.equal(parseCoins("Electrum Coins"), null, "unknown denomination is not currency");
-  assert.equal(parseCoins("adamantine pieces"), null, "non-PF2e metal is not currency");
-  assert.equal(parseCoins("Bag of Gold"), null, "incidental gold in a name is not a coin line");
-  assert.equal(parseCoins("Scroll of Fear"), null);
+  assert.deepEqual(parseCoins("Credits"), { name: "Credstick", unit: "credits", sourceUnit: "credits", count: null });
+  assert.deepEqual(parseCoins("350 credits"), { name: "Credstick", unit: "credits", sourceUnit: "credits", count: 350 });
+  assert.equal(parseCoins("Credstick").name, "Credstick");
+  assert.equal(parseCoins("UPB").name, "UPB");
+  assert.equal(parseCoins("UPB").unit, "upb");
+  assert.equal(parseCoins("20 UPBs").count, 20);
+  assert.equal(parseCoins("universal polymer base").name, "UPB");
+
+  assert.equal(parseCoins("Gold Coins").name, "Credstick");
+  assert.equal(parseCoins("20 gp").count, 200, "1 gp = 10 credits");
+  assert.equal(parseCoins("5 sp").count, 5, "1 sp = 1 credit");
+  assert.equal(parseCoins("pp").name, "Credstick");
   assert.deepEqual(
     normalizeLoot([{ name: "Gold Coins", quantity: 35, value: 1 }]),
-    [{ name: "Gold Pieces", quantity: 35, value: 1 }],
-    "normalizeLoot folds AI coin names onto the canonical published name"
+    [{ name: "Credstick", quantity: 350, value: 0.1 }],
+    "normalizeLoot converts leftover gold-piece lines onto Credstick"
   );
+  assert.deepEqual(
+    normalizeLoot([{ name: "Credits", quantity: 35, value: 0.1 }]),
+    [{ name: "Credstick", quantity: 35, value: 0.1 }]
+  );
+
+  assert.equal(parseCoins("Electrum Coins"), null, "unknown denomination is not currency");
+  assert.equal(parseCoins("adamantine pieces"), null, "non-SF2e metal is not currency");
+  assert.equal(parseCoins("Bag of Gold"), null, "incidental gold in a name is not a coin line");
+  assert.equal(parseCoins("Scroll of Fear"), null);
+  assert.equal(currencyQuantity(parseCoins("Credits"), 12), 12);
 }
 
-assert.equal(isCoinageDocument(docs[GOLD_ID]), true, "8.4.1 category:coin is coinage");
-assert.equal(isCoinageDocument({ type: "treasure", system: { stackGroup: "coins", price: { value: { gp: 1 } } } }), true,
-  "pre-8.4.1 stackGroup coins still counts as coinage");
-assert.equal(isCoinageDocument({ type: "treasure", system: { price: { value: { gp: 12 } } } }), false,
-  "ordinary treasure without coin category is not currency");
+assert.equal(isCoinageDocument({ type: "treasure", system: { category: "coin", price: { value: { gp: 1 } } } }), true);
+assert.equal(isCoinageDocument({ type: "treasure", system: { stackGroup: "coins", price: { value: { gp: 1 } } } }), true);
+assert.equal(isCurrencyDocument(CREDSTICK_SOURCE), true, "credstick category is currency");
+assert.equal(isCurrencyDocument(UPB_SOURCE), true, "upb slug is currency");
+assert.equal(isCurrencyDocument({ type: "treasure", system: { price: { value: { gp: 12 } } } }), false);
 
 /* ---------------------------------------------------------------------- *
- * resolveLoot + exactContent still loads official coinage documents
+ * resolveLoot + exactContent uses bundled templates, not pack gold pieces
  * ---------------------------------------------------------------------- */
 
 {
@@ -104,10 +99,10 @@ assert.equal(isCoinageDocument({ type: "treasure", system: { price: { value: { g
     ])
   }, { exactContent: true });
   assert.equal(resolved.length, 2);
-  assert.equal(resolved[0].name, "Gold Pieces");
-  assert.equal(resolved[0].quantity, 35);
-  assert.equal(resolved[0].entry?._id, GOLD_ID, "coins resolve to the official Gold Pieces document under exactContent");
-  assert.equal(resolved[0].resolvedValue, 1);
+  assert.equal(resolved[0].name, "Credstick");
+  assert.equal(resolved[0].quantity, 350);
+  assert.equal(resolved[0].entry?.currency, "credits");
+  assert.equal(resolved[0].resolvedValue, 0.1);
   assert.equal(resolved[1].entry, null, "named loot still cannot fuzzy-match under exactContent");
 }
 
@@ -127,54 +122,61 @@ assert.equal(isCoinageDocument({ type: "treasure", system: { price: { value: { g
 }
 
 /* ---------------------------------------------------------------------- *
- * buildLootItems: coins become published coinage, never custom treasure
+ * buildLootItems: credits/UPB clone cited templates, never custom treasure
  * ---------------------------------------------------------------------- */
 
 {
   const resolved = await resolveLoot({
     level: 1,
     loot: normalizeLoot([
-      { name: "Gold Coins", quantity: 35, value: 1 },
-      { name: "5 sp", quantity: 1, value: 0.1 }
+      { name: "Credits", quantity: 35, value: 0.1 },
+      { name: "UPB", quantity: 8, value: 0.1 }
     ])
   }, { exactContent: true });
   const items = await buildLootItems(resolved);
   assert.equal(items.length, 2);
-  assert.equal(items[0].name, "Gold Pieces");
+  assert.equal(items[0].name, "Credstick");
   assert.equal(items[0].type, "treasure");
-  assert.equal(items[0].system.category, "coin");
-  assert.equal(items[0].system.quantity, 35);
-  assert.equal(items[0].system.price.value.gp, 1);
-  assert.equal(items[0]._stats.compendiumSource, `Compendium.sf2e.equipment.Item.${GOLD_ID}`);
-  assert.equal(items[1].name, "Silver Pieces");
-  assert.equal(items[1].system.category, "coin");
-  assert.equal(items[1].system.quantity, 5);
+  assert.equal(items[0].system.category, "credstick");
+  assert.equal(items[0].system.quantity, 1, "addCurrency locks credstick quantity to 1");
+  assert.equal(items[0].system.price.value.sp, 35, "credits count lives on price.value.sp");
+  assert.equal(items[0]._id, undefined, "cloned templates drop the source _id");
+  assert.equal(items[1].name, "UPB");
+  assert.equal(items[1].system.slug, "upb");
+  assert.equal(items[1].system.quantity, 8);
   for (const item of items) {
-    assert.equal(item.system.description?.value?.includes("CustomItem"), undefined,
-      "coin loot must not carry the custom-treasure label");
+    assert.equal(item.system.description?.value?.includes("CustomItem"), false,
+      "currency loot must not carry the custom-treasure label");
   }
 }
 
 {
-  await assert.rejects(buildLootItems([
-    { name: "Gold Pieces", quantity: 12, value: 1, entry: null }
-  ]), /Cannot create coin loot "Gold Pieces"/,
-  "missing coinage must stop assembly before a partial actor is written");
+  const items = await buildLootItems([
+    { name: "Credstick", quantity: 12, value: 0.1, entry: null }
+  ]);
+  assert.equal(items[0].system.category, "credstick");
+  assert.equal(items[0].system.price.value.sp, 12, "bundled credstick does not need a pack entry");
 }
 
 {
   const items = await buildLootItems([
-    { name: "Gold Pieces", quantity: 8, value: 1, entry: { packId: "sf2e.equipment", _id: GOLD_ID } },
+    { name: "Credstick", quantity: 8, value: 0.1, entry: { currency: "credits" } },
     { name: "Unmatched Gem", quantity: 1, value: 15, entry: null }
   ]);
-  assert.equal(items[0].system.category, "coin");
+  assert.equal(items[0].system.category, "credstick");
+  assert.equal(items[0].system.price.value.sp, 8);
   assert.equal(items[1].type, "treasure");
-  assert.equal(items[1].system.category, undefined, "non-coin unmatched loot may still be custom treasure");
+  assert.equal(items[1].system.category, undefined, "non-currency unmatched loot may still be custom treasure");
   assert.match(items[1].system.description.value, /CustomItem/);
 }
 
+/* The reject-on-null-entry test above only fires if assembleCurrency itself
+ * fails. Probe that path by asking for an unknown unit. */
+assert.equal(assembleCurrency("gp", 10), null, "classic coin units are not assembled as sf2e gold pieces");
+assert.equal(resolveCurrencyTemplate("Gold Pieces"), null);
+
 /* ---------------------------------------------------------------------- *
- * applyTreasureBudget still pads/trims Gold Pieces against published coinage
+ * applyTreasureBudget pads/trims Credstick, not Gold Pieces
  * ---------------------------------------------------------------------- */
 
 {
@@ -182,23 +184,23 @@ assert.equal(isCoinageDocument({ type: "treasure", system: { price: { value: { g
     { name: "Potion of Healing (Minor)", quantity: 1, resolvedValue: 4, entry: {} }
   ];
   const padded = await applyTreasureBudget(loot, 50);
-  const gold = padded.find((line) => line.name === "Gold Pieces");
-  assert.ok(gold, "budget shortfall creates a Gold Pieces line");
-  assert.equal(gold.entry?._id, GOLD_ID, "padded coins retain the official coinage document");
-  assert.equal(gold.quantity, 46);
-  const items = await buildLootItems(padded.filter((line) => line.name === "Gold Pieces"));
-  assert.equal(items[0].system.category, "coin");
-  assert.equal(items[0].system.quantity, 46);
+  const credits = padded.find((line) => line.name === "Credstick");
+  assert.ok(credits, "budget shortfall creates a Credstick line");
+  assert.equal(credits.entry?.currency, "credits");
+  assert.equal(credits.quantity, 460, "46 gp gap becomes 460 credits at 0.1 gp each");
+  const items = await buildLootItems(padded.filter((line) => line.name === "Credstick"));
+  assert.equal(items[0].system.category, "credstick");
+  assert.equal(items[0].system.price.value.sp, 460);
 }
 
 {
   const loot = [
-    { name: "Gold Pieces", quantity: 10, resolvedValue: 1, entry: { packId: "sf2e.equipment", _id: GOLD_ID } }
+    { name: "Credstick", quantity: 100, resolvedValue: 0.1, entry: { currency: "credits" } }
   ];
   const padded = await applyTreasureBudget(structuredClone(loot), 50);
-  assert.equal(padded[0].quantity, 50, "an existing gold line is increased to close the gap");
+  assert.equal(padded[0].quantity, 500, "an existing credit line is increased to close the gap");
   const trimmed = await applyTreasureBudget(structuredClone(loot), 4);
-  assert.equal(trimmed[0].quantity, 4, "over-budget coin lines shrink, largest denomination first");
+  assert.equal(trimmed[0].quantity, 40, "over-budget credit lines shrink");
 }
 
-console.log("builder.coins.test.mjs: parseCoins, exactContent coinage clones, and budget padding passed");
+console.log("builder.coins.test.mjs: credits/UPB templates, gold-to-credit mapping, and budget padding passed");

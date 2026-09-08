@@ -4,6 +4,11 @@ This file is inherited from the simplyPF2e scaffold. It is PF2e-era history, not
 
 Full session-by-session narrative, process notes, and the bug log. Not loaded by default context the way CLAUDE.md is — read this when you need to know *why* something is the way it is, whether a past session already investigated something, or what a specific PR actually changed. Newest first.
 
+## 2026-09-08 — Phase B first slice: credits/UPB loot, table honesty
+
+- Started from `origin/main` `d0da690` (PR #2 Phase A). Cited `foundryvtt/pf2e` **v14-dev** `src/module/item/physical/values.ts` (`CURRENCY_DENOMINATIONS`, `DENOMINATION_RATES` credits/upb: 10) and `src/module/actor/inventory/index.ts` (`addCurrency` clones `credstick.json` / `upb.json`; classic coins still `pf2e.equipment-srd`; credits persist via `price.value.sp`). `TreasurePF2e#isCurrency` is coinage OR slug `upb` OR category `credstick`.
+- Loot/wealth assembly prefers Credstick/UPB templates; gold-piece AI language maps to credits. `tables.mjs` numbers unchanged, comments no longer claim Starfinder authorship. Prompt/lang copy drops leftover gold-piece happy path.
+
 ## 2026-09-08 — Phase A SF2e pack defaults and presets
 
 - Started from `origin/main` `2d038b3` (PR #1 identity rebrand; published **v0.0.1**). Cited `foundryvtt/pf2e` **v14-dev** `system.sf2e.json` **1.5.0**.

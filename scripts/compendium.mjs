@@ -38,14 +38,21 @@ export const EQUIPMENT_TYPES = new Set([
 export const ABILITY_CANDIDATE_LIMIT = 96;
 
 /**
- * Convert a PF2e price-value denomination object ({pp, gp, sp, cp}, any
- * subset present) into a single gp number.
+ * Convert a price-value denomination object into a single gp number.
+ * Classic coins: pp/gp/sp/cp. SF2e credits/UPB use the cited v14-dev
+ * `DENOMINATION_RATES` (credits: 10, upb: 10, same scale as sp). Persisted
+ * credstick source stores credits as `sp` (`addCurrency` create path);
+ * prepared documents may expose `credits` instead. Count credits/upb when
+ * present so we do not double-count a toObject() merge into sp.
  */
 export function priceToGp(price) {
   if (!price || typeof price !== "object") return 0;
+  const credits = Number(price.credits) || 0;
+  const upb = Number(price.upb) || 0;
+  const sp = (credits || upb) ? 0 : (Number(price.sp) || 0);
   return (Number(price.pp) || 0) * 10
     + (Number(price.gp) || 0)
-    + (Number(price.sp) || 0) / 10
+    + (sp + credits + upb) / 10
     + (Number(price.cp) || 0) / 100;
 }
 

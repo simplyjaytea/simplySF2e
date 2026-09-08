@@ -77,8 +77,8 @@ await module.evaluate();
 const App = module.namespace.GeneratorApp;
 function preview() {
   const app = new App();
-  app._test_concept = { name: "Courier", level: 4, rarity: "common", loot: [{ name: "Gold Pieces", quantity: 5 }] };
-  app._test_resolved = { loot: [{ name: "Gold Pieces", quantity: 5, entry: ref }] };
+  app._test_concept = { name: "Courier", level: 4, rarity: "common", loot: [{ name: "Credstick", quantity: 50 }] };
+  app._test_resolved = { loot: [{ name: "Credstick", quantity: 50, entry: { currency: "credits" } }] };
   app._test_manifest = completionManifest({ mode: "npc", concept: app._test_concept, resolved: app._test_resolved });
   return app;
 }
@@ -89,7 +89,7 @@ function assertRetained(app, before) {
   assert.equal(app._test_concept, before.concept, "failed reroll preserves the accepted concept");
   assert.equal(app._test_resolved, before.resolved, "failed reroll preserves resolved content");
   assert.equal(app._test_manifest, before.manifest, "failed reroll preserves the accepted completion manifest");
-  assert.equal(app._test_concept.loot[0].name, "Gold Pieces");
+  assert.equal(app._test_concept.loot[0].name, "Credstick");
   assert.equal(app._test_busy, false);
 }
 

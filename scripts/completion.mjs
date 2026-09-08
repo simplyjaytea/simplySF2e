@@ -2,7 +2,7 @@
  * One place to decide whether a generated plan is safe to create. A manifest
  * is transient UI/build data: it is never written to actors or item flags.
  */
-const COINS = /^\s*(?:\d+\s*)?(?:pp|gp|sp|cp|platinum|gold|silver|copper)\s+(?:coins?|pieces?)\s*$/i;
+import { parseCoins } from "./currency.mjs";
 
 function line(category, name, status, required = true) {
   return { category, name: String(name ?? "Unnamed"), status, required };
@@ -72,7 +72,8 @@ export function completionManifest({ mode, concept, resolved }) {
   records.push(...resolvedLines("feat", resolved?.feats));
   for (const item of resolved?.equipment ?? []) records.push(line("equipment", item.name, item.entry ? "compendium" : "unresolved"));
   for (const item of resolved?.loot ?? []) {
-    const built = COINS.test(item.name) ? "module-built" : (item.scroll && item.entry ? "module-built" : null);
+    const built = (parseCoins(item.name) || item.entry?.currency)
+      ? "module-built" : (item.scroll && item.entry ? "module-built" : null);
     records.push(line("loot", item.name, built ?? (item.entry ? "compendium" : "unresolved")));
   }
   const unresolved = records.filter((record) => record.required && record.status === "unresolved");
