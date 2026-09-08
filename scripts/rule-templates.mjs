@@ -174,7 +174,7 @@ async function getRulesEntries(packId) {
         .map((d) => ruleRecord(d, packId));
     }
   } catch (err) {
-    console.warn(`simplypf2e | itemforge: failed to scan pack "${packId}" for rule exemplars`, err);
+    console.warn(`simplysf2e | itemforge: failed to scan pack "${packId}" for rule exemplars`, err);
   }
   rulesEntryCache.set(packId, records);
   return records;
@@ -305,11 +305,11 @@ export async function findRuleExemplars() {
     for (const kind of ALL_KINDS) {
       if (found[kind]) {
         console.debug(
-          `simplypf2e | itemforge: "${kind}" rule exemplar from "${found[kind].sourceName}" (${found[kind].sourceUuid})`
+          `simplysf2e | itemforge: "${kind}" rule exemplar from "${found[kind].sourceName}" (${found[kind].sourceUuid})`
         );
       } else {
         console.warn(
-          `simplypf2e | itemforge: no real ${KIND_SPECS[kind].key} rule exemplar found in any installed compendium — the "${kind}" effect kind is unavailable in this world`
+          `simplysf2e | itemforge: no real ${KIND_SPECS[kind].key} rule exemplar found in any installed compendium — the "${kind}" effect kind is unavailable in this world`
         );
       }
     }

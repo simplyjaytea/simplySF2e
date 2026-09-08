@@ -383,7 +383,7 @@ try {
   await assert.rejects(
     listProviderModels(),
     (error) => {
-      assert.match(error.message, /SIMPLYPF2E\.Errors\.ApiAuthHint/);
+      assert.match(error.message, /SIMPLYSF2E\.Errors\.ApiAuthHint/);
       assert.ok(error.message.length < 600, "provider error details must be bounded for compact notifications");
       assert.doesNotMatch(error.message, /x{300}/, "oversized provider payloads must be truncated");
       return true;
@@ -399,7 +399,7 @@ try {
   await assert.rejects(
     listProviderModels(),
     (error) => {
-      assert.match(error.message, /SIMPLYPF2E\.Errors\.ApiNotFoundHint/);
+      assert.match(error.message, /SIMPLYSF2E\.Errors\.ApiNotFoundHint/);
       assert.match(error.message, /Not Found unknown compatibility route/);
       assert.doesNotMatch(error.message, /<html>/, "HTML gateway errors must become readable text");
       return true;
@@ -409,7 +409,7 @@ try {
   providerReplies.push({ rawBody: "OK", contentType: "text/plain" });
   await assert.rejects(
     testProviderConnection(),
-    { message: "SIMPLYPF2E.Errors.InvalidResponse" },
+    { message: "SIMPLYSF2E.Errors.InvalidResponse" },
     "a non-JSON success response must explain that the endpoint is not Chat Completions compatible"
   );
 
@@ -425,7 +425,7 @@ try {
   await assert.rejects(
     testProviderConnection(),
     (error) => {
-      assert.match(error.message, /SIMPLYPF2E\.Errors\.ProviderError/);
+      assert.match(error.message, /SIMPLYSF2E\.Errors\.ProviderError/);
       assert.match(error.message, /insufficient credits/);
       assert.equal(error.retryable, false, "a provider-reported error must not burn a second identical attempt");
       return true;
@@ -454,7 +454,7 @@ try {
   await assert.rejects(
     testProviderConnection(),
     (error) => {
-      assert.match(error.message, /SIMPLYPF2E\.Errors\.ProviderError/);
+      assert.match(error.message, /SIMPLYSF2E\.Errors\.ProviderError/);
       assert.match(error.message, /model overloaded/);
       assert.equal(error.retryable, false);
       return true;
@@ -695,7 +695,7 @@ try {
       tradition: "occult"
     }),
     (error) => {
-      assert.match(error.message, /SIMPLYPF2E\.Errors\.ReasoningWithoutJson/);
+      assert.match(error.message, /SIMPLYSF2E\.Errors\.ReasoningWithoutJson/);
       assert.equal(error.retryable, true);
       assert.ok(error.details?.reasoningChars > 0);
       return true;
@@ -720,7 +720,7 @@ try {
     await assert.rejects(
       chooseSpellFocus({ concept: focusConcept, tradition: "arcane", signal: controller.signal }),
       (error) => {
-        assert.match(error.message, /SIMPLYPF2E\.Errors\.Cancelled/);
+        assert.match(error.message, /SIMPLYSF2E\.Errors\.Cancelled/);
         assert.equal(error.cancelled, true);
         assert.equal(error.retryable, false);
         return true;
@@ -754,7 +754,7 @@ try {
       await assert.rejects(
         pending,
         (error) => {
-          assert.match(error.message, /SIMPLYPF2E\.Errors\.Cancelled/);
+          assert.match(error.message, /SIMPLYSF2E\.Errors\.Cancelled/);
           assert.equal(error.cancelled, true);
           assert.equal(error.retryable, false);
           return true;

@@ -17,117 +17,117 @@ import { TREASURE_AMOUNT_MULTIPLIER } from "./tables.mjs";
 export const BUILT_IN_PRESETS = [
   {
     id: "alchemist",
-    name: "SIMPLYPF2E.Presets.Alchemist",
+    name: "SIMPLYSF2E.Presets.Alchemist",
     prompt: "Build like an ALCHEMIST: a bomb-throwing tinkerer. A ranged bomb strike dealing energy damage with splash flavor, moderate attack, low-to-moderate AC and HP, high Reflex, high Crafting. A mutagen-or-elixir-flavored signature ability, alchemist-tool equipment. No spellcasting."
   },
   {
     id: "barbarian",
-    name: "SIMPLYPF2E.Presets.Barbarian",
+    name: "SIMPLYSF2E.Presets.Barbarian",
     prompt: "Build like a BARBARIAN: a furious brute. High HP, high or extreme strike damage, high Fortitude, low-to-moderate AC, low Will. Big two-handed or natural strikes, a Rage-like ability that boosts damage, Athletics and Intimidation skills. No spellcasting."
   },
   {
     id: "bard",
-    name: "SIMPLYPF2E.Presets.Bard",
+    name: "SIMPLYSF2E.Presets.Bard",
     prompt: "Build like a BARD: an occult performer. Occult tradition spellcasting at high DC including enchantment and support spells, high Charisma and Performance, moderate AC, HP and Reflex. A composition-like ability that aids allies or hinders enemies each round, Diplomacy and Deception skills, a light weapon strike."
   },
   {
     id: "champion",
-    name: "SIMPLYPF2E.Presets.Champion",
+    name: "SIMPLYSF2E.Presets.Champion",
     prompt: "Build like a CHAMPION: a holy defender. Extreme or high AC, high Fortitude and Will, high HP, moderate attack and damage. A defensive reaction that protects nearby allies when they are hit, Religion skill, heavy armor and a martial weapon. No spellcasting beyond at most 1-2 divine support spells."
   },
   {
     id: "cleric",
-    name: "SIMPLYPF2E.Presets.Cleric",
+    name: "SIMPLYSF2E.Presets.Cleric",
     prompt: "Build like a CLERIC: a divine spellcaster. Divine tradition spellcasting at high DC with healing or war spells fitting the deity, high Will, moderate HP and AC, low-to-moderate attack. Religion and Medicine skills, a domain-flavored signature ability, a simple weapon strike."
   },
   {
     id: "druid",
-    name: "SIMPLYPF2E.Presets.Druid",
+    name: "SIMPLYSF2E.Presets.Druid",
     prompt: "Build like a DRUID: a primal spellcaster. Primal tradition spellcasting at high DC (nature, weather, animal spells), high Will, moderate HP, low-to-moderate AC and attack. Nature and Survival skills, wild empathy or shapeshifting-flavored signature ability, a staff or natural strike."
   },
   {
     id: "fighter",
-    name: "SIMPLYPF2E.Presets.Fighter",
+    name: "SIMPLYSF2E.Presets.Fighter",
     prompt: "Build like a FIGHTER: a disciplined master of arms. High or extreme strike attack bonus, high AC, high Fortitude, moderate HP. Weapon strikes with martial traits, 2-3 trained weapon-technique feats (Power Attack, Sudden Charge, Intimidating Strike style), and a signature weapon ability. No spellcasting."
   },
   {
     id: "gunslinger",
-    name: "SIMPLYPF2E.Presets.Gunslinger",
+    name: "SIMPLYSF2E.Presets.Gunslinger",
     prompt: "Build like a GUNSLINGER: a firearm duelist. Extreme or high ranged firearm strike, high Reflex, low HP, low-to-moderate AC. A jam-or-misfire-flavored drawback on the gun, a quick-draw or reload signature ability, high Acrobatics. No spellcasting."
   },
   {
     id: "inventor",
-    name: "SIMPLYPF2E.Presets.Inventor",
+    name: "SIMPLYSF2E.Presets.Inventor",
     prompt: "Build like an INVENTOR: a gadgeteer with a signature innovation. Moderate attack, moderate AC and HP, high Crafting, and a constructed companion, weapon, or armor they tinker with. An overdrive-or-unstable-innovation signature ability that risks a malfunction. No spellcasting."
   },
   {
     id: "investigator",
-    name: "SIMPLYPF2E.Presets.Investigator",
+    name: "SIMPLYSF2E.Presets.Investigator",
     prompt: "Build like an INVESTIGATOR: a methodical detective. High Intelligence, high Perception and Society, moderate attack that improves when they study a foe first, moderate AC and HP. A devise-a-stratagem-like ability that replaces a strike roll with a calculated one, pursue-a-lead flavor, alchemy or investigation tools as fits. No spellcasting."
   },
   {
     id: "kineticist",
-    name: "SIMPLYPF2E.Presets.Kineticist",
+    name: "SIMPLYSF2E.Presets.Kineticist",
     prompt: "Build like a KINETICIST: an elemental conduit. Impulse-style elemental attacks (a ranged blast and a melee elemental strike), high or extreme elemental damage of one element, moderate AC and HP, an overflow-or-gate-attunement signature ability. No traditional spellcasting — elemental impulses only."
   },
   {
     id: "magus",
-    name: "SIMPLYPF2E.Presets.Magus",
+    name: "SIMPLYSF2E.Presets.Magus",
     prompt: "Build like a MAGUS: a spellstriking hybrid. Arcane tradition with a small spell list at moderate-to-high DC, a martial weapon strike at high attack, moderate AC and HP. A spellstrike-like signature ability that delivers a spell through a weapon hit, Arcana skill. Keep the spell list tight and combat-focused."
   },
   {
     id: "monk",
-    name: "SIMPLYPF2E.Presets.Monk",
+    name: "SIMPLYSF2E.Presets.Monk",
     prompt: "Build like a MONK: a martial artist. Unarmed strikes with agile and finesse traits, high AC without armor, fast land speed, high Reflex and Will, moderate HP. A flurry-of-blows-like ability granting an extra strike, Acrobatics and Athletics, stance or mobility feats. No spellcasting."
   },
   {
     id: "oracle",
-    name: "SIMPLYPF2E.Presets.Oracle",
+    name: "SIMPLYSF2E.Presets.Oracle",
     prompt: "Build like an ORACLE: a mystery-cursed divine caster. Divine tradition spellcasting at high DC with a clear mystery theme, high Charisma and Will, moderate HP, low-to-moderate AC. A curse-flavored signature ability that grows as they cast, Religion skill, a simple weapon strike."
   },
   {
     id: "psychic",
-    name: "SIMPLYPF2E.Presets.Psychic",
+    name: "SIMPLYSF2E.Presets.Psychic",
     prompt: "Build like a PSYCHIC: an occult mind. Occult tradition spellcasting at high or extreme DC with a conscious-mind theme (unleashed psyche, telepathy, amps), low HP and AC, low attack, high Will and Intelligence or Charisma. Occultism skill, a psyche-unleash signature ability, no martial pretensions."
   },
   {
     id: "ranger",
-    name: "SIMPLYPF2E.Presets.Ranger",
+    name: "SIMPLYSF2E.Presets.Ranger",
     prompt: "Build like a RANGER: a wilderness hunter. Both a ranged strike (bow) and a melee strike, high attack bonus, moderate AC and HP, high Survival and Nature, keen senses. A hunt-prey-like ability that improves accuracy against a marked target. No spellcasting unless the concept demands a touch of primal magic."
   },
   {
     id: "rogue",
-    name: "SIMPLYPF2E.Presets.Rogue",
+    name: "SIMPLYSF2E.Presets.Rogue",
     prompt: "Build like a ROGUE: a sneak. High Dexterity, high Reflex, low Fortitude, moderate HP. Agile/finesse strikes, a sneak-attack-like ability dealing extra low damage against off-guard targets, high Stealth, Thievery and Deception, mobility feats (Nimble Dodge, Twin Feint style). No spellcasting."
   },
   {
     id: "sorcerer",
-    name: "SIMPLYPF2E.Presets.Sorcerer",
+    name: "SIMPLYSF2E.Presets.Sorcerer",
     prompt: "Build like a SORCERER: a bloodline caster. Spellcasting at high DC in the tradition matching its bloodline (draconic=arcane, angelic=divine, fey=primal, aberrant=occult), high Charisma, low AC and HP, low attack. A bloodline-flavored signature ability and thematically unified spell choices."
   },
   {
     id: "summoner",
-    name: "SIMPLYPF2E.Presets.Summoner",
+    name: "SIMPLYSF2E.Presets.Summoner",
     prompt: "Build like a SUMMONER: a bonded partner to an eidolon. Moderate HP, low-to-moderate AC, a high-attack eidolon strike (natural weapons) as the primary offense, and a short occult or primal spell list at moderate DC. A tandem-or-boost signature ability that empowers the eidolon. Treat the eidolon as this creature's main strike and signature, not a second actor."
   },
   {
     id: "swashbuckler",
-    name: "SIMPLYPF2E.Presets.Swashbuckler",
+    name: "SIMPLYSF2E.Presets.Swashbuckler",
     prompt: "Build like a SWASHBUCKLER: a stylish duelist. High Dexterity, high Reflex, agile/finesse strikes, moderate HP, moderate AC. A panache-like resource that fuels a finishing strike dealing extra damage, high Acrobatics and Performance or Diplomacy, mobility feats. No spellcasting."
   },
   {
     id: "thaumaturge",
-    name: "SIMPLYPF2E.Presets.Thaumaturge",
+    name: "SIMPLYSF2E.Presets.Thaumaturge",
     prompt: "Build like a THAUMATURGE: a folkloric hunter of the strange. Moderate attack that improves against a studied foe, an implement-flavored tool (amulet, weapon, tome), moderate AC and HP, high Occultism or esoteric Lore. An exploit-vulnerability-like signature ability that makes a weakness real. No spellcasting."
   },
   {
     id: "witch",
-    name: "SIMPLYPF2E.Presets.Witch",
+    name: "SIMPLYSF2E.Presets.Witch",
     prompt: "Build like a WITCH: a patron-taught caster. Spellcasting at high DC in the tradition matching the patron (the lesson theme should unify the spell list), a familiar-flavored signature ability, high corresponding skill (Occultism, Nature, Arcana, or Religion), low HP, low AC, low attack. A hex-like focus-style ability they can use each round, a staff or dagger strike as a last resort."
   },
   {
     id: "wizard",
-    name: "SIMPLYPF2E.Presets.Wizard",
+    name: "SIMPLYSF2E.Presets.Wizard",
     prompt: "Build like a WIZARD: an arcane scholar. Arcane tradition spellcasting at high or extreme DC with a clear school theme, low HP, low AC, low attack, terrible Fortitude, high Will and Intelligence. Arcana and school-related Lore skills, a signature ability tied to its magical specialty, a dagger or staff strike as a last resort."
   }
 ];

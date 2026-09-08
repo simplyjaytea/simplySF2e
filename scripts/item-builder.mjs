@@ -158,7 +158,7 @@ export async function priceForLevel(level, rarity = "common") {
       if (inWindow.length >= MIN_PRICE_SAMPLES) {
         base = median(inWindow);
         if (window > 2) {
-          console.log(`simplypf2e | itemforge: few priced items near level ${lv}; price benchmark widened to ±${window} levels`);
+          console.log(`simplysf2e | itemforge: few priced items near level ${lv}; price benchmark widened to ±${window} levels`);
         }
         break;
       }
@@ -181,13 +181,13 @@ export function normalizeRunedItemConcept(raw, { kind, rarity, baseCandidates, r
 
   const base = findByName(baseCandidates, c.baseItemName);
   if (!base) {
-    console.warn(`simplypf2e | itemforge: unresolved base ${kind} "${c.baseItemName}"`);
+    console.warn(`simplysf2e | itemforge: unresolved base ${kind} "${c.baseItemName}"`);
     throw new Error(`The selected base ${kind} could not be matched to the offered compendium items. Generate a new plan.`);
   }
 
   const rawPotency = POTENCY_CHOICES[c.potency];
   if (!potencyTiers.includes(rawPotency)) {
-    console.warn(`simplypf2e | itemforge: unresolved potency tier "${c.potency}"`);
+    console.warn(`simplysf2e | itemforge: unresolved potency tier "${c.potency}"`);
     throw new Error("The selected potency rune is not one of the offered tiers. Generate a new plan.");
   }
   const potency = rawPotency;
@@ -195,7 +195,7 @@ export function normalizeRunedItemConcept(raw, { kind, rarity, baseCandidates, r
   const rawSecondary = SECONDARY_CHOICES[c.secondaryTier];
   const secondaryTier = secondaryTiers.includes(rawSecondary) ? rawSecondary : 0;
   if (rawSecondary !== 0 && !secondaryTiers.includes(rawSecondary)) {
-    console.warn(`simplypf2e | itemforge: dropped unavailable secondary rune tier "${c.secondaryTier}"`);
+    console.warn(`simplysf2e | itemforge: dropped unavailable secondary rune tier "${c.secondaryTier}"`);
   }
 
   const propertyRunes = [];
@@ -204,14 +204,14 @@ export function normalizeRunedItemConcept(raw, { kind, rarity, baseCandidates, r
     if (propertyRunes.length >= potency) break;
     const match = findByName(runeCandidates, name);
     if (!match) {
-      if (name) console.warn(`simplypf2e | itemforge: dropped unmatched property rune "${name}"`);
+      if (name) console.warn(`simplysf2e | itemforge: dropped unmatched property rune "${name}"`);
       continue;
     }
     // Category-restricted armor runes (e.g. "etched-onto-light-armor") must
     // fit the chosen base armor's real system.category — a mismatch is
     // dropped, never bent to fit.
     if (!propertyRuneFitsBase(kind, match.usage, base?.category)) {
-      console.warn(`simplypf2e | itemforge: dropped property rune "${match.name}" (${match.usage}) — not etchable onto ${base?.category ?? "unknown-category"} ${kind} "${base?.name}"`);
+      console.warn(`simplysf2e | itemforge: dropped property rune "${match.name}" (${match.usage}) — not etchable onto ${base?.category ?? "unknown-category"} ${kind} "${base?.name}"`);
       continue;
     }
     const key = slugify(match.name);
@@ -260,7 +260,7 @@ export async function buildRunedItem(concept) {
     const entry = await findEntry(packs, name, (e) => e.type === "equipment");
     const doc = await getDocument(entry);
     if (doc) propertyDocs.push(doc);
-    else console.warn(`simplypf2e | itemforge: property rune "${name}" could not be resolved — dropped`);
+    else console.warn(`simplysf2e | itemforge: property rune "${name}" could not be resolved — dropped`);
   }
 
   const data = toItemData(baseDoc);
@@ -308,7 +308,7 @@ export async function buildRunedItem(concept) {
     concept.secondaryTier ? SECONDARY_ADJECTIVE[concept.kind][concept.secondaryTier] : null,
     ...propertyDocs.map((d) => d.name)
   ].filter(Boolean).join(", ");
-  paragraphs.push(`<hr /><p><strong>${game.i18n.localize("SIMPLYPF2E.ItemForge.RunesHeading")}</strong> ${runeSummary}.</p>`);
+  paragraphs.push(`<hr /><p><strong>${game.i18n.localize("SIMPLYSF2E.ItemForge.RunesHeading")}</strong> ${runeSummary}.</p>`);
   data.system.description = { value: paragraphs.join("\n") };
 
   return { itemData: data, preview: { priceGp: gp, level } };
@@ -430,7 +430,7 @@ function normalizeActivation(raw, { level, rarity, usage, available, effectCatal
   if (!raw || typeof raw !== "object") return null;
   const template = raw.template;
   if (!ACTIVATION_TEMPLATES.has(template)) {
-    if (template) console.warn(`simplypf2e | itemforge: dropped activation of unknown template "${template}"`);
+    if (template) console.warn(`simplysf2e | itemforge: dropped activation of unknown template "${template}"`);
     return null;
   }
 
@@ -458,7 +458,7 @@ function normalizeActivation(raw, { level, rarity, usage, available, effectCatal
     case "condition": {
       const conditionSlug = slugify(p.conditionSlug);
       if (!CONDITION_SLUGS.has(conditionSlug)) {
-        console.warn(`simplypf2e | itemforge: dropped condition activation with unknown condition "${p.conditionSlug}"`);
+        console.warn(`simplysf2e | itemforge: dropped condition activation with unknown condition "${p.conditionSlug}"`);
         return null;
       }
       const saveType = SAVE_TYPES.has(p.saveType) ? p.saveType : null;
@@ -480,7 +480,7 @@ function normalizeActivation(raw, { level, rarity, usage, available, effectCatal
         .filter(Boolean)
         .slice(0, 3);
       if (!ruleEffectKinds.length) {
-        console.warn("simplypf2e | itemforge: dropped self-buff without a supported published effect");
+        console.warn("simplysf2e | itemforge: dropped self-buff without a supported published effect");
         return null;
       }
       // These two are AI free text concatenated into the macro's chat/effect
@@ -503,7 +503,7 @@ function normalizeActivation(raw, { level, rarity, usage, available, effectCatal
 function normalizeEffect(e, { level, rarity, usage, available, effectCatalog = [] }) {
   const kind = e?.kind;
   if (!available.has(kind)) {
-    if (kind) console.warn(`simplypf2e | itemforge: dropped effect of unavailable kind "${kind}"`);
+    if (kind) console.warn(`simplysf2e | itemforge: dropped effect of unavailable kind "${kind}"`);
     return null;
   }
   let field;
@@ -544,7 +544,7 @@ function normalizeEffect(e, { level, rarity, usage, available, effectCatalog = [
   const magnitude = (candidate) => candidate.value ?? candidate.range ?? Infinity;
   candidates.sort((a, b) => magnitude(a) - magnitude(b));
   if (!candidates.length) {
-    console.warn(`simplypf2e | itemforge: dropped "${kind}" effect without a matching published equipment rule at level ${level}`, e);
+    console.warn(`simplysf2e | itemforge: dropped "${kind}" effect without a matching published equipment rule at level ${level}`, e);
     return null;
   }
   const index = e.scale === "low" ? 0 : e.scale === "high" ? candidates.length - 1 : Math.floor((candidates.length - 1) / 2);
@@ -557,16 +557,16 @@ function normalizeEffect(e, { level, rarity, usage, available, effectCatalog = [
 export function describeEffect(effect) {
   switch (effect.kind) {
     case "itemBonus":
-      return game.i18n.format("SIMPLYPF2E.ItemForge.EffectItemBonus", {
+      return game.i18n.format("SIMPLYSF2E.ItemForge.EffectItemBonus", {
         value: effect.value,
         statistic: effect.statistic === "ac" ? "AC" : capitalized(effect.statistic)
       });
     case "resistance":
-      return game.i18n.format("SIMPLYPF2E.ItemForge.EffectResistance", { value: effect.value, type: effect.damageType });
+      return game.i18n.format("SIMPLYSF2E.ItemForge.EffectResistance", { value: effect.value, type: effect.damageType });
     case "weakness":
-      return game.i18n.format("SIMPLYPF2E.ItemForge.EffectWeakness", { value: effect.value, type: effect.damageType });
+      return game.i18n.format("SIMPLYSF2E.ItemForge.EffectWeakness", { value: effect.value, type: effect.damageType });
     case "immunity":
-      return game.i18n.format("SIMPLYPF2E.ItemForge.EffectImmunity", { type: effect.damageType });
+      return game.i18n.format("SIMPLYSF2E.ItemForge.EffectImmunity", { type: effect.damageType });
     case "sense": {
       const parts = [capitalized(effect.type.replaceAll("-", " "))];
       if (effect.acuity) parts.push(`(${effect.acuity}${effect.range ? `, ${effect.range} ft.` : ""})`);
@@ -574,7 +574,7 @@ export function describeEffect(effect) {
       return parts.join(" ");
     }
     case "speed":
-      return game.i18n.format("SIMPLYPF2E.ItemForge.EffectSpeed", {
+      return game.i18n.format("SIMPLYSF2E.ItemForge.EffectSpeed", {
         type: capitalized(effect.type), value: effect.value
       });
     default:
@@ -627,7 +627,7 @@ export function describeActivation(activation, { charged = true } = {}) {
       summary = activation.template;
   }
   const freq = charged ? " (1/day)" : "";
-  return `${game.i18n.localize("SIMPLYPF2E.ItemForge.Activate")} (${cost}) — ${summary}${freq}`;
+  return `${game.i18n.localize("SIMPLYSF2E.ItemForge.Activate")} (${cost}) — ${summary}${freq}`;
 }
 
 /* -------------------- rule cloning & item assembly -------------------- */
@@ -645,16 +645,16 @@ export async function cloneRulesForEffects(effects) {
     try {
       const exemplar = effect.exemplar;
       if (!exemplar) {
-        console.warn(`simplypf2e | itemforge: no exemplar for "${effect.kind}" — effect skipped`);
+        console.warn(`simplysf2e | itemforge: no exemplar for "${effect.kind}" — effect skipped`);
         continue;
       }
       rules.push(structuredClone(exemplar.rule));
       applied.push(effect);
       console.debug(
-        `simplypf2e | itemforge: "${effect.kind}" rule cloned from "${exemplar.sourceName}" (${exemplar.sourceUuid})`
+        `simplysf2e | itemforge: "${effect.kind}" rule cloned from "${exemplar.sourceName}" (${exemplar.sourceUuid})`
       );
     } catch (err) {
-      console.warn(`simplypf2e | itemforge: failed to build "${effect.kind}" effect — skipped`, err);
+      console.warn(`simplysf2e | itemforge: failed to build "${effect.kind}" effect — skipped`, err);
     }
   }
   return { rules, applied };
@@ -678,7 +678,7 @@ export async function buildMagicItemData(concept) {
     // Plain-English mechanical summary so the GM can read what the item
     // does without opening the rules tab.
     descriptionParts.push(
-      `<hr /><p><strong>${game.i18n.localize("SIMPLYPF2E.ItemForge.EffectsHeading")}</strong> ${applied.map(describeEffect).join("; ")}.</p>`
+      `<hr /><p><strong>${game.i18n.localize("SIMPLYSF2E.ItemForge.EffectsHeading")}</strong> ${applied.map(describeEffect).join("; ")}.</p>`
     );
   }
 
@@ -706,7 +706,7 @@ export async function buildMagicItemData(concept) {
   // after the macro is created (see macro-templates.createActivationMacro).
   if (concept.activation) {
     descriptionParts.push(
-      `<hr /><p><strong>${game.i18n.localize("SIMPLYPF2E.ItemForge.ActivationHeading")}</strong> ${describeActivation(concept.activation)}.</p>`
+      `<hr /><p><strong>${game.i18n.localize("SIMPLYSF2E.ItemForge.ActivationHeading")}</strong> ${describeActivation(concept.activation)}.</p>`
     );
     system.description.value = descriptionParts.join("\n");
     // Best-effort native frequency (for the sheet's own display); the
@@ -714,7 +714,7 @@ export async function buildMagicItemData(concept) {
     // the macro reads and decrements.
     system.frequency = { max: 1, per: "day", value: 1 };
     data.flags = {
-      simplypf2e: {
+      simplysf2e: {
         forge: {
           forgeId: foundry.utils.randomID(),
           template: concept.activation.template,

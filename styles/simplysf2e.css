@@ -1,5 +1,5 @@
 /* ==========================================================================
-   simplyPF2e — shared visual system
+   simplySF2e — shared visual system
    One token set + a small kit of shared classes used by all five apps
    (generator, item forge, provider setup, manage presets, sources):
    - .spf-card        bordered surface for sections/previews/progress
@@ -12,7 +12,7 @@
    the PF2e statblock look.
    ========================================================================== */
 
-.simplypf2e {
+.simplysf2e {
   /* Brand (PF2e statblock maroon/gold) */
   --spf-brand-dark: #58180d;
   --spf-brand-accent: #a3512c;
@@ -44,7 +44,7 @@
    Window frame: keep resizable windows usable — never smaller than the
    narrow layout that was browser-checked at 360px.
    -------------------------------------------------------------------------- */
-.application.simplypf2e {
+.application.simplysf2e {
   min-width: 340px;
   min-height: 220px;
   max-width: 100vw;
@@ -53,14 +53,14 @@
 /* --------------------------------------------------------------------------
    Shared primitives
    -------------------------------------------------------------------------- */
-.simplypf2e .spf-card {
+.simplysf2e .spf-card {
   border: 1px solid var(--spf-border);
   border-radius: var(--spf-radius);
   background: var(--spf-surface-raised);
   padding: var(--spf-space-md) var(--spf-space-lg);
 }
 
-.simplypf2e .spf-icon-btn {
+.simplysf2e .spf-icon-btn {
   flex: 0 0 auto;
   display: inline-grid;
   place-items: center;
@@ -71,7 +71,7 @@
 }
 
 /* Primary action: exactly one per window (Generate/Forge/Create/Save). */
-.simplypf2e button.spf-primary {
+.simplysf2e button.spf-primary {
   background: linear-gradient(180deg, var(--spf-brand-accent), var(--spf-brand-dark));
   border: 1px solid var(--spf-brand-dark);
   color: #f5efe0;
@@ -79,32 +79,32 @@
   text-shadow: none;
 }
 
-.simplypf2e button.spf-primary:not(:disabled):hover {
+.simplysf2e button.spf-primary:not(:disabled):hover {
   filter: brightness(1.15);
   box-shadow: 0 0 6px var(--spf-brand-accent);
 }
 
-.simplypf2e button:disabled {
+.simplysf2e button:disabled {
   opacity: 0.55;
   cursor: default;
 }
 
-.simplypf2e button:not(:disabled):not(.spf-primary):hover {
+.simplysf2e button:not(:disabled):not(.spf-primary):hover {
   border-color: var(--spf-brand-accent);
 }
 
-.simplypf2e :is(button, input, select, textarea):focus-visible {
+.simplysf2e :is(button, input, select, textarea):focus-visible {
   outline: 2px solid var(--spf-focus);
   outline-offset: 1px;
 }
 
-.simplypf2e .spf-hint {
+.simplysf2e .spf-hint {
   font-size: var(--spf-text-sm);
   opacity: 0.85;
   margin: var(--spf-space-xs) 0;
 }
 
-.simplypf2e .spf-empty {
+.simplysf2e .spf-empty {
   text-align: center;
   padding: var(--spf-space-xl);
   border: 1px dashed var(--spf-border);
@@ -113,7 +113,7 @@
   opacity: 0.65;
 }
 
-.simplypf2e .spf-model {
+.simplysf2e .spf-model {
   opacity: 0.7;
   font-size: var(--spf-text-sm);
 }
@@ -121,7 +121,7 @@
 /* --------------------------------------------------------------------------
    App body containers
    -------------------------------------------------------------------------- */
-.simplypf2e .simplypf2e-generator {
+.simplysf2e .simplysf2e-generator {
   display: flex;
   flex-direction: column;
   gap: var(--spf-space-md);
@@ -130,14 +130,14 @@
   overflow-y: auto;
 }
 
-.simplypf2e .simplypf2e-manage-presets {
+.simplysf2e .simplysf2e-manage-presets {
   display: flex;
   flex-direction: column;
   gap: var(--spf-space-md);
   padding: var(--spf-space-xs);
 }
 
-.simplypf2e .simplypf2e-sources {
+.simplysf2e .simplysf2e-sources {
   display: flex;
   flex-direction: column;
   gap: var(--spf-space-md);
@@ -145,7 +145,7 @@
   overflow-y: auto;
 }
 
-.simplypf2e .simplypf2e-provider-setup {
+.simplysf2e .simplysf2e-provider-setup {
   display: flex;
   flex-direction: column;
   gap: var(--spf-space-lg);
@@ -156,7 +156,7 @@
    Provider strip — the shared identity/readiness bar at the top of the
    generator and item forge.
    -------------------------------------------------------------------------- */
-.simplypf2e .spf-provider-summary {
+.simplysf2e .spf-provider-summary {
   display: flex;
   align-items: center;
   gap: var(--spf-space-sm);
@@ -168,14 +168,14 @@
   font-size: var(--spf-text-sm);
 }
 
-.simplypf2e .spf-provider-name {
+.simplysf2e .spf-provider-name {
   display: inline-flex;
   align-items: center;
   gap: var(--spf-space-xs);
   min-width: 0;
 }
 
-.simplypf2e .spf-sr-only {
+.simplysf2e .spf-sr-only {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -187,13 +187,13 @@
   border: 0;
 }
 
-.simplypf2e .spf-provider-name select {
+.simplysf2e .spf-provider-name select {
   max-width: 11rem;
   min-width: 0;
   width: auto;
 }
 
-.simplypf2e .spf-provider-model {
+.simplysf2e .spf-provider-model {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -201,11 +201,11 @@
   opacity: 0.8;
 }
 
-.simplypf2e .spf-provider-state {
+.simplysf2e .spf-provider-state {
   flex: 0 0 auto;
 }
 
-.simplypf2e .spf-last-run {
+.simplysf2e .spf-last-run {
   font-size: var(--spf-text-xs);
   opacity: 0.7;
   white-space: nowrap;
@@ -214,7 +214,7 @@
   text-overflow: ellipsis;
 }
 
-.simplypf2e .spf-provider-actions {
+.simplysf2e .spf-provider-actions {
   display: inline-flex;
   align-items: center;
   gap: var(--spf-space-xs);
@@ -222,7 +222,7 @@
   flex: 0 0 auto;
 }
 
-.simplypf2e .spf-provider-actions button {
+.simplysf2e .spf-provider-actions button {
   display: inline-grid;
   place-items: center;
   width: 1.45rem;
@@ -234,32 +234,32 @@
   line-height: 1;
 }
 
-.simplypf2e .spf-provider-actions button:not(:disabled):hover {
+.simplysf2e .spf-provider-actions button:not(:disabled):hover {
   color: var(--spf-brand-accent);
   border: 0;
 }
 
-.simplypf2e .spf-provider-ready .spf-provider-state {
+.simplysf2e .spf-provider-ready .spf-provider-state {
   color: var(--spf-success);
 }
 
-.simplypf2e .spf-provider-attention .spf-provider-state {
+.simplysf2e .spf-provider-attention .spf-provider-state {
   color: var(--spf-danger);
 }
 
-.simplypf2e .spf-provider-warning {
+.simplysf2e .spf-provider-warning {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: var(--spf-space-md);
 }
 
-.simplypf2e .spf-provider-endpoint {
+.simplysf2e .spf-provider-endpoint {
   min-width: 0;
   overflow-wrap: anywhere;
 }
 
-.simplypf2e .spf-provider-warning button {
+.simplysf2e .spf-provider-warning button {
   flex: 0 0 auto;
   width: auto;
 }
@@ -267,7 +267,7 @@
 /* --------------------------------------------------------------------------
    Input form: mode switch → prompt → presets → options → generate
    -------------------------------------------------------------------------- */
-.simplypf2e .spf-inputs legend {
+.simplysf2e .spf-inputs legend {
   font-family: var(--spf-font-display);
   font-variant: small-caps;
   font-weight: 700;
@@ -275,21 +275,21 @@
   padding: 0 var(--spf-space-sm);
 }
 
-.simplypf2e .spf-inputs textarea {
+.simplysf2e .spf-inputs textarea {
   width: 100%;
   resize: vertical;
   font-family: inherit;
 }
 
 /* Item Forge kind choices. Kept separate from the generator's mode switch. */
-.simplypf2e .spf-kind-choices {
+.simplysf2e .spf-kind-choices {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(11rem, 100%), 1fr));
   gap: var(--spf-space-sm);
   margin-bottom: var(--spf-space-md);
 }
 
-.simplypf2e .spf-kind-choice {
+.simplysf2e .spf-kind-choice {
   display: flex;
   /* Foundry gives buttons a fixed control height; these contain wrapped copy. */
   height: auto;
@@ -308,41 +308,41 @@
   transition: border-color 120ms ease, background 120ms ease, box-shadow 120ms ease;
 }
 
-.simplypf2e .spf-kind-choice:hover {
+.simplysf2e .spf-kind-choice:hover {
   border-color: var(--spf-brand-accent);
 }
 
-.simplypf2e .spf-kind-choice:focus-visible {
+.simplysf2e .spf-kind-choice:focus-visible {
   outline: 2px solid var(--spf-focus);
   outline-offset: 2px;
 }
 
-.simplypf2e .spf-kind-choice.spf-kind-selected {
+.simplysf2e .spf-kind-choice.spf-kind-selected {
   border-color: var(--spf-brand-accent);
   background: var(--spf-brand-soft);
   box-shadow: inset 0 0 0 1px var(--spf-brand-accent);
 }
 
-.simplypf2e .spf-kind-choice > i {
+.simplysf2e .spf-kind-choice > i {
   flex: 0 0 auto;
   margin-top: 0.15rem;
   color: var(--spf-brand-accent);
 }
 
-.simplypf2e .spf-kind-choice-copy {
+.simplysf2e .spf-kind-choice-copy {
   display: grid;
   gap: 0.2rem;
   min-width: 0;
 }
 
-.simplypf2e .spf-kind-choice-copy small {
+.simplysf2e .spf-kind-choice-copy small {
   color: var(--color-text-subtle, rgba(255, 255, 255, 0.72));
   font-size: var(--spf-text-sm);
   line-height: 1.25;
 }
 
 /* Segmented mode switch */
-.simplypf2e .spf-mode-toggle {
+.simplysf2e .spf-mode-toggle {
   display: flex;
   gap: var(--spf-space-xs);
   margin-bottom: var(--spf-space-md);
@@ -351,7 +351,7 @@
   background: var(--spf-surface);
 }
 
-.simplypf2e .spf-mode-toggle label {
+.simplysf2e .spf-mode-toggle label {
   flex: 1;
   display: flex;
   align-items: center;
@@ -364,12 +364,12 @@
   opacity: 0.7;
 }
 
-.simplypf2e .spf-mode-toggle label:hover {
+.simplysf2e .spf-mode-toggle label:hover {
   opacity: 1;
   border-color: var(--spf-border);
 }
 
-.simplypf2e .spf-mode-toggle label.spf-mode-active {
+.simplysf2e .spf-mode-toggle label.spf-mode-active {
   opacity: 1;
   font-weight: bold;
   background: var(--spf-brand-soft);
@@ -377,13 +377,13 @@
   box-shadow: inset 0 0 0 1px var(--spf-brand-accent);
 }
 
-.simplypf2e .spf-mode-toggle label:focus-within {
+.simplysf2e .spf-mode-toggle label:focus-within {
   opacity: 1;
   outline: 2px solid var(--spf-focus);
   outline-offset: 2px;
 }
 
-.simplypf2e .spf-mode-toggle input[type="radio"] {
+.simplysf2e .spf-mode-toggle input[type="radio"] {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -395,7 +395,7 @@
   border: 0;
 }
 
-.simplypf2e .spf-preset {
+.simplysf2e .spf-preset {
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -403,13 +403,13 @@
   margin: 0 0 var(--spf-space-md);
 }
 
-.simplypf2e .spf-preset > label {
+.simplysf2e .spf-preset > label {
   font-size: var(--spf-text-sm);
   font-weight: 600;
   opacity: 0.9;
 }
 
-.simplypf2e .spf-preset-controls {
+.simplysf2e .spf-preset-controls {
   display: flex;
   flex-wrap: wrap;
   gap: var(--spf-space-sm);
@@ -417,17 +417,17 @@
   min-width: 0;
 }
 
-.simplypf2e .spf-preset-controls select {
+.simplysf2e .spf-preset-controls select {
   flex: 1 1 12rem;
   min-width: 0;
 }
 
-.simplypf2e .spf-preset-controls select optgroup {
+.simplysf2e .spf-preset-controls select optgroup {
   font-style: normal;
   font-weight: 600;
 }
 
-.simplypf2e .spf-preset-controls [data-action="managePresets"] {
+.simplysf2e .spf-preset-controls [data-action="managePresets"] {
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
@@ -436,7 +436,7 @@
   white-space: nowrap;
 }
 
-.simplypf2e .spf-preset-trust {
+.simplysf2e .spf-preset-trust {
   margin: 0;
   max-width: 42rem;
   font-size: var(--spf-text-sm);
@@ -444,33 +444,33 @@
   opacity: 0.95;
 }
 
-.simplypf2e .spf-level-primary {
+.simplysf2e .spf-level-primary {
   display: flex;
   margin-top: var(--spf-space-sm);
 }
 
-.simplypf2e .spf-level-primary .form-group {
+.simplysf2e .spf-level-primary .form-group {
   flex: 0 1 12rem;
 }
 
-.simplypf2e .spf-advanced {
+.simplysf2e .spf-advanced {
   margin-top: var(--spf-space-md);
   border-top: 1px dotted var(--spf-border);
 }
 
-.simplypf2e .spf-advanced summary {
+.simplysf2e .spf-advanced summary {
   cursor: pointer;
   padding: var(--spf-space-sm) 0;
   font-size: var(--spf-text-sm);
   font-weight: 600;
 }
 
-.simplypf2e .spf-advanced-content {
+.simplysf2e .spf-advanced-content {
   padding-bottom: var(--spf-space-sm);
 }
 
 /* Controls inside Advanced still wrap as a compact grid. */
-.simplypf2e .spf-row {
+.simplysf2e .spf-row {
   display: flex;
   flex-wrap: wrap;
   gap: var(--spf-space-md);
@@ -478,7 +478,7 @@
   margin: var(--spf-space-md) 0;
 }
 
-.simplypf2e .spf-row .form-group {
+.simplysf2e .spf-row .form-group {
   display: flex;
   flex-direction: column;
   flex: 1 1 8.5rem;
@@ -486,46 +486,46 @@
   gap: 0.15rem;
 }
 
-.simplypf2e .spf-row label {
+.simplysf2e .spf-row label {
   font-size: var(--spf-text-sm);
   opacity: 0.9;
 }
 
-.simplypf2e .spf-row select {
+.simplysf2e .spf-row select {
   width: 100%;
 }
 
-.simplypf2e .spf-row input[type="number"] {
+.simplysf2e .spf-row input[type="number"] {
   width: 5rem;
 }
 
-.simplypf2e .spf-checkbox label {
+.simplysf2e .spf-checkbox label {
   display: flex;
   align-items: center;
   gap: var(--spf-space-sm);
 }
 
-.simplypf2e .spf-level-controls {
+.simplysf2e .spf-level-controls {
   display: flex;
   gap: 0.2rem;
   align-items: center;
 }
 
-.simplypf2e .spf-level-controls input[type="number"] {
+.simplysf2e .spf-level-controls input[type="number"] {
   width: 3.5rem;
   text-align: center;
 }
 
-.simplypf2e .spf-generate-row {
+.simplysf2e .spf-generate-row {
   display: flex;
   gap: var(--spf-space-sm);
 }
 
-.simplypf2e .spf-generate-row button[data-action="generate"] {
+.simplysf2e .spf-generate-row button[data-action="generate"] {
   flex: 1;
 }
 
-.simplypf2e .spf-random-button {
+.simplysf2e .spf-random-button {
   flex: 0 0 auto;
   width: var(--spf-icon-btn);
   height: auto;
@@ -535,14 +535,14 @@
 /* --------------------------------------------------------------------------
    Progress + token readout: one status system.
    -------------------------------------------------------------------------- */
-.simplypf2e .spf-progress {
+.simplysf2e .spf-progress {
   display: flex;
   flex-direction: column;
   gap: var(--spf-space-sm);
   text-align: center;
 }
 
-.simplypf2e .spf-progress-steps {
+.simplysf2e .spf-progress-steps {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
@@ -553,41 +553,41 @@
   font-size: var(--spf-text-sm);
 }
 
-.simplypf2e .spf-progress-steps li {
+.simplysf2e .spf-progress-steps li {
   display: inline-flex;
   align-items: center;
   gap: var(--spf-space-xs);
   white-space: nowrap;
 }
 
-.simplypf2e .spf-step-pending {
+.simplysf2e .spf-step-pending {
   opacity: 0.5;
 }
 
-.simplypf2e .spf-step-active {
+.simplysf2e .spf-step-active {
   font-weight: bold;
 }
 
-.simplypf2e .spf-step-active i {
+.simplysf2e .spf-step-active i {
   color: var(--spf-brand-accent);
 }
 
-.simplypf2e .spf-step-done {
+.simplysf2e .spf-step-done {
   opacity: 0.8;
 }
 
-.simplypf2e .spf-step-done i {
+.simplysf2e .spf-step-done i {
   color: var(--spf-success);
 }
 
-.simplypf2e .spf-progress-bar {
+.simplysf2e .spf-progress-bar {
   height: 0.6rem;
   border-radius: 0.3rem;
   background: rgba(0, 0, 0, 0.25);
   overflow: hidden;
 }
 
-.simplypf2e .spf-progress-fill {
+.simplysf2e .spf-progress-fill {
   height: 100%;
   background: linear-gradient(90deg, var(--spf-brand-dark), var(--spf-brand-accent));
   border-radius: 0.3rem;
@@ -598,7 +598,7 @@
 
 /* Continuous motion while a step runs: a sheen sweeps across the fill so the
    bar reads as "working" even while its width holds steady during a step. */
-.simplypf2e .spf-progress-fill::after {
+.simplysf2e .spf-progress-fill::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -607,24 +607,24 @@
   animation: spf-step-slide 1.2s ease-in-out infinite;
 }
 
-.simplypf2e .spf-progress-thinking .spf-progress-fill {
+.simplysf2e .spf-progress-thinking .spf-progress-fill {
   background: linear-gradient(90deg, #3d4450, var(--spf-brand-accent));
 }
 
-.simplypf2e .spf-progress-thinking .spf-progress-fill::after {
+.simplysf2e .spf-progress-thinking .spf-progress-fill::after {
   animation-duration: 2.2s;
 }
 
-.simplypf2e .spf-progress-writing .spf-progress-fill::after {
+.simplysf2e .spf-progress-writing .spf-progress-fill::after {
   animation-duration: 0.9s;
 }
 
-.simplypf2e .spf-progress-cancelling .spf-progress-fill::after {
+.simplysf2e .spf-progress-cancelling .spf-progress-fill::after {
   animation: none;
   display: none;
 }
 
-.simplypf2e .spf-cancel {
+.simplysf2e .spf-cancel {
   align-self: center;
 }
 
@@ -634,26 +634,26 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .simplypf2e .spf-progress-fill {
+  .simplysf2e .spf-progress-fill {
     transition: none;
   }
-  .simplypf2e .spf-progress-fill::after {
+  .simplysf2e .spf-progress-fill::after {
     animation: none;
     display: none;
   }
-  .simplypf2e .fa-spin {
+  .simplysf2e .fa-spin {
     animation: none;
   }
 }
 
-.simplypf2e .spf-progress-percent {
+.simplysf2e .spf-progress-percent {
   margin: 0;
   text-align: center;
   font-size: var(--spf-text-sm);
   font-weight: bold;
 }
 
-.simplypf2e .spf-progress-detail {
+.simplysf2e .spf-progress-detail {
   margin: 0;
   font-style: italic;
   font-size: var(--spf-text-sm);
@@ -661,7 +661,7 @@
 }
 
 /* Per-step token usage shown under the finished preview */
-.simplypf2e .spf-token-report {
+.simplysf2e .spf-token-report {
   margin-top: var(--spf-space-md);
   padding-top: var(--spf-space-sm);
   border-top: 1px dashed var(--spf-border);
@@ -669,17 +669,17 @@
   opacity: 0.85;
 }
 
-.simplypf2e .spf-token-report h3 {
+.simplysf2e .spf-token-report h3 {
   font-size: 1em;
 }
 
-.simplypf2e .spf-token-report ul {
+.simplysf2e .spf-token-report ul {
   list-style: none;
   margin: 0.2rem 0;
   padding: 0;
 }
 
-.simplypf2e .spf-token-total {
+.simplysf2e .spf-token-total {
   margin: 0.2rem 0 0;
   font-weight: bold;
 }
@@ -687,7 +687,7 @@
 /* --------------------------------------------------------------------------
    Stat-block style preview
    -------------------------------------------------------------------------- */
-.simplypf2e .spf-statblock-header {
+.simplysf2e .spf-statblock-header {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
@@ -697,7 +697,7 @@
   padding-bottom: 0.1rem;
 }
 
-.simplypf2e .spf-statblock-header h2 {
+.simplysf2e .spf-statblock-header h2 {
   margin: 0;
   border: none;
   font-family: var(--spf-font-display);
@@ -705,25 +705,25 @@
   letter-spacing: 0.02em;
 }
 
-.simplypf2e .spf-level {
+.simplysf2e .spf-level {
   font-weight: bold;
   text-transform: uppercase;
   font-size: var(--spf-text-sm);
   white-space: nowrap;
 }
 
-.simplypf2e .spf-blurb {
+.simplysf2e .spf-blurb {
   margin: var(--spf-space-xs) 0;
 }
 
-.simplypf2e .spf-traits {
+.simplysf2e .spf-traits {
   display: flex;
   flex-wrap: wrap;
   gap: var(--spf-space-xs);
   margin: var(--spf-space-sm) 0;
 }
 
-.simplypf2e .spf-trait {
+.simplysf2e .spf-trait {
   background: var(--spf-brand-dark);
   color: #fff;
   border: 1px solid var(--spf-trait-border);
@@ -735,7 +735,7 @@
   letter-spacing: 0.03em;
 }
 
-.simplypf2e .spf-statline {
+.simplysf2e .spf-statline {
   display: flex;
   flex-wrap: wrap;
   gap: 0.25rem 1rem;
@@ -744,20 +744,20 @@
   font-size: 0.95em;
 }
 
-.simplypf2e .spf-strikes {
+.simplysf2e .spf-strikes {
   margin: var(--spf-space-sm) 0;
 }
 
-.simplypf2e .spf-strike {
+.simplysf2e .spf-strike {
   padding: 0.1rem 0;
 }
 
-.simplypf2e .spf-strike-traits {
+.simplysf2e .spf-strike-traits {
   opacity: 0.8;
   font-size: var(--spf-text-sm);
 }
 
-.simplypf2e .spf-preview h3 {
+.simplysf2e .spf-preview h3 {
   margin: var(--spf-space-md) 0 0.15rem 0;
   border-bottom: 1px solid var(--spf-border);
   font-family: var(--spf-font-display);
@@ -765,18 +765,18 @@
   font-variant: small-caps;
 }
 
-.simplypf2e .spf-spell-dc {
+.simplysf2e .spf-spell-dc {
   font-weight: normal;
   font-size: var(--spf-text-sm);
   opacity: 0.85;
 }
 
-.simplypf2e .spf-list {
+.simplysf2e .spf-list {
   margin: 0.15rem 0;
   padding-left: 1.1rem;
 }
 
-.simplypf2e .spf-list.spf-inline {
+.simplysf2e .spf-list.spf-inline {
   display: flex;
   flex-wrap: wrap;
   gap: 0.15rem 1rem;
@@ -784,12 +784,12 @@
   padding-left: 0;
 }
 
-.simplypf2e .spf-rank {
+.simplysf2e .spf-rank {
   opacity: 0.75;
   font-size: var(--spf-text-sm);
 }
 
-.simplypf2e .spf-found {
+.simplysf2e .spf-found {
   font-size: var(--spf-text-sm);
   color: var(--color-text-hyperlink);
 }
@@ -798,19 +798,19 @@
    to .spf-dropped's warning icon and .spf-custom's pill, shown when an
    entry DID resolve to a real compendium document instead of only ever
    flagging the negative case. */
-.simplypf2e .spf-match {
+.simplysf2e .spf-match {
   color: var(--spf-success);
 }
 
-.simplypf2e .spf-match-summary {
+.simplysf2e .spf-match-summary {
   opacity: 0.85;
 }
 
-.simplypf2e .spf-match-summary i {
+.simplysf2e .spf-match-summary i {
   color: var(--spf-success);
 }
 
-.simplypf2e .spf-custom {
+.simplysf2e .spf-custom {
   font-size: 0.75em;
   font-weight: bold;
   text-transform: uppercase;
@@ -823,41 +823,41 @@
 /* Spells/feats that failed to resolve are dropped from the actor entirely —
    struck through and red to read as "won't appear", distinct from the
    .spf-custom pill (equipment/loot instead), which still gets created. */
-.simplypf2e .spf-dropped {
+.simplysf2e .spf-dropped {
   opacity: 0.65;
   text-decoration: line-through;
 }
 
-.simplypf2e .spf-dropped i {
+.simplysf2e .spf-dropped i {
   color: var(--spf-danger);
   text-decoration: none;
 }
 
-.simplypf2e .spf-ability-desc {
+.simplysf2e .spf-ability-desc {
   font-size: var(--spf-text-sm);
   opacity: 0.9;
   margin-left: var(--spf-space-md);
 }
 
-.simplypf2e .spf-description {
+.simplysf2e .spf-description {
   font-size: 0.95em;
 }
 
-.simplypf2e .spf-actions {
+.simplysf2e .spf-actions {
   display: flex;
   flex-wrap: wrap;
   gap: var(--spf-space-md);
   margin-top: var(--spf-space-md);
 }
 
-.simplypf2e .spf-actions button {
+.simplysf2e .spf-actions button {
   flex: 1 1 7rem;
 }
 
 /* --------------------------------------------------------------------------
    Encounter preview
    -------------------------------------------------------------------------- */
-.simplypf2e .spf-encounter-members {
+.simplysf2e .spf-encounter-members {
   list-style: none;
   margin: var(--spf-space-sm) 0;
   padding: 0;
@@ -866,18 +866,18 @@
   gap: var(--spf-space-md);
 }
 
-.simplypf2e .spf-encounter-member {
+.simplysf2e .spf-encounter-member {
   background: var(--spf-surface);
 }
 
-.simplypf2e .spf-member-head {
+.simplysf2e .spf-member-head {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
   gap: var(--spf-space-md);
 }
 
-.simplypf2e .spf-member-tag {
+.simplysf2e .spf-member-tag {
   font-size: var(--spf-text-sm);
   text-transform: uppercase;
   font-weight: bold;
@@ -885,46 +885,46 @@
   white-space: nowrap;
 }
 
-.simplypf2e .spf-member-stats {
+.simplysf2e .spf-member-stats {
   font-size: var(--spf-text-sm);
   opacity: 0.9;
   margin-top: 0.15rem;
 }
 
-.simplypf2e .spf-member-count {
+.simplysf2e .spf-member-count {
   display: inline-flex;
   align-items: center;
   gap: 0.2rem;
 }
 
-.simplypf2e .spf-member-count .spf-icon-btn {
+.simplysf2e .spf-member-count .spf-icon-btn {
   font-size: 0.75em;
 }
 
-.simplypf2e .spf-member-count-value {
+.simplysf2e .spf-member-count-value {
   min-width: 1.6rem;
   text-align: center;
   font-weight: bold;
 }
 
-.simplypf2e .spf-member-skipped {
+.simplysf2e .spf-member-skipped {
   opacity: 0.45;
 }
 
-.simplypf2e .spf-over-budget {
+.simplysf2e .spf-over-budget {
   color: var(--spf-danger);
 }
 
 /* --------------------------------------------------------------------------
    Manage presets
    -------------------------------------------------------------------------- */
-.simplypf2e .spf-manage-list {
+.simplysf2e .spf-manage-list {
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
-.simplypf2e .spf-manage-list li {
+.simplysf2e .spf-manage-list li {
   display: flex;
   align-items: center;
   gap: var(--spf-space-sm);
@@ -933,18 +933,18 @@
   border-radius: var(--spf-radius-sm);
 }
 
-.simplypf2e .spf-manage-list li:hover {
+.simplysf2e .spf-manage-list li:hover {
   background: var(--spf-brand-soft);
 }
 
-.simplypf2e .spf-manage-name {
+.simplysf2e .spf-manage-name {
   flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.simplypf2e .spf-manage-buttons {
+.simplysf2e .spf-manage-buttons {
   display: flex;
   gap: var(--spf-space-xs);
 }
@@ -952,48 +952,48 @@
 /* --------------------------------------------------------------------------
    Provider setup
    -------------------------------------------------------------------------- */
-.simplypf2e .simplypf2e-provider-setup .form-group {
+.simplysf2e .simplysf2e-provider-setup .form-group {
   margin: 0;
 }
 
-.simplypf2e .simplypf2e-provider-setup .hint {
+.simplysf2e .simplysf2e-provider-setup .hint {
   margin: 0.15rem 0 0;
   font-size: var(--spf-text-sm);
   opacity: 0.75;
 }
 
-.simplypf2e .spf-provider-presets {
+.simplysf2e .spf-provider-presets {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--spf-space-sm);
 }
 
-.simplypf2e .spf-connection-bank {
+.simplysf2e .spf-connection-bank {
   display: flex;
   flex-direction: column;
   gap: var(--spf-space-xs);
 }
 
-.simplypf2e .spf-connection-row {
+.simplysf2e .spf-connection-row {
   display: flex;
   flex-wrap: wrap;
   gap: var(--spf-space-sm);
   align-items: center;
 }
 
-.simplypf2e .spf-connection-row select {
+.simplysf2e .spf-connection-row select {
   flex: 1 1 12rem;
   min-width: 0;
 }
 
-.simplypf2e .spf-connection-row button {
+.simplysf2e .spf-connection-row button {
   flex: 0 0 auto;
   width: 2.1rem;
   min-height: 2.1rem;
   padding: 0;
 }
 
-.simplypf2e .spf-provider-presets button {
+.simplysf2e .spf-provider-presets button {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1003,7 +1003,7 @@
   opacity: 0.72;
 }
 
-.simplypf2e .spf-provider-presets button.spf-provider-preset-active {
+.simplysf2e .spf-provider-presets button.spf-provider-preset-active {
   opacity: 1;
   font-weight: bold;
   background: var(--spf-brand-soft);
@@ -1011,43 +1011,43 @@
   box-shadow: inset 0 0 0 1px var(--spf-brand-accent);
 }
 
-.simplypf2e .spf-provider-clear-key {
+.simplysf2e .spf-provider-clear-key {
   display: flex;
   align-items: center;
   gap: var(--spf-space-sm);
 }
 
-.simplypf2e .spf-model-picker {
+.simplysf2e .spf-model-picker {
   display: flex;
   flex-wrap: wrap;
   gap: var(--spf-space-sm);
 }
 
-.simplypf2e .spf-model-picker input {
+.simplysf2e .spf-model-picker input {
   flex: 1 1 14rem;
   min-width: 0;
 }
 
-.simplypf2e .spf-model-picker button {
+.simplysf2e .spf-model-picker button {
   flex: 1 0 auto;
   width: auto;
 }
 
-.simplypf2e .spf-provider-privacy {
+.simplysf2e .spf-provider-privacy {
   margin: 0;
 }
 
 /* --------------------------------------------------------------------------
    Compendium sources
    -------------------------------------------------------------------------- */
-.simplypf2e .spf-source-category legend {
+.simplysf2e .spf-source-category legend {
   font-family: var(--spf-font-display);
   font-weight: bold;
   font-variant: small-caps;
   padding: 0 0.3rem;
 }
 
-.simplypf2e .spf-pack {
+.simplysf2e .spf-pack {
   display: flex;
   align-items: center;
   gap: 0.4rem;
@@ -1056,15 +1056,15 @@
   cursor: pointer;
 }
 
-.simplypf2e .spf-pack:hover {
+.simplysf2e .spf-pack:hover {
   background: var(--spf-brand-soft);
 }
 
-.simplypf2e .spf-pack-title {
+.simplysf2e .spf-pack-title {
   flex: 1;
 }
 
-.simplypf2e .spf-pack-source {
+.simplysf2e .spf-pack-source {
   font-size: var(--spf-text-sm);
   opacity: 0.7;
   white-space: nowrap;
@@ -1090,43 +1090,43 @@
    Narrow windows (down to 360px): two-column controls, tighter tiles.
    -------------------------------------------------------------------------- */
 @media (max-width: 520px) {
-  .simplypf2e .spf-inputs,
-  .simplypf2e .spf-preview {
+  .simplysf2e .spf-inputs,
+  .simplysf2e .spf-preview {
     padding-inline: var(--spf-space-md);
   }
 
-  .simplypf2e .spf-mode-toggle {
+  .simplysf2e .spf-mode-toggle {
     gap: var(--spf-space-xs);
   }
 
-  .simplypf2e .spf-mode-toggle label {
+  .simplysf2e .spf-mode-toggle label {
     gap: var(--spf-space-xs);
     padding-inline: var(--spf-space-xs);
     font-size: var(--spf-text-sm);
   }
 
-  .simplypf2e .spf-preset-controls select {
+  .simplysf2e .spf-preset-controls select {
     min-width: 0;
   }
 
-  .simplypf2e .spf-row .form-group {
+  .simplysf2e .spf-row .form-group {
     flex-basis: calc(50% - var(--spf-space-md));
   }
 
-  .simplypf2e .spf-statblock-header {
+  .simplysf2e .spf-statblock-header {
     flex-wrap: wrap;
     gap: var(--spf-space-xs);
   }
 
-  .simplypf2e .spf-member-head {
+  .simplysf2e .spf-member-head {
     flex-wrap: wrap;
   }
 
-  .simplypf2e .spf-provider-presets {
+  .simplysf2e .spf-provider-presets {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .simplypf2e .spf-provider-name select {
+  .simplysf2e .spf-provider-name select {
     max-width: 8rem;
   }
 }

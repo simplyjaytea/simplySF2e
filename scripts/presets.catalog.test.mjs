@@ -25,7 +25,7 @@ for (const dropped of DROPPED) {
 }
 
 for (const preset of BUILT_IN_PRESETS) {
-  assert.match(preset.name, /^SIMPLYPF2E\.Presets\./, `${preset.id} must localize its label`);
+  assert.match(preset.name, /^SIMPLYSF2E\.Presets\./, `${preset.id} must localize its label`);
   assert.match(preset.prompt, /^Build like /);
   assert.doesNotMatch(preset.id, /Compendium\.|Item\./, "preset ids are module-local flavor keys, not pack refs");
   const examples = EXAMPLE_PROMPTS[preset.id];
@@ -55,7 +55,7 @@ assert.equal(grouped.custom.length, 1);
 assert.equal(grouped.custom[0].selected, false);
 
 const lang = JSON.parse(await readFile(new URL("../lang/en.json", import.meta.url), "utf8"));
-const keys = lang.SIMPLYPF2E.Presets;
+const keys = lang.SIMPLYSF2E.Presets;
 assert.equal(keys.StandardGroup, "Standard classes");
 assert.equal(keys.CustomGroup, "Custom presets");
 assert.match(keys.FlavorGuide, /flavor guides only/i);
@@ -65,7 +65,7 @@ for (const dropped of ["Cultivator", "FireMage", "Assassin", "Healer", "Tank", "
   assert.equal(Object.hasOwn(keys, dropped), false, `${dropped} lang key must be removed`);
 }
 for (const preset of BUILT_IN_PRESETS) {
-  const leaf = preset.name.slice("SIMPLYPF2E.Presets.".length);
+  const leaf = preset.name.slice("SIMPLYSF2E.Presets.".length);
   assert.equal(typeof keys[leaf], "string", `${preset.name} must exist in en.json`);
 }
 

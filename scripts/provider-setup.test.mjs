@@ -211,7 +211,7 @@ try {
   assert.equal(success.target.disabled, false, "the test action restores its button state");
   assert.ok(success.controls.every((control) => control.disabled === false), "save-and-test restores every setup control");
   assert.equal(success.getAttribute("aria-busy"), undefined, "save-and-test clears its busy state");
-  assert.ok(notices.info.some((message) => message.includes("SIMPLYPF2E.ProviderSetup.TestSuccess")));
+  assert.ok(notices.info.some((message) => message.includes("SIMPLYSF2E.ProviderSetup.TestSuccess")));
 
   setCurrent({ baseUrl: "http://localhost:11434/v1", model: "", apiKey: "", bound: "" });
   const discovery = makeSaveTestApp({ baseUrl: "http://localhost:11434/v1", model: "" });
@@ -231,7 +231,7 @@ try {
     ["gemma3:4b", "qwen3:8b"],
     "discovered identifiers become editable datalist suggestions"
   );
-  assert.ok(notices.info.some((message) => message.includes("SIMPLYPF2E.ProviderSetup.ModelsLoaded")));
+  assert.ok(notices.info.some((message) => message.includes("SIMPLYSF2E.ProviderSetup.ModelsLoaded")));
   discovery.app._onRender();
   discovery.changeBaseUrl("http://localhost:1234/v1");
   assert.deepEqual(

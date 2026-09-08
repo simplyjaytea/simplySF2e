@@ -57,7 +57,7 @@ export function normalizePCConcept(raw, { level }) {
   const abilityPriorities = normalizeAbilityPriorities(c.abilityPriorities);
   if (c.skillPriorities !== undefined && (!Array.isArray(c.skillPriorities)
     || c.skillPriorities.some((slug) => !skillPriorities.includes(slug)))) {
-    console.warn("simplypf2e | dropped invalid character skill priorities");
+    console.warn("simplysf2e | dropped invalid character skill priorities");
   }
 
   let spellcasting = null;
@@ -267,16 +267,16 @@ export async function resolvePCConcept(concept, { exactContent = false } = {}) {
       ? concept.heritageCandidate : (exactContent ? null : await findEntry(heritagePacks, concept.heritage, (e) => e.type === "heritage"));
     const pickedDoc = await getDocument(heritageEntry);
     if (!pickedDoc || pickedDoc.type !== "heritage") {
-      console.warn(`simplypf2e | heritage "${concept.heritage}" not found in the compendium — falling back to an ancestry-matched heritage`);
+      console.warn(`simplysf2e | heritage "${concept.heritage}" not found in the compendium — falling back to an ancestry-matched heritage`);
     } else if (!heritageMatchesAncestry(pickedDoc, ancestryDoc)) {
-      console.warn(`simplypf2e | heritage "${concept.heritage}" does not belong to ancestry "${ancestryDoc.name}" — dropping and falling back to an ancestry-matched heritage`);
+      console.warn(`simplysf2e | heritage "${concept.heritage}" does not belong to ancestry "${ancestryDoc.name}" — dropping and falling back to an ancestry-matched heritage`);
     } else {
       heritageDoc = pickedDoc;
     }
     if (!heritageDoc) {
       heritageDoc = await fallbackHeritageFor(ancestryDoc);
       if (!heritageDoc) {
-        console.warn(`simplypf2e | no heritage in the compendium matches ancestry "${ancestryDoc.name}" — character will have no heritage`);
+        console.warn(`simplysf2e | no heritage in the compendium matches ancestry "${ancestryDoc.name}" — character will have no heritage`);
       }
     }
   }
@@ -336,7 +336,7 @@ export async function resolvePCConcept(concept, { exactContent = false } = {}) {
       // Preserve the earned entitlement through selection and the completion
       // manifest. Dropping an unsupported slot would let a character commit
       // while appearing complete merely because no unresolved record existed.
-      console.warn(`simplypf2e | no feat candidates for a ${slot.type}${slot.archetype ? " (archetype)" : ""} slot at level ${slot.level} — slot remains unresolved`);
+      console.warn(`simplysf2e | no feat candidates for a ${slot.type}${slot.archetype ? " (archetype)" : ""} slot at level ${slot.level} — slot remains unresolved`);
       featSlots.push({ ...slot, candidates: [] });
     }
   }
@@ -429,7 +429,7 @@ export async function resolveFeatPicks(featSlots, picks, { exactContent = false 
     let name = pick?.name ?? null;
     let entry = name ? await resolveFor(slot, name, pick?.candidate) : null;
     if (name && !entry) {
-      console.warn(`simplypf2e | feat pick "${name}" for slot ${i + 1} (${slot.type}, level ${slot.level}) did not resolve to an unused feat for this slot`);
+      console.warn(`simplysf2e | feat pick "${name}" for slot ${i + 1} (${slot.type}, level ${slot.level}) did not resolve to an unused feat for this slot`);
     }
     if (!entry) {
       // Fallback: walk this slot's own candidate list (real, already
@@ -438,7 +438,7 @@ export async function resolveFeatPicks(featSlots, picks, { exactContent = false 
         entry = await resolveFor(slot, candidate.name, candidate.ref);
         if (entry) {
           name = candidate.name;
-          console.warn(`simplypf2e | slot ${i + 1} (${slot.type}, level ${slot.level}) had no usable AI pick — defaulted to "${name}"`);
+          console.warn(`simplysf2e | slot ${i + 1} (${slot.type}, level ${slot.level}) had no usable AI pick — defaulted to "${name}"`);
           break;
         }
       }
@@ -760,7 +760,7 @@ export async function createCharacterActor(concept, resolved, { img = null, sele
     const signatureCandidates = new Map();
     for (const { spell, entry } of resolved.spells ?? []) {
       const assignedRank = spell?.rank;
-      const reject = (reason) => console.warn(`simplypf2e | dropped planned spell "${spell?.name ?? entry?.name ?? "?"}": ${reason}`);
+      const reject = (reason) => console.warn(`simplysf2e | dropped planned spell "${spell?.name ?? entry?.name ?? "?"}": ${reason}`);
       if (typeof assignedRank !== "number" || !Number.isInteger(assignedRank) || assignedRank < 0 || assignedRank > 10 || !counts[assignedRank]) { reject("assigned rank is invalid or has no slot"); continue; }
       const doc = await getDocument(entry);
       if (!doc) { reject("could not load grounded spell"); continue; }
@@ -808,10 +808,10 @@ export async function createCharacterActor(concept, resolved, { img = null, sele
       }
       usedRanks.set(assignedRank, (usedRanks.get(assignedRank) ?? 0) + 1);
       if (spell?.signature === true) {
-        if (!plan.signatureRanks.includes(assignedRank)) console.warn(`simplypf2e | ignored signature marker on "${source.name}": rank is not eligible`);
+        if (!plan.signatureRanks.includes(assignedRank)) console.warn(`simplysf2e | ignored signature marker on "${source.name}": rank is not eligible`);
         else signatureCandidates.set(assignedRank, [...(signatureCandidates.get(assignedRank) ?? []), data]);
       } else if (spell?.signature != null && spell.signature !== false) {
-        console.warn(`simplypf2e | ignored invalid signature marker on "${source.name}"`);
+        console.warn(`simplysf2e | ignored invalid signature marker on "${source.name}"`);
       }
       if (assignedRank === 0) usedCantrips.add(identity);
     }
@@ -819,7 +819,7 @@ export async function createCharacterActor(concept, resolved, { img = null, sele
       // PF2e spell/data.ts location.signature; collection.ts expands native
       // virtual casting rows from the spell's original rank, not learned rank.
       if (candidates.length === 1) candidates[0].system.location.signature = true;
-      else console.warn(`simplypf2e | ignored ${candidates.length} signature markers at rank ${rank}: only one is allowed`);
+      else console.warn(`simplysf2e | ignored ${candidates.length} signature markers at rank ${rank}: only one is allowed`);
     }
     items.push({
       _id: entryId,
@@ -856,7 +856,7 @@ export async function createCharacterActor(concept, resolved, { img = null, sele
     if (!exemplar) {
       // Fail closed but don't abort: the spells still embed, the pool just
       // stays at 0 until a GM adds the rule by hand.
-      console.warn("simplypf2e | no real focus-pool rule exemplar found in any installed compendium — focus spells embed but the focus pool stays at 0");
+      console.warn("simplysf2e | no real focus-pool rule exemplar found in any installed compendium — focus spells embed but the focus pool stays at 0");
     }
     const poolRule = exemplar ? structuredClone(exemplar.rule) : null;
     if (poolRule) poolRule.value = focusPoolSize;
@@ -1040,7 +1040,7 @@ export async function createCharacterActor(concept, resolved, { img = null, sele
       previewSnapshot = characterSkillSnapshot(preview, loreIds);
       skillPlan = planSkills(previewSnapshot);
     } catch (err) {
-      console.warn("simplypf2e | could not inspect provisional native skills", err);
+      console.warn("simplysf2e | could not inspect provisional native skills", err);
       skillWarnings.push("native-data");
     }
     if (skillPlan) {
@@ -1082,7 +1082,7 @@ export async function createCharacterActor(concept, resolved, { img = null, sele
         const native = actor.clone(skillCloneData(null, skillPlan), { keepId: true });
         snapshot = characterSkillSnapshot(native, loreIds);
       } catch (err) {
-        console.warn("simplypf2e | could not inspect final native skills", err);
+        console.warn("simplysf2e | could not inspect final native skills", err);
         skillWarnings.push("native-data");
       }
       if (snapshot) {
@@ -1122,7 +1122,7 @@ export async function createCharacterActor(concept, resolved, { img = null, sele
     // This does not await detached onCreate updates from other rules/modules.
     const hpMax = actor?.system?.attributes?.hp?.max;
     if (typeof hpMax !== "number" || !Number.isFinite(hpMax) || hpMax <= 0) {
-      throw new Error("simplypf2e | character creation produced no usable derived HP maximum");
+      throw new Error("simplysf2e | character creation produced no usable derived HP maximum");
     }
 
     // Int-modifier bonus languages (issue #64 item 1): the character gets
@@ -1144,11 +1144,11 @@ export async function createCharacterActor(concept, resolved, { img = null, sele
     // not leave an empty or partially populated Actor behind on failure.
     try { await actor.delete(); }
     catch (cleanupErr) {
-      console.error("simplypf2e | failed to roll back incomplete character", cleanupErr);
+      console.error("simplysf2e | failed to roll back incomplete character", cleanupErr);
       // The generator owns retryability. Carry the surviving actor out with
       // the original error so it can discard the draft instead of duplicating
       // this partially-created character on a retry.
-      err.simplyPF2eRollbackActor = actor;
+      err.simplySF2eRollbackActor = actor;
     }
     throw err;
   }
@@ -1162,7 +1162,7 @@ export async function createCharacterActor(concept, resolved, { img = null, sele
       .map(([slug, rank]) => ({ slug, rank, name: snapshot.lore.find((entry) => entry.key === slug)?.name ?? null }));
   } catch { skillWarnings.push("native-data"); }
   const warnings = [...new Set([...skillWarnings, ...(skillPlan?.warnings ?? [])])];
-  for (const warning of warnings) console.warn(`simplypf2e | character skill review: ${warning}`);
+  for (const warning of warnings) console.warn(`simplysf2e | character skill review: ${warning}`);
   return { actor, expectedItems: [...safeItems, ...stagedClassPaths.expectedPaths], skillReport: { rows, warnings, loadoutWarnings, automatic: skillPlan?.automatic ?? !normalizeSkillPriorities(concept.skillPriorities).length,
     trainingBudget: skillPlan?.trainingBudget ?? null, unspentTraining: skillPlan?.unspentTraining ?? null,
     unspentIncreases: skillPlan?.unspentIncreases ?? null } };

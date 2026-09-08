@@ -8,12 +8,12 @@ let app = null;
 let itemForgeApp = null;
 
 function canOpenApps() {
-  if (game.system?.id !== "pf2e") {
-    if (game.user?.isGM) ui.notifications.error(game.i18n.localize("SIMPLYPF2E.Errors.WrongSystem"));
+  if (game.system?.id !== "sf2e") {
+    if (game.user?.isGM) ui.notifications.error(game.i18n.localize("SIMPLYSF2E.Errors.WrongSystem"));
     return false;
   }
   if (!game.user?.isGM) {
-    ui.notifications.warn(game.i18n.localize("SIMPLYPF2E.Errors.GMOnly"));
+    ui.notifications.warn(game.i18n.localize("SIMPLYSF2E.Errors.GMOnly"));
     return false;
   }
   return true;
@@ -69,43 +69,43 @@ Hooks.once("init", () => {
   }
   // Shared progress-bar markup between the generator and item forge windows —
   // registered once here so both HandlebarsApplicationMixin apps can
-  // {{> simplypf2e-progress}} instead of duplicating the block.
+  // {{> simplysf2e-progress}} instead of duplicating the block.
   foundry.applications.handlebars.loadTemplates({
-    "simplypf2e-progress": `modules/${MODULE_ID}/templates/_progress.hbs`
+    "simplysf2e-progress": `modules/${MODULE_ID}/templates/_progress.hbs`
   });
 });
 
 Hooks.once("ready", () => {
-  if (game.system.id !== "pf2e") {
+  if (game.system.id !== "sf2e") {
     if (game.user.isGM) {
-      ui.notifications.error(game.i18n.localize("SIMPLYPF2E.Errors.WrongSystem"), { permanent: true });
+      ui.notifications.error(game.i18n.localize("SIMPLYSF2E.Errors.WrongSystem"), { permanent: true });
     }
     return;
   }
-  // Macro/console API: game.modules.get("simplypf2e").api.open()
+  // Macro/console API: game.modules.get("simplysf2e").api.open()
   // and .openItemForge() for the magic item forge.
   const module = game.modules.get(MODULE_ID);
   module.api = { open: openGenerator, openItemForge };
 });
 
-/* Add a "SimplyPF2e" button to the Actors directory header (GM only). */
+/* Add a "SimplySF2e" button to the Actors directory header (GM only). */
 Hooks.on("renderActorDirectory", (_directory, html) => {
-  if (!game.user.isGM || game.system.id !== "pf2e") return;
+  if (!game.user.isGM || game.system.id !== "sf2e") return;
   addDirectoryButton(html, {
     markerClass: "spf-generator-directory-button",
     icon: "fa-dragon",
-    label: "SIMPLYPF2E.Generator.OpenButton",
+    label: "SIMPLYSF2E.Generator.OpenButton",
     onClick: openGenerator
   });
 });
 
 /* Add an "Item Forge" button to the Items directory header (GM only). */
 Hooks.on("renderItemDirectory", (_directory, html) => {
-  if (!game.user.isGM || game.system.id !== "pf2e") return;
+  if (!game.user.isGM || game.system.id !== "sf2e") return;
   addDirectoryButton(html, {
     markerClass: "spf-itemforge-directory-button",
     icon: "fa-hammer",
-    label: "SIMPLYPF2E.ItemForge.OpenButton",
+    label: "SIMPLYSF2E.ItemForge.OpenButton",
     onClick: openItemForge,
     placement: "below-header-actions"
   });

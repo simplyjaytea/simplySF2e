@@ -45,7 +45,7 @@ function itemOptions(item) {
   try {
     return typeof item?.getRollOptions === "function" ? new Set(item.getRollOptions("item")) : null;
   } catch (error) {
-    console.warn("simplypf2e | could not inspect item options for loadout", error);
+    console.warn("simplysf2e | could not inspect item options for loadout", error);
     return null;
   }
 }
@@ -55,7 +55,7 @@ function matchesDefinition(proficiency, options) {
   try {
     return proficiency.definition.test(options) === true;
   } catch (error) {
-    console.warn("simplypf2e | could not test a native martial proficiency for loadout", error);
+    console.warn("simplysf2e | could not test a native martial proficiency for loadout", error);
     return false;
   }
 }
@@ -130,7 +130,7 @@ function canUseAmmo(ammunition, weapon) {
   try {
     return typeof ammunition?.isAmmoFor === "function" && ammunition.isAmmoFor(weapon) === true;
   } catch (error) {
-    console.warn("simplypf2e | could not inspect ammunition compatibility for loadout", error);
+    console.warn("simplysf2e | could not inspect ammunition compatibility for loadout", error);
     return false;
   }
 }

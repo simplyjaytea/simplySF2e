@@ -72,12 +72,12 @@ export function getPacksFor(category) {
   const ids = configured ? stored[category] : DEFAULT_PACKS[category];
   if (configured) {
     for (const id of ids) {
-      if (!game.packs.get(id)) console.warn(`simplypf2e | configured ${category} pack "${id}" is not available (uninstalled/disabled?) — skipping`);
+      if (!game.packs.get(id)) console.warn(`simplysf2e | configured ${category} pack "${id}" is not available (uninstalled/disabled?) — skipping`);
     }
   }
   const packs = ids.filter((id) => game.packs.get(id));
   if (packs.length || !DEFAULT_PACKS[category]) return packs;
-  console.warn(`simplypf2e | no configured ${category} packs are available, falling back to system defaults`);
+  console.warn(`simplysf2e | no configured ${category} packs are available, falling back to system defaults`);
   return DEFAULT_PACKS[category].filter((id) => game.packs.get(id));
 }
 
@@ -202,7 +202,7 @@ export async function getEquipmentIndex(packId) {
     });
     entries = [...index];
   } catch (err) {
-    console.warn(`simplypf2e | failed to index equipment pack "${packId}"`, err);
+    console.warn(`simplysf2e | failed to index equipment pack "${packId}"`, err);
   }
   equipmentIndexCache.set(packId, entries);
   return entries;

@@ -68,14 +68,14 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
     try {
       const usage = await testProviderConnection();
       const { provider, model } = getProviderRequestConfig();
-      ui.notifications.info(game.i18n.format("SIMPLYPF2E.ProviderSetup.TestSuccess", {
+      ui.notifications.info(game.i18n.format("SIMPLYSF2E.ProviderSetup.TestSuccess", {
         provider: provider.name,
         model,
         total: usage.total.toLocaleString()
       }));
     } catch (err) {
-      console.error("simplypf2e | provider connection test failed", err);
-      ui.notifications.error(game.i18n.format("SIMPLYPF2E.ProviderSetup.TestFailed", {
+      console.error("simplysf2e | provider connection test failed", err);
+      ui.notifications.error(game.i18n.format("SIMPLYSF2E.ProviderSetup.TestFailed", {
         message: err?.message ?? String(err)
       }));
     } finally {
@@ -101,22 +101,22 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
       steps: this._tokenUsage.map(({ label, usage }) => {
         const showSplit = !usage.estimated && ((usage.prompt || 0) > 0 || (usage.completion || 0) > 0);
         const text = usage.estimated
-          ? game.i18n.format("SIMPLYPF2E.Tokens.StepEstimated", {
+          ? game.i18n.format("SIMPLYSF2E.Tokens.StepEstimated", {
               total: coarsenTokenEstimate(usage.total || 0).toLocaleString()
             })
           : showSplit
-            ? game.i18n.format("SIMPLYPF2E.Tokens.Step", {
+            ? game.i18n.format("SIMPLYSF2E.Tokens.Step", {
                 prompt: usage.prompt.toLocaleString(),
                 completion: usage.completion.toLocaleString(),
                 total: usage.total.toLocaleString()
               })
-            : game.i18n.format("SIMPLYPF2E.Tokens.StepTotal", {
+            : game.i18n.format("SIMPLYSF2E.Tokens.StepTotal", {
                 total: (usage.total || 0).toLocaleString()
               });
         return { label, text };
       }),
       totalText: game.i18n.format(
-        anyEstimated ? "SIMPLYPF2E.Tokens.TotalEstimated" : "SIMPLYPF2E.Tokens.Total",
+        anyEstimated ? "SIMPLYSF2E.Tokens.TotalEstimated" : "SIMPLYSF2E.Tokens.Total",
         { total: total.toLocaleString() }
       )
     };
@@ -127,7 +127,7 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const cost = this._lastRunCost;
     if (!cost) return null;
     return game.i18n.format(
-      cost.estimated ? "SIMPLYPF2E.Tokens.LastRunEstimated" : "SIMPLYPF2E.Tokens.LastRun",
+      cost.estimated ? "SIMPLYSF2E.Tokens.LastRunEstimated" : "SIMPLYSF2E.Tokens.LastRun",
       { total: cost.total.toLocaleString() }
     );
   }
@@ -157,7 +157,7 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const progress = this._progress;
     if (progress) {
       progress.phase = "cancelling";
-      progress.detail = game.i18n.localize("SIMPLYPF2E.Progress.Cancelling");
+      progress.detail = game.i18n.localize("SIMPLYSF2E.Progress.Cancelling");
       this._paintProgress();
     }
     const btn = this.element?.querySelector?.('[data-action="cancelGeneration"]');
@@ -169,7 +169,7 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   _throwIfCancelled() {
     if (!this._generationAbort?.signal.aborted) return;
-    const err = new Error(game.i18n.localize("SIMPLYPF2E.Errors.Cancelled"));
+    const err = new Error(game.i18n.localize("SIMPLYSF2E.Errors.Cancelled"));
     err.cancelled = true;
     throw err;
   }
@@ -237,8 +237,8 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
       : coarsenTokenEstimate(tokens);
     progress.detail = game.i18n.format(
       phase === "thinking"
-        ? (exact ? "SIMPLYPF2E.Progress.ThinkingExact" : "SIMPLYPF2E.Progress.Thinking")
-        : (exact ? "SIMPLYPF2E.Progress.WritingExact" : "SIMPLYPF2E.Progress.Writing"),
+        ? (exact ? "SIMPLYSF2E.Progress.ThinkingExact" : "SIMPLYSF2E.Progress.Thinking")
+        : (exact ? "SIMPLYSF2E.Progress.WritingExact" : "SIMPLYSF2E.Progress.Writing"),
       { step: stepLabel, tokens: shownTokens.toLocaleString() }
     );
     this._paintProgress();

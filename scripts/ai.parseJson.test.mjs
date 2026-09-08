@@ -17,7 +17,7 @@ function assertBadJson(input, message) {
   assert.throws(
     () => parseConceptJSON(input),
     (error) => error instanceof AIRequestError && error.retryable
-      && error.message === "SIMPLYPF2E.Errors.BadJson",
+      && error.message === "SIMPLYSF2E.Errors.BadJson",
     message
   );
 }

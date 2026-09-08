@@ -1,5 +1,5 @@
 {
-  "SIMPLYPF2E": {
+  "SIMPLYSF2E": {
     "Settings": {
       "ApiBaseUrl": {
         "Name": "API Base URL",
@@ -74,8 +74,8 @@
       "TestFailed": "Provider connection test failed: {message}"
     },
     "Generator": {
-      "Title": "SimplyPF2e — Generator",
-      "OpenButton": "SimplyPF2e",
+      "Title": "SimplySF2e — Generator",
+      "OpenButton": "SimplySF2e",
       "ConceptLegend": "Creature Concept",
       "NpcLegend": "NPC Concept",
       "EncounterLegend": "Encounter Concept",
@@ -122,7 +122,7 @@
       "PreviewPlan": "Preview Plan",
       "Regenerate": "Regenerate",
       "Busy": "Consulting the forge...",
-      "ChoicesNeedInput": "Some character choices could not be selected automatically. Complete any PF2e choice dialogs to continue.",
+      "ChoicesNeedInput": "Some character choices could not be selected automatically. Complete any SF2e choice dialogs to continue.",
       "CreateActor": "Create Actor",
       "RerollLoot": "Reroll Loot",
       "RerollLootTooltip": "Generate different loot without changing the creature",
@@ -132,7 +132,7 @@
       "CompleteSummary": "Created {count} actor(s): {name}.",
       "CompletionGrounding": "Content grounding",
       "CompletionCompendium": "Compendium content: {count}",
-      "CompletionNative": "Native PF2e selections: {count}",
+      "CompletionNative": "Native SF2e selections: {count}",
       "CompletionModuleBuilt": "Module-built currency or scrolls: {count}",
       "CompletionCustomNarrative": "Deliberate custom narrative abilities: {count}",
       "OpenSheet": "Open Sheet",
@@ -147,7 +147,7 @@
       "CreatedPresentationFailed": "The character was created, but its sheet or review could not be displayed. Open it from the Actors directory; do not create it again.",
       "OpenCharacter": "Open character",
       "DismissReview": "Dismiss report",
-      "NoApiKey": "No API key is configured for this remote provider. Set one in Module Settings → SimplyPF2e, or use a keyless local Ollama/LM Studio endpoint.",
+      "NoApiKey": "No API key is configured for this remote provider. Set one in Module Settings → SimplySF2e, or use a keyless local Ollama/LM Studio endpoint.",
       "ApiKeyNotAuthorized": "Stored API key is not authorized for the current API Base URL and will not be sent.",
       "ApiKeyEndpoint": "Endpoint:",
       "AuthorizeApiKey": "Authorize for this endpoint",
@@ -269,7 +269,7 @@
       "ArmorConflict": "Only one selected armor item can be worn; another was left stowed.",
       "UntrainedWeapon": "An untrained weapon was left stowed.",
       "HandConflict": "A held item exceeded the two-hand limit and was left stowed.",
-      "ManualAmmo": "A reloadable weapon needs its ammunition loaded with the native PF2e sheet control.",
+      "ManualAmmo": "A reloadable weapon needs its ammunition loaded with the native SF2e sheet control.",
       "MissingAmmo": "A ready ranged weapon has no compatible generated ammunition selected."
     },
     "Progress": {
@@ -284,7 +284,7 @@
       "Member": "Member {index}/{total}",
       "PCConcept": "Character concept",
       "CharacterChoices": "Character option selection",
-      "ApplyingCharacter": "Preparing and applying PF2e features. Complete any PF2e choice dialogs to continue.",
+      "ApplyingCharacter": "Preparing and applying SF2e features. Complete any SF2e choice dialogs to continue.",
       "ABC": "Ancestry, background & class",
       "Feats": "Feat selection",
       "Loot": "Loot selection",
@@ -310,9 +310,9 @@
     "Sources": {
       "MenuName": "Compendium Sources",
       "MenuLabel": "Configure Sources",
-      "MenuHint": "Choose which compendium packs SimplyPF2e draws abilities, spells, feats, and equipment from.",
+      "MenuHint": "Choose which compendium packs SimplySF2e draws abilities, spells, feats, and equipment from.",
       "Title": "Compendium Sources",
-      "Hint": "SimplyPF2e scanned this world's Item compendiums. Choose the packs each category may draw from; homebrew and module packs work too. Leaving a category empty uses the PF2e system defaults.",
+      "Hint": "SimplySF2e scanned this world's Item compendiums. Choose the packs each category may draw from; homebrew and module packs work too. Leaving a category empty uses the SF2e system defaults.",
       "Abilities": "Bestiary Abilities",
       "Spells": "Spells",
       "Feats": "Feats",
@@ -328,7 +328,7 @@
       "Save": "Save",
       "Reset": "Reset to defaults",
       "Saved": "Compendium sources saved.",
-      "ResetDone": "Compendium sources reset to the PF2e system defaults."
+      "ResetDone": "Compendium sources reset to the SF2e system defaults."
     },
     "Rarity": {
       "Common": "Common",
@@ -370,7 +370,7 @@
       "Immunities": "Immunities",
       "Resistances": "Resistances",
       "Weaknesses": "Weaknesses",
-      "FromCompendium": "Pulled from the PF2e bestiary ability glossary",
+      "FromCompendium": "Pulled from the SF2e bestiary ability glossary",
       "Custom": "Custom",
       "NotFound": "No compendium match found — this entry will be skipped",
       "EquipmentCustom": "No compendium match found — this will be created as a custom gear item at the AI's estimated price",
@@ -379,7 +379,7 @@
       "MatchSummary": "{matched}/{total} compendium matches"
     },
     "ItemForge": {
-      "Title": "SimplyPF2e — Item Forge",
+      "Title": "SimplySF2e — Item Forge",
       "OpenButton": "Item Forge",
       "ConceptLegend": "Magic Item Concept",
       "Prompt": "Describe the magic item",
@@ -397,7 +397,7 @@
       "CreateFailed": "Foundry did not return a created item. The preview is still available to retry.",
       "CreatedPresentationFailed": "The item was created, but its sheet could not be displayed. Open it from the Items directory; do not create it again.",
       "NoPrompt": "Describe the magic item first.",
-      "NoExemplars": "No rule exemplars could be harvested from this world's compendiums — is the PF2e equipment compendium installed?",
+      "NoExemplars": "No rule exemplars could be harvested from this world's compendiums — is the SF2e equipment compendium installed?",
       "KindsUnavailable": "No supported published passive effects match this level and rarity for: {kinds}. These effect kinds are not offered.",
       "ProgressTemplates": "Finding published passive effects",
       "ProgressConcept": "Item concept",
@@ -418,7 +418,7 @@
       "KindArmor": "Armor (runes)",
       "KindArmorHint": "Real armor with level-appropriate runes",
       "ProgressCandidates": "Harvesting real base items & runes",
-      "NoBaseItems": "No {kind} items were found in this world's compendiums — is the PF2e equipment compendium installed?",
+      "NoBaseItems": "No {kind} items were found in this world's compendiums — is the SF2e equipment compendium installed?",
       "NoPotencyAvailable": "Item level {level} is too low for a magic {kind} — the +1 potency rune itself requires item level {minLevel}. Raise the item level.",
       "RunesHeading": "Runes",
       "Potency": "Potency",
@@ -426,16 +426,16 @@
       "EmptyHint": "Nothing forged yet — describe a magic item above and press Generate. The preview appears here before the item is created."
     },
     "Loot": {
-      "CustomItem": "Generated by SimplyPF2e. No compendium match was found for this item, so it stands in as treasure with an estimated value — replace it with the real item if you have it."
+      "CustomItem": "Generated by SimplySF2e. No compendium match was found for this item, so it stands in as treasure with an estimated value — replace it with the real item if you have it."
     },
     "Equipment": {
-      "CustomItem": "Generated by SimplyPF2e. No compendium match was found for this item, so it stands in as plain gear at an estimated price — replace it with the real item if you have it."
+      "CustomItem": "Generated by SimplySF2e. No compendium match was found for this item, so it stands in as plain gear at an estimated price — replace it with the real item if you have it."
     },
     "Errors": {
-      "GMOnly": "Only a GM can use SimplyPF2e generation and provider setup.",
+      "GMOnly": "Only a GM can use SimplySF2e generation and provider setup.",
       "NoPrompt": "Describe the creature first.",
       "NoBaseUrl": "No API base URL is configured in the module settings.",
-      "NoModel": "No model identifier is configured. Set one in Module Settings → SimplyPF2e before generating.",
+      "NoModel": "No model identifier is configured. Set one in Module Settings → SimplySF2e before generating.",
       "MixedContentProvider": "This Foundry page uses HTTPS, but the configured AI provider uses HTTP. Browsers block that mixed-content request. Serve the provider over HTTPS or open Foundry over HTTP on the same trusted local network.",
       "ApiError": "The AI provider returned an error ({status}): {detail} {hint}",
       "ProviderError": "The AI provider reported an error: {detail}",
@@ -455,7 +455,7 @@
       "BadJson": "The AI response was not valid JSON. Try generating again.",
       "BadStructure": "The AI response was incomplete ({detail}). Try a stronger structured-output model or generate again.",
       "NoBestiaryScaffold": "No usable NPC actor was available in the enabled Bestiary Actor sources. Check Compendium Sources and try again.",
-      "WrongSystem": "SimplyPF2e requires the Pathfinder Second Edition (pf2e) game system."
+      "WrongSystem": "SimplySF2e requires the Starfinder Second Edition (sf2e) game system."
     }
   }
 }

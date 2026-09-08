@@ -22,7 +22,7 @@ import { esc } from "./text.mjs";
 import { cloneRulesForEffects } from "./item-builder.mjs";
 
 /* Folder the companion macros are filed under (created on first use). */
-const MACRO_FOLDER_NAME = "SimplyPF2e Item Forge";
+const MACRO_FOLDER_NAME = "SimplySF2e Item Forge";
 
 /* -------------------- shared script fragments -------------------- */
 
@@ -297,7 +297,7 @@ function effectDuration(params) {
 export async function buildActivationCommand(activation, meta) {
   const { template, params } = activation;
   const assemble = (body, extra) => `${header(meta, params, extra)}\n${RESOLVE_ACTOR_AND_ITEM}
-const inFlight = globalThis[Symbol.for("simplypf2e.forge.activations")] ??= new Set();
+const inFlight = globalThis[Symbol.for("simplysf2e.forge.activations")] ??= new Set();
 const activationKey = forgeItem.uuid ?? ((acting.uuid ?? acting.id ?? "actor") + ":" + (forgeItem.id ?? META.forgeId));
 if (inFlight.has(activationKey)) return;
 inFlight.add(activationKey);
@@ -368,16 +368,16 @@ export async function createActivationMacro({ item, concept }) {
     img: item.img ?? "icons/svg/dice-target.svg",
     command,
     folder: folder?.id ?? null,
-    flags: { simplypf2e: { forgeId: forge.forgeId } }
+    flags: { simplysf2e: { forgeId: forge.forgeId } }
   });
   if (!macro) return null;
 
   // Record the macro UUID for the delete-cleanup hook, and add the clickable
   // Activate link to the description's mechanical summary.
-  const link = `<p>@UUID[${macro.uuid}]{${game.i18n.localize("SIMPLYPF2E.ItemForge.Activate")}}</p>`;
+  const link = `<p>@UUID[${macro.uuid}]{${game.i18n.localize("SIMPLYSF2E.ItemForge.Activate")}}</p>`;
   const description = (item.system?.description?.value ?? "") + "\n" + link;
   await item.update({
-    "flags.simplypf2e.activationMacroUuid": macro.uuid,
+    "flags.simplysf2e.activationMacroUuid": macro.uuid,
     "system.description.value": description
   });
   return macro;

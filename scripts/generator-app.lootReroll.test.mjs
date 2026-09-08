@@ -28,7 +28,7 @@ let abortController;
 let abortDuringResolve = false;
 const ref = { packId: "test.equipment", _id: "potion" };
 const mocks = {
-  MODULE_ID: "simplypf2e",
+  MODULE_ID: "simplysf2e",
   SpfApp: class {
     _beginProgress() { abortController = new AbortController(); return abortController.signal; }
     async _setStep() {}

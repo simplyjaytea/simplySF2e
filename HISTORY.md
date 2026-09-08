@@ -1,5 +1,7 @@
 # simplyPF2e — session history
 
+This file is inherited from the simplyPF2e scaffold. It is PF2e-era history, not simplySF2e release state.
+
 Full session-by-session narrative, process notes, and the bug log. Not loaded by default context the way CLAUDE.md is — read this when you need to know *why* something is the way it is, whether a past session already investigated something, or what a specific PR actually changed. Newest first.
 
 ## 2026-09-05 — Authorized audit publication

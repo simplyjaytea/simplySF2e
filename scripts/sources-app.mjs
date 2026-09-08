@@ -4,16 +4,16 @@ import { CATEGORIES, DEFAULT_PACKS, detectAvailablePacks } from "./compendium.mj
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
 const CATEGORY_LABELS = {
-  abilities: "SIMPLYPF2E.Sources.Abilities",
-  spells: "SIMPLYPF2E.Sources.Spells",
-  feats: "SIMPLYPF2E.Sources.Feats",
-  equipment: "SIMPLYPF2E.Sources.Equipment",
-  ancestries: "SIMPLYPF2E.Sources.Ancestries",
-  backgrounds: "SIMPLYPF2E.Sources.Backgrounds",
-  classes: "SIMPLYPF2E.Sources.Classes",
-  classFeatures: "SIMPLYPF2E.Sources.ClassFeatures",
-  heritages: "SIMPLYPF2E.Sources.Heritages",
-  bestiaryActors: "SIMPLYPF2E.Sources.BestiaryActors"
+  abilities: "SIMPLYSF2E.Sources.Abilities",
+  spells: "SIMPLYSF2E.Sources.Spells",
+  feats: "SIMPLYSF2E.Sources.Feats",
+  equipment: "SIMPLYSF2E.Sources.Equipment",
+  ancestries: "SIMPLYSF2E.Sources.Ancestries",
+  backgrounds: "SIMPLYSF2E.Sources.Backgrounds",
+  classes: "SIMPLYSF2E.Sources.Classes",
+  classFeatures: "SIMPLYSF2E.Sources.ClassFeatures",
+  heritages: "SIMPLYSF2E.Sources.Heritages",
+  bestiaryActors: "SIMPLYSF2E.Sources.BestiaryActors"
 };
 
 /**
@@ -23,11 +23,11 @@ const CATEGORY_LABELS = {
  */
 export class SourcesConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
-    id: "simplypf2e-sources",
+    id: "simplysf2e-sources",
     tag: "form",
-    classes: ["simplypf2e"],
+    classes: ["simplysf2e"],
     window: {
-      title: "SIMPLYPF2E.Sources.Title",
+      title: "SIMPLYSF2E.Sources.Title",
       icon: "fa-solid fa-book-atlas",
       resizable: true
     },
@@ -74,12 +74,12 @@ export class SourcesConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
       ].map((el) => el.dataset.pack);
     }
     await game.settings.set(MODULE_ID, SETTINGS.sourcePacks, selection);
-    ui.notifications.info(game.i18n.localize("SIMPLYPF2E.Sources.Saved"));
+    ui.notifications.info(game.i18n.localize("SIMPLYSF2E.Sources.Saved"));
   }
 
   static async #onReset() {
     await game.settings.set(MODULE_ID, SETTINGS.sourcePacks, {});
-    ui.notifications.info(game.i18n.localize("SIMPLYPF2E.Sources.ResetDone"));
+    ui.notifications.info(game.i18n.localize("SIMPLYSF2E.Sources.ResetDone"));
     await this.render();
   }
 }

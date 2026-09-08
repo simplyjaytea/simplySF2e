@@ -15,7 +15,7 @@ assert.match(
 assert.doesNotMatch(
   source,
   /resolved\.grants/,
-  "SimplyPF2e must not duplicate PF2e's native ABC-grant expansion"
+  "SimplySF2e must not duplicate PF2e's native ABC-grant expansion"
 );
 assert.match(
   source,

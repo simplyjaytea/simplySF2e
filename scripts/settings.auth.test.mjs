@@ -125,7 +125,7 @@ assert.equal(state.apiKey, "", "legacy unbound keys must never leave settings st
 assert.equal(state.apiKeyIsBound, false);
 assert.equal(
   getProviderAuthWarningKey(),
-  "SIMPLYPF2E.Generator.ApiKeyNotAuthorized",
+  "SIMPLYSF2E.Generator.ApiKeyNotAuthorized",
   "legacy keys must explain how to authorize the current endpoint"
 );
 assert.equal(
@@ -204,7 +204,7 @@ for (const localUrl of [
 setAuth({ baseUrl: "http://localhost:11434/v1" });
 assert.equal(
   getProviderAuthWarningKey(getProviderRequestConfig(), "https:"),
-  "SIMPLYPF2E.Errors.MixedContentProvider",
+  "SIMPLYSF2E.Errors.MixedContentProvider",
   "an HTTPS Foundry page must warn before the browser blocks an HTTP local provider"
 );
 assert.equal(
@@ -216,14 +216,14 @@ assert.equal(
 setAuth({ baseUrl: "https://api.openai.com/v1" });
 assert.equal(
   getProviderAuthWarningKey(),
-  "SIMPLYPF2E.Generator.NoApiKey",
+  "SIMPLYSF2E.Generator.NoApiKey",
   "remote providers must retain useful missing-key guidance"
 );
 
 values.set(SETTINGS.model, "");
 assert.equal(
   getProviderAuthWarningKey(),
-  "SIMPLYPF2E.Errors.NoModel",
+  "SIMPLYSF2E.Errors.NoModel",
   "an empty model identifier must be caught before generation"
 );
 
@@ -347,7 +347,7 @@ assert.equal(custom.apiKey, "", "a new connection must not copy another profile'
 assert.equal(getProviderRequestConfig().apiKey, "", "the new remote connection must not invent a bound key");
 assert.equal(
   getProviderAuthWarningKey(),
-  "SIMPLYPF2E.Generator.NoApiKey",
+  "SIMPLYSF2E.Generator.NoApiKey",
   "an empty remote key must still block generation"
 );
 assert.equal(storedConnections().length, 2);
@@ -390,7 +390,7 @@ await createProviderConnection({
   apiBaseUrl: "http://localhost:11434/v1",
   model: "qwen3:8b"
 });
-assert.equal(getProviderAuthWarningKey(getProviderRequestConfig(), "https:"), "SIMPLYPF2E.Errors.MixedContentProvider");
+assert.equal(getProviderAuthWarningKey(getProviderRequestConfig(), "https:"), "SIMPLYSF2E.Errors.MixedContentProvider");
 assert.equal(getProviderAuthWarningKey(getProviderRequestConfig(), "http:"), null);
 
 console.log("settings.auth.test.mjs: all provider-auth assertions passed");

@@ -40,7 +40,7 @@ export async function testProviderConnection() {
 /** List model identifiers through the exact saved and authorized endpoint. */
 export async function listProviderModels() {
   const { apiKey, baseUrl } = getProviderRequestConfig();
-  if (!baseUrl) throw new AIRequestError(game.i18n.localize("SIMPLYPF2E.Errors.NoBaseUrl"));
+  if (!baseUrl) throw new AIRequestError(game.i18n.localize("SIMPLYSF2E.Errors.NoBaseUrl"));
   const headers = {};
   if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
   const timeoutSeconds = Math.max(10, Number(getSetting(SETTINGS.requestTimeout)) || 90);
@@ -52,21 +52,21 @@ export async function listProviderModels() {
       response = await fetch(modelsUrl(baseUrl), { method: "GET", headers, signal: controller.signal });
     } catch (err) {
       if (err.name === "AbortError" || controller.signal.aborted) {
-        throw new AIRequestError(game.i18n.format("SIMPLYPF2E.Errors.Timeout", { seconds: timeoutSeconds }));
+        throw new AIRequestError(game.i18n.format("SIMPLYSF2E.Errors.Timeout", { seconds: timeoutSeconds }));
       }
-      throw new AIRequestError(game.i18n.format("SIMPLYPF2E.Errors.NetworkError", { message: err.message }));
+      throw new AIRequestError(game.i18n.format("SIMPLYSF2E.Errors.NetworkError", { message: err.message }));
     }
     if (!response.ok) {
       throw await providerApiError(response);
     }
     let payload;
     try { payload = await response.json(); }
-    catch { throw new AIRequestError(game.i18n.localize("SIMPLYPF2E.ProviderSetup.ModelsInvalid")); }
+    catch { throw new AIRequestError(game.i18n.localize("SIMPLYSF2E.ProviderSetup.ModelsInvalid")); }
     const entries = Array.isArray(payload?.data) ? payload.data : [];
     const models = [...new Set(entries
       .map((entry) => String(entry?.id ?? "").trim())
       .filter(Boolean))].sort((a, b) => a.localeCompare(b));
-    if (!models.length) throw new AIRequestError(game.i18n.localize("SIMPLYPF2E.ProviderSetup.ModelsEmpty"));
+    if (!models.length) throw new AIRequestError(game.i18n.localize("SIMPLYSF2E.ProviderSetup.ModelsEmpty"));
     return models;
   } finally {
     clearTimeout(timeout);
@@ -200,7 +200,7 @@ export class AIRequestError extends Error {
 /** Classify only the signal belonging to this request's owning app run. */
 function throwIfGenerationCancelled(signal) {
   if (!signal?.aborted) return;
-  throw new AIRequestError(game.i18n.localize("SIMPLYPF2E.Errors.Cancelled"), { cancelled: true });
+  throw new AIRequestError(game.i18n.localize("SIMPLYSF2E.Errors.Cancelled"), { cancelled: true });
 }
 
 /**
@@ -245,7 +245,7 @@ async function requestJSON(args) {
       const structureProblem = taskResponseProblem(args.task, data);
       if (structureProblem) {
         throw new AIRequestError(
-          game.i18n.format("SIMPLYPF2E.Errors.BadStructure", { detail: structureProblem }),
+          game.i18n.format("SIMPLYSF2E.Errors.BadStructure", { detail: structureProblem }),
           {
             retryable: true,
             details: responseDiagnostic({ content, finishReason, reasoningChars })
@@ -264,7 +264,7 @@ async function requestJSON(args) {
       lastError = err;
       if (attempt === 0) {
         console.warn(
-          "simplypf2e | generation attempt failed, retrying once:",
+          "simplysf2e | generation attempt failed, retrying once:",
           err.message,
           err.details ?? null
         );
@@ -624,7 +624,7 @@ ${focusCandidates.length ? "Choose up to three focusSpellIds only from the provi
         || (used.get(rank) ?? 0) >= (plannedPicks[rank] ?? 0)
         || (preparationMode === "spontaneous" && rank === 10 && candidate.rarity !== "common")
         || ((rank === 0 || preparationMode === "spontaneous") && seen.has(key))) {
-        console.warn("simplypf2e | dropping invalid or excess character spell-plan pick", pick);
+        console.warn("simplysf2e | dropping invalid or excess character spell-plan pick", pick);
         continue;
       }
       const spell = { name: candidate.name, ...(candidate.ref ? { candidate: candidate.ref } : {}), rank };
@@ -633,14 +633,14 @@ ${focusCandidates.length ? "Choose up to three focusSpellIds only from the provi
         if (!signatures.has(rank)) signatures.set(rank, []);
         signatures.get(rank).push(spell);
       } else if (pick.signature != null && pick.signature !== "regular") {
-        console.warn("simplypf2e | ignoring invalid or ineligible signature designation", pick);
+        console.warn("simplysf2e | ignoring invalid or ineligible signature designation", pick);
       }
       used.set(rank, (used.get(rank) ?? 0) + 1);
       seen.add(key);
     }
     for (const [rank, selections] of signatures) {
       if (selections.length === 1) selections[0].signature = true;
-      else console.warn(`simplypf2e | conflicting signature choices at rank ${rank}; keeping those spells regular`);
+      else console.warn(`simplysf2e | conflicting signature choices at rank ${rank}; keeping those spells regular`);
     }
     return { spells, focusSpells, usage };
   }
@@ -1211,7 +1211,7 @@ async function requestCompletion({ task, system, user, onProgress, signal, retry
   // this exact normalized base URL. A world-level provider change can never
   // redirect a legacy or previously authorized key to another endpoint.
   const { apiKey, baseUrl, model: configuredModel } = getProviderRequestConfig();
-  if (!baseUrl) throw new AIRequestError(game.i18n.localize("SIMPLYPF2E.Errors.NoBaseUrl"));
+  if (!baseUrl) throw new AIRequestError(game.i18n.localize("SIMPLYSF2E.Errors.NoBaseUrl"));
 
   const completionOptions = completionOptionsFor(task, {
     configuredTemperature: getSetting(SETTINGS.temperature),
@@ -1219,9 +1219,9 @@ async function requestCompletion({ task, system, user, onProgress, signal, retry
     retryAttempt
   });
   const model = resolveProviderModel(baseUrl, configuredModel);
-  if (!model) throw new AIRequestError(game.i18n.localize("SIMPLYPF2E.Errors.NoModel"));
+  if (!model) throw new AIRequestError(game.i18n.localize("SIMPLYSF2E.Errors.NoModel"));
   if (!warnedLegacyDeepSeekModel && model !== configuredModel) {
-    console.warn(`simplypf2e | DeepSeek model ${configuredModel} was retired; using ${model} for this request`);
+    console.warn(`simplysf2e | DeepSeek model ${configuredModel} was retired; using ${model} for this request`);
     warnedLegacyDeepSeekModel = true;
   }
   const officialDeepSeek = isOfficialDeepSeekEndpoint(baseUrl);
@@ -1325,7 +1325,7 @@ async function requestCompletion({ task, system, user, onProgress, signal, retry
       let data;
       try { data = await response.json(); }
       catch {
-        throw new AIRequestError(game.i18n.localize("SIMPLYPF2E.Errors.InvalidResponse"));
+        throw new AIRequestError(game.i18n.localize("SIMPLYSF2E.Errors.InvalidResponse"));
       }
       if (isRealProviderError(data?.error)) throw providerStreamError(data.error);
       const message = data?.choices?.[0]?.message ?? {};
@@ -1340,9 +1340,9 @@ async function requestCompletion({ task, system, user, onProgress, signal, retry
     // can omit required fields while still looking like valid JSON.
     if (isTruncatedFinish(finishReason)) {
       const maxTokens = body.max_completion_tokens ?? body.max_tokens ?? completionOptions.maxTokens;
-      console.warn("simplypf2e | AI response truncated:", details);
+      console.warn("simplysf2e | AI response truncated:", details);
       throw new AIRequestError(
-        game.i18n.format("SIMPLYPF2E.Errors.Truncated", { max: maxTokens }),
+        game.i18n.format("SIMPLYSF2E.Errors.Truncated", { max: maxTokens }),
         {
           retryable: true,
           usage: normalizeUsage(usage, { content, system, user, reasoningChars }),
@@ -1352,9 +1352,9 @@ async function requestCompletion({ task, system, user, onProgress, signal, retry
     }
     if (!String(content ?? "").trim()) {
       const emptyKey = reasoningChars > 0
-        ? "SIMPLYPF2E.Errors.ReasoningWithoutJson"
-        : "SIMPLYPF2E.Errors.EmptyResponse";
-      console.warn("simplypf2e | AI response empty:", details);
+        ? "SIMPLYSF2E.Errors.ReasoningWithoutJson"
+        : "SIMPLYSF2E.Errors.EmptyResponse";
+      console.warn("simplysf2e | AI response empty:", details);
       throw new AIRequestError(
         game.i18n.localize(emptyKey),
         {
@@ -1374,9 +1374,9 @@ async function requestCompletion({ task, system, user, onProgress, signal, retry
     if (err instanceof AIRequestError) throw err;
     if (err.name === "AbortError" || controller.signal.aborted) {
       if (userSignal?.aborted) {
-        throw new AIRequestError(game.i18n.localize("SIMPLYPF2E.Errors.Cancelled"), { cancelled: true });
+        throw new AIRequestError(game.i18n.localize("SIMPLYSF2E.Errors.Cancelled"), { cancelled: true });
       }
-      throw new AIRequestError(game.i18n.format("SIMPLYPF2E.Errors.Timeout", { seconds: idleSeconds }));
+      throw new AIRequestError(game.i18n.format("SIMPLYSF2E.Errors.Timeout", { seconds: idleSeconds }));
     }
     throw err;
   } finally {
@@ -1497,7 +1497,7 @@ async function postChatCompletion(baseUrl, apiKey, body, signal) {
   } catch (err) {
     if (err.name === "AbortError") throw err;
     // fetch throws on network/CORS failures before we get a Response
-    throw new AIRequestError(game.i18n.format("SIMPLYPF2E.Errors.NetworkError", { message: err.message }));
+    throw new AIRequestError(game.i18n.format("SIMPLYSF2E.Errors.NetworkError", { message: err.message }));
   }
 }
 
@@ -1520,20 +1520,20 @@ function compactErrorDetail(value, maxLength = 240) {
     .replace(/<[^>]*>/g, " ")
     .replace(/\s+/g, " ")
     .trim();
-  if (!text) return game.i18n.localize("SIMPLYPF2E.Errors.NoErrorDetail");
+  if (!text) return game.i18n.localize("SIMPLYSF2E.Errors.NoErrorDetail");
   return text.length > maxLength ? `${text.slice(0, maxLength - 1)}…` : text;
 }
 
 function providerStatusHint(status) {
   const key = status === 401 || status === 403
-    ? "SIMPLYPF2E.Errors.ApiAuthHint"
+    ? "SIMPLYSF2E.Errors.ApiAuthHint"
     : status === 404
-      ? "SIMPLYPF2E.Errors.ApiNotFoundHint"
+      ? "SIMPLYSF2E.Errors.ApiNotFoundHint"
       : status === 429
-        ? "SIMPLYPF2E.Errors.ApiRateLimitHint"
+        ? "SIMPLYSF2E.Errors.ApiRateLimitHint"
         : status >= 500
-          ? "SIMPLYPF2E.Errors.ApiServerHint"
-          : "SIMPLYPF2E.Errors.ApiRequestHint";
+          ? "SIMPLYSF2E.Errors.ApiServerHint"
+          : "SIMPLYSF2E.Errors.ApiRequestHint";
   return game.i18n.localize(key);
 }
 
@@ -1567,12 +1567,12 @@ function providerErrorDetail(error) {
 // providerApiError's HTTP-level errors below.
 function providerStreamError(error) {
   return new AIRequestError(
-    game.i18n.format("SIMPLYPF2E.Errors.ProviderError", { detail: compactErrorDetail(providerErrorDetail(error)) })
+    game.i18n.format("SIMPLYSF2E.Errors.ProviderError", { detail: compactErrorDetail(providerErrorDetail(error)) })
   );
 }
 
 function providerApiErrorFromDetail(response, detail) {
-  return new AIRequestError(game.i18n.format("SIMPLYPF2E.Errors.ApiError", {
+  return new AIRequestError(game.i18n.format("SIMPLYSF2E.Errors.ApiError", {
     status: response.status,
     detail: compactErrorDetail(detail),
     hint: providerStatusHint(response.status)
@@ -1593,8 +1593,8 @@ export function parseConceptJSON(content) {
   const parsed = tryParseJsonObject(text) ?? extractFirstJsonObject(text);
   if (parsed) return parsed;
   const details = responseDiagnostic({ content: text });
-  console.warn("simplypf2e | Failed to parse AI response:", details);
-  throw new AIRequestError(game.i18n.localize("SIMPLYPF2E.Errors.BadJson"), {
+  console.warn("simplysf2e | Failed to parse AI response:", details);
+  throw new AIRequestError(game.i18n.localize("SIMPLYSF2E.Errors.BadJson"), {
     retryable: true,
     details
   });

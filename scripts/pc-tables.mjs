@@ -78,7 +78,7 @@ export function buildFeatSlots(level, { freeArchetype = false, classSystem = nul
   for (const [type, fallback] of Object.entries(defaults)) {
     const schedule = classSystem === null ? fallback : classSystem?.[`${type}FeatLevels`]?.value;
     if (!Array.isArray(schedule) || schedule.some((lv) => !Number.isInteger(lv) || lv < 1 || lv > 20)) {
-      throw new Error(`simplypf2e | class ${type} feat schedule is missing or malformed`);
+      throw new Error(`simplysf2e | class ${type} feat schedule is missing or malformed`);
     }
     for (const lv of [...new Set(schedule)].sort((a, b) => a - b)) {
       if (lv <= level) slots.push({ type, level: lv });

@@ -8,7 +8,7 @@ globalThis.foundry = { applications: { api: {
 const hooks = new Map();
 globalThis.Hooks = { once() {}, on: (name, callback) => hooks.set(name, callback) };
 globalThis.game = { user: { id: "gm", isGM: true }, items: [], actors: [], scenes: [] };
-await import("./simplypf2e.mjs");
+await import("./simplysf2e.mjs");
 
 let deletes = 0;
 let macroForgeId = "test-forge";
@@ -51,7 +51,7 @@ const actor = {
 };
 game.user = { id: "player", isGM: false };
 await hooks.get("pf2e.restForTheNight")(actor);
-assert.deepEqual(updates, [{ _id: "copy", "flags.simplypf2e.forge.uses.value": 1 }],
+assert.deepEqual(updates, [{ _id: "copy", "flags.simplysf2e.forge.uses.value": 1 }],
   "the player whose local rest hook runs recharges their owned item");
 updates = [];
 actor.isOwner = false;

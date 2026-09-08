@@ -1,4 +1,4 @@
-export const MODULE_ID = "simplypf2e";
+export const MODULE_ID = "simplysf2e";
 
 export const SETTINGS = {
   apiBaseUrl: "apiBaseUrl",
@@ -17,25 +17,25 @@ export const SETTINGS = {
 export function registerSettings(SourcesConfigApp, ProviderSetupApp) {
   if (ProviderSetupApp) {
     game.settings.registerMenu(MODULE_ID, "providerSetupMenu", {
-      name: "SIMPLYPF2E.ProviderSetup.MenuName",
-      label: "SIMPLYPF2E.ProviderSetup.MenuLabel",
-      hint: "SIMPLYPF2E.ProviderSetup.MenuHint",
+      name: "SIMPLYSF2E.ProviderSetup.MenuName",
+      label: "SIMPLYSF2E.ProviderSetup.MenuLabel",
+      hint: "SIMPLYSF2E.ProviderSetup.MenuHint",
       icon: "fa-solid fa-plug-circle-check",
       type: ProviderSetupApp,
       restricted: true
     });
   }
   game.settings.registerMenu(MODULE_ID, "sourcesMenu", {
-    name: "SIMPLYPF2E.Sources.MenuName",
-    label: "SIMPLYPF2E.Sources.MenuLabel",
-    hint: "SIMPLYPF2E.Sources.MenuHint",
+    name: "SIMPLYSF2E.Sources.MenuName",
+    label: "SIMPLYSF2E.Sources.MenuLabel",
+    hint: "SIMPLYSF2E.Sources.MenuHint",
     icon: "fa-solid fa-book-atlas",
     type: SourcesConfigApp,
     restricted: true
   });
 
   // Per-category pack selection, managed by the Compendium Sources menu.
-  // An unset or empty category means "use the PF2e system defaults".
+  // An unset or empty category means "use the SF2e system defaults".
   game.settings.register(MODULE_ID, SETTINGS.sourcePacks, {
     scope: "world",
     config: false,
@@ -73,8 +73,8 @@ export function registerSettings(SourcesConfigApp, ProviderSetupApp) {
   });
 
   game.settings.register(MODULE_ID, SETTINGS.apiBaseUrl, {
-    name: "SIMPLYPF2E.Settings.ApiBaseUrl.Name",
-    hint: "SIMPLYPF2E.Settings.ApiBaseUrl.Hint",
+    name: "SIMPLYSF2E.Settings.ApiBaseUrl.Name",
+    hint: "SIMPLYSF2E.Settings.ApiBaseUrl.Hint",
     scope: "world",
     // ProviderSetupApp owns this value alongside the key and model. Keeping
     // it registered but hidden preserves saved worlds and script access
@@ -90,8 +90,8 @@ export function registerSettings(SourcesConfigApp, ProviderSetupApp) {
   // client, letting any player read the key via game.settings.get. A changed
   // key stays disabled until the user confirms the exact rendered endpoint.
   game.settings.register(MODULE_ID, SETTINGS.apiKey, {
-    name: "SIMPLYPF2E.Settings.ApiKey.Name",
-    hint: "SIMPLYPF2E.Settings.ApiKey.Hint",
+    name: "SIMPLYSF2E.Settings.ApiKey.Name",
+    hint: "SIMPLYSF2E.Settings.ApiKey.Hint",
     scope: "client",
     // The ordinary settings form renders String values as visible text.
     // Keep credentials editable only through ProviderSetupApp, which uses a
@@ -104,8 +104,8 @@ export function registerSettings(SourcesConfigApp, ProviderSetupApp) {
   });
 
   game.settings.register(MODULE_ID, SETTINGS.model, {
-    name: "SIMPLYPF2E.Settings.Model.Name",
-    hint: "SIMPLYPF2E.Settings.Model.Hint",
+    name: "SIMPLYSF2E.Settings.Model.Name",
+    hint: "SIMPLYSF2E.Settings.Model.Hint",
     scope: "world",
     // See apiBaseUrl above: provider identity is configured together in the
     // guided provider dialog, not piecemeal in ordinary module settings.
@@ -116,8 +116,8 @@ export function registerSettings(SourcesConfigApp, ProviderSetupApp) {
   });
 
   game.settings.register(MODULE_ID, SETTINGS.temperature, {
-    name: "SIMPLYPF2E.Settings.Temperature.Name",
-    hint: "SIMPLYPF2E.Settings.Temperature.Hint",
+    name: "SIMPLYSF2E.Settings.Temperature.Name",
+    hint: "SIMPLYSF2E.Settings.Temperature.Hint",
     scope: "world",
     config: true,
     restricted: true,
@@ -127,8 +127,8 @@ export function registerSettings(SourcesConfigApp, ProviderSetupApp) {
   });
 
   game.settings.register(MODULE_ID, SETTINGS.maxTokens, {
-    name: "SIMPLYPF2E.Settings.MaxTokens.Name",
-    hint: "SIMPLYPF2E.Settings.MaxTokens.Hint",
+    name: "SIMPLYSF2E.Settings.MaxTokens.Name",
+    hint: "SIMPLYSF2E.Settings.MaxTokens.Hint",
     scope: "world",
     config: true,
     restricted: true,
@@ -137,8 +137,8 @@ export function registerSettings(SourcesConfigApp, ProviderSetupApp) {
   });
 
   game.settings.register(MODULE_ID, SETTINGS.requestTimeout, {
-    name: "SIMPLYPF2E.Settings.RequestTimeout.Name",
-    hint: "SIMPLYPF2E.Settings.RequestTimeout.Hint",
+    name: "SIMPLYSF2E.Settings.RequestTimeout.Name",
+    hint: "SIMPLYSF2E.Settings.RequestTimeout.Hint",
     scope: "world",
     config: true,
     restricted: true,
@@ -151,8 +151,8 @@ export function registerSettings(SourcesConfigApp, ProviderSetupApp) {
   // while its feat prerequisite graph remains unvalidated; level 1 has no
   // variant slot and remains available.
   game.settings.register(MODULE_ID, SETTINGS.freeArchetype, {
-    name: "SIMPLYPF2E.Settings.FreeArchetype.Name",
-    hint: "SIMPLYPF2E.Settings.FreeArchetype.Hint",
+    name: "SIMPLYSF2E.Settings.FreeArchetype.Name",
+    hint: "SIMPLYSF2E.Settings.FreeArchetype.Hint",
     scope: "world",
     config: true,
     restricted: true,
@@ -554,17 +554,17 @@ export function getProviderAuthWarningKey(
   pageProtocol = globalThis.location?.protocol,
   requireModel = true
 ) {
-  if (!state.baseUrl) return "SIMPLYPF2E.Errors.NoBaseUrl";
-  if (requireModel && !String(state.model ?? "").trim()) return "SIMPLYPF2E.Errors.NoModel";
+  if (!state.baseUrl) return "SIMPLYSF2E.Errors.NoBaseUrl";
+  if (requireModel && !String(state.model ?? "").trim()) return "SIMPLYSF2E.Errors.NoModel";
   if (state.hasConfiguredApiKey && !state.apiKeyIsBound) {
-    return "SIMPLYPF2E.Generator.ApiKeyNotAuthorized";
+    return "SIMPLYSF2E.Generator.ApiKeyNotAuthorized";
   }
   if (!state.hasConfiguredApiKey && !state.keylessLocal) {
-    return "SIMPLYPF2E.Generator.NoApiKey";
+    return "SIMPLYSF2E.Generator.NoApiKey";
   }
   try {
     if (pageProtocol === "https:" && new URL(state.baseUrl).protocol === "http:") {
-      return "SIMPLYPF2E.Errors.MixedContentProvider";
+      return "SIMPLYSF2E.Errors.MixedContentProvider";
     }
   } catch {
     // Invalid URLs are surfaced by fetch with the ordinary network guidance.

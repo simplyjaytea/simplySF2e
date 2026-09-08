@@ -194,7 +194,7 @@ const LANGUAGE_TYPES = new Set([
 function filterAllowed(values, allowed, label) {
   const kept = values.filter((v) => allowed.has(v));
   const dropped = values.filter((v) => !allowed.has(v));
-  if (dropped.length) console.warn(`simplypf2e | dropped invalid ${label}: ${dropped.join(", ")}`);
+  if (dropped.length) console.warn(`simplysf2e | dropped invalid ${label}: ${dropped.join(", ")}`);
   return kept;
 }
 
@@ -240,7 +240,7 @@ export function normalizeConcept(raw, { level, rarity }) {
       const validDamageType = (pf2eChoiceSet("damageTypes") ?? STRIKE_DAMAGE_TYPES).has(damageType)
         ? damageType : "bludgeoning";
       if (damageType && damageType !== validDamageType) {
-        console.warn(`simplypf2e | dropped invalid strike damage type: ${damageType}`);
+        console.warn(`simplysf2e | dropped invalid strike damage type: ${damageType}`);
       }
       return {
         name: String(s.name),
@@ -293,7 +293,7 @@ export function normalizeConcept(raw, { level, rarity }) {
   if (typeof CONFIG !== "undefined" && CONFIG.PF2E?.creatureTraits) {
     validTraits = draftTraits.filter((t) => t in CONFIG.PF2E.creatureTraits);
     const dropped = draftTraits.filter((t) => !(t in CONFIG.PF2E.creatureTraits));
-    if (dropped.length) console.warn(`simplypf2e | dropped invalid creature traits: ${dropped.join(", ")}`);
+    if (dropped.length) console.warn(`simplysf2e | dropped invalid creature traits: ${dropped.join(", ")}`);
   }
 
   return {
@@ -329,14 +329,14 @@ export function normalizeConcept(raw, { level, rarity }) {
       }))
       .filter((s) => {
         if (SENSE_TYPES.has(s.type)) return true;
-        console.warn(`simplypf2e | dropped invalid creature sense: ${s.type}`);
+        console.warn(`simplysf2e | dropped invalid creature sense: ${s.type}`);
         return false;
       }),
     skills: (Array.isArray(c.skills) ? c.skills : [])
       .filter((s) => s?.name)
       .filter((s) => {
         if (slugify(s.name) !== "perception") return true;
-        console.warn("simplypf2e | dropped Perception from skills: perceptionScale owns that statistic");
+        console.warn("simplysf2e | dropped Perception from skills: perceptionScale owns that statistic");
         return false;
       })
       .slice(0, 8)
@@ -480,7 +480,7 @@ async function resolveCoinage(canonicalName) {
     const official = await accept({ packId: OFFICIAL_COIN_PACK, _id: COIN_COMPENDIUM_IDS[denom] });
     if (official) return official;
   } catch (err) {
-    console.warn("simplypf2e | official coinage document lookup failed", err);
+    console.warn("simplysf2e | official coinage document lookup failed", err);
   }
   return accept(await findEntry(
     getPacksFor("equipment"),
@@ -548,7 +548,7 @@ export async function resolveLoot(concept, { exactContent = false } = {}) {
     if (coins) {
       const resolved = await resolveCoinage(coins.name);
       if (!resolved) {
-        console.warn(`simplypf2e | dropped coin loot "${name}": no published ${coins.name} coinage document`);
+        console.warn(`simplysf2e | dropped coin loot "${name}": no published ${coins.name} coinage document`);
         continue;
       }
       loot.push({
@@ -646,7 +646,7 @@ export async function applyTreasureBudget(loot, targetGp) {
       } else {
         const resolved = await resolveCoinage("Gold Pieces");
         if (!resolved) {
-          console.warn("simplypf2e | treasure-budget coin padding skipped: no published Gold Pieces coinage document");
+          console.warn("simplysf2e | treasure-budget coin padding skipped: no published Gold Pieces coinage document");
           return loot;
         }
         loot.push({
@@ -674,12 +674,12 @@ export async function applyTreasureBudget(loot, targetGp) {
       excess -= removable * unit;
     }
     if (excess > targetGp * 0.2) {
-      console.log(`simplypf2e | loot is ~${Math.round(excess)} gp over the treasure budget with no coins left to trim — named items are never removed to hit a budget`);
+      console.log(`simplysf2e | loot is ~${Math.round(excess)} gp over the treasure budget with no coins left to trim — named items are never removed to hit a budget`);
     }
     // Drop coin lines trimmed all the way to zero.
     return loot.filter((l) => !(parseCoins(l.name) && (Number(l.quantity) || 0) <= 0));
   } catch (err) {
-    console.warn("simplypf2e | treasure-budget enforcement failed, leaving loot unchanged", err);
+    console.warn("simplysf2e | treasure-budget enforcement failed, leaving loot unchanged", err);
     return loot;
   }
 }
@@ -750,7 +750,7 @@ export function customTreasureItem(name, quantity, value) {
     img: "icons/svg/item-bag.svg",
     system: {
       price: { value: { gp } },
-      description: { value: `<p>${game.i18n.localize("SIMPLYPF2E.Loot.CustomItem")}</p>` }
+      description: { value: `<p>${game.i18n.localize("SIMPLYSF2E.Loot.CustomItem")}</p>` }
     }
   };
   if (quantity > 1) item.system.quantity = quantity;
@@ -770,7 +770,7 @@ export function customEquipmentItem(name, quantity, value) {
     img: "icons/svg/item-bag.svg",
     system: {
       price: { value: { gp } },
-      description: { value: `<p>${game.i18n.localize("SIMPLYPF2E.Equipment.CustomItem")}</p>` }
+      description: { value: `<p>${game.i18n.localize("SIMPLYSF2E.Equipment.CustomItem")}</p>` }
     }
   };
   if (quantity > 1) item.system.quantity = quantity;
@@ -926,7 +926,7 @@ export function dedupeLootAgainstEquipment(loot, equipment) {
   for (const line of loot) {
     const key = slugify(line?.name ?? "");
     if (key && equipNames.has(key)) {
-      console.warn(`simplypf2e | dropped loot item "${line?.name}" — already carried as starting equipment`);
+      console.warn(`simplysf2e | dropped loot item "${line?.name}" — already carried as starting equipment`);
       continue;
     }
     kept.push(line);
@@ -970,7 +970,7 @@ export function enforceNamedLootBudget(loot, budgetGp) {
   }
   if (dropped.length) {
     const droppedGp = dropped.reduce((sum, l) => sum + lineGp(l), 0);
-    console.warn(`simplypf2e | dropped ${dropped.length} named loot item(s) worth ~${Math.round(droppedGp)} gp over the PC loot budget (~${Math.round(budget)} gp): ${dropped.map((l) => l?.name).join(", ")}`);
+    console.warn(`simplysf2e | dropped ${dropped.length} named loot item(s) worth ~${Math.round(droppedGp)} gp over the PC loot budget (~${Math.round(budget)} gp): ${dropped.map((l) => l?.name).join(", ")}`);
   }
   return [...coinLines, ...kept];
 }
@@ -1280,7 +1280,7 @@ async function getSelectedDocument(entry) {
 export function filterItemTypes(items, allowed, actorLabel) {
   return items.filter((item) => {
     if (allowed.has(item.type)) return true;
-    console.warn(`simplypf2e | dropped "${item.name}": item type "${item.type}" is not allowed on ${actorLabel} actors`);
+    console.warn(`simplysf2e | dropped "${item.name}": item type "${item.type}" is not allowed on ${actorLabel} actors`);
     return false;
   });
 }

@@ -48,7 +48,7 @@ const context = vm.createContext({
 const resolved = () => ({ ancestryDoc: { name: "Dwarf" }, classDoc: { name: "Fighter" },
   backgroundDoc: { name: "Warrior" }, featSlots: [], feats: [], spells: [], equipment: [], loot: previewLoot });
 const mocks = {
-  SpfApp: App, MODULE_ID: "simplypf2e", SETTINGS: { freeArchetype: "freeArchetype" }, reviewUnresolvedChoices, normalizeSkillPriorities, skillPriorityOrder,
+  SpfApp: App, MODULE_ID: "simplysf2e", SETTINGS: { freeArchetype: "freeArchetype" }, reviewUnresolvedChoices, normalizeSkillPriorities, skillPriorityOrder,
   assertComplete, completionManifest, completionSummary,
   verifyCreatedActor: () => { if (verifyFailure) throw verifyFailure; },
   freeArchetypeNeedsPrerequisiteValidation, supportedClassCandidates,
@@ -132,7 +132,7 @@ generatorLevel = 2;
 const beforeBlocked = conceptCalls;
 await actions.generateRandom.call(new GeneratorApp());
 assert.equal(conceptCalls, beforeBlocked, "unsupported Free Archetype stops before the provider concept call");
-assert.ok(notices.some(([, text]) => text === "SIMPLYPF2E.Generator.FreeArchetypeUnsupported"));
+assert.ok(notices.some(([, text]) => text === "SIMPLYSF2E.Generator.FreeArchetypeUnsupported"));
 freeArchetype = false;
 generatorLevel = 1;
 
@@ -199,9 +199,9 @@ assert.equal(skills.context.pcPreview.automaticSkills, true);
 assert.equal(skills.context.pcPreview.skillPriorities.length, 16);
 await actions.createActor.call(skills);
 assert.equal(skills.context.characterReview.skills.rows[0].name, "medicine");
-assert.equal(skills.context.characterReview.skills.rows[0].rank, "SIMPLYPF2E.Skills.Rank2");
+assert.equal(skills.context.characterReview.skills.rows[0].rank, "SIMPLYSF2E.Skills.Rank2");
 assert.equal(skills.context.characterReview.skills.rows[1].name, "<img src=x> Lore");
-assert.deepEqual(Array.from(skills.context.characterReview.skills.warnings), ["SIMPLYPF2E.Skills.UnspentIncreases"]);
+assert.deepEqual(Array.from(skills.context.characterReview.skills.warnings), ["SIMPLYSF2E.Skills.UnspentIncreases"]);
 assert.equal(skills.context.pcPreview, null);
 skillReport = undefined;
 
@@ -234,7 +234,7 @@ deleteFailure = undefined;
 
 setActor();
 const nativeStranded = new Error("native write rejected");
-nativeStranded.simplyPF2eRollbackActor = actor;
+nativeStranded.simplySF2eRollbackActor = actor;
 createFailure = nativeStranded;
 const incomplete = await generate();
 await actions.createActor.call(incomplete);

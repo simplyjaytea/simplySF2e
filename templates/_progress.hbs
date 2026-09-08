@@ -10,7 +10,7 @@
         </li>
       {{/each}}
     </ol>
-    <div class="spf-progress-bar" role="progressbar" aria-label="{{localize 'SIMPLYPF2E.Progress.Label'}}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{progress.percent}}">
+    <div class="spf-progress-bar" role="progressbar" aria-label="{{localize 'SIMPLYSF2E.Progress.Label'}}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{progress.percent}}">
       <div class="spf-progress-fill" style="width: {{progress.percent}}%"></div>
     </div>
     <p class="spf-progress-percent">{{progress.percent}}%</p>
@@ -19,13 +19,13 @@
     {{#if canCancel}}
       <button type="button" class="spf-secondary spf-cancel" data-action="cancelGeneration">
         <i class="fa-solid fa-xmark" aria-hidden="true"></i>
-        {{localize "SIMPLYPF2E.Progress.Cancel"}}
+        {{localize "SIMPLYSF2E.Progress.Cancel"}}
       </button>
     {{/if}}
   </div>
 {{else}}
   <div class="spf-progress spf-card" role="status" aria-live="polite">
-    <p class="spf-progress-detail">{{#if busyMessage}}{{busyMessage}}{{else}}{{localize "SIMPLYPF2E.Generator.Busy"}}{{/if}}</p>
+    <p class="spf-progress-detail">{{#if busyMessage}}{{busyMessage}}{{else}}{{localize "SIMPLYSF2E.Generator.Busy"}}{{/if}}</p>
     <p class="spf-model">({{model}})</p>
   </div>
 {{/if}}
