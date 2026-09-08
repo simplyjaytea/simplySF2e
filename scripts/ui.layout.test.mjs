@@ -232,7 +232,7 @@ assert.match(generator, /<details class="spf-advanced">[\s\S]*?<summary>\{\{loca
 assert.match(generator, /data-action="managePresets"[\s\S]*?SIMPLYSF2E\.Presets\.Manage/,
   "the generator exposes one labeled Manage Presets control instead of edit icons");
 assert.match(generator, /<optgroup label="\{\{localize 'SIMPLYSF2E\.Presets\.StandardGroup'\}\}">/,
-  "built-in Remaster classes must render in a Standard optgroup");
+  "built-in SF2e classes must render in a Standard optgroup");
 assert.match(generator, /\{\{#if customPresets\.length\}\}[\s\S]*?<optgroup label="\{\{localize 'SIMPLYSF2E\.Presets\.CustomGroup'\}\}">/,
   "the Custom optgroup must be omitted when this world has no custom presets");
 assert.match(generator, /class="spf-hint spf-preset-trust" role="note"/,

@@ -2,13 +2,14 @@ import { slugify } from "./text.mjs";
 
 /**
  * Classes whose native feature/casting path has an end-to-end one-click plan.
- * Fighter has no mandatory level-one class-path bridge. Rogue's Racket and
- * Investigator Methodology are staged by class-paths.mjs from enabled Class
- * Features sources. Ordinary feat prerequisites are evaluated against that
- * staged ABC/grant snapshot before complete-only selection. Wizard remains
- * excluded pending class-owned spellbook/curriculum support.
+ * Empty until an SF2e class is proven to share the existing staging path
+ * without inventing class-feature schemas. All six published classes
+ * (envoy, mystic, operative, solarian, soldier, witchwarper) grant a
+ * mandatory level-1 path (Leadership Style, Connection, Specialization,
+ * Solar Manifestations, Fighting Style, Paradox) — none are Fighter-shaped.
+ * Fail closed: better empty than claiming PF2e Fighter/Rogue/Investigator.
  */
-export const COMPLETE_PC_CLASS_SLUGS = new Set(["fighter", "rogue", "investigator"]);
+export const COMPLETE_PC_CLASS_SLUGS = new Set();
 
 export function supportedClassCandidates(candidates) {
   return (Array.isArray(candidates) ? candidates : []).filter((candidate) =>

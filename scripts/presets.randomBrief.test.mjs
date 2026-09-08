@@ -18,7 +18,7 @@ const firstPick = [0, 0, 0, 0];
 const creature = withRandomSequence(firstPick, () => randomBrief("monster"));
 assert.equal(
   creature,
-  "Invent an original aberration brute from a haunted swamp, with an unexpectedly gentle side. Surprise us: avoid clichés, and give it one memorable signature ability."
+  "Invent an original aberration brute from Absalom Station, with an unexpectedly gentle side. Surprise us: avoid clichés, and give it one memorable signature ability."
 );
 assert.equal(withRandomSequence(firstPick, () => randomBrief()), creature, "omitted mode keeps the creature brief");
 assert.equal(withRandomSequence(firstPick, () => randomBrief("npc")), creature);
@@ -27,7 +27,7 @@ assert.equal(withRandomSequence(firstPick, () => randomBrief("encounter")), crea
 const character = withRandomSequence(firstPick, () => randomBrief("character"));
 assert.equal(
   character,
-  "Invent an original dwarven mercenary from a haunted swamp, with an unexpectedly gentle side. Surprise us: avoid clichés, and give them one memorable personality hook."
+  "Invent an original android starship mechanic from Absalom Station, with an unexpectedly gentle side. Surprise us: avoid clichés, and give them one memorable personality hook."
 );
 assert.doesNotMatch(character, /signature ability/);
 assert.doesNotMatch(character, /\d/);

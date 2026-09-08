@@ -77,7 +77,7 @@ export function normalizePCConcept(raw, { level }) {
     ancestry: String(c.ancestry || "Human").slice(0, 80),
     heritage: c.heritage ? String(c.heritage).slice(0, 80) : null,
     background: String(c.background || "Follower").slice(0, 80),
-    class: String(c.class || "Fighter").slice(0, 80),
+    class: String(c.class || "Soldier").slice(0, 80),
     keyAbility: ABILITY_KEYS.includes(c.keyAbility) ? c.keyAbility : "str",
     abilityPriorities,
     skillPriorities,

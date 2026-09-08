@@ -2,21 +2,24 @@
   "id": "simplysf2e",
   "title": "SimplySF2e",
   "description": "AI generator for Starfinder 2e (SF2e) actors in Foundry VTT. Ported from SimplyPF2e; under construction and not play-ready.",
-  "version": "0.1.0",
+  "version": "0.0.2",
   "authors": [
     {
       "name": "simplyjaytea"
     }
   ],
   "compatibility": {
-    "minimum": "14",
-    "verified": "14"
+    "minimum": "14.361",
+    "verified": "14.367"
   },
   "relationships": {
     "systems": [
       {
         "id": "sf2e",
-        "type": "system"
+        "type": "system",
+        "compatibility": {
+          "minimum": "1.5.0"
+        }
       }
     ]
   },

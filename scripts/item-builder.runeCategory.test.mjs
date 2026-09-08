@@ -136,7 +136,7 @@ const indexEntries = [
 
 globalThis.game = {
   settings: { get: () => ({}) },
-  packs: new Map([["pf2e.equipment-srd", {
+  packs: new Map([["sf2e.equipment", {
     getIndex: async ({ fields }) => {
       requestedFields = fields;
       return indexEntries;

@@ -16,7 +16,7 @@ function coinDoc(id, name, denom) {
     _id: id,
     name,
     type: "treasure",
-    uuid: `Compendium.pf2e.equipment-srd.Item.${id}`,
+    uuid: `Compendium.sf2e.equipment.Item.${id}`,
     system: {
       category: "coin",
       quantity: 1,
@@ -53,7 +53,7 @@ const equipmentPack = {
 globalThis.game = {
   settings: { get: () => undefined },
   i18n: { localize: (key) => key },
-  packs: { get: (id) => (id === "pf2e.equipment-srd" ? equipmentPack : undefined) }
+  packs: { get: (id) => (id === "sf2e.equipment" ? equipmentPack : undefined) }
 };
 
 const {
@@ -145,7 +145,7 @@ assert.equal(isCoinageDocument({ type: "treasure", system: { price: { value: { g
   assert.equal(items[0].system.category, "coin");
   assert.equal(items[0].system.quantity, 35);
   assert.equal(items[0].system.price.value.gp, 1);
-  assert.equal(items[0]._stats.compendiumSource, `Compendium.pf2e.equipment-srd.Item.${GOLD_ID}`);
+  assert.equal(items[0]._stats.compendiumSource, `Compendium.sf2e.equipment.Item.${GOLD_ID}`);
   assert.equal(items[1].name, "Silver Pieces");
   assert.equal(items[1].system.category, "coin");
   assert.equal(items[1].system.quantity, 5);
@@ -164,7 +164,7 @@ assert.equal(isCoinageDocument({ type: "treasure", system: { price: { value: { g
 
 {
   const items = await buildLootItems([
-    { name: "Gold Pieces", quantity: 8, value: 1, entry: { packId: "pf2e.equipment-srd", _id: GOLD_ID } },
+    { name: "Gold Pieces", quantity: 8, value: 1, entry: { packId: "sf2e.equipment", _id: GOLD_ID } },
     { name: "Unmatched Gem", quantity: 1, value: 15, entry: null }
   ]);
   assert.equal(items[0].system.category, "coin");
@@ -193,7 +193,7 @@ assert.equal(isCoinageDocument({ type: "treasure", system: { price: { value: { g
 
 {
   const loot = [
-    { name: "Gold Pieces", quantity: 10, resolvedValue: 1, entry: { packId: "pf2e.equipment-srd", _id: GOLD_ID } }
+    { name: "Gold Pieces", quantity: 10, resolvedValue: 1, entry: { packId: "sf2e.equipment", _id: GOLD_ID } }
   ];
   const padded = await applyTreasureBudget(structuredClone(loot), 50);
   assert.equal(padded[0].quantity, 50, "an existing gold line is increased to close the gap");

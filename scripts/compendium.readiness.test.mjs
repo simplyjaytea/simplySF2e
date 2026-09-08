@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 
 const packs = new Map([
-  ["pf2e.bestiary-ability-glossary-srd", {}], ["pf2e.equipment-srd", {}], ["pf2e.spells-srd", {}], ["pf2e.ancestries", {}],
-  ["pf2e.backgrounds", {}], ["pf2e.classes", {}], ["pf2e.classfeatures", {}], ["pf2e.feats-srd", {}], ["pf2e.pathfinder-monster-core", {}]
+  ["sf2e.bestiary-ability-glossary-srd", {}], ["sf2e.equipment", {}], ["sf2e.spells", {}], ["sf2e.ancestries", {}],
+  ["sf2e.backgrounds", {}], ["sf2e.classes", {}], ["sf2e.class-features", {}], ["sf2e.feats", {}], ["sf2e.alien-core-bestiary", {}]
 ]);
 globalThis.game = { packs: { get: (id) => packs.get(id) }, settings: { get: () => ({}) } };
 const { sourceReadiness } = await import("./compendium.mjs");
@@ -10,16 +10,16 @@ const { sourceReadiness } = await import("./compendium.mjs");
 const creature = sourceReadiness("monster");
 assert.equal(creature.ready, true);
 assert.equal(creature.packCount, 5);
-packs.delete("pf2e.spells-srd");
+packs.delete("sf2e.spells");
 assert.deepEqual(sourceReadiness("npc").missing, ["spells"]);
 assert.deepEqual(sourceReadiness("npc", { allowSpellcasting: false }).missing, ["spells"],
   "scroll grounding requires spell sources even for a non-caster");
-packs.set("pf2e.spells-srd", {});
-packs.delete("pf2e.pathfinder-monster-core");
+packs.set("sf2e.spells", {});
+packs.delete("sf2e.alien-core-bestiary");
 assert.deepEqual(sourceReadiness("monster").missing, ["bestiaryActors"],
   "complete creature generation requires an enabled exact bestiary Actor scaffold source");
-packs.set("pf2e.pathfinder-monster-core", {});
+packs.set("sf2e.alien-core-bestiary", {});
 assert.equal(sourceReadiness("character").ready, true);
-packs.delete("pf2e.classes");
+packs.delete("sf2e.classes");
 assert.ok(sourceReadiness("character").missing.includes("classes"));
 console.log("compendium.readiness.test.mjs: required source preflight passed");
