@@ -38,7 +38,7 @@ async function buildSlots(slots, ancestryTrait, classTrait) {
     }
     if (candidates.length) featSlots.push({ ...slot, candidates });
     else {
-      console.warn(`simplypf2e | no feat candidates for a ${slot.type}${slot.archetype ? " (archetype)" : ""} slot at level ${slot.level} — slot remains unresolved`);
+      console.warn(`simplysf2e | no feat candidates for a ${slot.type}${slot.archetype ? " (archetype)" : ""} slot at level ${slot.level} — slot remains unresolved`);
       featSlots.push({ ...slot, candidates: [] });
     }
   }

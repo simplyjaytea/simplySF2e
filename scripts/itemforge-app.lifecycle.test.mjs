@@ -50,7 +50,7 @@ class MockSpfApp {
   _finishRun() { this.abort = null; }
 }
 const mocks = {
-  MODULE_ID: "simplypf2e", SpfApp: MockSpfApp,
+  MODULE_ID: "simplysf2e", SpfApp: MockSpfApp,
   RUNED_ITEM_KINDS: new Set(["weapon", "armor"]), MIN_ITEM_LEVEL: 0, MAX_ITEM_LEVEL: 20,
   getProviderRequestConfig: () => ({ provider: {}, connections: [] }),
   getProviderAuthWarningKey: () => null,

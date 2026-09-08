@@ -36,11 +36,11 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
   }
 
   static DEFAULT_OPTIONS = {
-    id: "simplypf2e-provider-setup",
+    id: "simplysf2e-provider-setup",
     tag: "form",
-    classes: ["simplypf2e"],
+    classes: ["simplysf2e"],
     window: {
-      title: "SIMPLYPF2E.ProviderSetup.Title",
+      title: "SIMPLYSF2E.ProviderSetup.Title",
       icon: "fa-solid fa-plug-circle-check",
       resizable: true
     },
@@ -87,7 +87,7 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
       model: state.model,
       availableModels: this.#availableModels,
       hasApiKey: state.hasConfiguredApiKey,
-      localServerHint: game.i18n.format("SIMPLYPF2E.ProviderSetup.LocalServerHint", {
+      localServerHint: game.i18n.format("SIMPLYSF2E.ProviderSetup.LocalServerHint", {
         origin: globalThis.location?.origin ?? "Foundry"
       })
     };
@@ -178,8 +178,8 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
     if (!state.connectionId || state.connections.length < 2) return;
     const { DialogV2 } = foundry.applications.api;
     const confirmed = await DialogV2.confirm({
-      window: { title: "SIMPLYPF2E.ProviderSetup.DeleteTitle" },
-      content: `<p>${game.i18n.format("SIMPLYPF2E.ProviderSetup.DeleteConfirm", {
+      window: { title: "SIMPLYSF2E.ProviderSetup.DeleteTitle" },
+      content: `<p>${game.i18n.format("SIMPLYSF2E.ProviderSetup.DeleteConfirm", {
         name: esc(state.connectionName)
       })}</p>`,
       rejectClose: false
@@ -220,11 +220,11 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
 
     let parsed;
     try { parsed = new URL(baseUrl); }
-    catch { throw new Error(game.i18n.localize("SIMPLYPF2E.ProviderSetup.InvalidBaseUrl")); }
+    catch { throw new Error(game.i18n.localize("SIMPLYSF2E.ProviderSetup.InvalidBaseUrl")); }
     if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-      throw new Error(game.i18n.localize("SIMPLYPF2E.ProviderSetup.InvalidBaseUrl"));
+      throw new Error(game.i18n.localize("SIMPLYSF2E.ProviderSetup.InvalidBaseUrl"));
     }
-    if (requireModel && !model) throw new Error(game.i18n.localize("SIMPLYPF2E.Errors.NoModel"));
+    if (requireModel && !model) throw new Error(game.i18n.localize("SIMPLYSF2E.Errors.NoModel"));
 
     const currentBaseUrl = normalizeApiBaseUrl(game.settings.get(MODULE_ID, SETTINGS.apiBaseUrl));
     const baseChanged = currentBaseUrl !== baseUrl;
@@ -246,10 +246,10 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
     const provider = describeProvider(baseUrl, model);
     const state = getProviderRequestConfig();
     const messageKey = authorized
-      ? "SIMPLYPF2E.ProviderSetup.SavedAuthorized"
+      ? "SIMPLYSF2E.ProviderSetup.SavedAuthorized"
       : state.keylessLocal
-        ? "SIMPLYPF2E.ProviderSetup.Saved"
-        : "SIMPLYPF2E.ProviderSetup.SavedNeedsKey";
+        ? "SIMPLYSF2E.ProviderSetup.Saved"
+        : "SIMPLYSF2E.ProviderSetup.SavedNeedsKey";
     if (notify) {
       const notifySaved = !authorized && !state.keylessLocal
         ? ui.notifications.warn.bind(ui.notifications)
@@ -289,12 +289,12 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
       this.#availableModels = await listProviderModels();
       this.#modelsBaseUrl = state.baseUrl;
       await this.render();
-      ui.notifications.info(game.i18n.format("SIMPLYPF2E.ProviderSetup.ModelsLoaded", {
+      ui.notifications.info(game.i18n.format("SIMPLYSF2E.ProviderSetup.ModelsLoaded", {
         count: this.#availableModels.length
       }));
     } catch (err) {
-      console.error("simplypf2e | provider model discovery failed", err);
-      ui.notifications.error(game.i18n.format("SIMPLYPF2E.ProviderSetup.ModelsFailed", {
+      console.error("simplysf2e | provider model discovery failed", err);
+      ui.notifications.error(game.i18n.format("SIMPLYSF2E.ProviderSetup.ModelsFailed", {
         message: err?.message ?? String(err)
       }));
     } finally {
@@ -311,15 +311,15 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
       const warningKey = getProviderAuthWarningKey(state);
       if (warningKey) throw new Error(game.i18n.localize(warningKey));
       const usage = await testProviderConnection();
-      ui.notifications.info(game.i18n.format("SIMPLYPF2E.ProviderSetup.TestSuccess", {
+      ui.notifications.info(game.i18n.format("SIMPLYSF2E.ProviderSetup.TestSuccess", {
         provider: provider.name,
         model,
         total: usage.total.toLocaleString()
       }));
       await this.close();
     } catch (err) {
-      console.error("simplypf2e | provider save-and-test failed", err);
-      ui.notifications.error(game.i18n.format("SIMPLYPF2E.ProviderSetup.TestFailed", {
+      console.error("simplysf2e | provider save-and-test failed", err);
+      ui.notifications.error(game.i18n.format("SIMPLYSF2E.ProviderSetup.TestFailed", {
         message: err?.message ?? String(err)
       }));
     } finally {

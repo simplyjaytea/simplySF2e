@@ -349,13 +349,13 @@ export async function preselectChoiceSets(itemSources, context = {}, config = {}
       return;
     }
     if (options.length > MAX_GROUP_OPTIONS) {
-      console.warn(`simplypf2e | left ChoiceSet on "${item}" native: ${options.length} options exceed the ${MAX_GROUP_OPTIONS}-option batch limit`);
+      console.warn(`simplysf2e | left ChoiceSet on "${item}" native: ${options.length} options exceed the ${MAX_GROUP_OPTIONS}-option batch limit`);
       return;
     }
     if (pending.length >= MAX_BATCH_GROUPS || optionCount + options.length > MAX_BATCH_OPTIONS) {
       // Never truncate one legal catalog or silently discard a group: native
       // PF2e prompting remains the safe fallback past the fixed request bound.
-      console.warn(`simplypf2e | left ChoiceSet on "${item}" native: choice batch limit reached`);
+      console.warn(`simplysf2e | left ChoiceSet on "${item}" native: choice batch limit reached`);
       return;
     }
     const id = `choice-${pending.length + 1}`;
@@ -415,14 +415,14 @@ export async function preselectChoiceSets(itemSources, context = {}, config = {}
 
   if (!pending.length) return applied;
   if (typeof selectChoices !== "function") {
-    console.warn(`simplypf2e | ${pending.length} static ChoiceSet choice(s) remain native: no choice-selection callback was provided`);
+    console.warn(`simplysf2e | ${pending.length} static ChoiceSet choice(s) remain native: no choice-selection callback was provided`);
     return applied;
   }
 
   let result;
   try { result = await selectChoices(pending.map((entry) => entry.group)); }
   catch (error) {
-    console.warn("simplypf2e | choice-selection callback failed; leaving static ChoiceSets native", error);
+    console.warn("simplysf2e | choice-selection callback failed; leaving static ChoiceSets native", error);
     return applied;
   }
   const picks = validateChoicePicks(pending.map((entry) => entry.group), result?.picks ?? result);
@@ -439,7 +439,7 @@ export async function preselectChoiceSets(itemSources, context = {}, config = {}
     applied.push({ item: entry.group.item, flag: entry.group.flag, value: option.value, label: option.label, reason: "callback" });
   }
   if (picks.length < pending.length) {
-    console.warn(`simplypf2e | ${pending.length - picks.length} static ChoiceSet choice(s) remain native after callback`);
+    console.warn(`simplysf2e | ${pending.length - picks.length} static ChoiceSet choice(s) remain native after callback`);
   }
   return applied;
 }

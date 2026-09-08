@@ -17,7 +17,7 @@ const [generator, itemForge, providerSetup, managePresets, progress, generatorAp
   read("scripts/generator-app.mjs"),
   read("scripts/itemforge-app.mjs"),
   read("scripts/app-base.mjs"),
-  read("styles/simplypf2e.css"),
+  read("styles/simplysf2e.css"),
   read("lang/en.json")
 ]);
 
@@ -89,7 +89,7 @@ assert.match(
 for (const legendKey of ["ConceptLegend", "NpcLegend", "EncounterLegend", "CharacterLegend"]) {
   assert.match(
     generator,
-    new RegExp(`SIMPLYPF2E\\.Generator\\.${legendKey}`),
+    new RegExp(`SIMPLYSF2E\\.Generator\\.${legendKey}`),
     `generation mode must expose its own fieldset legend: ${legendKey}`
   );
 }
@@ -131,30 +131,30 @@ for (const [name, source] of [
 
 assert.match(
   css,
-  /\.simplypf2e \.spf-row\s*\{[^}]*flex-wrap:\s*wrap;/s,
+  /\.simplysf2e \.spf-row\s*\{[^}]*flex-wrap:\s*wrap;/s,
   "control rows must wrap instead of overflowing a compact Foundry window"
 );
 assert.match(
   css,
-  /@media \(max-width: 520px\)[\s\S]*?\.simplypf2e \.spf-row \.form-group\s*\{[^}]*flex-basis:\s*calc\(50%/s,
+  /@media \(max-width: 520px\)[\s\S]*?\.simplysf2e \.spf-row \.form-group\s*\{[^}]*flex-basis:\s*calc\(50%/s,
   "narrow windows must use a readable two-column control layout"
 );
-assert.match(css, /\.simplypf2e \.spf-provider-model\s*\{[^}]*text-overflow:\s*ellipsis;/s);
-assert.match(css, /\.simplypf2e \.spf-provider-presets\s*\{[^}]*grid-template-columns:\s*repeat\(3/s);
-assert.match(css, /\.simplypf2e \.spf-actions\s*\{[^}]*flex-wrap:\s*wrap;/s,
+assert.match(css, /\.simplysf2e \.spf-provider-model\s*\{[^}]*text-overflow:\s*ellipsis;/s);
+assert.match(css, /\.simplysf2e \.spf-provider-presets\s*\{[^}]*grid-template-columns:\s*repeat\(3/s);
+assert.match(css, /\.simplysf2e \.spf-actions\s*\{[^}]*flex-wrap:\s*wrap;/s,
   "action rows must wrap when localized labels do not fit");
-assert.match(css, /\.simplypf2e \.spf-model-picker\s*\{[^}]*flex-wrap:\s*wrap;/s,
+assert.match(css, /\.simplysf2e \.spf-model-picker\s*\{[^}]*flex-wrap:\s*wrap;/s,
   "the model input and discovery action must wrap in narrow windows");
-assert.match(css, /\.simplypf2e \.spf-connection-row\s*\{[^}]*flex-wrap:\s*wrap;/s,
+assert.match(css, /\.simplysf2e \.spf-connection-row\s*\{[^}]*flex-wrap:\s*wrap;/s,
   "saved-connection controls must wrap in the provider setup dialog");
 assert.match(
   css,
-  /\.simplypf2e \.spf-mode-toggle input\[type="radio"\]\s*\{[^}]*position:\s*absolute;[^}]*clip:/s,
+  /\.simplysf2e \.spf-mode-toggle input\[type="radio"\]\s*\{[^}]*position:\s*absolute;[^}]*clip:/s,
   "mode radios must stay keyboard-accessible while visually hidden"
 );
 assert.match(
   css,
-  /\.simplypf2e \.spf-mode-toggle label:focus-within\s*\{[^}]*outline:/s,
+  /\.simplysf2e \.spf-mode-toggle label:focus-within\s*\{[^}]*outline:/s,
   "keyboard focus on a mode must remain visible on its compact tile"
 );
 assert.match(
@@ -185,8 +185,8 @@ assert.match(generatorApp, /selectChoices: async \(groups\) =>[\s\S]*?selectChar
   "character creation must use the grounded provider selector and record its usage");
 assert.match(generatorApp, /finally \{\s*this\.#busy = false;\s*this\.#busyMessage = null;\s*this\._finishRun\(\);/,
   "character success and failure must clear both native and AI progress state");
-const messages = JSON.parse(langJson).SIMPLYPF2E;
-assert.match(messages.Progress.ApplyingCharacter, /PF2e choice dialogs/);
+const messages = JSON.parse(langJson).SIMPLYSF2E;
+assert.match(messages.Progress.ApplyingCharacter, /SF2e choice dialogs/);
 assert.match(messages.Generator.ChoicesNeedInput, /could not be selected automatically/);
 
 // --- Shared visual system (UI overhaul) ---------------------------------
@@ -227,22 +227,22 @@ assert.match(itemForgeApp, /showEmptyState:/, "item forge must expose the empty-
   assert.ok(advancedAt < presetAt, "presets must live in the advanced disclosure");
 }
 
-assert.match(generator, /<details class="spf-advanced">[\s\S]*?<summary>\{\{localize "SIMPLYPF2E\.Generator\.Advanced"\}\}<\/summary>/,
+assert.match(generator, /<details class="spf-advanced">[\s\S]*?<summary>\{\{localize "SIMPLYSF2E\.Generator\.Advanced"\}\}<\/summary>/,
   "secondary controls must be in a native, keyboard-operable Advanced disclosure");
-assert.match(generator, /data-action="managePresets"[\s\S]*?SIMPLYPF2E\.Presets\.Manage/,
+assert.match(generator, /data-action="managePresets"[\s\S]*?SIMPLYSF2E\.Presets\.Manage/,
   "the generator exposes one labeled Manage Presets control instead of edit icons");
-assert.match(generator, /<optgroup label="\{\{localize 'SIMPLYPF2E\.Presets\.StandardGroup'\}\}">/,
+assert.match(generator, /<optgroup label="\{\{localize 'SIMPLYSF2E\.Presets\.StandardGroup'\}\}">/,
   "built-in Remaster classes must render in a Standard optgroup");
-assert.match(generator, /\{\{#if customPresets\.length\}\}[\s\S]*?<optgroup label="\{\{localize 'SIMPLYPF2E\.Presets\.CustomGroup'\}\}">/,
+assert.match(generator, /\{\{#if customPresets\.length\}\}[\s\S]*?<optgroup label="\{\{localize 'SIMPLYSF2E\.Presets\.CustomGroup'\}\}">/,
   "the Custom optgroup must be omitted when this world has no custom presets");
 assert.match(generator, /class="spf-hint spf-preset-trust" role="note"/,
   "the picker must carry a readable complete-only flavor-guide trust line");
 assert.match(generator, /aria-describedby="spf-generator-preset-trust"/,
   "the preset select must point at the trust line");
-assert.match(css, /\.simplypf2e \.spf-preset-trust\s*\{/, "preset trust line must have dedicated type, not a buried generic hint");
-assert.match(css, /\.simplypf2e \.spf-preset-controls\s*\{[^}]*align-items:\s*stretch/s,
+assert.match(css, /\.simplysf2e \.spf-preset-trust\s*\{/, "preset trust line must have dedicated type, not a buried generic hint");
+assert.match(css, /\.simplysf2e \.spf-preset-controls\s*\{[^}]*align-items:\s*stretch/s,
   "Manage Presets must stretch to the select height");
-assert.doesNotMatch(css, /\.simplypf2e \.spf-preset[\s\S]{0,800}(?:animation:|transition:)/,
+assert.doesNotMatch(css, /\.simplysf2e \.spf-preset[\s\S]{0,800}(?:animation:|transition:)/,
   "preset chrome must not add motion; prefers-reduced-motion stays a progress-only concern");
 assert.doesNotMatch(generator, /\{\{#each presets\}\}/,
   "the picker must not flatten Standard and Custom into one option list");
@@ -260,23 +260,23 @@ assert.match(progress, /spf-progress-\{\{progress\.phase\}\}/, "progress chrome 
 assert.match(progress, /<p class="spf-progress-detail">/,
   "the streaming detail line must stay a direct-textContent target for app-base");
 assert.match(progress, /data-action="cancelGeneration"/, "in-flight generation must offer Cancel on the progress chrome");
-assert.match(progress, /SIMPLYPF2E\.Progress\.Cancel/);
+assert.match(progress, /SIMPLYSF2E\.Progress\.Cancel/);
 assert.doesNotMatch(progress, /\{\{\{progress\.detail\}\}\}/);
 assert.match(progress, /<p class="spf-progress-percent">\{\{progress\.percent\}\}%<\/p>/,
   "the percent readout must stay a direct-textContent target for in-place stream ticks");
 assert.match(
   css,
-  /\.simplypf2e \.spf-progress-fill\s*\{[^}]*transition:\s*width/s,
+  /\.simplysf2e \.spf-progress-fill\s*\{[^}]*transition:\s*width/s,
   "the progress fill must CSS-transition width instead of snapping between step buckets"
 );
 assert.match(
   css,
-  /\.simplypf2e \.spf-progress-fill::after\s*\{[^}]*animation:\s*spf-step-slide/s,
+  /\.simplysf2e \.spf-progress-fill::after\s*\{[^}]*animation:\s*spf-step-slide/s,
   "within-step motion stays on the sheen while phase fill holds width"
 );
 assert.match(appBase, /_paintProgress\(\)/, "stream ticks must patch the existing fill instead of re-rendering the app");
 assert.match(appBase, /streamFraction\(\{ phase, prior:/, "intra-step fill is phase-based, not chars-vs-unknown-length");
-assert.match(appBase, /exact \? "SIMPLYPF2E\.Progress\.WritingExact"/, "live copy drops ≈ only for provider usage");
+assert.match(appBase, /exact \? "SIMPLYSF2E\.Progress\.WritingExact"/, "live copy drops ≈ only for provider usage");
 assert.match(generatorApp, /call: focusLabel/, "multi-call spell steps sub-label the detail line without extra bar steps");
 assert.match(messages.Tokens.StepEstimated, /estimated/);
 assert.match(messages.Tokens.StepTotal, /\{total\} tokens/);
@@ -284,9 +284,9 @@ assert.match(messages.Tokens.LastRun, /^last: \{total\} tokens$/);
 assert.match(messages.Tokens.LastRunEstimated, /≈ \{total\} tokens/, "estimated last-run copy must keep ≈");
 assert.match(messages.Errors.Cancelled, /cancelled/i);
 assert.match(css, /prefers-reduced-motion:\s*reduce/, "generating animation must yield to reduced motion");
-assert.match(css, /\.simplypf2e \.spf-progress-thinking/, "thinking must have a distinct phase treatment");
-assert.match(css, /\.simplypf2e \.spf-progress-writing/, "writing must have a distinct phase treatment");
-assert.match(css, /\.simplypf2e \.spf-last-run\s*\{/, "last-run cost must be a compact secondary near the provider strip");
+assert.match(css, /\.simplysf2e \.spf-progress-thinking/, "thinking must have a distinct phase treatment");
+assert.match(css, /\.simplysf2e \.spf-progress-writing/, "writing must have a distinct phase treatment");
+assert.match(css, /\.simplysf2e \.spf-last-run\s*\{/, "last-run cost must be a compact secondary near the provider strip");
 for (const [name, template] of [["generator", generator], ["item forge", itemForge]]) {
   assert.match(template, /spf-last-run/, `${name} must show last-run token cost near the provider strip`);
   assert.match(template, /lastRunCost/);
@@ -295,7 +295,7 @@ assert.match(generatorApp, /cancelGeneration: GeneratorApp\.#onCancelGeneration/
 assert.match(itemForgeApp, /cancelGeneration: ItemForgeApp\.#onCancelGeneration/);
 assert.match(generatorApp, /lastRunCost: this\._formatLastRunCost\(\)/);
 assert.match(itemForgeApp, /lastRunCost: this\._formatLastRunCost\(\)/);
-const busyAt = generator.indexOf("{{#if busy}}{{> simplypf2e-progress}}");
+const busyAt = generator.indexOf("{{#if busy}}{{> simplysf2e-progress}}");
 const errorAt = generator.indexOf('{{#if error}}');
 assert.ok(busyAt >= 0 && errorAt > busyAt, "generation errors must remain below progress, not covered by it");
 
@@ -303,16 +303,16 @@ assert.match(css, /\.spf-directory-row\s*\{/, "item forge directory entry needs 
 assert.match(css, /\.spf-directory-row \.spf-directory-button\s*\{[^}]*width:\s*100%/s,
   "item forge directory row must span below native controls");
 for (const rule of ["spf-card", "spf-icon-btn", "spf-empty"]) {
-  assert.match(css, new RegExp(`\\.simplypf2e \\.${rule}\\s*\\{`), `shared kit class .${rule} must be defined`);
+  assert.match(css, new RegExp(`\\.simplysf2e \\.${rule}\\s*\\{`), `shared kit class .${rule} must be defined`);
 }
-assert.match(css, /\.simplypf2e button\.spf-primary\s*\{/, "the primary button treatment must be defined");
+assert.match(css, /\.simplysf2e button\.spf-primary\s*\{/, "the primary button treatment must be defined");
 assert.match(
   css,
-  /\.simplypf2e :is\(button, input, select, textarea\):focus-visible\s*\{[^}]*outline:/s,
+  /\.simplysf2e :is\(button, input, select, textarea\):focus-visible\s*\{[^}]*outline:/s,
   "every control must have a visible focus state"
 );
-assert.match(css, /\.simplypf2e button:disabled\s*\{[^}]*opacity/s, "disabled controls must read as disabled");
-assert.match(css, /\.application\.simplypf2e\s*\{[^}]*min-width/s,
+assert.match(css, /\.simplysf2e button:disabled\s*\{[^}]*opacity/s, "disabled controls must read as disabled");
+assert.match(css, /\.application\.simplysf2e\s*\{[^}]*min-width/s,
   "resizable windows must clamp to a usable minimum size");
 
 // --- Cross-app uniformity (UI uniformity pass) --------------------------
@@ -335,7 +335,7 @@ for (const icon of ["fa-ring", "fa-sword", "fa-shield-halved"]) {
 }
 assert.doesNotMatch(itemForgeApp, /querySelectorAll\('input\[name="kind"\]'/,
   "kind selection must not rely on fragile per-render listeners");
-assert.match(css, /\.simplypf2e \.spf-kind-choices\s*\{[^}]*grid-template-columns:\s*repeat\(auto-fit,\s*minmax\(min\(/s,
+assert.match(css, /\.simplysf2e \.spf-kind-choices\s*\{[^}]*grid-template-columns:\s*repeat\(auto-fit,\s*minmax\(min\(/s,
   "kind tiles must respond to the resizable app's intrinsic width without viewport media queries");
 
 // Dice: one control in the generate row for every mode. Encounter no longer
@@ -357,11 +357,11 @@ assert.match(css, /\.simplypf2e \.spf-kind-choices\s*\{[^}]*grid-template-column
   assert.match(generator, /aria-label="\{\{localize randomTooltipKey\}\}"/);
   assert.match(
     generatorApp,
-    /randomTooltipKey: \{[\s\S]*?monster: "SIMPLYPF2E\.Generator\.RandomTooltip"[\s\S]*?npc: "SIMPLYPF2E\.Generator\.RandomNpcTooltip"[\s\S]*?encounter: "SIMPLYPF2E\.Generator\.RandomEncounterTooltip"[\s\S]*?character: "SIMPLYPF2E\.Generator\.RandomCharacterTooltip"/,
+    /randomTooltipKey: \{[\s\S]*?monster: "SIMPLYSF2E\.Generator\.RandomTooltip"[\s\S]*?npc: "SIMPLYSF2E\.Generator\.RandomNpcTooltip"[\s\S]*?encounter: "SIMPLYSF2E\.Generator\.RandomEncounterTooltip"[\s\S]*?character: "SIMPLYSF2E\.Generator\.RandomCharacterTooltip"/,
     "each mode must expose its own dice tooltip key"
   );
   assert.doesNotMatch(generatorApp, /generateRandomEncounter/);
-  const lang = JSON.parse(langJson).SIMPLYPF2E.Generator;
+  const lang = JSON.parse(langJson).SIMPLYSF2E.Generator;
   assert.match(lang.RandomTooltip, /Random creature/);
   assert.match(lang.RandomNpcTooltip, /Random NPC/);
   assert.match(lang.RandomEncounterTooltip, /Random encounter/);
@@ -400,8 +400,8 @@ for (const [name, template] of [["item forge", itemForge]]) {
   assert.ok(rowAt >= 0 && gearAt >= 0 && fieldsetEnd >= 0, `${name} must have a generate row and a sources gear`);
   assert.ok(rowAt < gearAt && gearAt < fieldsetEnd, `${name} sources gear must sit in the generate row`);
 }
-assert.match(generator, /SIMPLYPF2E\.Generator\.CompendiumContent/);
-assert.match(generator, /SIMPLYPF2E\.Generator\.SourcesReady/);
+assert.match(generator, /SIMPLYSF2E\.Generator\.CompendiumContent/);
+assert.match(generator, /SIMPLYSF2E\.Generator\.SourcesReady/);
 assert.match(generator, /data-action="configureSources"/);
 for (const [name, source] of [
   ["generator", generatorApp],
@@ -433,9 +433,9 @@ for (const [name, source] of [
 
 // 5. Window titles and prompt labels follow one pattern.
 {
-  const lang = JSON.parse(langJson).SIMPLYPF2E;
-  assert.match(lang.Generator.Title, /^SimplyPF2e — /, "generator title must follow the shared pattern");
-  assert.match(lang.ItemForge.Title, /^SimplyPF2e — /, "item forge title must follow the shared pattern");
+  const lang = JSON.parse(langJson).SIMPLYSF2E;
+  assert.match(lang.Generator.Title, /^SimplySF2e — /, "generator title must follow the shared pattern");
+  assert.match(lang.ItemForge.Title, /^SimplySF2e — /, "item forge title must follow the shared pattern");
   for (const [key, value] of [
     ["Generator.Prompt", lang.Generator.Prompt],
     ["Generator.CharacterPrompt", lang.Generator.CharacterPrompt],
@@ -460,7 +460,7 @@ for (const action of ["openReviewedCharacter", "dismissCharacterReview"]) {
   assert.match(reviewCard, new RegExp(`data-action="${action}"`));
   assert.match(generatorApp, new RegExp(`${action}: GeneratorApp\\.#on`));
 }
-const reviewLanguage = JSON.parse(langJson).SIMPLYPF2E.Generator;
+const reviewLanguage = JSON.parse(langJson).SIMPLYSF2E.Generator;
 assert.match(reviewLanguage.ReviewHint, /snapshot.*not a full character validation/);
 assert.match(reviewLanguage.ReviewHint, /conditional or intentionally disabled/);
 assert.match(reviewLanguage.ReviewIncomplete, /Not every item/);
@@ -469,6 +469,6 @@ assert.match(generator, /pcPreview.automaticSkills/);
 assert.match(reviewCard, /characterReview.skills.rows/);
 assert.match(reviewCard, /\{\{this.name\}\} — \{\{this.rank\}\}/);
 assert.match(reviewCard, /characterReview.skills.warnings/);
-assert.match(JSON.parse(langJson).SIMPLYPF2E.Skills.Snapshot, /not a full character validation/);
+assert.match(JSON.parse(langJson).SIMPLYSF2E.Skills.Snapshot, /not a full character validation/);
 
 console.log("UI layout contract checks passed.");

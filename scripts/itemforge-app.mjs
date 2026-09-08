@@ -22,11 +22,11 @@ import { SpfApp } from "./app-base.mjs";
  */
 export class ItemForgeApp extends SpfApp {
   static DEFAULT_OPTIONS = {
-    id: "simplypf2e-itemforge",
+    id: "simplysf2e-itemforge",
     tag: "form",
-    classes: ["simplypf2e"],
+    classes: ["simplysf2e"],
     window: {
-      title: "SIMPLYPF2E.ItemForge.Title",
+      title: "SIMPLYSF2E.ItemForge.Title",
       icon: "fa-solid fa-hammer",
       resizable: true
     },
@@ -91,18 +91,18 @@ export class ItemForgeApp extends SpfApp {
       minLevel: MIN_ITEM_LEVEL,
       maxLevel: MAX_ITEM_LEVEL,
       kinds: [
-        { value: "wondrous", label: "SIMPLYPF2E.ItemForge.KindWondrous", hint: "SIMPLYPF2E.ItemForge.KindWondrousHint", icon: "fa-ring" },
-        { value: "weapon", label: "SIMPLYPF2E.ItemForge.KindWeapon", hint: "SIMPLYPF2E.ItemForge.KindWeaponHint", icon: "fa-sword" },
-        { value: "armor", label: "SIMPLYPF2E.ItemForge.KindArmor", hint: "SIMPLYPF2E.ItemForge.KindArmorHint", icon: "fa-shield-halved" }
+        { value: "wondrous", label: "SIMPLYSF2E.ItemForge.KindWondrous", hint: "SIMPLYSF2E.ItemForge.KindWondrousHint", icon: "fa-ring" },
+        { value: "weapon", label: "SIMPLYSF2E.ItemForge.KindWeapon", hint: "SIMPLYSF2E.ItemForge.KindWeaponHint", icon: "fa-sword" },
+        { value: "armor", label: "SIMPLYSF2E.ItemForge.KindArmor", hint: "SIMPLYSF2E.ItemForge.KindArmorHint", icon: "fa-shield-halved" }
       ].map((kind) => ({ ...kind, selected: kind.value === this.#input.kind })),
       rarities: [
-        { value: "common", label: "SIMPLYPF2E.Rarity.Common" },
-        { value: "uncommon", label: "SIMPLYPF2E.Rarity.Uncommon" },
-        { value: "rare", label: "SIMPLYPF2E.Rarity.Rare" },
-        { value: "unique", label: "SIMPLYPF2E.Rarity.Unique" }
+        { value: "common", label: "SIMPLYSF2E.Rarity.Common" },
+        { value: "uncommon", label: "SIMPLYSF2E.Rarity.Uncommon" },
+        { value: "rare", label: "SIMPLYSF2E.Rarity.Rare" },
+        { value: "unique", label: "SIMPLYSF2E.Rarity.Unique" }
       ],
       unavailableNote: this.#unavailableKinds?.length
-        ? game.i18n.format("SIMPLYPF2E.ItemForge.KindsUnavailable", { kinds: this.#unavailableKinds.join(", ") })
+        ? game.i18n.format("SIMPLYSF2E.ItemForge.KindsUnavailable", { kinds: this.#unavailableKinds.join(", ") })
         : null,
       preview: this.#kind === "wondrous" ? this.#buildPreviewContext() : this.#buildRunedPreviewContext(),
       tokenReport: this._buildTokenReport(),
@@ -176,9 +176,9 @@ export class ItemForgeApp extends SpfApp {
     this.#readForm();
     const authorized = await authorizeApiKeyForCurrentBaseUrl(target.dataset.baseUrl);
     if (authorized) {
-      ui.notifications.info(game.i18n.localize("SIMPLYPF2E.Generator.ApiKeyAuthorized"));
+      ui.notifications.info(game.i18n.localize("SIMPLYSF2E.Generator.ApiKeyAuthorized"));
     } else {
-      ui.notifications.warn(game.i18n.localize("SIMPLYPF2E.Generator.ApiKeyAuthorizationFailed"));
+      ui.notifications.warn(game.i18n.localize("SIMPLYSF2E.Generator.ApiKeyAuthorizationFailed"));
     }
     await this.render();
   }
@@ -226,7 +226,7 @@ export class ItemForgeApp extends SpfApp {
     if (this.#busy) return;
     this.#readForm();
     if (!this.#input.prompt.trim()) {
-      ui.notifications.warn(game.i18n.localize("SIMPLYPF2E.ItemForge.NoPrompt"));
+      ui.notifications.warn(game.i18n.localize("SIMPLYSF2E.ItemForge.NoPrompt"));
       return;
     }
     this.#busy = true;
@@ -241,9 +241,9 @@ export class ItemForgeApp extends SpfApp {
 
   async #generateWondrous() {
     const signal = this._beginProgress([
-      ["templates", game.i18n.localize("SIMPLYPF2E.ItemForge.ProgressTemplates")],
-      ["concept", game.i18n.localize("SIMPLYPF2E.ItemForge.ProgressConcept")],
-      ["assemble", game.i18n.localize("SIMPLYPF2E.ItemForge.ProgressAssemble")]
+      ["templates", game.i18n.localize("SIMPLYSF2E.ItemForge.ProgressTemplates")],
+      ["concept", game.i18n.localize("SIMPLYSF2E.ItemForge.ProgressConcept")],
+      ["assemble", game.i18n.localize("SIMPLYSF2E.ItemForge.ProgressAssemble")]
     ]);
     try {
       // 1. Ground truth first: which effect kinds have real rule exemplars
@@ -265,7 +265,7 @@ export class ItemForgeApp extends SpfApp {
         usageOptions,
         onProgress: (p) => this._onAIProgress(p), signal
       });
-      this._recordTokens(game.i18n.localize("SIMPLYPF2E.ItemForge.ProgressConcept"), usage);
+      this._recordTokens(game.i18n.localize("SIMPLYSF2E.ItemForge.ProgressConcept"), usage);
 
       // 3. Normalize defensively and price from the empirical benchmark.
       await this._setStep("assemble");
@@ -301,9 +301,9 @@ export class ItemForgeApp extends SpfApp {
    */
   async #generateRuned(kind) {
     const signal = this._beginProgress([
-      ["templates", game.i18n.localize("SIMPLYPF2E.ItemForge.ProgressCandidates")],
-      ["concept", game.i18n.localize("SIMPLYPF2E.ItemForge.ProgressConcept")],
-      ["assemble", game.i18n.localize("SIMPLYPF2E.ItemForge.ProgressAssemble")]
+      ["templates", game.i18n.localize("SIMPLYSF2E.ItemForge.ProgressCandidates")],
+      ["concept", game.i18n.localize("SIMPLYSF2E.ItemForge.ProgressConcept")],
+      ["assemble", game.i18n.localize("SIMPLYSF2E.ItemForge.ProgressAssemble")]
     ]);
     try {
       // 1. Ground truth first: real base items, real property runes, and
@@ -316,10 +316,10 @@ export class ItemForgeApp extends SpfApp {
         getFundamentalRuneTiers(kind, maxLevel)
       ]);
       if (!baseCandidates.length) {
-        throw new Error(game.i18n.format("SIMPLYPF2E.ItemForge.NoBaseItems", { kind }));
+        throw new Error(game.i18n.format("SIMPLYSF2E.ItemForge.NoBaseItems", { kind }));
       }
       if (!tiers.potencyTiers.length) {
-        throw new Error(game.i18n.format("SIMPLYPF2E.ItemForge.NoPotencyAvailable", {
+        throw new Error(game.i18n.format("SIMPLYSF2E.ItemForge.NoPotencyAvailable", {
           kind, level: maxLevel, minLevel: tiers.minPotencyLevel
         }));
       }
@@ -337,7 +337,7 @@ export class ItemForgeApp extends SpfApp {
         secondaryTiers: tiers.secondaryTiers,
         onProgress: (p) => this._onAIProgress(p), signal
       });
-      this._recordTokens(game.i18n.localize("SIMPLYPF2E.ItemForge.ProgressConcept"), usage);
+      this._recordTokens(game.i18n.localize("SIMPLYSF2E.ItemForge.ProgressConcept"), usage);
 
       // 3. Normalize against the same candidate lists, then resolve the real
       // documents to compute the final name/price/level right away — a runed
@@ -378,7 +378,7 @@ export class ItemForgeApp extends SpfApp {
         ? await buildMagicItemData(concept)
         : this.#itemData;
       const item = await Item.create(data);
-      if (!item?.id) throw new Error(game.i18n.localize("SIMPLYPF2E.ItemForge.CreateFailed"));
+      if (!item?.id) throw new Error(game.i18n.localize("SIMPLYSF2E.ItemForge.CreateFailed"));
 
       // The item is committed. Consume the draft before any companion or
       // presentation work so a display failure cannot enable duplicate writes.
@@ -389,14 +389,14 @@ export class ItemForgeApp extends SpfApp {
             await createActivationMacro({ item, concept });
           } catch (err) {
             console.error(`${MODULE_ID} | activation macro creation failed`, err);
-            ui.notifications.warn(game.i18n.localize("SIMPLYPF2E.ItemForge.MacroFailed"));
+            ui.notifications.warn(game.i18n.localize("SIMPLYSF2E.ItemForge.MacroFailed"));
           }
         }
-        ui.notifications.info(game.i18n.format("SIMPLYPF2E.ItemForge.Created", { name: item.name }));
+        ui.notifications.info(game.i18n.format("SIMPLYSF2E.ItemForge.Created", { name: item.name }));
         await item.sheet.render(true);
       } catch (err) {
         console.error(`${MODULE_ID} | created item presentation failed`, err);
-        ui.notifications.warn(game.i18n.localize("SIMPLYPF2E.ItemForge.CreatedPresentationFailed"));
+        ui.notifications.warn(game.i18n.localize("SIMPLYSF2E.ItemForge.CreatedPresentationFailed"));
       }
     } catch (err) {
       console.error(`${MODULE_ID} | item creation failed`, err);

@@ -165,6 +165,6 @@ assert.match(generator, /if \(spellcasting\.plannedPicks\) return;[\s\S]*?concep
   "a failed known spell plan must remain empty for completion validation, never fall back to draft names");
 assert.match(template, /role="status">\{\{pcPreview\.spellcastingNotice\}\}/, "escaped, accessible review notice");
 for (const key of ["PCBaseSpellPlan", "PCVariableSpellPlan", "PCApproximateSpellPlan", "Signature", "PCSignaturePlan"]) {
-  assert.ok(locale.SIMPLYPF2E.Preview[key]);
+  assert.ok(locale.SIMPLYSF2E.Preview[key]);
 }
 console.log("PC spell planning: production requests and preview wiring passed");

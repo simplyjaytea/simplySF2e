@@ -14,7 +14,7 @@ if (!vm.SourceTextModule) {
 const source = (await readFile(new URL("./generator-app.mjs", import.meta.url), "utf8"))
   .replace(/#(concept|resolved|buildPreviewContext|matchSummary)\b/g, "_test_$1");
 const context = vm.createContext({ console, game: { i18n: { format: (_key, { matched, total }) => `${matched}/${total}` } } });
-const mocks = { SpfApp: class {}, MODULE_ID: "simplypf2e", computeStats: () => ({}) };
+const mocks = { SpfApp: class {}, MODULE_ID: "simplysf2e", computeStats: () => ({}) };
 const module = new vm.SourceTextModule(source, { context });
 await module.link((specifier) => {
   const imports = [...source.matchAll(/import\s*\{([^}]+)\}\s*from\s*"([^"]+)"/g)]

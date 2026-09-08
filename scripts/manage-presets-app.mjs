@@ -17,7 +17,7 @@ const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1);
  * cancelled or name/prompt were left empty.
  */
 export async function promptPresetDialog({
-  title = "SIMPLYPF2E.Presets.DialogTitle",
+  title = "SIMPLYSF2E.Presets.DialogTitle",
   name = "",
   prompt = "",
   rarity = "common",
@@ -25,29 +25,29 @@ export async function promptPresetDialog({
   treasureAmount = "standard"
 } = {}) {
   const options = (values, prefix, current) => values.map((v) =>
-    `<option value="${v}" ${v === current ? "selected" : ""}>${game.i18n.localize(`SIMPLYPF2E.${prefix}.${capitalize(v)}`)}</option>`
+    `<option value="${v}" ${v === current ? "selected" : ""}>${game.i18n.localize(`SIMPLYSF2E.${prefix}.${capitalize(v)}`)}</option>`
   ).join("");
   const content = `
     <div class="form-group">
-      <label>${game.i18n.localize("SIMPLYPF2E.Presets.DialogName")}</label>
-      <input type="text" name="presetName" required value="${esc(name)}" placeholder="${game.i18n.localize("SIMPLYPF2E.Presets.DialogNamePlaceholder")}">
+      <label>${game.i18n.localize("SIMPLYSF2E.Presets.DialogName")}</label>
+      <input type="text" name="presetName" required value="${esc(name)}" placeholder="${game.i18n.localize("SIMPLYSF2E.Presets.DialogNamePlaceholder")}">
     </div>
     <div class="form-group stacked">
-      <label>${game.i18n.localize("SIMPLYPF2E.Presets.DialogGuidance")}</label>
-      <textarea name="presetPrompt" rows="6" placeholder="${game.i18n.localize("SIMPLYPF2E.Presets.DialogGuidancePlaceholder")}">${esc(prompt)}</textarea>
+      <label>${game.i18n.localize("SIMPLYSF2E.Presets.DialogGuidance")}</label>
+      <textarea name="presetPrompt" rows="6" placeholder="${game.i18n.localize("SIMPLYSF2E.Presets.DialogGuidancePlaceholder")}">${esc(prompt)}</textarea>
     </div>
     <div class="form-group">
-      <label>${game.i18n.localize("SIMPLYPF2E.Generator.Rarity")}</label>
+      <label>${game.i18n.localize("SIMPLYSF2E.Generator.Rarity")}</label>
       <select name="presetRarity">${options(PRESET_RARITIES, "Rarity", rarity)}</select>
     </div>
     <div class="form-group">
-      <label>${game.i18n.localize("SIMPLYPF2E.Generator.TreasureAmount")}</label>
+      <label>${game.i18n.localize("SIMPLYSF2E.Generator.TreasureAmount")}</label>
       <select name="presetTreasure">${options(Object.keys(TREASURE_AMOUNT_MULTIPLIER), "TreasureAmount", treasureAmount)}</select>
     </div>
     <div class="form-group">
       <label>
         <input type="checkbox" name="presetSpellcasting" ${allowSpellcasting ? "checked" : ""}>
-        ${game.i18n.localize("SIMPLYPF2E.Generator.AllowSpellcasting")}
+        ${game.i18n.localize("SIMPLYSF2E.Generator.AllowSpellcasting")}
       </label>
     </div>`;
   const result = await DialogV2.prompt({
@@ -55,7 +55,7 @@ export async function promptPresetDialog({
     position: { width: 480 },
     content,
     ok: {
-      label: "SIMPLYPF2E.Presets.DialogSave",
+      label: "SIMPLYSF2E.Presets.DialogSave",
       icon: "fa-solid fa-floppy-disk",
       callback: (_event, button) => ({
         name: button.form.elements.presetName.value.trim(),
@@ -73,13 +73,13 @@ export async function promptPresetDialog({
 /** Confirm-then-delete for a custom preset. Returns true if deleted. */
 export async function confirmDeletePreset(preset) {
   const confirmed = await DialogV2.confirm({
-    window: { title: "SIMPLYPF2E.Presets.DeleteTitle" },
-    content: `<p>${game.i18n.format("SIMPLYPF2E.Presets.DeleteConfirm", { name: esc(preset.name) })}</p>`,
+    window: { title: "SIMPLYSF2E.Presets.DeleteTitle" },
+    content: `<p>${game.i18n.format("SIMPLYSF2E.Presets.DeleteConfirm", { name: esc(preset.name) })}</p>`,
     rejectClose: false
   });
   if (!confirmed) return false;
   await deleteCustomPreset(preset.id);
-  ui.notifications.info(game.i18n.format("SIMPLYPF2E.Presets.Deleted", { name: preset.name }));
+  ui.notifications.info(game.i18n.format("SIMPLYSF2E.Presets.Deleted", { name: preset.name }));
   return true;
 }
 
@@ -90,10 +90,10 @@ export async function confirmDeletePreset(preset) {
  */
 export class ManagePresetsApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
-    id: "simplypf2e-manage-presets",
-    classes: ["simplypf2e"],
+    id: "simplysf2e-manage-presets",
+    classes: ["simplysf2e"],
     window: {
-      title: "SIMPLYPF2E.Presets.ManageTitle",
+      title: "SIMPLYSF2E.Presets.ManageTitle",
       icon: "fa-solid fa-bookmark",
       resizable: true
     },
@@ -135,7 +135,7 @@ export class ManagePresetsApp extends HandlebarsApplicationMixin(ApplicationV2) 
     const result = await promptPresetDialog();
     if (!result) return;
     const created = await addCustomPreset(result.name, result.prompt, result);
-    ui.notifications.info(game.i18n.format("SIMPLYPF2E.Presets.Saved", { name: created.name }));
+    ui.notifications.info(game.i18n.format("SIMPLYSF2E.Presets.Saved", { name: created.name }));
     await this.#refresh();
   }
 
@@ -143,13 +143,13 @@ export class ManagePresetsApp extends HandlebarsApplicationMixin(ApplicationV2) 
     const preset = findPreset(target.dataset.id);
     if (!preset?.custom) return;
     const result = await promptPresetDialog({
-      title: "SIMPLYPF2E.Presets.DialogEditTitle",
+      title: "SIMPLYSF2E.Presets.DialogEditTitle",
       ...preset
     });
     if (!result) return;
     const updated = await updateCustomPreset(preset.id, result);
     if (!updated) return;
-    ui.notifications.info(game.i18n.format("SIMPLYPF2E.Presets.Saved", { name: updated.name }));
+    ui.notifications.info(game.i18n.format("SIMPLYSF2E.Presets.Saved", { name: updated.name }));
     await this.#refresh();
   }
 
@@ -158,12 +158,12 @@ export class ManagePresetsApp extends HandlebarsApplicationMixin(ApplicationV2) 
     if (!preset?.custom) return;
     const result = await promptPresetDialog({
       ...preset,
-      title: "SIMPLYPF2E.Presets.DialogTitle",
-      name: game.i18n.format("SIMPLYPF2E.Presets.CopyName", { name: preset.name })
+      title: "SIMPLYSF2E.Presets.DialogTitle",
+      name: game.i18n.format("SIMPLYSF2E.Presets.CopyName", { name: preset.name })
     });
     if (!result) return;
     const created = await addCustomPreset(result.name, result.prompt, result);
-    ui.notifications.info(game.i18n.format("SIMPLYPF2E.Presets.Saved", { name: created.name }));
+    ui.notifications.info(game.i18n.format("SIMPLYSF2E.Presets.Saved", { name: created.name }));
     await this.#refresh();
   }
 
@@ -177,26 +177,26 @@ export class ManagePresetsApp extends HandlebarsApplicationMixin(ApplicationV2) 
     const preset = findPreset(target.dataset.id);
     if (!preset?.custom) return;
     const save = foundry.utils.saveDataToFile ?? globalThis.saveDataToFile;
-    save(exportPresets([preset.id]), "text/json", `simplypf2e-preset-${preset.id}.json`);
+    save(exportPresets([preset.id]), "text/json", `simplysf2e-preset-${preset.id}.json`);
   }
 
   static #onExportAll() {
     if (!getCustomPresets().length) return;
     const save = foundry.utils.saveDataToFile ?? globalThis.saveDataToFile;
-    save(exportPresets(), "text/json", "simplypf2e-presets.json");
+    save(exportPresets(), "text/json", "simplysf2e-presets.json");
   }
 
   static async #onImport() {
     const json = await DialogV2.prompt({
-      window: { title: "SIMPLYPF2E.Presets.ImportTitle", icon: "fa-solid fa-file-import" },
+      window: { title: "SIMPLYSF2E.Presets.ImportTitle", icon: "fa-solid fa-file-import" },
       position: { width: 480 },
       content: `
         <div class="form-group stacked">
-          <label>${game.i18n.localize("SIMPLYPF2E.Presets.ImportHint")}</label>
+          <label>${game.i18n.localize("SIMPLYSF2E.Presets.ImportHint")}</label>
           <textarea name="presetJson" rows="10" placeholder='[{ "name": "...", "prompt": "..." }]'></textarea>
         </div>`,
       ok: {
-        label: "SIMPLYPF2E.Presets.Import",
+        label: "SIMPLYSF2E.Presets.Import",
         icon: "fa-solid fa-file-import",
         callback: (_event, button) => button.form.elements.presetJson.value.trim()
       },
@@ -204,7 +204,7 @@ export class ManagePresetsApp extends HandlebarsApplicationMixin(ApplicationV2) 
     });
     if (!json) return;
     const { added, skipped } = await importPresets(json);
-    ui.notifications.info(game.i18n.format("SIMPLYPF2E.Presets.ImportDone", { added, skipped }));
+    ui.notifications.info(game.i18n.format("SIMPLYSF2E.Presets.ImportDone", { added, skipped }));
     await this.#refresh();
   }
 }

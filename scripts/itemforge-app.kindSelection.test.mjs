@@ -36,7 +36,7 @@ const requestConfig = {
   apiKeyIsBound: false
 };
 const mocks = {
-  MODULE_ID: "simplypf2e",
+  MODULE_ID: "simplysf2e",
   SpfApp: MockSpfApp,
   RUNED_ITEM_KINDS: new Set(["weapon", "armor"]),
   MIN_ITEM_LEVEL: 0,

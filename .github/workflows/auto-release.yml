@@ -1,0 +1,105 @@
+name: Auto Release
+
+# Every push to main gets its own release — no manual tag/version step ever
+# needed. Computes the next version by bumping the LAST dot-segment of the
+# latest existing tag (works whether that tag is "vX.Y.Z" or this repo's
+# "vX.Y.Z.W" hotfix style, e.g. v0.3.5.1 -> v0.3.5.2), then calls release.yml
+# as a reusable workflow with that version.
+#
+# IMPORTANT: this calls release.yml via `workflow_call` rather than pushing a
+# tag and letting release.yml's own `push: tags` trigger pick it up — a tag
+# pushed BY a workflow run using the default GITHUB_TOKEN does NOT fire other
+# workflows' event triggers (GitHub suppresses this to prevent trigger
+# loops), so a push-a-tag-and-hope approach silently never publishes
+# anything. The reusable-workflow call runs in the same run graph as this
+# workflow, so it isn't subject to that restriction. release.yml itself
+# creates the actual git tag (via `gh release create`) once it runs.
+#
+# Runs queued (concurrency, no cancel-in-progress) so two merges landing
+# close together compute versions one at a time instead of racing on the
+# same "latest tag" read.
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: auto-release-tag
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Check JavaScript syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -d '' files < <(find scripts -type f -name '*.mjs' -print0 | sort -z)
+          if (( ${#files[@]} == 0 )); then
+            echo "No .mjs files found under scripts/" >&2
+            exit 1
+          fi
+          for file in "${files[@]}"; do
+            node --check "$file"
+          done
+
+      - name: Run regression checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -d '' tests < <(find scripts -type f -name '*.test.mjs' -print0 | sort -z)
+          if (( ${#tests[@]} == 0 )); then
+            echo "No regression checks found under scripts/" >&2
+            exit 1
+          fi
+          for test_file in "${tests[@]}"; do
+            echo "Running $test_file"
+            node "$test_file"
+          done
+
+  compute-version:
+    needs: verify
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.next.outputs.version }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Compute next version
+        id: next
+        run: |
+          set -euo pipefail
+          git fetch --tags --force
+          # Ignore non-version tags so one malformed v* tag cannot poison the
+          # numeric last-segment bump below.
+          LATEST=$(git tag --list | sed -nE '/^v(0|[1-9][0-9]*)(\.(0|[1-9][0-9]*))+$/p' | sort -V | tail -1)
+          LATEST="${LATEST:-v0.0.0}"
+          BASE="${LATEST%.*}"
+          LAST="${LATEST##*.}"
+          NEW_TAG="${BASE}.$((LAST + 1))"
+          echo "Latest tag: $LATEST -> new tag: $NEW_TAG"
+          echo "version=${NEW_TAG#v}" >> "$GITHUB_OUTPUT"
+
+  release:
+    needs: compute-version
+    permissions:
+      contents: write
+    uses: ./.github/workflows/release.yml
+    with:
+      version: ${{ needs.compute-version.outputs.version }}

@@ -26,7 +26,7 @@ let receivedSignal;
 const tokens = [];
 const mocks = {
   SpfApp: class { _recordTokens(label, usage) { tokens.push({ label, usage }); } },
-  MODULE_ID: "simplypf2e",
+  MODULE_ID: "simplysf2e",
   getFeatCandidates: async (args) => { query = args; return candidates; },
   selectCreatureFeats: async ({ signal }) => {
     calls++;

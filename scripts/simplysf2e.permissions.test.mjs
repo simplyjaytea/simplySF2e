@@ -1,6 +1,6 @@
 // The visible Actors- and Items-directory entries are GM-only; the public
 // module API must enforce the same boundary from the browser console.
-// Run: node scripts/simplypf2e.permissions.test.mjs
+// Run: node scripts/simplysf2e.permissions.test.mjs
 import assert from "node:assert/strict";
 
 let renders = 0;
@@ -114,9 +114,9 @@ globalThis.Hooks = {
 const moduleRecord = {};
 const notices = { warn: [], error: [] };
 globalThis.game = {
-  system: { id: "pf2e" },
+  system: { id: "sf2e" },
   user: { id: "player", isGM: false },
-  modules: new Map([["simplypf2e", moduleRecord]]),
+  modules: new Map([["simplysf2e", moduleRecord]]),
   i18n: { localize: (key) => key }
 };
 globalThis.ui = { notifications: {
@@ -124,7 +124,7 @@ globalThis.ui = { notifications: {
   error: (message) => notices.error.push(message)
 } };
 
-await import("./simplypf2e.mjs");
+await import("./simplysf2e.mjs");
 await onceHooks.get("ready")();
 
 const actorDirectory = makeDirectory();
@@ -139,7 +139,7 @@ assert.equal(moduleRecord.api.open(), null, "a player cannot open the generator 
 assert.equal(moduleRecord.api.openItemForge(), null, "a player cannot open the item forge through the public API");
 assert.equal(renders, 0, "denied API calls must not instantiate or render an app");
 assert.equal(notices.warn.length, 2);
-assert.ok(notices.warn.every((message) => message === "SIMPLYPF2E.Errors.GMOnly"));
+assert.ok(notices.warn.every((message) => message === "SIMPLYSF2E.Errors.GMOnly"));
 
 game.user = { id: "gm", isGM: true };
 onHooks.get("renderActorDirectory")(null, actorDirectory);
@@ -150,8 +150,8 @@ assert.equal(itemDirectory.children.filter((child) => child.className === "spf-d
 assert.deepEqual(itemDirectory.children.map((child) => child.className),
   ["directory-header", "spf-directory-row", "directory-list"],
   "the item-forge row sits directly below native controls and above directory content");
-assert.match(actorDirectory.headerActions.children[0].innerHTML, /SIMPLYPF2E\.Generator\.OpenButton/);
-assert.match(itemDirectory.children[1].children[0].innerHTML, /SIMPLYPF2E\.ItemForge\.OpenButton/);
+assert.match(actorDirectory.headerActions.children[0].innerHTML, /SIMPLYSF2E\.Generator\.OpenButton/);
+assert.match(itemDirectory.children[1].children[0].innerHTML, /SIMPLYSF2E\.ItemForge\.OpenButton/);
 
 onHooks.get("renderActorDirectory")(null, actorDirectory);
 onHooks.get("renderItemDirectory")(null, itemDirectory);
@@ -171,9 +171,9 @@ game.system.id = "dnd5e";
 const wrongSystemItems = makeDirectory();
 onHooks.get("renderItemDirectory")(null, wrongSystemItems);
 assert.equal(wrongSystemItems.children.filter((child) => child.className === "spf-directory-row").length, 0,
-  "the item-forge button stays hidden outside PF2e");
-assert.equal(moduleRecord.api.open(), null, "the API also fails closed outside PF2e");
+  "the item-forge button stays hidden outside SF2e");
+assert.equal(moduleRecord.api.open(), null, "the API also fails closed outside SF2e");
 assert.equal(renders, 4);
-assert.deepEqual(notices.error, ["SIMPLYPF2E.Errors.WrongSystem"]);
+assert.deepEqual(notices.error, ["SIMPLYSF2E.Errors.WrongSystem"]);
 
-console.log("simplypf2e.permissions.test.mjs: public API permission assertions passed");
+console.log("simplysf2e.permissions.test.mjs: public API permission assertions passed");

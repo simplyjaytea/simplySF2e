@@ -111,7 +111,7 @@ export async function stageClassPaths(classData, classId, { context, config = CO
     const selector = singlePathTag(source);
     if (!selector) continue;
     if (!isEnabledClassFeature(document)) {
-      throw new Error(`simplypf2e | required class path source for "${source.name}" is not enabled`);
+      throw new Error(`simplysf2e | required class path source for "${source.name}" is not enabled`);
     }
 
     const candidates = await getClassFeatureCandidates(selector.tag);
@@ -120,7 +120,7 @@ export async function stageClassPaths(classData, classId, { context, config = CO
       if (await pathCandidateIsClosed(candidate, config)) closed.push(candidate);
     }
     if (!closed.length) {
-      throw new Error(`simplypf2e | no fully resolvable enabled class paths for "${source.name}"`);
+      throw new Error(`simplysf2e | no fully resolvable enabled class paths for "${source.name}"`);
     }
 
     // Replace only the runtime query with the exact candidates we just issued.
@@ -131,7 +131,7 @@ export async function stageClassPaths(classData, classId, { context, config = CO
     const chosenUuid = source.system.rules[selector.ruleIndex].selection;
     const selected = closed.find((candidate) => candidate.uuid === chosenUuid);
     if (!selected) {
-      throw new Error(`simplypf2e | class path "${source.name}" was not selected from the offered catalog`);
+      throw new Error(`simplysf2e | class path "${source.name}" was not selected from the offered catalog`);
     }
 
     // GrantItem's native `preselectChoices` reaches ChoiceSets on the path
@@ -146,7 +146,7 @@ export async function stageClassPaths(classData, classId, { context, config = CO
     const requiredFlags = selectedRules.filter((rule) => rule?.key === "ChoiceSet")
       .map((rule) => normalizeChoiceFlag(rule.flag));
     if (!requiredFlags.every((flag) => flag && Object.prototype.hasOwnProperty.call(preselect ?? {}, flag))) {
-      throw new Error(`simplypf2e | class path "${selected.name}" has an unanswered static choice`);
+      throw new Error(`simplysf2e | class path "${selected.name}" has an unanswered static choice`);
     }
     if (targetGrant && preselect) targetGrant.preselectChoices = preselect;
 
