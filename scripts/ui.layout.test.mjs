@@ -1,0 +1,474 @@
+// Static UI contract checks for the compact provider strip and responsive
+// controls. These complement live/browser QA by preventing the two templates
+// or the narrow-window overflow fix from silently drifting apart.
+// Run: node scripts/ui.layout.test.mjs
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+
+const root = new URL("../", import.meta.url);
+const read = (path) => readFile(new URL(path, root), "utf8");
+
+const [generator, itemForge, providerSetup, managePresets, progress, generatorApp, itemForgeApp, appBase, css, langJson] = await Promise.all([
+  read("templates/generator.hbs"),
+  read("templates/itemforge.hbs"),
+  read("templates/provider-setup.hbs"),
+  read("templates/manage-presets.hbs"),
+  read("templates/_progress.hbs"),
+  read("scripts/generator-app.mjs"),
+  read("scripts/itemforge-app.mjs"),
+  read("scripts/app-base.mjs"),
+  read("styles/simplypf2e.css"),
+  read("lang/en.json")
+]);
+
+for (const [name, template] of [
+  ["generator", generator],
+  ["item forge", itemForge]
+]) {
+  assert.match(template, /spf-provider-summary/, `${name} must identify the active provider`);
+  assert.match(template, /provider\.model/, `${name} must show the exact model identifier`);
+  assert.match(template, /providerReady/, `${name} must expose provider readiness at a glance`);
+  assert.match(template, /data-action="configureProvider"/, `${name} must offer direct provider setup`);
+  assert.match(template, /data-action="testProvider"/, `${name} must offer a connection check`);
+  assert.match(template, /name="activeConnection"/, `${name} must expose a one-click connection switch`);
+  assert.match(template, /connectionName/, `${name} must show the active connection name`);
+  assert.match(
+    template,
+    /spf-provider-state" role="img" aria-label=/,
+    `${name} provider readiness must not depend on color or a tooltip`
+  );
+  assert.match(template, /notification warning spf-provider-warning" role="status"/, `${name} provider warnings must expose status semantics`);
+  assert.match(template, /notification error" role="alert"/, `${name} generation failures must be announced as alerts`);
+}
+
+for (const [name, template] of [
+  ["generator", generator],
+  ["item forge", itemForge],
+  ["preset manager", managePresets],
+  ["provider setup", providerSetup]
+]) {
+  for (const match of template.matchAll(/<button\b([^>]*)>\s*<i\b[^>]*><\/i>\s*<\/button>/g)) {
+    assert.match(
+      match[1],
+      /\baria-label=/,
+      `${name} icon-only buttons must have an accessible name: ${match[0]}`
+    );
+  }
+}
+
+for (const [name, template] of [
+  ["generator", generator],
+  ["item forge", itemForge]
+]) {
+  const ids = new Set([...template.matchAll(/\bid="([^"]+)"/g)].map((match) => match[1]));
+  for (const match of template.matchAll(/<label\b[^>]*\bfor="([^"]+)"[^>]*>/g)) {
+    assert.ok(ids.has(match[1]), `${name} label must target an existing control: ${match[0]}`);
+  }
+  for (const match of template.matchAll(/<(?:input|select|textarea)\b([^>]*)\bname="[^"]+"[^>]*>/g)) {
+    if (/type="(?:checkbox|radio)"/.test(match[0])) continue;
+    assert.match(match[1], /\bid="[^"]+"/, `${name} named fields must have a label target: ${match[0]}`);
+  }
+}
+
+assert.match(providerSetup, /data-provider="\{\{this\.id\}\}"/, "provider setup must render preset choices");
+assert.match(providerSetup, /name="apiBaseUrl"/);
+assert.match(providerSetup, /name="model"/);
+assert.match(providerSetup, /name="connectionName"/, "provider setup must name the active connection");
+assert.match(providerSetup, /name="activeConnection"/, "provider setup must list saved connections");
+assert.match(providerSetup, /data-action="createConnection"/, "provider setup must create a named connection");
+assert.match(providerSetup, /data-action="deleteConnection"/, "provider setup must delete a named connection");
+assert.match(providerSetup, /type="password" name="apiKey"/, "the saved key must never be rendered back into the form");
+assert.match(providerSetup, /data-action="saveAndTest"/, "provider setup must offer direct save-and-test");
+assert.match(providerSetup, /data-action="loadModels"/, "provider setup must offer authorized model discovery");
+assert.match(providerSetup, /<datalist id="spf-provider-model-list">/, "discovered models must remain editable suggestions");
+assert.match(
+  generator,
+  /spf-mode-toggle" role="radiogroup" aria-label=/,
+  "generation modes must expose a named native radio group"
+);
+for (const legendKey of ["ConceptLegend", "NpcLegend", "EncounterLegend", "CharacterLegend"]) {
+  assert.match(
+    generator,
+    new RegExp(`SIMPLYPF2E\\.Generator\\.${legendKey}`),
+    `generation mode must expose its own fieldset legend: ${legendKey}`
+  );
+}
+for (const [mode, preview] of [
+  ["monster", "preview"],
+  ["npc", "preview"],
+  ["encounter", "encounterPreview"],
+  ["character", "pcPreview"]
+]) {
+  assert.match(
+    generatorApp,
+    mode === "monster" || mode === "npc"
+      ? new RegExp(`${preview}: \\["monster", "npc"\\]\\.includes\\(this\\.#input\\.mode\\) \\?`)
+      : new RegExp(`${preview}: this\\.#input\\.mode === "${mode}" \\?`),
+    `generator must hide other modes' stale previews while ${mode} mode is active`
+  );
+}
+assert.match(
+  generatorApp,
+  /#modePrompts = \{ monster: "", npc: "", encounter: "", character: "" \}/,
+  "each generator mode must keep an independent prompt draft"
+);
+assert.match(
+  generatorApp,
+  /this\.#modePrompts\[previousMode\] = renderedPrompt[\s\S]*?this\.#modePrompts\[mode\] \?\? ""/,
+  "mode changes must save the old draft and restore the new mode's draft"
+);
+
+for (const [name, source] of [
+  ["generator", generatorApp],
+  ["item forge", itemForgeApp]
+]) {
+  assert.match(
+    source,
+    /static async #onAuthorizeApiKey\([^)]*\)\s*\{\s*(?:\/\/[^\n]*\n\s*)+this\.#readForm\(\);/,
+    `${name} must preserve unsaved form input before authorization re-renders the app`
+  );
+}
+
+assert.match(
+  css,
+  /\.simplypf2e \.spf-row\s*\{[^}]*flex-wrap:\s*wrap;/s,
+  "control rows must wrap instead of overflowing a compact Foundry window"
+);
+assert.match(
+  css,
+  /@media \(max-width: 520px\)[\s\S]*?\.simplypf2e \.spf-row \.form-group\s*\{[^}]*flex-basis:\s*calc\(50%/s,
+  "narrow windows must use a readable two-column control layout"
+);
+assert.match(css, /\.simplypf2e \.spf-provider-model\s*\{[^}]*text-overflow:\s*ellipsis;/s);
+assert.match(css, /\.simplypf2e \.spf-provider-presets\s*\{[^}]*grid-template-columns:\s*repeat\(3/s);
+assert.match(css, /\.simplypf2e \.spf-actions\s*\{[^}]*flex-wrap:\s*wrap;/s,
+  "action rows must wrap when localized labels do not fit");
+assert.match(css, /\.simplypf2e \.spf-model-picker\s*\{[^}]*flex-wrap:\s*wrap;/s,
+  "the model input and discovery action must wrap in narrow windows");
+assert.match(css, /\.simplypf2e \.spf-connection-row\s*\{[^}]*flex-wrap:\s*wrap;/s,
+  "saved-connection controls must wrap in the provider setup dialog");
+assert.match(
+  css,
+  /\.simplypf2e \.spf-mode-toggle input\[type="radio"\]\s*\{[^}]*position:\s*absolute;[^}]*clip:/s,
+  "mode radios must stay keyboard-accessible while visually hidden"
+);
+assert.match(
+  css,
+  /\.simplypf2e \.spf-mode-toggle label:focus-within\s*\{[^}]*outline:/s,
+  "keyboard focus on a mode must remain visible on its compact tile"
+);
+assert.match(
+  progress,
+  /spf-progress-bar" role="progressbar"[^>]*aria-valuemin="0"[^>]*aria-valuemax="100"[^>]*aria-valuenow="\{\{progress\.percent\}\}"/,
+  "visual generation progress must expose its current value to assistive technology"
+);
+assert.match(
+  progress,
+  /role="status" aria-live="polite"/,
+  "indeterminate generation work must be announced without interrupting the user"
+);
+assert.match(progress, /\{\{#if progress\}\}[\s\S]*spf-progress-steps[\s\S]*\{\{#if busyMessage\}\}/,
+  "native character creation must keep the step card and put busyMessage on that chrome");
+assert.doesNotMatch(progress, /\{\{#if busyMessage\}\}[\s\S]*\{\{else if progress\}\}/,
+  "busyMessage must not swap the PC apply path to a spinner-only view");
+assert.doesNotMatch(progress, /\{\{\{busyMessage\}\}\}/, "status text must never be rendered as raw HTML");
+assert.match(generatorApp, /busyMessage: this\.#busyMessage/, "generator must expose its native creation status");
+assert.match(generatorApp, /_beginProgress\(\[\s*\["apply", applyLabel\]\s*\], \{\s*cancellable:\s*false\s*\}\)/,
+  "PC apply must stay on progress chrome and must not arm Cancel during Foundry writes");
+assert.match(generator, /created\.grounding\.rows/, "completion card must report the validated content grounding");
+assert.match(generator, /\{\{#if tokenReport\}\}[\s\S]*?Tokens\.Heading/, "completion card must retain the generation token report");
+assert.match(generatorApp, /const manifest = completionManifest\([\s\S]*?assertComplete\(manifest\);[\s\S]*?this\.#manifest = manifest;/,
+  "a single generation must retain its validated manifest until creation commits");
+assert.doesNotMatch(generatorApp, /this\.#created = \{ name: actor\.name, actorId: actor\.id, count: 1 \};\s*\}\s*finally/,
+  "generation failure handling must not fabricate a creation result from an unavailable actor");
+assert.match(generatorApp, /selectChoices: async \(groups\) =>[\s\S]*?selectCharacterChoices\([\s\S]*?this\._recordTokens\(label, usage\)/,
+  "character creation must use the grounded provider selector and record its usage");
+assert.match(generatorApp, /finally \{\s*this\.#busy = false;\s*this\.#busyMessage = null;\s*this\._finishRun\(\);/,
+  "character success and failure must clear both native and AI progress state");
+const messages = JSON.parse(langJson).SIMPLYPF2E;
+assert.match(messages.Progress.ApplyingCharacter, /PF2e choice dialogs/);
+assert.match(messages.Generator.ChoicesNeedInput, /could not be selected automatically/);
+
+// --- Shared visual system (UI overhaul) ---------------------------------
+// One primary action per window, shared icon-button/card/empty-state kit.
+
+for (const [name, template, createAction] of [
+  ["generator", generator, "createActor"],
+  ["item forge", itemForge, "createItem"]
+]) {
+  assert.match(
+    template,
+    /class="spf-primary" data-action="generate"/,
+    `${name} generate must be the styled primary action`
+  );
+  assert.match(
+    template,
+    new RegExp(`class="spf-primary" data-action="${createAction}"`),
+    `${name} create must be the styled primary action`
+  );
+  assert.match(template, /spf-empty/, `${name} must show an empty state before the first generation`);
+  assert.match(template, /spf-inputs spf-card/, `${name} inputs must use the shared card surface`);
+}
+
+assert.match(generatorApp, /showEmptyState:/, "generator must expose the empty-state flag");
+assert.match(itemForgeApp, /showEmptyState:/, "item forge must expose the empty-state flag");
+
+// Reading order: mode switch → prompt → prominent level → advanced → generate.
+{
+  const promptAt = generator.indexOf('id="spf-generator-prompt"');
+  const presetAt = generator.indexOf('id="spf-generator-preset"');
+  const modeAt = generator.indexOf("spf-mode-toggle");
+  const levelAt = generator.indexOf('id="spf-generator-level"');
+  const advancedAt = generator.indexOf('class="spf-advanced"');
+  assert.ok(modeAt >= 0 && promptAt >= 0 && presetAt >= 0 && levelAt >= 0 && advancedAt >= 0, "generator flow anchors must exist");
+  assert.ok(modeAt < promptAt, "the mode switch must precede the prompt");
+  assert.ok(promptAt < levelAt, "the prompt must precede the prominent level control");
+  assert.ok(levelAt < advancedAt, "the level must remain outside the advanced disclosure");
+  assert.ok(advancedAt < presetAt, "presets must live in the advanced disclosure");
+}
+
+assert.match(generator, /<details class="spf-advanced">[\s\S]*?<summary>\{\{localize "SIMPLYPF2E\.Generator\.Advanced"\}\}<\/summary>/,
+  "secondary controls must be in a native, keyboard-operable Advanced disclosure");
+assert.match(generator, /data-action="managePresets"[\s\S]*?SIMPLYPF2E\.Presets\.Manage/,
+  "the generator exposes one labeled Manage Presets control instead of edit icons");
+assert.match(generator, /<optgroup label="\{\{localize 'SIMPLYPF2E\.Presets\.StandardGroup'\}\}">/,
+  "built-in Remaster classes must render in a Standard optgroup");
+assert.match(generator, /\{\{#if customPresets\.length\}\}[\s\S]*?<optgroup label="\{\{localize 'SIMPLYPF2E\.Presets\.CustomGroup'\}\}">/,
+  "the Custom optgroup must be omitted when this world has no custom presets");
+assert.match(generator, /class="spf-hint spf-preset-trust" role="note"/,
+  "the picker must carry a readable complete-only flavor-guide trust line");
+assert.match(generator, /aria-describedby="spf-generator-preset-trust"/,
+  "the preset select must point at the trust line");
+assert.match(css, /\.simplypf2e \.spf-preset-trust\s*\{/, "preset trust line must have dedicated type, not a buried generic hint");
+assert.match(css, /\.simplypf2e \.spf-preset-controls\s*\{[^}]*align-items:\s*stretch/s,
+  "Manage Presets must stretch to the select height");
+assert.doesNotMatch(css, /\.simplypf2e \.spf-preset[\s\S]{0,800}(?:animation:|transition:)/,
+  "preset chrome must not add motion; prefers-reduced-motion stays a progress-only concern");
+assert.doesNotMatch(generator, /\{\{#each presets\}\}/,
+  "the picker must not flatten Standard and Custom into one option list");
+assert.doesNotMatch(generator, /data-action="savePreset"|data-action="duplicatePreset"|data-action="deletePreset"/,
+  "preset editing controls belong in Manage Presets, not the generation flow");
+assert.match(managePresets, /data-action="newPreset"/, "preset management must retain a direct creation path");
+
+assert.match(providerSetup, /class="spf-primary" data-action="saveAndTest"/,
+  "provider setup must mark Save & Test as the primary action");
+
+// Progress: the step list and the live-updated detail line form one status system.
+assert.match(progress, /spf-progress-steps/, "progress must list the pipeline steps");
+assert.match(progress, /spf-step-\{\{this\.state\}\}/, "each progress step must carry its state class");
+assert.match(progress, /spf-progress-\{\{progress\.phase\}\}/, "progress chrome must expose thinking vs writing");
+assert.match(progress, /<p class="spf-progress-detail">/,
+  "the streaming detail line must stay a direct-textContent target for app-base");
+assert.match(progress, /data-action="cancelGeneration"/, "in-flight generation must offer Cancel on the progress chrome");
+assert.match(progress, /SIMPLYPF2E\.Progress\.Cancel/);
+assert.doesNotMatch(progress, /\{\{\{progress\.detail\}\}\}/);
+assert.match(progress, /<p class="spf-progress-percent">\{\{progress\.percent\}\}%<\/p>/,
+  "the percent readout must stay a direct-textContent target for in-place stream ticks");
+assert.match(
+  css,
+  /\.simplypf2e \.spf-progress-fill\s*\{[^}]*transition:\s*width/s,
+  "the progress fill must CSS-transition width instead of snapping between step buckets"
+);
+assert.match(
+  css,
+  /\.simplypf2e \.spf-progress-fill::after\s*\{[^}]*animation:\s*spf-step-slide/s,
+  "within-step motion stays on the sheen while phase fill holds width"
+);
+assert.match(appBase, /_paintProgress\(\)/, "stream ticks must patch the existing fill instead of re-rendering the app");
+assert.match(appBase, /streamFraction\(\{ phase, prior:/, "intra-step fill is phase-based, not chars-vs-unknown-length");
+assert.match(appBase, /exact \? "SIMPLYPF2E\.Progress\.WritingExact"/, "live copy drops ≈ only for provider usage");
+assert.match(generatorApp, /call: focusLabel/, "multi-call spell steps sub-label the detail line without extra bar steps");
+assert.match(messages.Tokens.StepEstimated, /estimated/);
+assert.match(messages.Tokens.StepTotal, /\{total\} tokens/);
+assert.match(messages.Tokens.LastRun, /^last: \{total\} tokens$/);
+assert.match(messages.Tokens.LastRunEstimated, /≈ \{total\} tokens/, "estimated last-run copy must keep ≈");
+assert.match(messages.Errors.Cancelled, /cancelled/i);
+assert.match(css, /prefers-reduced-motion:\s*reduce/, "generating animation must yield to reduced motion");
+assert.match(css, /\.simplypf2e \.spf-progress-thinking/, "thinking must have a distinct phase treatment");
+assert.match(css, /\.simplypf2e \.spf-progress-writing/, "writing must have a distinct phase treatment");
+assert.match(css, /\.simplypf2e \.spf-last-run\s*\{/, "last-run cost must be a compact secondary near the provider strip");
+for (const [name, template] of [["generator", generator], ["item forge", itemForge]]) {
+  assert.match(template, /spf-last-run/, `${name} must show last-run token cost near the provider strip`);
+  assert.match(template, /lastRunCost/);
+}
+assert.match(generatorApp, /cancelGeneration: GeneratorApp\.#onCancelGeneration/);
+assert.match(itemForgeApp, /cancelGeneration: ItemForgeApp\.#onCancelGeneration/);
+assert.match(generatorApp, /lastRunCost: this\._formatLastRunCost\(\)/);
+assert.match(itemForgeApp, /lastRunCost: this\._formatLastRunCost\(\)/);
+const busyAt = generator.indexOf("{{#if busy}}{{> simplypf2e-progress}}");
+const errorAt = generator.indexOf('{{#if error}}');
+assert.ok(busyAt >= 0 && errorAt > busyAt, "generation errors must remain below progress, not covered by it");
+
+assert.match(css, /\.spf-directory-row\s*\{/, "item forge directory entry needs its own row");
+assert.match(css, /\.spf-directory-row \.spf-directory-button\s*\{[^}]*width:\s*100%/s,
+  "item forge directory row must span below native controls");
+for (const rule of ["spf-card", "spf-icon-btn", "spf-empty"]) {
+  assert.match(css, new RegExp(`\\.simplypf2e \\.${rule}\\s*\\{`), `shared kit class .${rule} must be defined`);
+}
+assert.match(css, /\.simplypf2e button\.spf-primary\s*\{/, "the primary button treatment must be defined");
+assert.match(
+  css,
+  /\.simplypf2e :is\(button, input, select, textarea\):focus-visible\s*\{[^}]*outline:/s,
+  "every control must have a visible focus state"
+);
+assert.match(css, /\.simplypf2e button:disabled\s*\{[^}]*opacity/s, "disabled controls must read as disabled");
+assert.match(css, /\.application\.simplypf2e\s*\{[^}]*min-width/s,
+  "resizable windows must clamp to a usable minimum size");
+
+// --- Cross-app uniformity (UI uniformity pass) --------------------------
+// The two apps share the same visual language while the forge gets a
+// purpose-built, accessible kind chooser.
+assert.match(itemForge, /class="spf-kind-choices" role="group" aria-label=/,
+  "item forge kind selector must be an accessible choice group");
+assert.match(itemForge, /class="spf-kind-choice \{\{#if this\.selected\}\}spf-kind-selected/,
+  "each kind tile must render selected state from context");
+assert.match(itemForge, /data-action="selectKind" data-kind="\{\{this\.value\}\}" aria-pressed="\{\{this\.selected\}\}"/,
+  "kind tiles must expose ApplicationV2 action and explicit pressed state");
+assert.match(itemForge, /this\.hint/,
+  "kind tiles must render localized concise hints from their context");
+assert.match(itemForgeApp, /selectKind: ItemForgeApp\.#onSelectKind/,
+  "kind selection must use an ApplicationV2 data-action callback");
+assert.match(itemForgeApp, /#input = \{ \.\.\.this\.#input, kind \}/,
+  "kind selection must preserve prompt, level, and rarity");
+for (const icon of ["fa-ring", "fa-sword", "fa-shield-halved"]) {
+  assert.match(itemForgeApp, new RegExp(`icon: "${icon}"`), `kind context must retain the ${icon} tile icon`);
+}
+assert.doesNotMatch(itemForgeApp, /querySelectorAll\('input\[name="kind"\]'/,
+  "kind selection must not rely on fragile per-render listeners");
+assert.match(css, /\.simplypf2e \.spf-kind-choices\s*\{[^}]*grid-template-columns:\s*repeat\(auto-fit,\s*minmax\(min\(/s,
+  "kind tiles must respond to the resizable app's intrinsic width without viewport media queries");
+
+// Dice: one control in the generate row for every mode. Encounter no longer
+// uses a separate action; Character is no longer gated off as creature-only.
+{
+  const rowAt = generator.indexOf('class="spf-generate-row"');
+  const fieldsetEnd = generator.indexOf("</fieldset>");
+  const row = generator.slice(rowAt, fieldsetEnd);
+  assert.ok(rowAt >= 0 && fieldsetEnd > rowAt, "the generate row must sit inside the input fieldset");
+  assert.match(row, /data-action="generate"/);
+  assert.match(row, /data-action="previewPlan"/);
+  assert.match(row, /class="spf-random-button" data-action="generateRandom"/);
+  assert.ok(row.indexOf('data-action="generate"') < row.indexOf('data-action="previewPlan"'));
+  assert.ok(row.indexOf('data-action="previewPlan"') < row.indexOf('data-action="generateRandom"'));
+  assert.doesNotMatch(generator, /data-action="generateRandomEncounter"/);
+  assert.doesNotMatch(generator, /Character mode gets no dice button/);
+  assert.doesNotMatch(generator, /creatureMode/);
+  assert.match(generator, /data-tooltip="\{\{localize randomTooltipKey\}\}"/);
+  assert.match(generator, /aria-label="\{\{localize randomTooltipKey\}\}"/);
+  assert.match(
+    generatorApp,
+    /randomTooltipKey: \{[\s\S]*?monster: "SIMPLYPF2E\.Generator\.RandomTooltip"[\s\S]*?npc: "SIMPLYPF2E\.Generator\.RandomNpcTooltip"[\s\S]*?encounter: "SIMPLYPF2E\.Generator\.RandomEncounterTooltip"[\s\S]*?character: "SIMPLYPF2E\.Generator\.RandomCharacterTooltip"/,
+    "each mode must expose its own dice tooltip key"
+  );
+  assert.doesNotMatch(generatorApp, /generateRandomEncounter/);
+  const lang = JSON.parse(langJson).SIMPLYPF2E.Generator;
+  assert.match(lang.RandomTooltip, /Random creature/);
+  assert.match(lang.RandomNpcTooltip, /Random NPC/);
+  assert.match(lang.RandomEncounterTooltip, /Random encounter/);
+  assert.match(lang.RandomCharacterTooltip, /Random character/);
+}
+
+// 2. The preset row renders in EVERY generator mode (one stable slot; the
+//    guidance feeds all three pipelines, Random ignores it like the shared
+//    dice button always has).
+{
+  const presetAt = generator.indexOf('class="form-group spf-preset stacked"');
+  assert.ok(presetAt >= 0, "the preset row must exist");
+  const before = generator.slice(Math.max(0, presetAt - 400), presetAt);
+  assert.ok(
+    !before.includes("{{#if singleMode}}"),
+    "the preset row must not be gated to Single mode"
+  );
+}
+assert.match(
+  generatorApp,
+  /preset: isRandom \? null : findPreset\(this\.#input\.preset\)\?\.prompt \?\? null,[\s\S]*?amount: this\.#input\.treasureAmount/,
+  "encounter members must honor the selected preset"
+);
+assert.match(
+  generatorApp,
+  /generatePCConcept\(\{[\s\S]*?preset: isRandom \? null : findPreset\(this\.#input\.preset\)\?\.prompt \?\? null/,
+  "character generation must honor the selected preset"
+);
+
+// 3. Source configuration stays visible: a labeled content readiness row in
+//    the generator and the forge's compact action beside Generate.
+for (const [name, template] of [["item forge", itemForge]]) {
+  const rowAt = template.indexOf('class="spf-generate-row"');
+  const gearAt = template.indexOf('data-action="configureSources"');
+  const fieldsetEnd = template.indexOf("</fieldset>");
+  assert.ok(rowAt >= 0 && gearAt >= 0 && fieldsetEnd >= 0, `${name} must have a generate row and a sources gear`);
+  assert.ok(rowAt < gearAt && gearAt < fieldsetEnd, `${name} sources gear must sit in the generate row`);
+}
+assert.match(generator, /SIMPLYPF2E\.Generator\.CompendiumContent/);
+assert.match(generator, /SIMPLYPF2E\.Generator\.SourcesReady/);
+assert.match(generator, /data-action="configureSources"/);
+for (const [name, source] of [
+  ["generator", generatorApp],
+  ["item forge", itemForgeApp]
+]) {
+  assert.match(source, /configureSources:/, `${name} must register the sources gear action`);
+  assert.match(source, /new SourcesConfigApp\(\)\.render\(true\)/, `${name} sources gear must open the shared sources app`);
+}
+
+// 4. One stable options order in every mode: Level → rarity control →
+//    Treasure → Spellcasting, with encounter extras appended AFTER the
+//    shared columns.
+{
+  const levelAt = generator.indexOf('id="spf-generator-level"');
+  const rarityCapAt = generator.indexOf('id="spf-generator-rarity-cap"');
+  const rarityAt = generator.indexOf('id="spf-generator-rarity"');
+  const treasureAt = generator.indexOf('id="spf-generator-treasure-amount"');
+  const spellsAt = generator.indexOf('name="allowSpellcasting"');
+  const partyAt = generator.indexOf('id="spf-generator-party-size"');
+  const threatAt = generator.indexOf('id="spf-generator-threat"');
+  for (const [label, at] of [["level", levelAt], ["rarity cap", rarityCapAt], ["rarity", rarityAt], ["treasure", treasureAt], ["spellcasting", spellsAt], ["party size", partyAt], ["threat", threatAt]]) {
+    assert.ok(at >= 0, `options anchor must exist: ${label}`);
+  }
+  assert.ok(levelAt < rarityCapAt && levelAt < rarityAt, "Level must lead the options row");
+  assert.ok(rarityAt < treasureAt && rarityCapAt < treasureAt, "the rarity control must precede Treasure amount");
+  assert.ok(treasureAt < spellsAt, "Treasure amount must precede Allow spellcasting");
+  assert.ok(spellsAt < partyAt && partyAt < threatAt, "encounter extras must append after the shared columns");
+}
+
+// 5. Window titles and prompt labels follow one pattern.
+{
+  const lang = JSON.parse(langJson).SIMPLYPF2E;
+  assert.match(lang.Generator.Title, /^SimplyPF2e — /, "generator title must follow the shared pattern");
+  assert.match(lang.ItemForge.Title, /^SimplyPF2e — /, "item forge title must follow the shared pattern");
+  for (const [key, value] of [
+    ["Generator.Prompt", lang.Generator.Prompt],
+    ["Generator.CharacterPrompt", lang.Generator.CharacterPrompt],
+    ["ItemForge.Prompt", lang.ItemForge.Prompt]
+  ]) {
+    assert.match(value, /^Describe the /, `${key} must follow the shared 'Describe the …' pattern`);
+  }
+  assert.match(lang.Generator.EncounterTheme, /^Describe the encounter theme \(optional\)$/,
+    "the encounter label must follow the shared pattern with the surprise hint moved out");
+  assert.match(lang.Generator.EncounterThemePlaceholder, /leave blank for a surprise/,
+    "the surprise hint must live in the encounter placeholder");
+}
+
+// Native-choice review is an escaped, explicitly limited snapshot, not an actor repair.
+const reviewCard = generator.slice(generator.indexOf("{{#if characterReview}}"));
+assert.match(reviewCard, /role="status"/);
+assert.match(reviewCard, /\{\{characterReview.actorName\}\}/);
+assert.match(reviewCard, /\{\{this.itemName\}\}/);
+assert.match(reviewCard, /\{\{localize this.prompt\}\}/);
+assert.doesNotMatch(reviewCard, /\{\{\{/);
+for (const action of ["openReviewedCharacter", "dismissCharacterReview"]) {
+  assert.match(reviewCard, new RegExp(`data-action="${action}"`));
+  assert.match(generatorApp, new RegExp(`${action}: GeneratorApp\\.#on`));
+}
+const reviewLanguage = JSON.parse(langJson).SIMPLYPF2E.Generator;
+assert.match(reviewLanguage.ReviewHint, /snapshot.*not a full character validation/);
+assert.match(reviewLanguage.ReviewHint, /conditional or intentionally disabled/);
+assert.match(reviewLanguage.ReviewIncomplete, /Not every item/);
+assert.match(generator, /pcPreview.skillPriorities/);
+assert.match(generator, /pcPreview.automaticSkills/);
+assert.match(reviewCard, /characterReview.skills.rows/);
+assert.match(reviewCard, /\{\{this.name\}\} — \{\{this.rank\}\}/);
+assert.match(reviewCard, /characterReview.skills.warnings/);
+assert.match(JSON.parse(langJson).SIMPLYPF2E.Skills.Snapshot, /not a full character validation/);
+
+console.log("UI layout contract checks passed.");
