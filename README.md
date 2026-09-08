@@ -10,7 +10,7 @@ Paste this manifest URL into **Foundry → Add-on Modules → Install Module**:
 https://github.com/simplyjaytea/simplySF2e/releases/latest/download/module.json
 ```
 
-Current published release: **v0.0.3** (Phase B1). A merge to `main` auto-releases the next tag.
+Current published release: **v0.0.4** (Alpha). A merge to `main` auto-releases the next tag.
 
 ## Status
 
@@ -21,7 +21,7 @@ What works as far as node tests allow (live Foundry QA is still outstanding):
 - Module loads against `sf2e` with pack defaults from `system.sf2e.json` 1.5.0 (`sf2e.classes`, `class-features`, `feats`, `spells`, `equipment`, `ancestries`, `heritages`, `backgrounds`, `bestiary-ability-glossary-srd`, `alien-core-bestiary`).
 - Six Standard presets: Envoy, Mystic, Operative, Solarian, Soldier, Witchwarper (flavor guides; scale-words only).
 - Generated loot/wealth assembles as **Credits/Credstick** and **UPB** from cited v14-dev templates. Gold-piece language converts at 1 gp = 10 credits (`DENOMINATION_RATES`). Starting-wealth math is the inherited Table 10-10 lump sum, **surfaced in credits**.
-- Generator/forge/provider chrome uses cited SF2e navy/cyan tokens (no system artwork).
+- Generator/forge/provider chrome uses cited SF2e navy/cyan tokens (no system artwork). Alpha polish deepens that HUD (panel ticks, mode/progress/button chrome, readable trust lines) on the module’s own Application windows only.
 - Monster / NPC / Encounter pipelines: fail-closed grounding against enabled `sf2e` packs.
 - Complete-only Character generation for **Envoy, Mystic, Solarian, Soldier, Witchwarper** — L1 class paths use cited `item:tag:` ChoiceSet + GrantItem bridges (`stageClassPaths`). Solarian has no L1 item:tag path (Solar Manifestations is GrantItem/Strike REs).
 

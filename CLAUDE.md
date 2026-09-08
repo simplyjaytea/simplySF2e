@@ -108,10 +108,10 @@ Inherited PF2e-era notes for the scaffolded builders. They are **not** SF2e sche
 
 ## Current state (2026-09-08)
 
-**Phase B2 alpha.** simplySF2e identity is `simplysf2e` / SimplySF2e, targeting system **`sf2e` 1.5.0**. Published GitHub release is **v0.0.3** (Phase B1); this PR auto-releases as **v0.0.4** on merge. Status is **Alpha**. Git is authoritative for branch state; [HANDOFF.md](HANDOFF.md) is the live baton.
+**Phase B2 alpha + Chrome S.** simplySF2e identity is `simplysf2e` / SimplySF2e, targeting system **`sf2e` 1.5.0**. Published GitHub release is **v0.0.4**. This PR auto-releases as **v0.0.5** on merge. Status is **Alpha**. Git is authoritative for branch state; [HANDOFF.md](HANDOFF.md) is the live baton.
 
 - **Pack defaults:** `DEFAULT_PACKS` uses real `sf2e.*` collection ids from `system.sf2e.json` 1.5.0 (`classes`, `class-features`, `feats`, `spells`, `equipment`, `ancestries`, `heritages`, `backgrounds`, `bestiary-ability-glossary-srd`, `alien-core-bestiary`).
-- **Chrome:** generator/forge/provider/preset windows use cited SF2e navy/cyan tokens (`src/styles/sf2e/index.scss`); no system artwork.
+- **Chrome:** generator/forge/provider/preset windows use cited SF2e navy/cyan/violet tokens (`src/styles/sf2e/index.scss`); Alpha HUD polish on module Application windows only (no system artwork).
 - **Standard presets:** the six published SF2e classes only (envoy, mystic, operative, solarian, soldier, witchwarper). Flavor guides; scale-words only.
 - **Currency:** generated loot/wealth prefers **credits** (Credstick) and **UPB** via verbatim copies of v14-dev `credstick.json` / `upb.json`. Gold-piece AI language converts through cited `DENOMINATION_RATES` (1 gp = 10 credits). Starting-wealth math is surfaced in credits via `gpToCredits` / `pcStartingWealthCredits`. Classic `pf2e.equipment-srd` coin UUIDs are not the happy path and are not invented under `sf2e.equipment`.
 - **Tables:** `tables.mjs` numbers are unchanged inherited PF2e-compatible benchmarks. Header/README/HANDOFF state they are **not** Starfinder-authored.
