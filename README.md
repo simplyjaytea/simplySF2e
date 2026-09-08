@@ -14,7 +14,7 @@ Current published release: **v0.0.1** (identity rebrand). This branch targets **
 
 ## Status
 
-Phase A working foundations — **not play-ready**. Identity is `simplysf2e` targeting system `sf2e` **1.5.0** (Foundry 14.361+ / verified 14.367). Pack defaults and Standard presets are retargeted to Starfinder 2e; GM Core tables, rune/wealth math, and complete-only PC staging remain PF2e-era until later phases. Complete one-click Character generation is not offered for SF2e classes yet.
+Phase A working foundations — **not play-ready**. Identity is `simplysf2e` targeting system `sf2e` **1.5.0** (Foundry 14.361+ / verified 14.367). Pack defaults and Standard presets are retargeted to Starfinder 2e; generator chrome uses an SF2e-inspired navy/cyan theme (no system sheet art). GM Core tables, rune/wealth math, and complete-only PC staging remain PF2e-era until later phases. Complete one-click Character generation is not offered for SF2e classes yet.
 
 ## Links
 
