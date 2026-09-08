@@ -18,9 +18,10 @@
 // REAL function.
 
 import assert from "node:assert/strict";
-import { pcStartingWealthGp } from "./pc-builder.mjs";
+import { pcStartingWealthGp, pcStartingWealthCredits } from "./pc-builder.mjs";
 import { PC_WEALTH_BY_LEVEL } from "./pc-tables.mjs";
 import * as T from "./tables.mjs";
+import { gpToCredits } from "./currency.mjs";
 
 /* ---- The verified table itself ---------------------------------------- */
 
@@ -77,5 +78,10 @@ for (const lv of [1, 2, 5, 10, 20]) {
     `level-${lv} PC wealth (${pcStartingWealthGp(lv)}) must stay below the PARTY treasure total (${party}) — pcStartingWealthGp has regressed to reading TREASURE_BY_LEVEL`
   );
 }
+
+assert.equal(pcStartingWealthCredits(1), 150, "level-1 standard wealth is 150 credits (15 gp × 10)");
+assert.equal(pcStartingWealthCredits(1, "generous"), gpToCredits(23));
+assert.equal(pcStartingWealthCredits(5), 2700);
+assert.equal(pcStartingWealthCredits(20), 1_120_000);
 
 console.log("pc-builder starting-wealth regression check: all assertions passed");

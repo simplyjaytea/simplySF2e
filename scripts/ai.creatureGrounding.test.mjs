@@ -76,10 +76,8 @@ try {
     candidates: equipmentCandidates
   });
   assert.deepEqual(namedEquipment.equipment, [
-    { name: "Thieves' Tools", candidate: { packId: "pf2e.equipment-srd", _id: "tools" }, quantity: 1, value: 0 },
-    { name: "+1 Striking Repeating Heavy Crossbow",
-      candidate: { packId: "pf2e.equipment-srd", _id: "crossbow" }, quantity: 1, value: 0 }
-  ], "exact name-in-id picks and allowed runed prefixes retain issued sources; invented bases still drop");
+    { name: "Thieves' Tools", candidate: { packId: "pf2e.equipment-srd", _id: "tools" }, quantity: 1, value: 0 }
+  ], "exact catalog names resolve; uncited rune prefixes and invented bases drop");
 
   assert.equal(requests.length, 4, "valid selector payloads must not trigger the bounded retry");
   assert.ok(requests.every((request) => request.temperature === 0 && request.max_tokens === 1536));

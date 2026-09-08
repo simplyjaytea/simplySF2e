@@ -51,6 +51,13 @@ const UPB_LONG_RE = /^\s*(\d+)?\s*universal\s+polymer\s+bases?\s*$/i;
 /** 1 credit or 1 UPB = 1 sp = 0.1 gp (`DENOMINATION_RATES`). */
 export const CREDIT_UNIT_GP = DENOMINATION_RATES.credits / DENOMINATION_RATES.gp;
 
+/** Convert a gp-equivalent amount to credits via cited `DENOMINATION_RATES`. */
+export function gpToCredits(gp) {
+  const n = Number(gp);
+  if (!Number.isFinite(n) || n <= 0) return 0;
+  return Math.max(Math.ceil((n * DENOMINATION_RATES.gp) / DENOMINATION_RATES.credits), 1);
+}
+
 export function toCredits(sourceUnit, count) {
   const n = Math.max(Math.round(Number(count) || 0), 0);
   if (n <= 0) return 0;

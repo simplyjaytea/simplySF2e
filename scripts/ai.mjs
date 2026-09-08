@@ -2,7 +2,7 @@ import {
   SETTINGS, chatCompletionsUrl, getSetting, getProviderRequestConfig, isOfficialDeepSeekEndpoint,
   isOfficialOpenAIEndpoint, modelsUrl, resolveProviderModel
 } from "./settings.mjs";
-import { hasRunes, parseRunes, propertyRuneRestrictionNote } from "./runes.mjs";
+import { propertyRuneRestrictionNote } from "./runes.mjs";
 import { AI_TASK, completionOptionsFor } from "./ai-task-profiles.mjs";
 import { estimateTokens, normalizeUsage } from "./tokens.mjs";
 import { encodeFeatCandidateSlots, resolveEncodedFeatPicks } from "./ai-candidate-format.mjs";
@@ -72,14 +72,13 @@ export async function listProviderModels() {
   }
 }
 
-/* The grounding passes below tell the model to copy names EXACTLY from a
- * candidate list, and those lists hold plain BASE items only — no runed
- * variants exist as their own compendium documents. Without this carve-out the
- * "copy exactly" rule strips the "+1 striking" prefix the earlier draft asked
- * for, silently undoing every runed weapon/armor the concept called for.
- * builder.mjs's parseRunes reads the prefix back off and applies real rune
- * data, and capRunes clamps the tier to what the level actually allows. */
-const RUNE_PREFIX_NOTE = `ONE allowed deviation: a weapon or armor from the list may keep a fundamental-rune prefix in front of its exact listed name when the first draft asked for one — the base name after the prefix must still be copied exactly. Never invent any other variation on a listed name.`;
+/* Graded SF2e items are published under their catalog names (`Laser Pistol`,
+ * `Stun Stick (Advanced)`, `Climbing Kit (Commercial)`). Fundamental-rune
+ * prefixes are a PF2e-era happy path. v14-dev Migration942EquipmentGrade maps
+ * potency/striking onto `system.grade` and zeros runes; sf2e.equipment has no
+ * Weapon Potency / Striking / Resilient documents. Fail closed: copy listed
+ * names exactly, including a grade word when the catalog already has one. */
+const GRADE_NAME_NOTE = `Copy each listed name EXACTLY. When a published name already includes a grade (Commercial, Tactical, Advanced, Superior, Elite, Ultimate, Paragon), keep that grade word. Do not invent a grade suffix, and do not add a fundamental-rune prefix such as "+1 striking".`;
 
 /* How the GM's Treasure amount setting (Stingy/Standard/Generous — see
  * TREASURE_AMOUNT_MULTIPLIER in tables.mjs) should bend the item COUNT and
@@ -102,7 +101,7 @@ export function lootGuide(amount, subject = "creature") {
     ? "a DISTINCT set of items bought with MOST of their starting wealth (not everyday adventuring gear, which is handled separately — spend the bulk of the budget on worthwhile gear, keeping only a modest credit reserve rather than leaving most of it unspent)"
     : "3-8 items dropped on defeat";
   const hoardTrigger = subject === "character" ? "the character's backstory" : "the creature's description";
-  return `${amountNote} ${origin}; "value" is the approximate price of ONE unit in gp-equivalent (10 credits = 1 gp; used when an item has no compendium match). Currency: use "Credits" or "Credstick" with quantity = the number of credits (e.g. {"name": "Credits", "quantity": 350, "value": 0.1}), scaled to level and rarity. For crafting or raw-materials hauls, "UPB" is also currency at the same per-unit value. Do not write gold, silver, or platinum pieces. Spell scrolls: "Scroll of {exact Starfinder 2e spell name} (Rank {n})" with a real non-cantrip spell and a rank it exists at, castable at the ${subject}'s level (rank <= ceil((level+2)/2)). Other items MUST be EXACT published item names ${REMASTER_NOTE}, including the grade in parentheses where one exists; NO invented items. Prefer a smaller set of DISTINCT items over padding the count — never repeat the same item to hit a number. Include 1-2 currency entries, 1-2 consumables, and 1-2 treasure or magic items of the ${subject}'s level or lower (adjusted per the amount guidance above). EXCEPTION: if ${hoardTrigger} or the GM's request explicitly calls for abundant loot (a hoard, riches, a wealthy creature, "lots of loot", etc.), scale UP to roughly 12-20 items with proportionally more currency, treasure, and magic-item entries regardless of the amount setting; otherwise stay within the guidance above.`;
+  return `${amountNote} ${origin}; "value" is the approximate price of ONE unit in gp-equivalent (10 credits = 1 gp; used when an item has no compendium match). Currency: use "Credits" or "Credstick" with quantity = the number of credits (e.g. {"name": "Credits", "quantity": 350, "value": 0.1}), scaled to level and rarity. For crafting or raw-materials hauls, "UPB" is also currency at the same per-unit value. Do not write gold, silver, or platinum pieces. Spell scrolls: "Scroll of {exact Starfinder 2e spell name} (Rank {n})" with a real non-cantrip spell and a rank it exists at, castable at the ${subject}'s level (rank <= ceil((level+2)/2)). Other items MUST be EXACT published item names ${REMASTER_NOTE}, including a grade word when the published name already has one; NO invented items, invented grade suffixes, or fundamental-rune prefixes. Prefer a smaller set of DISTINCT items over padding the count — never repeat the same item to hit a number. Include 1-2 currency entries, 1-2 consumables, and 1-2 treasure or magic items of the ${subject}'s level or lower (adjusted per the amount guidance above). EXCEPTION: if ${hoardTrigger} or the GM's request explicitly calls for abundant loot (a hoard, riches, a wealthy creature, "lots of loot", etc.), scale UP to roughly 12-20 items with proportionally more currency, treasure, and magic-item entries regardless of the amount setting; otherwise stay within the guidance above.`;
 }
 
 /**
@@ -163,7 +162,7 @@ JSON schema (all keys required unless marked optional):
   },
   "focusSpells": string[], // EXACT published Starfinder 2e focus spell names (they carry the "focus" trait), 1-3 names, ONLY when "spellcasting" is also set — [] otherwise; first draft, grounded against the real compendium afterward
   "feats": string[], // EXACT published Starfinder 2e feat names for creatures with class-like training (soldiers, operatives); [] for beasts, mindless creatures, and anything untrained; max 3. IMPORTANT: when a feat grants a distinct attack or Strike-based action, ALSO add a strike named after the feat to "strikes" — same weapon and damageType as the base strike it modifies, damageScale one step higher (extreme stays extreme), plus the feat's traits — and keep the feat in "feats" too.
-  "equipment": [ { "name": string, "quantity": number, "value": number } ], // 3-8 logical carried items with EXACT Starfinder 2e item names (${REMASTER_NOTE}), drawn from: the weapons it wields; sensible consumables; and everyday adventuring gear it would plausibly carry. NO coins or currency here — those belong only in "loot". "value" is the approximate gp-equivalent price of ONE unit (10 credits = 1 gp), used only as a fallback when the name finds no compendium match. Include armor only when the creature would plausibly wear it (skip beasts, oozes, mindless and naturally-armored creatures), and pick armor that roughly fits its AC and level. At level 2+, consider ONE magic item appropriate to its level; fundamental-rune gear keeps a rune prefix in front of an exact published base name. [] for beasts and mindless creatures.
+  "equipment": [ { "name": string, "quantity": number, "value": number } ], // 3-8 logical carried items with EXACT Starfinder 2e item names (${REMASTER_NOTE}), drawn from: the weapons it wields; sensible consumables; and everyday adventuring gear it would plausibly carry. NO coins or currency here — those belong only in "loot". "value" is the approximate gp-equivalent price of ONE unit (10 credits = 1 gp), used only as a fallback when the name finds no compendium match. Include armor only when the creature would plausibly wear it (skip beasts, oozes, mindless and naturally-armored creatures), and pick armor that roughly fits its AC and level. At level 2+, consider ONE magic item appropriate to its level; copy a published graded name when the catalog lists one. Do not invent fundamental-rune prefixes. [] for beasts and mindless creatures.
   "loot": [ { "name": string, "quantity": number, "value": number } ], // ${lootGuide(amount)}
   "resistances": [ { "type": string } ], // damage types only, values computed from tables; [] if none
   "weaknesses": [ { "type": string } ],
@@ -327,7 +326,7 @@ JSON schema (loot key required):
   "loot": [ { "name": string, "quantity": number, "value": number } ]
 }
 
-${lootGuide(amount, "character")} Favor items that reinforce the character's class and concept (a caster's backup scroll, a martial's signature weapon, skill-focused utility gear) over generic treasure — this represents deliberate purchases, not random battlefield loot. When the character's level affords it, spend on runed weapons/armor written with a fundamental-rune prefix in front of an exact published base name (roughly +1 potency from level 2, striking/resilient from level 4, +2 potency from level 10) — a real, level-appropriate upgrade is a better buy than a pile of consumables.`;
+${lootGuide(amount, "character")} Favor items that reinforce the character's class and concept (a caster's backup scroll, a martial's signature weapon, skill-focused utility gear) over generic treasure — this represents deliberate purchases, not random battlefield loot. When the character's level affords it, spend on a published graded item whose catalog name already includes the grade (Commercial, Tactical, Advanced, …) rather than inventing a rune prefix or an unpublished grade suffix.`;
 
   const user = [
     `Character: ${concept.name} (level ${concept.level})`,
@@ -412,7 +411,7 @@ JSON schema (all keys required unless marked optional):
     "spells": [ { "name": string, "rank": number } ] // rank 0 = cantrip; real Starfinder 2e spell names as a first draft (${REMASTER_NOTE}; the final list is chosen from the compendium in a second step)
   }, // null if the class you chose isn't a caster, or spellcasting is disallowed
   "focusSpells": string[], // EXACT published Starfinder 2e focus spell names (they carry the "focus" trait) granted by this character's class/subclass, 1-3 names, [] if none apply — first draft, grounded against the real compendium afterward. Independent of "spellcasting": include focus spells when the class grants them, even if the class has no spell slots
-  "equipment": [ { "name": string, "quantity": number, "value": number } ] // 4-8 first-draft carried items with EXACT Starfinder 2e item names (${REMASTER_NOTE}) fitting the class, level and concept — include starting armor appropriate to the class's armor proficiency when they would wear armor, a weapon, useful mundane gear, AND at least 1-2 level-appropriate magic items (a potion or elixir; for a spellcaster, a spell scroll of a real Starfinder 2e spell in their tradition they'd want as backup) when the character's level plausibly affords them; lightly-armored casters may deliberately carry no armor. When the level affords it, write the main weapon and armor with a fundamental-rune prefix in front of an exact published base name (roughly +1 potency from level 2, striking/resilient from level 4, +2 potency from level 10). Also include skill-supporting gear matching the character's likely trained skills, plus general utility items. Inspiration only, the final picks are chosen from the compendium in a second step
+  "equipment": [ { "name": string, "quantity": number, "value": number } ] // 4-8 first-draft carried items with EXACT Starfinder 2e item names (${REMASTER_NOTE}) fitting the class, level and concept — include starting armor appropriate to the class's armor proficiency when they would wear armor, a weapon, useful mundane gear, AND at least 1-2 level-appropriate magic items (a potion or elixir; for a spellcaster, a spell scroll of a real Starfinder 2e spell in their tradition they'd want as backup) when the character's level plausibly affords them; lightly-armored casters may deliberately carry no armor. When the level affords it, pick a published graded item whose catalog name already includes the grade; do not invent a rune prefix or unpublished grade suffix. Also include skill-supporting gear matching the character's likely trained skills, plus general utility items. Inspiration only, the final picks are chosen from the compendium in a second step
 }
 
 Design guidance:
@@ -517,17 +516,12 @@ function candidateForPick(candidates, pick) {
   return byName.get(name) ?? null;
 }
 
-/** Decode an equipment/loot pick while preserving the one model-authored
- * name variation the catalog contract allows: a fundamental-rune prefix on
- * an exact offered base item. */
+/** Decode an equipment/loot pick. Catalog names are copied exactly;
+ * unpublished rune prefixes are not a valid match. */
 function physicalCandidateForPick(candidates, pick) {
   const direct = candidateForPick(candidates, pick);
   if (direct) return { candidate: direct, name: direct.name };
-  const selectedName = String(pick?.id ?? pick?.name ?? "").trim();
-  const runes = parseRunes(selectedName);
-  if (!hasRunes(runes)) return null;
-  const candidate = candidateForPick(candidates, { name: runes.base });
-  return candidate ? { candidate, name: selectedName } : null;
+  return null;
 }
 
 /**
@@ -682,7 +676,7 @@ export async function selectEquipment({ concept, candidates, onProgress, signal 
 
   const system = `${GM_CONCEPT_PRIORITY}\n\nYou are selecting carried equipment for a Starfinder 2e creature. Choose ONLY from the provided list, copying each name EXACTLY as written. Respond with a single JSON object and nothing else:
 { "equipment": [ { "id": string, "quantity": number } ] }
-${RUNE_PREFIX_NOTE}
+${GRADE_NAME_NOTE}
 Pick the logical items the creature would carry: the weapons it wields (match its strikes), sensible consumables, and everyday adventuring gear it would plausibly use. Include armor only when the creature would plausibly wear it (skip beasts, oozes, mindless and naturally-armored creatures), and pick armor that roughly fits its role and level. Pick each DISTINCT item at most once — a smaller focused set is fine; never repeat an item or add filler to reach a count. NO coins or currency. "quantity" is usually 1; use 2-5 only for ammunition and stackable consumables.`;
 
   const user = [
@@ -743,7 +737,7 @@ export async function selectLoot({ concept, candidates, scrollCandidates = [], o
 
   const system = `${GM_CONCEPT_PRIORITY}\n\nYou are selecting dropped loot for a Starfinder 2e creature. Choose ONLY IDs from the provided lists. Coins are module-built and retain their first-draft quantities automatically. A scroll must use an offered spell ID and a rank no lower than that spell's base rank. Respond with a single JSON object and nothing else:
 { "loot": [ { "id": string, "quantity": number }, { "scrollSpellId": string, "rank": number, "quantity": number } ] }
-${RUNE_PREFIX_NOTE}
+${GRADE_NAME_NOTE}
 Recreate the first-draft haul: replace each non-coin entry with the closest valid item or scroll spell. Keep the draft's quantities. Drop an entry only when nothing available comes close.`;
 
   const user = [

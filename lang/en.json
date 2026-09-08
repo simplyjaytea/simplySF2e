@@ -166,7 +166,7 @@
       "None": "— No preset —",
       "StandardGroup": "Standard classes",
       "CustomGroup": "Custom presets",
-      "FlavorGuide": "Standard class presets are flavor guides only. Complete one-click Character generation is not yet available for Starfinder 2e classes — presets do not unlock that path.",
+      "FlavorGuide": "Standard class presets are flavor guides. Complete-only Character generation is available for Envoy, Mystic, Solarian, Soldier, and Witchwarper. Operative stays locked until its specialization skill-feat ChoiceSet can be staged without inventing a path.",
       "Envoy": "Envoy",
       "Mystic": "Mystic",
       "Operative": "Operative",

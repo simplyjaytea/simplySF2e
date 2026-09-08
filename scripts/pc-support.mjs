@@ -2,14 +2,27 @@ import { slugify } from "./text.mjs";
 
 /**
  * Classes whose native feature/casting path has an end-to-end one-click plan.
- * Empty until an SF2e class is proven to share the existing staging path
- * without inventing class-feature schemas. All six published classes
- * (envoy, mystic, operative, solarian, soldier, witchwarper) grant a
- * mandatory level-1 path (Leadership Style, Connection, Specialization,
- * Solar Manifestations, Fighting Style, Paradox) — none are Fighter-shaped.
- * Fail closed: better empty than claiming PF2e Fighter/Rogue/Investigator.
+ *
+ * Cited v14-dev L1 bridges use the same ChoiceSet
+ * `choices.filter: ["item:tag:<tag>"]` + GrantItem
+ * `{item|flags.system.rulesSelections.<flag>}` shape that `stageClassPaths`
+ * already stages. Class `system.items` is a dict of `{img, level, name, uuid}`
+ * grants to `Compendium.sf2e.class-features.Item.*` (sample:
+ * `packs/sf2e/classes/soldier.json` → Soldier Fighting Style →
+ * `packs/sf2e/class-features/soldier/soldier-fighting-style.json`
+ * filter `item:tag:soldier-fighting-style`). Same shape:
+ * envoy-leadership-style, mystic-connection, witchwarper-paradox,
+ * witchwarper-anchor. Solarian Solar Manifestations is GrantItem/Strike REs,
+ * not an item:tag ChoiceSet — nothing to stage.
+ *
+ * Operative stays locked: every specialization option carries a non-static
+ * `item:category:skill` + `item:level:1` ChoiceSet (and a templated GrantItem).
+ * Empty is better than unlocking a path that throws at create or invents a
+ * skill-feat resolver.
  */
-export const COMPLETE_PC_CLASS_SLUGS = new Set();
+export const COMPLETE_PC_CLASS_SLUGS = new Set([
+  "envoy", "mystic", "solarian", "soldier", "witchwarper"
+]);
 
 export function supportedClassCandidates(candidates) {
   return (Array.isArray(candidates) ? candidates : []).filter((candidate) =>
