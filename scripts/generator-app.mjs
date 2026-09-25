@@ -451,6 +451,7 @@ export class GeneratorApp extends SpfApp {
    */
   _onRender(context, options) {
     super._onRender?.(context, options);
+    this.element?.classList?.toggle("spf-busy", Boolean(context?.busy));
     this.element.querySelector('select[name="preset"]')?.addEventListener("change", () => {
       this.#readForm();
       // Restore the preset's saved generator defaults into the live form —

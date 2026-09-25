@@ -5,27 +5,36 @@
    - .spf-card        bordered surface for sections/previews/progress
    - .spf-icon-btn    square icon-only button
    - .spf-primary     the ONE main action of a window (generate/forge/create)
+   - .spf-secondary   quiet companion action (preview plan / cancel)
    - .spf-hint        secondary explanatory text
    - .spf-empty       dashed empty-state panel
-   Palette is inspired by SF2e system chrome (foundryvtt/pf2e v14-dev
-   src/styles/sf2e/index.scss): primary #1d3c53, trait fill #2d4f6a, trait
-   border #9edae6. No system sheet art or logos are loaded.
+   Palette cited from SF2e system chrome (foundryvtt/pf2e v14-dev
+   src/styles/sf2e/index.scss): $primary-color #1d3c53, $secondary-color
+   #40256f, --color-bg-trait #2d4f6a, --color-border-trait #9edae6,
+   --color-proficiency-master #3a7b59, --color-proficiency-legendary
+   #98503d. No system sheet art or logos are loaded.
    ========================================================================== */
 
 .simplysf2e {
-  /* Brand (SF2e navy / cyan — cited from src/styles/sf2e/index.scss) */
+  /* Brand (SF2e navy / cyan / violet — cited from src/styles/sf2e/index.scss) */
   --spf-brand-dark: #1d3c53;
   --spf-brand-mid: #2d4f6a;
   --spf-brand-accent: #9edae6;
-  --spf-brand-soft: rgba(158, 218, 230, 0.14);
+  --spf-brand-secondary: #40256f;
+  --spf-brand-soft: color-mix(in srgb, var(--spf-brand-accent) 16%, transparent);
   --spf-trait-border: #9edae6;
   --spf-success: #3a7b59;
+  --spf-warning: #98503d;
   --spf-danger: #b0413e;
-  /* Foundry-derived, tinted toward deep-space charcoal */
-  --spf-border: color-mix(in srgb, var(--spf-brand-accent) 32%, #1a2430);
+  --spf-text: #e8f6fa;
+  --spf-text-muted: color-mix(in srgb, var(--spf-brand-accent) 38%, #d5e0e6);
+  --spf-border: color-mix(in srgb, var(--spf-brand-accent) 40%, #121c26);
   --spf-focus: var(--spf-brand-accent);
-  --spf-surface: rgba(10, 18, 28, 0.42);
-  --spf-surface-raised: rgba(29, 60, 83, 0.32);
+  --spf-surface: color-mix(in srgb, var(--spf-brand-dark) 42%, rgba(8, 16, 26, 0.72));
+  --spf-surface-raised: color-mix(in srgb, var(--spf-brand-mid) 38%, rgba(8, 16, 26, 0.78));
+  --spf-glow: 0 0 10px color-mix(in srgb, var(--spf-brand-accent) 42%, transparent);
+  --spf-inset-glow: inset 0 1px 0 color-mix(in srgb, var(--spf-brand-accent) 32%, transparent);
+  --spf-tick: 0.5rem;
   /* Spacing scale */
   --spf-space-xs: 0.25rem;
   --spf-space-sm: 0.35rem;
@@ -36,6 +45,7 @@
   --spf-text-sm: 0.85em;
   --spf-text-xs: 0.72em;
   --spf-font-display: var(--font-sans, "Signika", sans-serif);
+  --spf-font-mono: var(--font-monospace, ui-monospace, "Cascadia Code", monospace);
   --spf-radius: 2px;
   --spf-radius-sm: 1px;
   --spf-icon-btn: 1.8rem;
@@ -49,7 +59,38 @@
   min-width: 340px;
   min-height: 220px;
   max-width: 100vw;
-  box-shadow: inset 0 1px 0 color-mix(in srgb, #9edae6 50%, transparent);
+  border: 1px solid var(--spf-brand-accent, #9edae6);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, #1d3c53 78%, #000),
+    0 0 16px color-mix(in srgb, #9edae6 16%, transparent),
+    inset 0 1px 0 color-mix(in srgb, #9edae6 55%, transparent);
+}
+
+.application.simplysf2e .window-header {
+  background: linear-gradient(
+    90deg,
+    #1d3c53,
+    color-mix(in srgb, #40256f 28%, #2d4f6a)
+  );
+  border-bottom: 1px solid #9edae6;
+  color: #e8f6fa;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.application.simplysf2e .window-header .window-title {
+  font-weight: 700;
+}
+
+.application.simplysf2e .window-content {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, #1d3c53 38%, transparent), transparent 5rem),
+    #0c1620;
+  color: #e8f6fa;
+}
+
+.application.simplysf2e.spf-busy .window-header {
+  box-shadow: 0 0 12px color-mix(in srgb, #9edae6 32%, transparent);
 }
 
 /* --------------------------------------------------------------------------
@@ -58,9 +99,30 @@
 .simplysf2e .spf-card {
   border: 1px solid var(--spf-border);
   border-radius: var(--spf-radius);
-  background: var(--spf-surface-raised);
+  background-color: var(--spf-surface-raised);
+  background-image:
+    linear-gradient(var(--spf-brand-accent), var(--spf-brand-accent)),
+    linear-gradient(var(--spf-brand-accent), var(--spf-brand-accent)),
+    linear-gradient(var(--spf-brand-accent), var(--spf-brand-accent)),
+    linear-gradient(var(--spf-brand-accent), var(--spf-brand-accent)),
+    linear-gradient(var(--spf-brand-accent), var(--spf-brand-accent)),
+    linear-gradient(var(--spf-brand-accent), var(--spf-brand-accent)),
+    linear-gradient(var(--spf-brand-accent), var(--spf-brand-accent)),
+    linear-gradient(var(--spf-brand-accent), var(--spf-brand-accent));
+  background-repeat: no-repeat;
+  background-size:
+    var(--spf-tick) 1px, 1px var(--spf-tick),
+    var(--spf-tick) 1px, 1px var(--spf-tick),
+    var(--spf-tick) 1px, 1px var(--spf-tick),
+    var(--spf-tick) 1px, 1px var(--spf-tick);
+  background-position:
+    top left, top left,
+    top right, top right,
+    bottom left, bottom left,
+    bottom right, bottom right;
   padding: var(--spf-space-md) var(--spf-space-lg);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--spf-brand-accent) 16%, transparent);
+  box-shadow: var(--spf-inset-glow);
+  background-origin: border-box;
 }
 
 .simplysf2e .spf-icon-btn {
@@ -71,20 +133,38 @@
   height: var(--spf-icon-btn);
   padding: 0;
   line-height: 1;
+  background: var(--spf-surface);
+  border: 1px solid var(--spf-border);
+  color: var(--spf-brand-accent);
 }
 
 /* Primary action: exactly one per window (Generate/Forge/Create/Save). */
 .simplysf2e button.spf-primary {
-  background: linear-gradient(180deg, var(--spf-brand-mid), var(--spf-brand-dark));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--spf-brand-mid) 80%, #4d7a94), var(--spf-brand-dark));
   border: 1px solid var(--spf-brand-accent);
-  color: #e8f6fa;
-  font-weight: 600;
-  text-shadow: none;
+  color: var(--spf-text);
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  text-shadow: 0 0 8px color-mix(in srgb, var(--spf-brand-accent) 40%, transparent);
+  box-shadow: var(--spf-inset-glow), 0 0 8px color-mix(in srgb, var(--spf-brand-accent) 20%, transparent);
 }
 
 .simplysf2e button.spf-primary:not(:disabled):hover {
-  filter: brightness(1.15);
-  box-shadow: 0 0 6px var(--spf-brand-accent);
+  filter: brightness(1.12);
+  box-shadow: var(--spf-inset-glow), var(--spf-glow);
+}
+
+.simplysf2e button.spf-secondary {
+  background: var(--spf-surface);
+  border: 1px solid var(--spf-border);
+  color: var(--spf-text-muted);
+  letter-spacing: 0.04em;
+}
+
+.simplysf2e button.spf-secondary:not(:disabled):hover {
+  color: var(--spf-text);
+  border-color: var(--spf-brand-accent);
 }
 
 .simplysf2e button:disabled {
@@ -99,11 +179,12 @@
 .simplysf2e :is(button, input, select, textarea):focus-visible {
   outline: 2px solid var(--spf-focus);
   outline-offset: 1px;
+  box-shadow: var(--spf-glow);
 }
 
 .simplysf2e .spf-hint {
   font-size: var(--spf-text-sm);
-  opacity: 0.85;
+  color: var(--spf-text-muted);
   margin: var(--spf-space-xs) 0;
 }
 
@@ -112,13 +193,16 @@
   padding: var(--spf-space-xl);
   border: 1px dashed var(--spf-border);
   border-radius: var(--spf-radius);
-  font-style: italic;
-  opacity: 0.65;
+  color: var(--spf-text-muted);
+  font-style: normal;
+  letter-spacing: 0.02em;
 }
 
 .simplysf2e .spf-model {
-  opacity: 0.7;
+  color: var(--spf-text-muted);
   font-size: var(--spf-text-sm);
+  font-family: var(--spf-font-mono);
+  letter-spacing: 0.02em;
 }
 
 /* --------------------------------------------------------------------------
@@ -131,6 +215,11 @@
   padding: var(--spf-space-xs);
   max-height: 80vh;
   overflow-y: auto;
+  scrollbar-color: var(--spf-brand-dark) #0c1620;
+}
+
+.simplysf2e .simplysf2e-generator.spf-busy .spf-inputs {
+  opacity: 0.58;
 }
 
 .simplysf2e .simplysf2e-manage-presets {
@@ -166,9 +255,12 @@
   min-width: 0;
   padding: var(--spf-space-xs) var(--spf-space-md);
   border: 1px solid var(--spf-border);
+  border-left-width: 3px;
   border-radius: var(--spf-radius);
   background: var(--spf-surface);
+  box-shadow: var(--spf-inset-glow);
   font-size: var(--spf-text-sm);
+  color: var(--spf-text-muted);
 }
 
 .simplysf2e .spf-provider-name {
@@ -201,7 +293,8 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  opacity: 0.8;
+  color: var(--spf-text-muted);
+  font-family: var(--spf-font-mono);
 }
 
 .simplysf2e .spf-provider-state {
@@ -210,7 +303,7 @@
 
 .simplysf2e .spf-last-run {
   font-size: var(--spf-text-xs);
-  opacity: 0.7;
+  color: var(--spf-text-muted);
   white-space: nowrap;
   min-width: 0;
   overflow: hidden;
@@ -242,12 +335,20 @@
   border: 0;
 }
 
+.simplysf2e .spf-provider-ready {
+  border-left-color: var(--spf-success);
+}
+
 .simplysf2e .spf-provider-ready .spf-provider-state {
   color: var(--spf-success);
 }
 
+.simplysf2e .spf-provider-attention {
+  border-left-color: var(--spf-warning);
+}
+
 .simplysf2e .spf-provider-attention .spf-provider-state {
-  color: var(--spf-danger);
+  color: var(--spf-warning);
 }
 
 .simplysf2e .spf-provider-warning {
@@ -274,10 +375,21 @@
   font-family: var(--spf-font-display);
   font-variant: normal;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   font-size: var(--spf-text-sm);
   padding: 0 var(--spf-space-sm);
+  color: var(--spf-brand-accent);
+}
+
+.simplysf2e .spf-inputs textarea,
+.simplysf2e .spf-inputs select,
+.simplysf2e .spf-inputs input[type="number"],
+.simplysf2e .spf-preset-controls select {
+  background: color-mix(in srgb, var(--spf-brand-dark) 55%, rgba(8, 16, 26, 0.88));
+  border: 1px solid var(--spf-border);
+  color: var(--spf-text);
+  border-radius: var(--spf-radius-sm);
 }
 
 .simplysf2e .spf-inputs textarea {
@@ -349,11 +461,13 @@
 /* Segmented mode switch */
 .simplysf2e .spf-mode-toggle {
   display: flex;
-  gap: var(--spf-space-xs);
+  gap: 0;
   margin-bottom: var(--spf-space-md);
-  padding: var(--spf-space-xs);
+  padding: 2px;
+  border: 1px solid var(--spf-border);
   border-radius: var(--spf-radius);
   background: var(--spf-surface);
+  box-shadow: var(--spf-inset-glow);
 }
 
 .simplysf2e .spf-mode-toggle label {
@@ -366,26 +480,33 @@
   border: 1px solid transparent;
   border-radius: var(--spf-radius-sm);
   cursor: pointer;
-  opacity: 0.7;
+  color: var(--spf-text-muted);
+  font-size: var(--spf-text-sm);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .simplysf2e .spf-mode-toggle label:hover {
-  opacity: 1;
+  color: var(--spf-text);
   border-color: var(--spf-border);
 }
 
 .simplysf2e .spf-mode-toggle label.spf-mode-active {
-  opacity: 1;
-  font-weight: bold;
-  background: var(--spf-brand-soft);
+  color: var(--spf-text);
+  background: color-mix(in srgb, var(--spf-brand-mid) 72%, #0c1620);
   border-color: var(--spf-brand-accent);
-  box-shadow: inset 0 0 0 1px var(--spf-brand-accent);
+  box-shadow: inset 0 0 0 1px var(--spf-brand-accent), var(--spf-glow);
+}
+
+.simplysf2e .spf-mode-toggle label.spf-mode-active > i {
+  color: var(--spf-brand-accent);
 }
 
 .simplysf2e .spf-mode-toggle label:focus-within {
-  opacity: 1;
   outline: 2px solid var(--spf-focus);
-  outline-offset: 2px;
+  outline-offset: 1px;
+  box-shadow: var(--spf-glow);
 }
 
 .simplysf2e .spf-mode-toggle input[type="radio"] {
@@ -446,7 +567,9 @@
   max-width: 42rem;
   font-size: var(--spf-text-sm);
   line-height: 1.4;
-  opacity: 0.95;
+  color: var(--spf-text-muted);
+  padding-left: var(--spf-space-md);
+  border-left: 2px solid var(--spf-brand-accent);
 }
 
 .simplysf2e .spf-level-primary {
@@ -460,14 +583,43 @@
 
 .simplysf2e .spf-advanced {
   margin-top: var(--spf-space-md);
-  border-top: 1px dotted var(--spf-border);
+  border-top: 1px solid var(--spf-border);
 }
 
 .simplysf2e .spf-advanced summary {
+  list-style: none;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: var(--spf-space-sm);
   padding: var(--spf-space-sm) 0;
   font-size: var(--spf-text-sm);
-  font-weight: 600;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--spf-brand-accent);
+}
+
+.simplysf2e .spf-advanced summary::-webkit-details-marker {
+  display: none;
+}
+
+.simplysf2e .spf-advanced summary::before {
+  content: "";
+  width: 0.42em;
+  height: 0.42em;
+  border-right: 2px solid var(--spf-brand-accent);
+  border-bottom: 2px solid var(--spf-brand-accent);
+  transform: rotate(-45deg);
+  transition: transform 120ms ease;
+}
+
+.simplysf2e .spf-advanced[open] summary::before {
+  transform: rotate(45deg);
+}
+
+.simplysf2e .spf-advanced summary:hover {
+  color: var(--spf-text);
 }
 
 .simplysf2e .spf-advanced-content {
@@ -524,6 +676,7 @@
 .simplysf2e .spf-generate-row {
   display: flex;
   gap: var(--spf-space-sm);
+  margin-top: var(--spf-space-sm);
 }
 
 .simplysf2e .spf-generate-row button[data-action="generate"] {
@@ -535,6 +688,8 @@
   width: var(--spf-icon-btn);
   height: auto;
   min-height: var(--spf-icon-btn);
+  border-color: var(--spf-border);
+  color: var(--spf-brand-accent);
 }
 
 /* --------------------------------------------------------------------------
@@ -545,17 +700,20 @@
   flex-direction: column;
   gap: var(--spf-space-sm);
   text-align: center;
+  border-color: color-mix(in srgb, var(--spf-brand-accent) 70%, var(--spf-border));
 }
 
 .simplysf2e .spf-progress-steps {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: var(--spf-space-xs) var(--spf-space-md);
+  gap: var(--spf-space-xs) var(--spf-space-sm);
   list-style: none;
   margin: 0;
   padding: 0;
   font-size: var(--spf-text-sm);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
 }
 
 .simplysf2e .spf-progress-steps li {
@@ -563,14 +721,20 @@
   align-items: center;
   gap: var(--spf-space-xs);
   white-space: nowrap;
+  padding: 0.15rem 0.45rem;
+  border: 1px solid transparent;
+  border-radius: var(--spf-radius-sm);
 }
 
 .simplysf2e .spf-step-pending {
-  opacity: 0.5;
+  color: var(--spf-text-muted);
 }
 
 .simplysf2e .spf-step-active {
-  font-weight: bold;
+  font-weight: 700;
+  color: var(--spf-text);
+  border-color: var(--spf-brand-accent);
+  background: var(--spf-brand-soft);
 }
 
 .simplysf2e .spf-step-active i {
@@ -578,7 +742,7 @@
 }
 
 .simplysf2e .spf-step-done {
-  opacity: 0.8;
+  color: var(--spf-text-muted);
 }
 
 .simplysf2e .spf-step-done i {
@@ -586,10 +750,12 @@
 }
 
 .simplysf2e .spf-progress-bar {
-  height: 0.6rem;
+  height: 0.7rem;
+  border: 1px solid color-mix(in srgb, var(--spf-brand-accent) 50%, #0c1620);
   border-radius: var(--spf-radius-sm);
-  background: rgba(8, 16, 28, 0.55);
+  background: rgba(8, 16, 28, 0.7);
   overflow: hidden;
+  box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.45), 0 0 8px color-mix(in srgb, var(--spf-brand-accent) 18%, transparent);
 }
 
 .simplysf2e .spf-progress-fill {
@@ -602,13 +768,14 @@
 }
 
 /* Continuous motion while a step runs: a sheen sweeps across the fill so the
-   bar reads as "working" even while its width holds steady during a step. */
+   bar reads as "working" even while its width holds steady during a step.
+   Percent is the real step budget — never a fabricated ETA. */
 .simplysf2e .spf-progress-fill::after {
   content: "";
   position: absolute;
   inset: 0;
-  width: 40%;
-  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--spf-brand-accent) 45%, transparent), transparent);
+  width: 42%;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--spf-brand-accent) 70%, transparent), transparent);
   animation: spf-step-slide 1.2s ease-in-out infinite;
 }
 
@@ -629,6 +796,11 @@
   display: none;
 }
 
+.simplysf2e .spf-progress-thinking,
+.simplysf2e .spf-progress-writing {
+  animation: spf-hud-pulse 2.6s ease-in-out infinite;
+}
+
 .simplysf2e .spf-cancel {
   align-self: center;
 }
@@ -636,6 +808,11 @@
 @keyframes spf-step-slide {
   0% { margin-left: -40%; }
   100% { margin-left: 100%; }
+}
+
+@keyframes spf-hud-pulse {
+  0%, 100% { box-shadow: var(--spf-inset-glow); }
+  50% { box-shadow: var(--spf-inset-glow), 0 0 14px color-mix(in srgb, var(--spf-brand-accent) 28%, transparent); }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -646,6 +823,10 @@
     animation: none;
     display: none;
   }
+  .simplysf2e .spf-progress-thinking,
+  .simplysf2e .spf-progress-writing {
+    animation: none;
+  }
   .simplysf2e .fa-spin {
     animation: none;
   }
@@ -654,24 +835,30 @@
 .simplysf2e .spf-progress-percent {
   margin: 0;
   text-align: center;
+  font-family: var(--spf-font-mono);
   font-size: var(--spf-text-sm);
-  font-weight: bold;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.14em;
+  color: var(--spf-brand-accent);
 }
 
 .simplysf2e .spf-progress-detail {
   margin: 0;
-  font-style: italic;
+  font-style: normal;
   font-size: var(--spf-text-sm);
+  color: var(--spf-text-muted);
   min-height: 1.2em;
+  letter-spacing: 0.02em;
 }
 
 /* Per-step token usage shown under the finished preview */
 .simplysf2e .spf-token-report {
   margin-top: var(--spf-space-md);
   padding-top: var(--spf-space-sm);
-  border-top: 1px dashed var(--spf-border);
+  border-top: 1px solid var(--spf-border);
   font-size: var(--spf-text-sm);
-  opacity: 0.85;
+  color: var(--spf-text-muted);
 }
 
 .simplysf2e .spf-token-report h3 {
@@ -709,6 +896,7 @@
   font-variant: normal;
   letter-spacing: 0.06em;
   text-transform: uppercase;
+  color: var(--spf-text);
 }
 
 .simplysf2e .spf-level {
@@ -716,6 +904,8 @@
   text-transform: uppercase;
   font-size: var(--spf-text-sm);
   white-space: nowrap;
+  color: var(--spf-brand-accent);
+  letter-spacing: 0.04em;
 }
 
 .simplysf2e .spf-blurb {
