@@ -1,4 +1,5 @@
 <div class="simplysf2e-generator spf-hud">
+  <div class="spf-statusbar">
   <div class="spf-provider-summary {{#if providerReady}}spf-provider-ready{{else}}spf-provider-attention{{/if}}" data-tooltip="{{providerBaseUrl}}">
     <span class="spf-provider-name">
       <i class="fa-solid {{#if provider.local}}fa-server{{else}}fa-cloud{{/if}}"></i>
@@ -26,6 +27,7 @@
       </button>
       <i class="fa-solid {{#if providerReady}}fa-circle-check{{else}}fa-triangle-exclamation{{/if}} spf-provider-state" role="img" aria-label="{{#if providerReady}}{{localize 'SIMPLYSF2E.Generator.ProviderReady'}}{{else}}{{apiKeyWarning}}{{/if}}" data-tooltip="{{#if providerReady}}{{localize 'SIMPLYSF2E.Generator.ProviderReady'}}{{else}}{{apiKeyWarning}}{{/if}}"></i>
     </span>
+  </div>
   </div>
   {{#if apiKeyWarning}}
     <p class="notification warning spf-provider-warning" role="status">

@@ -1,4 +1,5 @@
-<div class="simplysf2e-generator{{#if busy}} spf-busy{{/if}}">
+<div class="simplysf2e-generator{{#if monsterMode}} spf-mode-monster{{else if npcMode}} spf-mode-npc{{else if encounterMode}} spf-mode-encounter{{else if characterMode}} spf-mode-character{{/if}}{{#if busy}} spf-busy{{/if}}">
+  <div class="spf-statusbar">
   <div class="spf-provider-summary {{#if providerReady}}spf-provider-ready{{else}}spf-provider-attention{{/if}}" data-tooltip="{{providerBaseUrl}}">
     <span class="spf-provider-name">
       <i class="fa-solid {{#if provider.local}}fa-server{{else}}fa-cloud{{/if}}"></i>
@@ -27,6 +28,12 @@
       <i class="fa-solid {{#if providerReady}}fa-circle-check{{else}}fa-triangle-exclamation{{/if}} spf-provider-state" role="img" aria-label="{{#if providerReady}}{{localize 'SIMPLYSF2E.Generator.ProviderReady'}}{{else}}{{apiKeyWarning}}{{/if}}" data-tooltip="{{#if providerReady}}{{localize 'SIMPLYSF2E.Generator.ProviderReady'}}{{else}}{{apiKeyWarning}}{{/if}}"></i>
     </span>
   </div>
+  <div class="spf-provider-summary {{#if sourcesReady}}spf-provider-ready{{else}}spf-provider-attention{{/if}}">
+    <span class="spf-provider-name"><i class="fa-solid fa-book-atlas"></i> <strong>{{localize "SIMPLYSF2E.Generator.CompendiumContent"}}</strong></span>
+    <span>{{#if sourcesReady}}{{localize "SIMPLYSF2E.Generator.SourcesReady" packCount=sourcePackCount}}{{else}}{{localize "SIMPLYSF2E.Generator.SourcesMissing" categories=sourceMissing}}{{/if}}</span>
+    <span class="spf-provider-actions"><button type="button" data-action="configureSources" aria-label="{{localize 'SIMPLYSF2E.Generator.ConfigureSources'}}" {{#if busy}}disabled{{/if}}><i class="fa-solid fa-gear"></i></button></span>
+  </div>
+  </div>
   {{#if apiKeyWarning}}
     <p class="notification warning spf-provider-warning" role="status">
       <span>{{apiKeyWarning}}</span>
@@ -36,11 +43,6 @@
       {{/if}}
     </p>
   {{/if}}
-  <div class="spf-provider-summary {{#if sourcesReady}}spf-provider-ready{{else}}spf-provider-attention{{/if}}">
-    <span class="spf-provider-name"><i class="fa-solid fa-book-atlas"></i> <strong>{{localize "SIMPLYSF2E.Generator.CompendiumContent"}}</strong></span>
-    <span>{{#if sourcesReady}}{{localize "SIMPLYSF2E.Generator.SourcesReady" packCount=sourcePackCount}}{{else}}{{localize "SIMPLYSF2E.Generator.SourcesMissing" categories=sourceMissing}}{{/if}}</span>
-    <span class="spf-provider-actions"><button type="button" data-action="configureSources" aria-label="{{localize 'SIMPLYSF2E.Generator.ConfigureSources'}}" {{#if busy}}disabled{{/if}}><i class="fa-solid fa-gear"></i></button></span>
-  </div>
 
   <fieldset class="spf-inputs spf-card" {{#if busy}}disabled{{/if}}>
     <legend>
@@ -55,19 +57,19 @@
       {{/if}}
     </legend>
     <div class="spf-mode-toggle" role="radiogroup" aria-label="{{localize 'SIMPLYSF2E.Generator.ModeLabel'}}">
-      <label class="{{#if monsterMode}}spf-mode-active{{/if}}" data-tooltip="{{localize 'SIMPLYSF2E.Mode.MonsterHint'}}">
+      <label class="spf-mode-monster{{#if monsterMode}} spf-mode-active{{/if}}" data-tooltip="{{localize 'SIMPLYSF2E.Mode.MonsterHint'}}">
         <input type="radio" name="mode" value="monster" {{#if monsterMode}}checked{{/if}}>
         <i class="fa-solid fa-dna"></i> {{localize "SIMPLYSF2E.Mode.Monster"}}
       </label>
-      <label class="{{#if npcMode}}spf-mode-active{{/if}}" data-tooltip="{{localize 'SIMPLYSF2E.Mode.NpcHint'}}">
+      <label class="spf-mode-npc{{#if npcMode}} spf-mode-active{{/if}}" data-tooltip="{{localize 'SIMPLYSF2E.Mode.NpcHint'}}">
         <input type="radio" name="mode" value="npc" {{#if npcMode}}checked{{/if}}>
         <i class="fa-solid fa-id-badge"></i> {{localize "SIMPLYSF2E.Mode.Npc"}}
       </label>
-      <label class="{{#if encounterMode}}spf-mode-active{{/if}}" data-tooltip="{{localize 'SIMPLYSF2E.Mode.EncounterHint'}}">
+      <label class="spf-mode-encounter{{#if encounterMode}} spf-mode-active{{/if}}" data-tooltip="{{localize 'SIMPLYSF2E.Mode.EncounterHint'}}">
         <input type="radio" name="mode" value="encounter" {{#if encounterMode}}checked{{/if}}>
         <i class="fa-solid fa-crosshairs"></i> {{localize "SIMPLYSF2E.Mode.Encounter"}}
       </label>
-      <label class="{{#if characterMode}}spf-mode-active{{/if}}" data-tooltip="{{localize 'SIMPLYSF2E.Mode.CharacterHint'}}">
+      <label class="spf-mode-character{{#if characterMode}} spf-mode-active{{/if}}" data-tooltip="{{localize 'SIMPLYSF2E.Mode.CharacterHint'}}">
         <input type="radio" name="mode" value="character" {{#if characterMode}}checked{{/if}}>
         <i class="fa-solid fa-user-astronaut"></i> {{localize "SIMPLYSF2E.Mode.Character"}}
       </label>
@@ -262,6 +264,7 @@
       {{/if}}
     </div>
 
+    <div class="spf-statgrid">
     <div class="spf-statline spf-defenses">
       <span><strong>AC</strong> {{preview.stats.ac}}</span>
       <span><strong>{{localize "SIMPLYSF2E.Preview.Fort"}}</strong> +{{preview.stats.saves.fortitude}}</span>
@@ -272,6 +275,7 @@
     {{#if preview.iwr.immunities}}<div class="spf-statline"><span><strong>{{localize "SIMPLYSF2E.Preview.Immunities"}}</strong> {{preview.iwr.immunities}}</span></div>{{/if}}
     {{#if preview.iwr.resistances}}<div class="spf-statline"><span><strong>{{localize "SIMPLYSF2E.Preview.Resistances"}}</strong> {{preview.iwr.resistances}}</span></div>{{/if}}
     {{#if preview.iwr.weaknesses}}<div class="spf-statline"><span><strong>{{localize "SIMPLYSF2E.Preview.Weaknesses"}}</strong> {{preview.iwr.weaknesses}}</span></div>{{/if}}
+    </div>
 
     <div class="spf-statline">
       <span><strong>{{localize "SIMPLYSF2E.Preview.Speed"}}</strong> {{preview.speeds}}</span>

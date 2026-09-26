@@ -33,6 +33,15 @@
   --spf-surface: color-mix(in srgb, var(--spf-brand-dark) 42%, rgba(8, 16, 26, 0.72));
   --spf-surface-raised: color-mix(in srgb, var(--spf-brand-mid) 38%, rgba(8, 16, 26, 0.78));
   --spf-glow: 0 0 10px color-mix(in srgb, var(--spf-brand-accent) 42%, transparent);
+  --spf-neon: #ff2e88;
+  --spf-neon-soft: color-mix(in srgb, var(--spf-neon) 16%, transparent);
+  --spf-neon-glow: 0 0 12px color-mix(in srgb, var(--spf-neon) 45%, transparent);
+  --spf-amber: #ffb347;
+  --spf-mode-monster: #b78cff;
+  --spf-mode-npc: #9edae6;
+  --spf-mode-encounter: #ffb347;
+  --spf-mode-character: #ff2e88;
+  --spf-cut: 14px;
   --spf-inset-glow: inset 0 1px 0 color-mix(in srgb, var(--spf-brand-accent) 32%, transparent);
   --spf-tick: 0.5rem;
   /* Spacing scale */
@@ -72,7 +81,8 @@
     #1d3c53,
     color-mix(in srgb, #40256f 28%, #2d4f6a)
   );
-  border-bottom: 1px solid #9edae6;
+  border-bottom: 1px solid var(--spf-neon);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--spf-neon) 60%, transparent);
   color: #e8f6fa;
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -1345,7 +1355,6 @@
   --spf-scan: color-mix(in srgb, var(--spf-brand-accent) 7%, transparent);
   --spf-grid-line: color-mix(in srgb, var(--spf-brand-accent) 5%, transparent);
   --spf-console: color-mix(in srgb, var(--spf-brand-dark) 55%, rgba(8, 16, 26, 0.88));
-  --spf-neon: 0 0 10px color-mix(in srgb, var(--spf-brand-accent) 45%, transparent);
   --spf-neon-violet: 0 0 12px color-mix(in srgb, var(--spf-brand-secondary) 60%, transparent);
 }
 
@@ -1394,11 +1403,11 @@
 
 /* Neon cyan/violet charge on the primary action. */
 .simplysf2e button.spf-primary {
-  box-shadow: var(--spf-inset-glow), var(--spf-neon), inset 0 0 14px color-mix(in srgb, var(--spf-brand-secondary) 32%, transparent);
+  box-shadow: var(--spf-inset-glow), var(--spf-neon-glow), inset 0 0 14px color-mix(in srgb, var(--spf-brand-secondary) 32%, transparent);
 }
 
 .simplysf2e button.spf-primary:not(:disabled):hover {
-  box-shadow: var(--spf-inset-glow), var(--spf-neon), var(--spf-neon-violet);
+  box-shadow: var(--spf-inset-glow), var(--spf-neon-glow), var(--spf-neon-violet);
   text-shadow: 0 0 10px color-mix(in srgb, var(--spf-brand-accent) 70%, transparent);
 }
 
@@ -1409,7 +1418,7 @@
 }
 
 .simplysf2e .spf-mode-toggle label.spf-mode-active > i {
-  text-shadow: var(--spf-neon);
+  text-shadow: var(--spf-neon-glow);
 }
 
 .simplysf2e .spf-kind-choice.spf-kind-selected {
@@ -1417,7 +1426,7 @@
 }
 
 .simplysf2e .spf-provider-presets button.spf-provider-preset-active {
-  box-shadow: inset 0 0 0 1px var(--spf-brand-accent), var(--spf-neon);
+  box-shadow: inset 0 0 0 1px var(--spf-brand-accent), var(--spf-neon-glow);
   text-shadow: 0 0 8px color-mix(in srgb, var(--spf-brand-accent) 60%, transparent);
 }
 
@@ -1432,7 +1441,7 @@
 }
 
 .simplysf2e .spf-step-active {
-  box-shadow: inset 0 0 0 1px var(--spf-brand-accent), var(--spf-neon);
+  box-shadow: inset 0 0 0 1px var(--spf-brand-accent), var(--spf-neon-glow);
 }
 
 .simplysf2e .spf-step-active i {
@@ -1449,7 +1458,7 @@
   background: color-mix(in srgb, var(--spf-brand-dark) 85%, #0c1620);
   border: 1px solid var(--spf-border);
   border-radius: var(--spf-radius-sm);
-  box-shadow: var(--spf-inset-glow), var(--spf-neon);
+  box-shadow: var(--spf-inset-glow), var(--spf-neon-glow);
 }
 
 .simplysf2e .spf-source-category legend {
@@ -1519,4 +1528,200 @@
 .simplysf2e .spf-hud-actions {
   border-top: 1px solid var(--spf-border);
   padding-top: var(--spf-space-md);
+}
+
+/* --------------------------------------------------------------------------
+   Neon Drift infusion (magenta/cyan fusion over the navy/cyan HUD)
+   Later same-specificity overrides only: every base selector above keeps
+   working, and no new keyframes are added, so motion still yields to the
+   prefers-reduced-motion block above.
+   -------------------------------------------------------------------------- */
+/* Notched card frames: asymmetric top-right cut via --spf-cut, square
+   elsewhere. Scanline texture and cyan border carry over from the base
+   .spf-card rules above. */
+.simplysf2e .spf-card {
+  border-radius: 0;
+  clip-path: polygon(0 0, calc(100% - var(--spf-cut)) 0, 100% var(--spf-cut), 100% 100%, 0 100%);
+}
+
+/* Fieldset cards carry legends straddling the top border — extend the clip
+   region upward so the notch never trims legend text. */
+.simplysf2e fieldset.spf-card {
+  clip-path: polygon(-100px -100px, calc(100% - var(--spf-cut)) 0, 100% var(--spf-cut), 100% 100%, -100px 100%);
+}
+
+/* Primary action: exactly one per window (Generate/Forge/Create/Save).
+   Magenta gradient CTA; drop-shadow follows the notch where an outer
+   box-shadow would be clipped away. */
+.simplysf2e button.spf-primary {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--spf-neon) 68%, #ffd7e8), color-mix(in srgb, var(--spf-neon) 52%, #5c0f2e));
+  border: 1px solid var(--spf-neon);
+  clip-path: polygon(0 0, calc(100% - var(--spf-cut)) 0, 100% var(--spf-cut), 100% 100%, 0 100%);
+}
+
+.simplysf2e button.spf-primary:not(:disabled):hover {
+  filter: brightness(1.12) drop-shadow(0 0 8px color-mix(in srgb, var(--spf-neon) 55%, transparent));
+  box-shadow: var(--spf-inset-glow);
+}
+
+/* Trait chips: magenta-outline pills. */
+.simplysf2e .spf-trait {
+  background: color-mix(in srgb, var(--spf-neon) 14%, var(--spf-brand-dark));
+  border-color: var(--spf-neon);
+  border-radius: 999px;
+  box-shadow: 0 0 8px color-mix(in srgb, var(--spf-neon) 25%, transparent);
+}
+
+/* Telemetry progress runs cyan into magenta; the active step reads neon. */
+.simplysf2e .spf-progress-fill {
+  background: linear-gradient(90deg, var(--spf-brand-accent), var(--spf-neon));
+}
+
+.simplysf2e .spf-progress-thinking .spf-progress-fill {
+  background: linear-gradient(90deg, var(--spf-brand-dark), var(--spf-brand-accent));
+}
+
+.simplysf2e .spf-step-active {
+  border-color: var(--spf-neon);
+  background: var(--spf-neon-soft);
+}
+
+.simplysf2e .spf-step-active i {
+  color: var(--spf-neon);
+}
+
+/* Busy window chrome keeps the magenta bottom edge under its glow. */
+.application.simplysf2e.spf-busy .window-header {
+  box-shadow: 0 0 12px color-mix(in srgb, var(--spf-neon) 45%, transparent), 0 1px 0 var(--spf-neon);
+}
+
+/* --------------------------------------------------------------------------
+   Mode accents: the generator root carries exactly one spf-mode-* class,
+   which tints the unified status frame and preview headers.
+   -------------------------------------------------------------------------- */
+.simplysf2e .simplysf2e-generator.spf-mode-monster {
+  --spf-mode-accent: var(--spf-mode-monster);
+}
+
+.simplysf2e .simplysf2e-generator.spf-mode-npc {
+  --spf-mode-accent: var(--spf-mode-npc);
+}
+
+.simplysf2e .simplysf2e-generator.spf-mode-encounter {
+  --spf-mode-accent: var(--spf-mode-encounter);
+}
+
+.simplysf2e .simplysf2e-generator.spf-mode-character {
+  --spf-mode-accent: var(--spf-mode-character);
+}
+
+.simplysf2e .simplysf2e-generator .spf-statblock-header {
+  border-bottom-color: color-mix(in srgb, var(--spf-mode-accent, var(--spf-brand-accent)) 75%, transparent);
+}
+
+/* Unified status frame: one bordered surface; the provider rows inside are
+   borderless cells divided by a hairline, keeping their ready/attention
+   edge as the state signal. */
+.simplysf2e .spf-statusbar {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: var(--spf-space-xs) var(--spf-space-md);
+  border: 1px solid color-mix(in srgb, var(--spf-mode-accent, var(--spf-brand-accent)) 55%, var(--spf-border));
+  border-radius: var(--spf-radius);
+  background: var(--spf-surface);
+  box-shadow: var(--spf-inset-glow), 0 0 10px color-mix(in srgb, var(--spf-mode-accent, var(--spf-brand-accent)) 14%, transparent);
+  clip-path: polygon(0 0, calc(100% - var(--spf-cut)) 0, 100% var(--spf-cut), 100% 100%, 0 100%);
+}
+
+.simplysf2e .spf-statusbar .spf-provider-summary {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.simplysf2e .spf-statusbar .spf-provider-summary + .spf-provider-summary {
+  border-top: 1px solid var(--spf-border);
+}
+
+.simplysf2e .spf-statusbar .spf-provider-summary.spf-provider-ready {
+  border-left: 3px solid var(--spf-success);
+}
+
+.simplysf2e .spf-statusbar .spf-provider-summary.spf-provider-attention {
+  border-left: 3px solid var(--spf-warning);
+}
+
+/* Mode switch: each active segment glows in its own per-mode accent. */
+.simplysf2e .spf-mode-toggle label.spf-mode-monster.spf-mode-active {
+  border-color: var(--spf-mode-monster);
+  background: color-mix(in srgb, var(--spf-mode-monster) 26%, #0c1620);
+  box-shadow: inset 0 0 0 1px var(--spf-mode-monster), 0 0 12px color-mix(in srgb, var(--spf-mode-monster) 45%, transparent);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--spf-mode-monster) 65%, transparent);
+}
+
+.simplysf2e .spf-mode-toggle label.spf-mode-npc.spf-mode-active {
+  border-color: var(--spf-mode-npc);
+  background: color-mix(in srgb, var(--spf-mode-npc) 26%, #0c1620);
+  box-shadow: inset 0 0 0 1px var(--spf-mode-npc), 0 0 12px color-mix(in srgb, var(--spf-mode-npc) 45%, transparent);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--spf-mode-npc) 65%, transparent);
+}
+
+.simplysf2e .spf-mode-toggle label.spf-mode-encounter.spf-mode-active {
+  border-color: var(--spf-mode-encounter);
+  background: color-mix(in srgb, var(--spf-mode-encounter) 26%, #0c1620);
+  box-shadow: inset 0 0 0 1px var(--spf-mode-encounter), 0 0 12px color-mix(in srgb, var(--spf-mode-encounter) 45%, transparent);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--spf-mode-encounter) 65%, transparent);
+}
+
+.simplysf2e .spf-mode-toggle label.spf-mode-character.spf-mode-active {
+  border-color: var(--spf-mode-character);
+  background: color-mix(in srgb, var(--spf-mode-character) 26%, #0c1620);
+  box-shadow: inset 0 0 0 1px var(--spf-mode-character), 0 0 12px color-mix(in srgb, var(--spf-mode-character) 45%, transparent);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--spf-mode-character) 65%, transparent);
+}
+
+.simplysf2e .spf-mode-toggle label.spf-mode-monster.spf-mode-active > i {
+  color: var(--spf-mode-monster);
+}
+
+.simplysf2e .spf-mode-toggle label.spf-mode-npc.spf-mode-active > i {
+  color: var(--spf-mode-npc);
+}
+
+.simplysf2e .spf-mode-toggle label.spf-mode-encounter.spf-mode-active > i {
+  color: var(--spf-mode-encounter);
+}
+
+.simplysf2e .spf-mode-toggle label.spf-mode-character.spf-mode-active > i {
+  color: var(--spf-mode-character);
+}
+
+/* Monster preview stat grid: defenses + IWR statlines in two columns of at
+   least ~14rem, collapsing to one column in narrow windows. */
+.simplysf2e .spf-statgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: var(--spf-space-xs) var(--spf-space-md);
+}
+
+@media (max-width: 520px) {
+  .simplysf2e .spf-statgrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Matching density for the remaining chrome: provider-setup connection bank
+   gets the same notched frame, and sources legends pick up a neon edge. */
+.simplysf2e .spf-connection-bank {
+  border: 1px solid var(--spf-border);
+  background: var(--spf-surface);
+  box-shadow: var(--spf-inset-glow);
+  padding: var(--spf-space-md) var(--spf-space-lg);
+  clip-path: polygon(0 0, calc(100% - var(--spf-cut)) 0, 100% var(--spf-cut), 100% 100%, 0 100%);
+}
+
+.simplysf2e .spf-source-category legend {
+  border-color: color-mix(in srgb, var(--spf-neon) 40%, var(--spf-border));
 }

@@ -291,8 +291,8 @@ assert.match(css, /--spf-brand-secondary:\s*#40256f/, "brand secondary is cited 
 assert.match(css, /--spf-warning:\s*#98503d/, "warning token is cited SF2e legendary orange");
 assert.match(css, /\.simplysf2e button\.spf-secondary\s*\{/, "quiet companion actions share HUD chrome");
 assert.match(css, /\.application\.simplysf2e \.window-header\s*\{/, "module windows restyle the Foundry header toward SF2e navy");
-assert.match(generator, /simplysf2e-generator\{\{#if busy\}\} spf-busy\{\{\/if\}\}/,
-  "generator root must flag busy for HUD chrome without inventing progress copy");
+assert.match(generator, /simplysf2e-generator\{\{#if monsterMode\}\} spf-mode-monster\{\{else if npcMode\}\} spf-mode-npc\{\{else if encounterMode\}\} spf-mode-encounter\{\{else if characterMode\}\} spf-mode-character\{\{\/if\}\}\{\{#if busy\}\} spf-busy\{\{\/if\}\}/,
+  "generator root must carry exactly one Neon Drift mode class and flag busy for HUD chrome without inventing progress copy");
 assert.match(generatorApp, /classList\?\.toggle\("spf-busy"/, "generator window must toggle busy chrome from context");
 assert.doesNotMatch(css, /#58180d|#a3512c|#d8c384/, "PF2e maroon/gold tokens must not remain");
 assert.match(css, /\.simplysf2e \.spf-progress-thinking/, "thinking must have a distinct phase treatment");
@@ -614,5 +614,45 @@ for (const hook of ["spf-hud-accent", "spf-hud-actions", "spf-hud-frame", "spf-h
   );
 }
 assert.match(css, /\.simplysf2e \.spf-hud\s*\{[^}]*--spf-hud-on/s, "the app HUD root flag must be defined");
+
+// --- Neon Drift overhaul ------------------------------------------------
+// Mode-scoped theme classes, a shared statusbar strip, a grouped defense
+// grid, and neon tokens: class/hook-only changes, no control structure
+// or data-action binding is altered.
+assert.match(generator, /<div class="spf-statusbar">[\s\S]*?spf-provider-summary[\s\S]*?spf-provider-summary/,
+  "generator statusbar must wrap both provider rows in one container");
+assert.doesNotMatch(generator, /spf-statusbar[\s\S]*spf-statusbar/,
+  "generator must use a single statusbar container, not one per row");
+assert.match(itemForge, /<div class="spf-statusbar">[\s\S]*?spf-provider-summary/,
+  "item forge must wrap its provider row in the shared statusbar container");
+for (const [mode, flag] of [["monster", "monsterMode"], ["npc", "npcMode"], ["encounter", "encounterMode"], ["character", "characterMode"]]) {
+  assert.match(
+    generator,
+    new RegExp(`spf-mode-${mode}\\{\\{#if ${flag}\\}\\} spf-mode-active`),
+    `${mode} mode toggle must carry its per-mode class alongside the active state`
+  );
+}
+assert.match(generator, /<div class="spf-statgrid">[\s\S]*?spf-statline spf-defenses[\s\S]*?preview\.iwr\.weaknesses/,
+  "monster preview must group defenses and IWR statlines inside the stat grid");
+for (const key of ["immunities", "resistances", "weaknesses"]) {
+  assert.match(
+    generator,
+    new RegExp(`preview\\.iwr\\.${key}`),
+    `monster preview must retain its ${key} statline inside the stat grid`
+  );
+}
+assert.match(css, /--spf-neon:\s*#ff2e88/, "neon magenta token must be defined");
+assert.match(css, /--spf-amber:\s*#ffb347/, "amber token must be defined");
+assert.match(css, /--spf-cut:/, "notch cut token must be defined");
+for (const mode of ["monster", "npc", "encounter", "character"]) {
+  assert.match(
+    css,
+    new RegExp(`--spf-mode-${mode}:`),
+    `${mode} mode accent token must be defined`
+  );
+}
+assert.match(css, /\.simplysf2e \.spf-statusbar\s*\{/, "statusbar strip must be styled");
+assert.match(css, /\.simplysf2e \.spf-statgrid\s*\{/, "stat grid must be styled");
+assert.match(css, /\.simplysf2e \.spf-card\s*\{[^}]*clip-path:/s, "cards must be notched via clip-path");
 
 console.log("UI layout contract checks passed.");
