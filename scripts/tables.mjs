@@ -1,14 +1,14 @@
 /**
- * Inherited PF2e-compatible benchmark numbers pending a cited Starfinder 2e
- * GM Core (or equivalent) Building Creatures / Treasure by Level source.
- * These arrays are **not** Starfinder-authored. Do not treat them as SF2e
- * published statistics. Numbers are unchanged from the PF2e-era scaffold
- * until a real SF2e table can be transcribed.
- *
- * Historically these matched Pathfinder 2e GM Core "Building Creatures"
- * (ability modifiers, Perception, skills, AC, saves, HP, Strike attack and
- * damage, spell DC) plus Table 10-9 Treasure by Level. Every array is
- * indexed by creature level, from -1 to 24 (use `idx(level)`).
+ * Mixed provenance (verified 2026-09-26 against foundryvtt/pf2e v14-dev):
+ * - CITED SF2e: LEVEL_DC (+RARITY_DC_ADJUSTMENT), TREASURE_BY_LEVEL L1-20
+ *   totals, identificationDC mapping, Moderate 80 XP input. See per-table
+ *   notes below for page IDs and quoted lines.
+ * - STILL PF2e-only: the nine Building-Creatures stat arrays (ability,
+ *   Perception/saves, skill, AC, HP, strike attack/damage, spell DC/attack).
+ *   Bounded search found no SF2e system source: 57 GM Screen pages checked,
+ *   nearest is Monster Adjustments delta-only (Alien Core pg 204/207).
+ *   Do not treat these nine as SF2e published statistics.
+ * Every array is indexed by creature level, from -1 to 24 (use `idx(level)`).
  *
  * Rules data used under the ORC License; see README for attribution.
  */
@@ -110,14 +110,20 @@ export const SPELL_ATTACK = {
   moderate: [5,  5,  6,  7,  9, 10, 11, 13, 14, 15, 17, 18, 19, 21, 22, 23, 25, 26, 27, 29, 30, 31, 33, 34, 35, 37]
 };
 
-/* Level-based DCs (GM Core), used for Recall Knowledge checks. */
+/* Level-based DCs — CITED SF2e (verified 2026-09-26): GM Screen "DCs by Level"
+ * page (pBS3DUjlzVuFgapv, Starfinder GM Core pg 53), programmatic diff L0-24
+ * zero mismatches; src/module/dc.ts dcByLevel agrees (plus L-1=13, L25=50).
+ * Rarity adjustments CITED: "DC Adjustments" page (7zHsWW9q6YqiMIwy, pg 53)
+ * + dc.ts dcAdjustments map agree exactly. Used for Recall Knowledge checks. */
 export const LEVEL_DC = {
   dc: [13, 14, 15, 16, 18, 19, 20, 22, 23, 24, 26, 27, 28, 30, 31, 32, 34, 35, 36, 38, 39, 40, 42, 44, 46, 48]
 };
 
 export const RARITY_DC_ADJUSTMENT = { common: 0, uncommon: 2, rare: 5, unique: 10 };
 
-/** The DC to identify/recall knowledge about a creature of this level+rarity. */
+/** CITED SF2e skill mapping: "Creature Identification" page (oEyx39yADr2OjfTz,
+ * pg 54); SF2e journal is a superset (adds Robot row). The DC to
+ * identify/recall knowledge about a creature of this level+rarity. */
 export function identificationDC(level, rarity = "common") {
   return lookup(LEVEL_DC, level, "dc", []) + (RARITY_DC_ADJUSTMENT[rarity] ?? 0);
 }
@@ -128,12 +134,13 @@ export const RESISTANCE = {
 };
 
 /* ------------------------------------------------------------------ */
-/* Treasure budgets.
- *
- * Inherited PF2e-compatible Total Value column (historically GM Core /
- * Core Rulebook Table 10-9). **Not** a cited Starfinder 2e treasure table;
- * numbers are unchanged pending an SF2e source. ORC-licensed reference
- * data — see README attribution section.
+/* Treasure budgets — CITED SF2e for L1-20 totals (verified 2026-09-26).
+ * GM Screen "Treasure" page (Dae8LHdXZuBv06Jk, Starfinder GM Core pg 59/61),
+ * "Party Treasure by Level" table in credits; programmatic diff L1-20 totals
+ * vs TREASURE_BY_LEVEL x 10 zero mismatches (e.g. L10 80,000 = 8,000x10).
+ * Consistent with cited 1 gp = 10 credits mapping. Unit differs: this file
+ * stores gp, SF2e prints credits. SF2e permanent-item / consumable /
+ * party-currency split columns have no counterpart here.
  *
  * The published table covers CHARACTER levels 1-20 only (this is a
  * party-progression table, not a creature table): it is the total treasure a
@@ -144,26 +151,12 @@ export const RESISTANCE = {
  * (consistent with the 17-19 trend). These edge rows are a reasoned
  * assumption, not published data.
  *
- * Transcription-confidence note: levels 1-12 were recalled with high
- * confidence; the exact digits for 13-20 are less certain (the order of
- * magnitude and shape are right). One shape anomaly worth flagging rather
- * than silently "fixing": the 19→20 step (355,000 → 490,000, ×1.38) breaks
- * the accelerating ×1.55/×1.63/×1.71 run just before it. That may well be
- * how the book prints it (level 20 is the campaign's final level), but if a
- * high-level game feels off, this row is the one to re-check against the
- * book.
+  * Verified 2026-09-26: L1-20 totals match the SF2e Party Treasure table at
+ * x10 exactly, including the 19→20 step (355,000 → 490,000 gp;
+ * 3,550,000 → 4,900,000 credits). Shape anomaly retained as printed source
+ * data, not a transcription error.
  *
- * Re-checked (issue #50 item 8): a second independent recall pass reproduced
- * every row unchanged, including the 19→20 anomaly above verbatim — no digit
- * corrections came out of it. This is NOT the same as a primary-source
- * verification, though: every external fetch tool available this session
- * (WebFetch, and direct requests to Archives of Nethys/pf2easy/pf2calc/even
- * plain sites like Wikipedia) returned 403 — a session-wide network
- * restriction, not this table being unreachable specifically — so this could
- * only be cross-checked against itself, not the book. Confidence is
- * unchanged from before; if it matters for a real game, a 30-second manual
- * check against GM Core/Player Core (or Archives of Nethys, ID=2656) from a
- * normal browser is still the only way to actually close this out. */
+ * ORC-licensed reference data — see README attribution section. */
 export const TREASURE_BY_LEVEL = {
   //      lvl  -1   0    1    2    3    4     5     6     7     8     9    10
   total: [    45,  90, 175, 300, 500, 850, 1350, 2000, 2900, 4000, 5700, 8000,
@@ -173,14 +166,15 @@ export const TREASURE_BY_LEVEL = {
           710000, 1030000, 1500000, 2200000]
 };
 
-/* Uncommon/rare/unique creatures carry above-average treasure for their
- * level — module design choice layered on top of the level baseline. */
+/* NO SF2e SOURCE — module design choice layered on top of the level baseline:
+ * uncommon/rare/unique creatures carry above-average treasure for their level. */
 export const RARITY_TREASURE_MULTIPLIER = { common: 1, uncommon: 1.5, rare: 2.5, unique: 4 };
 
-/* How many encounters a party plays per level, derived from GM Core's actual
- * numbers rather than guessed: a party needs 1,000 XP to level up, and a
- * Moderate encounter for a 4-player party costs 80 XP (see encounter.mjs
- * THREATS.moderate) — 1000/80 = 12.5 encounters. This converts the per-level
+/* How many encounters a party plays per level: Moderate = 80 XP CITED via
+ * GM Screen "Encounter Budget" page (WZgFEMDSP9TvYc4u, pg 75); per-creature
+ * XP ladder CITED via "XP Awards" page (ZcddTU02joqYuuoV, pg 56). The
+ * "1,000 XP to level" premise is UNVERIFIED against an SF2e source — derivation
+  * 1000/80 = 12.5 stays as stated assumption. This converts the per-level
  * treasure total above into a per-encounter (per-creature) share. Previously
  * hardcoded to 4 as a "reasoned pacing assumption", which overpaid treasure
  * per encounter by ~3x — bug caught in live play testing. CAVEAT: GM Core
@@ -192,8 +186,8 @@ export const RARITY_TREASURE_MULTIPLIER = { common: 1, uncommon: 1.5, rare: 2.5,
  * back up. */
 export const ENCOUNTERS_PER_LEVEL = 1000 / 80;
 
-/* The per-generation "Treasure amount" control (Stingy/Standard/Generous),
- * applied on top of the level + rarity budget. */
+/* NO SF2e SOURCE — module design choice. The per-generation "Treasure amount"
+ * control (Stingy/Standard/Generous), applied on top of level + rarity budget. */
 export const TREASURE_AMOUNT_MULTIPLIER = { stingy: 0.5, standard: 1, generous: 1.5 };
 
 /**
