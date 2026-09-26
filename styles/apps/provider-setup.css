@@ -1,0 +1,112 @@
+/* ==========================================================================
+   simplySF2e — provider setup window (templates/provider-setup.hbs only).
+   Loaded after styles/simplysf2e.css; tokens and shared kit live there.
+   ========================================================================== */
+
+.simplysf2e .simplysf2e-provider-setup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spf-space-lg);
+  padding: var(--spf-space-sm);
+}
+
+.simplysf2e .simplysf2e-provider-setup .form-group {
+  margin: 0;
+}
+
+.simplysf2e .simplysf2e-provider-setup .hint {
+  margin: 0.15rem 0 0;
+  font-size: var(--spf-text-sm);
+  opacity: 0.75;
+}
+
+.simplysf2e .spf-provider-presets {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--spf-space-sm);
+}
+
+/* Connection bank: notched frame matching the shared cards. */
+.simplysf2e .spf-connection-bank {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spf-space-xs);
+  border: 1px solid var(--spf-border);
+  background: var(--spf-surface);
+  box-shadow: var(--spf-inset-glow);
+  padding: var(--spf-space-md) var(--spf-space-lg);
+  clip-path: polygon(0 0, calc(100% - var(--spf-cut)) 0, 100% var(--spf-cut), 100% 100%, 0 100%);
+}
+
+.simplysf2e .spf-connection-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spf-space-sm);
+  align-items: center;
+}
+
+.simplysf2e .spf-connection-row select {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+.simplysf2e .spf-connection-row button {
+  flex: 0 0 auto;
+  width: 2.1rem;
+  min-height: 2.1rem;
+  padding: 0;
+}
+
+.simplysf2e .spf-provider-presets button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spf-space-xs);
+  min-width: 0;
+  padding: var(--spf-space-sm);
+  opacity: 0.72;
+}
+
+.simplysf2e .spf-provider-presets button.spf-provider-preset-active {
+  opacity: 1;
+  font-weight: bold;
+  background: var(--spf-brand-soft);
+  border-color: var(--spf-brand-accent);
+  box-shadow: inset 0 0 0 1px var(--spf-brand-accent), var(--spf-neon-glow);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--spf-brand-accent) 60%, transparent);
+}
+
+.simplysf2e .spf-provider-clear-key {
+  display: flex;
+  align-items: center;
+  gap: var(--spf-space-sm);
+}
+
+.simplysf2e .spf-model-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spf-space-sm);
+}
+
+.simplysf2e .spf-model-picker input {
+  flex: 1 1 14rem;
+  min-width: 0;
+}
+
+.simplysf2e .spf-model-picker button {
+  flex: 1 0 auto;
+  width: auto;
+}
+
+.simplysf2e .spf-provider-privacy {
+  margin: 0;
+}
+
+/* --------------------------------------------------------------------------
+   Narrow windows (down to 360px)
+   -------------------------------------------------------------------------- */
+@media (max-width: 520px) {
+  .simplysf2e .spf-provider-presets {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

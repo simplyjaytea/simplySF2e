@@ -18,7 +18,8 @@ const [generator, itemForge, providerSetup, managePresets, sources, progress, ge
   read("scripts/generator-app.mjs"),
   read("scripts/itemforge-app.mjs"),
   read("scripts/app-base.mjs"),
-  read("styles/simplysf2e.css"),
+  read("module.json").then(async (manifest) =>
+    (await Promise.all(JSON.parse(manifest).styles.map(read))).join("\n")),
   read("lang/en.json")
 ]);
 
