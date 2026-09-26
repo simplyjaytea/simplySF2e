@@ -281,7 +281,7 @@ export function validateArchetypeSlotPlacement(slots, feats, context = null) {
     const slotLevel = readableSlotLevel(slot);
     const label = typeof fill?.name === "string" && fill.name.trim() ? fill.name.trim() : `slot ${slotLevel ?? "?"}`;
     if (slot?.archetype !== true || slot?.type !== "class" || slotLevel === null) {
-      drop(index, label, "not a readable even-level archetype class slot");
+      drop(index, label, "not a readable archetype class slot");
       continue;
     }
     if (!fill || fill.entry == null) {
