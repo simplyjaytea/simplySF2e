@@ -4,6 +4,13 @@ This file is inherited from the simplyPF2e scaffold. It is PF2e-era history, not
 
 Full session-by-session narrative, process notes, and the bug log. Not loaded by default context the way CLAUDE.md is — read this when you need to know *why* something is the way it is, whether a past session already investigated something, or what a specific PR actually changed. Newest first.
 
+## 2026-09-26 — Starfinder 2e UI overhaul (Orca orchestrated)
+
+- Started from `origin/main` tip `c297997` (PR #6 Operative & Casters / published **v0.0.6**) on branch `cursor/sf2e-ui-theming`. Coordinated via Orca orchestration (`run_d2b407bb75f6`).
+- Replaced generator and app fantasy glyphs with space-fantasy sci-fi iconography: Monster -> `fa-dna` (xenobiology/alien life), NPC -> `fa-id-badge` (personnel/contact), Encounter -> `fa-crosshairs` (tactical ops), Character -> `fa-user-astronaut` (spacefarer/operative), and uplink hints -> `fa-satellite-dish`. Updated localized tooltips in `lang/en.json`.
+- Infused authentic Starfinder 2e sci-fi HUD styling in `styles/simplysf2e.css`: subtle holographic scanline/grid textures on cards and window content, high-tech chamfered/angled corner ticks, glowing neon cyan/violet accents on primary buttons (`button.spf-primary`), sci-fi segmented comms/mode toggles (`.spf-mode-toggle`), telemetry progress bar with pulsing scan sheen and full `prefers-reduced-motion` compliance, HUD readout fieldset legends, and console inputs.
+- Preserved all `ui.layout.test.mjs` contract assertions and extended test coverage with assertions for new sci-fi glyphs, absence of old fantasy glyphs, and HUD card/accent styles. Verified `node --check` and all 85 test suites pass with 0 failures.
+
 ## 2026-09-26 — Operative specialization staging and SF2e caster tables
 
 - Started from `origin/main` tip `2af1658` (PR #5 Chrome S / published **v0.0.5**) on `cursor/operative-and-casters`.

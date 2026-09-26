@@ -1,8 +1,8 @@
-<div class="simplysf2e-sources">
-  <p class="spf-hint">{{localize "SIMPLYSF2E.Sources.Hint"}}</p>
+<div class="simplysf2e-sources spf-hud">
+  <p class="spf-hint spf-hud-accent"><i class="fa-solid fa-satellite-dish" aria-hidden="true"></i> {{localize "SIMPLYSF2E.Sources.Hint"}}</p>
 
   {{#each categories}}
-    <fieldset class="spf-source-category spf-card">
+    <fieldset class="spf-source-category spf-card spf-hud-frame">
       <legend>{{localize this.label}}</legend>
       {{#if this.packs.length}}
         {{#each this.packs}}
@@ -18,7 +18,7 @@
     </fieldset>
   {{/each}}
 
-  <footer class="spf-actions">
+  <footer class="spf-actions spf-hud-actions">
     <button type="submit" class="spf-primary">
       <i class="fa-solid fa-floppy-disk"></i> {{localize "SIMPLYSF2E.Sources.Save"}}
     </button>

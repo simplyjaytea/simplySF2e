@@ -55,21 +55,21 @@
       {{/if}}
     </legend>
     <div class="spf-mode-toggle" role="radiogroup" aria-label="{{localize 'SIMPLYSF2E.Generator.ModeLabel'}}">
-      <label class="{{#if monsterMode}}spf-mode-active{{/if}}">
+      <label class="{{#if monsterMode}}spf-mode-active{{/if}}" data-tooltip="{{localize 'SIMPLYSF2E.Mode.MonsterHint'}}">
         <input type="radio" name="mode" value="monster" {{#if monsterMode}}checked{{/if}}>
-        <i class="fa-solid fa-dragon"></i> {{localize "SIMPLYSF2E.Mode.Monster"}}
+        <i class="fa-solid fa-dna"></i> {{localize "SIMPLYSF2E.Mode.Monster"}}
       </label>
-      <label class="{{#if npcMode}}spf-mode-active{{/if}}">
+      <label class="{{#if npcMode}}spf-mode-active{{/if}}" data-tooltip="{{localize 'SIMPLYSF2E.Mode.NpcHint'}}">
         <input type="radio" name="mode" value="npc" {{#if npcMode}}checked{{/if}}>
-        <i class="fa-solid fa-user-tie"></i> {{localize "SIMPLYSF2E.Mode.Npc"}}
+        <i class="fa-solid fa-id-badge"></i> {{localize "SIMPLYSF2E.Mode.Npc"}}
       </label>
-      <label class="{{#if encounterMode}}spf-mode-active{{/if}}">
+      <label class="{{#if encounterMode}}spf-mode-active{{/if}}" data-tooltip="{{localize 'SIMPLYSF2E.Mode.EncounterHint'}}">
         <input type="radio" name="mode" value="encounter" {{#if encounterMode}}checked{{/if}}>
-        <i class="fa-solid fa-people-group"></i> {{localize "SIMPLYSF2E.Mode.Encounter"}}
+        <i class="fa-solid fa-crosshairs"></i> {{localize "SIMPLYSF2E.Mode.Encounter"}}
       </label>
-      <label class="{{#if characterMode}}spf-mode-active{{/if}}">
+      <label class="{{#if characterMode}}spf-mode-active{{/if}}" data-tooltip="{{localize 'SIMPLYSF2E.Mode.CharacterHint'}}">
         <input type="radio" name="mode" value="character" {{#if characterMode}}checked{{/if}}>
-        <i class="fa-solid fa-user"></i> {{localize "SIMPLYSF2E.Mode.Character"}}
+        <i class="fa-solid fa-user-astronaut"></i> {{localize "SIMPLYSF2E.Mode.Character"}}
       </label>
     </div>
     <div class="form-group stacked">
