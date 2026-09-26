@@ -108,7 +108,7 @@ Inherited PF2e-era notes for the scaffolded builders. They are **not** SF2e sche
 
 ## Current state (2026-09-26)
 
-**Starfinder 2e "Neon Drift" UI overhaul.** simplySF2e identity is `simplysf2e` / SimplySF2e, targeting system **`sf2e` 1.5.0**. Published GitHub release is **v0.0.6**. Status is **Alpha**. Git is authoritative for branch state; [HANDOFF.md](HANDOFF.md) is the live baton.
+**Starfinder 2e "Neon Drift" UI overhaul.** simplySF2e identity is `simplysf2e` / SimplySF2e, targeting system **`sf2e` 1.5.0**. Status is **Alpha**. Every merge to `main` publishes the next tag; check GitHub Releases for the current version rather than pinning it here. Git is authoritative for branch state; [HANDOFF.md](HANDOFF.md) is the live baton.
 
 - **Pack defaults:** `DEFAULT_PACKS` uses real `sf2e.*` collection ids from `system.sf2e.json` 1.5.0 (`classes`, `class-features`, `feats`, `spells`, `equipment`, `ancestries`, `heritages`, `backgrounds`, `bestiary-ability-glossary-srd`, `alien-core-bestiary`).
 - **Chrome:** cited SF2e navy/cyan/violet tokens (`src/styles/sf2e/index.scss`) plus a magenta primary action and per-mode accents (`--spf-mode-*`). Shared kit lives in `styles/simplysf2e.css`; rules used by one template live in `styles/apps/<app>.css`; `module.json` `styles` lists the shared file first. Narrow-window rules use `@container spf-window` on `.window-content` (never viewport `@media`) because Foundry windows resize inside a wide viewport.

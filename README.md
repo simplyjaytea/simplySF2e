@@ -10,7 +10,7 @@ Paste this manifest URL into **Foundry → Add-on Modules → Install Module**:
 https://github.com/simplyjaytea/simplySF2e/releases/latest/download/module.json
 ```
 
-Current published release: **v0.0.4** (Alpha). A merge to `main` auto-releases the next tag.
+Every merge to `main` auto-publishes the next release tag (Alpha). See [Releases](https://github.com/simplyjaytea/simplySF2e/releases) for the current version.
 
 ## Status
 
