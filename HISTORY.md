@@ -4,6 +4,17 @@ This file is inherited from the simplyPF2e scaffold. It is PF2e-era history, not
 
 Full session-by-session narrative, process notes, and the bug log. Not loaded by default context the way CLAUDE.md is — read this when you need to know *why* something is the way it is, whether a past session already investigated something, or what a specific PR actually changed. Newest first.
 
+## 2026-09-26 — Operative specialization staging and SF2e caster tables
+
+- Started from `origin/main` tip `2af1658` (PR #5 Chrome S / published **v0.0.5**) on `cursor/operative-and-casters`.
+- Operative added to `COMPLETE_PC_CLASS_SLUGS` (`pc-support.mjs`), making all six standard SF2e classes (Envoy, Mystic, Operative, Solarian, Soldier, Witchwarper) complete-only.
+- `stageClassPaths` in `class-paths.mjs` closes level-1 specialization skill-feat ChoiceSets (`item:category:skill`, `item:level:1`) bounded to candidates proved by the specialization's unpredicated ActiveEffectLike skill upgrade. Sniper's `class:operative`-gated `bonusFeat` ChoiceSet closed with exact compendium source options (`Keep Them in Your Sights`, `Scope Sight`).
+- `planClassPaths` plans level-1 class paths before feat slots are planned, merging granted skills into `provenSkills`. For Operatives with `Specialized Skill Set` (level 3 feature in `classDoc.system.items`), skill feat slots at levels 3, 7, and 15 are strictly constrained via `prerequisiteContext.allowedSkillFeats: [operativeSkill]` to the specialization's trained skill (Ghost -> deception, Infiltrator -> computers, Skirmisher -> acrobatics, Sniper -> stealth, Striker -> athletics). Level 2 skill slot remains an unrestricted skill slot.
+- `generator-app.mjs` wires choice selection before `selectFeats` when needed, preserves `resolved.pathPlan` across `exactContent` re-resolves, and passes `resolved.pathPlan` into `stageClassPaths` to guarantee zero divergence without mutating `concept`.
+- `pc-builder.mjs` aggregates already-granted/planned feat UUIDs and names into `excludeFeats` for `stageClassPaths`, strictly gating on a resolved `entry` (so ungrounded draft feats with `entry: null` are never excluded, and strict refs `{packId, _id}` are handled).
+- SF2e Caster Profiles: Mystic and Witchwarper profiles added to `pc-tables.mjs` under publication title `"Starfinder Player Core"` (`remaster: true`). Tables verified against v14-dev `journals/classes.json`: 3 base slots per rank, 5 cantrips, 10th-rank slot + 2 repertoire picks at levels 19-20. Witchwarper casting attribute uses `ability: null` to inherit the player's chosen key attribute (Cha or Int).
+- Added regression tests `scripts/pc-builder.specializedSkillSet.test.mjs` and `scripts/pc-builder.stageClassPaths-exclude.test.mjs`. Full suite: 85 test files passing.
+
 ## 2026-09-08 — Chrome S: generator HUD polish
 
 - Started from `origin/main` `2c07cc6` (PR #4 Phase B2 alpha). Cited `foundryvtt/pf2e` **v14-dev** `src/styles/sf2e/index.scss` tokens only. Deepened existing navy/cyan Application chrome (window header, cards, mode radios, Advanced, generate/cancel, progress sheen, trust/status contrast). No custom art. Busy class on generator root + Application element. README Status notes Alpha HUD polish honestly.

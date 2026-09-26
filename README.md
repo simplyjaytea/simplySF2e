@@ -23,12 +23,11 @@ What works as far as node tests allow (live Foundry QA is still outstanding):
 - Generated loot/wealth assembles as **Credits/Credstick** and **UPB** from cited v14-dev templates. Gold-piece language converts at 1 gp = 10 credits (`DENOMINATION_RATES`). Starting-wealth math is the inherited Table 10-10 lump sum, **surfaced in credits**.
 - Generator/forge/provider chrome uses cited SF2e navy/cyan tokens (no system artwork). Alpha polish deepens that HUD (panel ticks, mode/progress/button chrome, readable trust lines) on the module’s own Application windows only.
 - Monster / NPC / Encounter pipelines: fail-closed grounding against enabled `sf2e` packs.
-- Complete-only Character generation for **Envoy, Mystic, Solarian, Soldier, Witchwarper** — L1 class paths use cited `item:tag:` ChoiceSet + GrantItem bridges (`stageClassPaths`). Solarian has no L1 item:tag path (Solar Manifestations is GrantItem/Strike REs).
+- Complete-only Character generation for all six published classes: **Envoy, Mystic, Operative, Solarian, Soldier, Witchwarper** — L1 class paths use cited `item:tag:` ChoiceSet + GrantItem bridges (`stageClassPaths`), with Operative's specialization skill feat and Sniper's bonus feat choices closed before create. Solarian has no L1 item:tag path (Solar Manifestations is GrantItem/Strike REs).
+- Cited SF2e spellcasting tables for **Mystic** and **Witchwarper** in `pc-tables.mjs` matching `sf2e` v14-dev journal tables (3 base slots per rank, 5 cantrips, 10th-rank spell at level 19).
 
 Limitations (honest residuals):
 
-- **Operative** is not complete-only. Every specialization option carries a non-static `item:category:skill` ChoiceSet; unlocking would throw or invent a skill-feat resolver.
-- Mystic/Witchwarper spell slot tables are still the inherited PF2e Remaster approximation, not cited SF2e casting tables.
 - Building Creatures / Treasure-by-Level **numbers** in `tables.mjs` remain inherited PF2e-compatible benchmarks — not Starfinder-authored.
 - Equipment grades: match published `sf2e.equipment` names (including a grade word when the catalog name has one). Do not invent `+1 striking` prefixes; v14-dev `Migration942EquipmentGrade` maps potency/striking onto `system.grade` and zeros runes. Item Forge rune assembly is still PF2e-era and unverified live.
 - Free Archetype graphs, custom art, and elite/weak adjustments are out of scope.

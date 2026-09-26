@@ -5,19 +5,19 @@ import {
 } from "./pc-support.mjs";
 
 assert.deepEqual([...COMPLETE_PC_CLASS_SLUGS].sort(),
-  ["envoy", "mystic", "solarian", "soldier", "witchwarper"],
-  "complete-only includes cited SF2e item:tag path classes, not Operative");
+  ["envoy", "mystic", "operative", "solarian", "soldier", "witchwarper"],
+  "complete-only is exactly the six published SF2e classes");
 const candidates = ["Soldier", "Envoy", "Operative", "Fighter", "Rogue", "Investigator", "Witchwarper", "Mystic", "Solarian"].map((name) => ({ name }));
 assert.deepEqual(supportedClassCandidates(candidates).map((c) => c.name),
-  ["Soldier", "Envoy", "Witchwarper", "Mystic", "Solarian"],
-  "complete-only selection is the five cited SF2e classes");
+  ["Soldier", "Envoy", "Operative", "Witchwarper", "Mystic", "Solarian"],
+  "complete-only selection keeps SF2e classes in offered order and drops PF2e classes");
 assert.equal(isCompletePCClass("Soldier"), true);
 assert.equal(isCompletePCClass("Envoy"), true);
 assert.equal(isCompletePCClass("Mystic"), true);
 assert.equal(isCompletePCClass("Solarian"), true);
 assert.equal(isCompletePCClass("Witchwarper"), true);
-assert.equal(isCompletePCClass("Operative"), false,
-  "Operative specializations are not closed under stageClassPaths");
+assert.equal(isCompletePCClass({ name: "Operative" }), true,
+  "Operative specializations are staged closed by stageClassPaths");
 assert.equal(isCompletePCClass("Fighter"), false);
 assert.equal(isCompletePCClass("Rogue"), false);
 assert.equal(isCompletePCClass("Investigator"), false);

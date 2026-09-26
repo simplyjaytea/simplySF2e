@@ -106,19 +106,19 @@ Inherited PF2e-era notes for the scaffolded builders. They are **not** SF2e sche
 - A character's `resources.focus.max` is zeroed every prep and rebuilt only from ActiveEffectLike rules, so the PC focus pool needs a cloned RE; an NPC's can be plain actor data.
 - v14-dev `ActorInventory.addCurrency` clones bundled `credstick.json` / `upb.json` for credits/UPB and still lists classic coin UUIDs on `pf2e.equipment-srd` (`src/module/actor/inventory/index.ts`). Credits quantity is stored on `system.price.value` (`sp` on create; prepared `.credits`). Do not invent sf2e gold-piece UUIDs. This module maps gold-piece loot language onto Credstick and assembles those cited templates.
 
-## Current state (2026-09-08)
+## Current state (2026-09-26)
 
-**Phase B2 alpha + Chrome S.** simplySF2e identity is `simplysf2e` / SimplySF2e, targeting system **`sf2e` 1.5.0**. Published GitHub release is **v0.0.4**. This PR auto-releases as **v0.0.5** on merge. Status is **Alpha**. Git is authoritative for branch state; [HANDOFF.md](HANDOFF.md) is the live baton.
+**Operative Staging & SF2e Caster Tables.** simplySF2e identity is `simplysf2e` / SimplySF2e, targeting system **`sf2e` 1.5.0**. Published GitHub release is **v0.0.5**. Status is **Alpha**. Git is authoritative for branch state; [HANDOFF.md](HANDOFF.md) is the live baton.
 
 - **Pack defaults:** `DEFAULT_PACKS` uses real `sf2e.*` collection ids from `system.sf2e.json` 1.5.0 (`classes`, `class-features`, `feats`, `spells`, `equipment`, `ancestries`, `heritages`, `backgrounds`, `bestiary-ability-glossary-srd`, `alien-core-bestiary`).
 - **Chrome:** generator/forge/provider/preset windows use cited SF2e navy/cyan/violet tokens (`src/styles/sf2e/index.scss`); Alpha HUD polish on module Application windows only (no system artwork).
 - **Standard presets:** the six published SF2e classes only (envoy, mystic, operative, solarian, soldier, witchwarper). Flavor guides; scale-words only.
 - **Currency:** generated loot/wealth prefers **credits** (Credstick) and **UPB** via verbatim copies of v14-dev `credstick.json` / `upb.json`. Gold-piece AI language converts through cited `DENOMINATION_RATES` (1 gp = 10 credits). Starting-wealth math is surfaced in credits via `gpToCredits` / `pcStartingWealthCredits`. Classic `pf2e.equipment-srd` coin UUIDs are not the happy path and are not invented under `sf2e.equipment`.
 - **Tables:** `tables.mjs` numbers are unchanged inherited PF2e-compatible benchmarks. Header/README/HANDOFF state they are **not** Starfinder-authored.
-- **Complete-only registry:** envoy, mystic, solarian, soldier, witchwarper. Cited `item:tag:` L1 bridges staged by `stageClassPaths`. Operative locked (non-static skill-feat ChoiceSet on every specialization). Solarian has no L1 item:tag path.
+- **Complete-only registry:** all six published SF2e classes: envoy, mystic, operative, solarian, soldier, witchwarper. Cited `item:tag:` L1 bridges staged by `stageClassPaths`, including Operative specialization skill-feat and Sniper bonus-feat preselection. Solarian has no L1 item:tag path.
 - **Equipment grades:** match published `sf2e.equipment` names. PF2e rune-prefix happy path disabled (v14-dev `Migration942EquipmentGrade`; no Weapon Potency/Striking/Resilient docs in `sf2e.equipment`).
 - **Rest hook residual:** v14-dev still fires `Hooks.callAll("pf2e.restForTheNight", actor)`. No `sf2e.restForTheNight` is cited. The module keeps that exact string.
-- **Still later:** Operative skill-feat staging, citing SF2e Building Creatures numbers, Item Forge live verification, Free Archetype graphs.
+- **Still later:** citing SF2e Building Creatures numbers, Item Forge live verification, Free Archetype graphs.
 - **Inherited code:** NPC/PC/forge pipelines, fail-closed grounding, cloned Rule Elements. Treat [HISTORY.md](HISTORY.md) as parent-project history, not simplySF2e releases.
 
 **Recorded live evidence:** none for simplySF2e.
@@ -129,7 +129,7 @@ Inherited from the PF2e scaffold and **not re-evaluated for SF2e**. Do not treat
 
 - **Skill completion limits:** unknown grant timing, non-floor native rank transformations, and missing class data are warned rather than inferred. Duplicate native feat grants and arbitrary new Lore replacements remain manual; this is not full feat-prerequisite validation or a historical level-up simulator. The latest native-clone/skill-write workflow has not been live-tested.
 
-- **PC casting coverage:** inherited PF2e Remaster profiles remain in `pc-tables.mjs` and are not SF2e casting tables. Mystic and Witchwarper complete-only still use that approximation.
+- **PC casting coverage:** Mystic and Witchwarper now have cited SF2e spontaneous profiles and slot tables in `pc-tables.mjs` matching v14-dev journal tables (3 base slots per rank, 5 cantrips, 10th-rank spell at level 19).
 - **Free Archetype prerequisite graph is unbuilt** — level-2+ complete one-click generation stops before provider spend because that extra feat graph is not evaluated. Ordinary (non-variant) feat prerequisites now use the fail-closed staged-actor evaluator. Native `archetype-<level>` slot placement is exact.
 - **Focus spells, v1 scope:** a focus-only NPC (no casting tradition, so no DC) is unsupported, and the pool-size convention (spell count, capped at 3) is a module default, not GM Core guidance. Both are signed-off decisions.
 - **Rarity cap covers ancestry/background/heritage only** — feats/spells/equipment were explicitly excluded. `getFullCandidates()`'s `maxRarity` + `RARITY_RANK` are already in place if extending is wanted.

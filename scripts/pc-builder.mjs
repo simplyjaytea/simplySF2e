@@ -11,7 +11,7 @@ import { ABILITY_BOOST_LEVELS, PC_WEALTH_BY_LEVEL, buildFeatSlots, featSlotLocat
 import { SETTINGS, getSetting } from "./settings.mjs";
 import { CORE_SKILLS, SKILL_ATTRIBUTES, normalizeSkillPriorities, initialSkillTraining, allocateCharacterSkills, characterSkillSnapshot } from "./pc-skills.mjs";
 import { applyCharacterLoadout } from "./pc-loadout.mjs";
-import { stageClassPaths } from "./class-paths.mjs";
+import { planClassPaths, stageClassPaths } from "./class-paths.mjs";
 import { stagedActorContext } from "./pc-prerequisites.mjs";
 import { gpToCredits } from "./currency.mjs";
 
@@ -244,7 +244,7 @@ async function fallbackHeritageFor(ancestryDoc) {
  * happens in generator-app via ai.mjs's selectFeats(), mirroring how AI calls
  * live in the app while resolution lives here for the NPC pipeline too.
  */
-export async function resolvePCConcept(concept, { exactContent = false } = {}) {
+export async function resolvePCConcept(concept, { exactContent = false, pathPlan = null, selectChoices = null } = {}) {
   // ABC lookups scan ALL installed packs of the right type (getAllPacksFor),
   // not just the hardcoded default pack, so a legit AI pick living in a Lost
   // Omens / add-on compendium still resolves instead of aborting the run (#51).
@@ -296,6 +296,30 @@ export async function resolvePCConcept(concept, { exactContent = false } = {}) {
     ? backgroundDoc.system.trainedSkills.lore : [])
     .filter((name) => typeof name === "string" && name.trim())
     .map((name) => [slugify(name), 1]));
+
+  if (!pathPlan) {
+    const pathContext = { names: conceptChoiceNames(concept, { ancestryDoc, heritageDoc, backgroundDoc, classDoc }) };
+    pathPlan = await planClassPaths(classDoc, { context: pathContext, selectChoices });
+  }
+
+  for (const planned of Object.values(pathPlan ?? {})) {
+    for (const [skillSlug, rank] of Object.entries(planned.skills ?? {})) {
+      provenSkills[skillSlug] = Math.max(provenSkills[skillSlug] ?? 0, rank);
+    }
+  }
+
+  const hasSpecializedSkillSet = Object.values(classDoc.system?.items ?? {}).some((feature) =>
+    Number(feature?.level) === 3 && (
+      [
+        "Compendium.sf2e.class-features.Item.N6fZPvGFrS8LZgnE",
+        "Compendium.sf2e.class-features.Item.Specialized Skill Set"
+      ].includes(feature?.uuid) ||
+      (typeof feature?.uuid === "string" && feature.uuid.toLowerCase().includes("specialized-skill-set")) ||
+      slugify(feature?.name) === "specialized-skill-set"
+    ));
+  const operativePlan = pathPlan?.["operative-specialization"];
+  const operativeSkill = operativePlan?.trainedSkill ?? null;
+
   // Published Skillful Lessons limits Investigator's odd-level skill feats
   // to mental skills or its methodology skill. Prove the mental-skill branch
   // from ordinary rank prerequisites; methodology-only and generic choices
@@ -313,11 +337,14 @@ export async function resolvePCConcept(concept, { exactContent = false } = {}) {
   const featSlots = [];
   const freeArchetype = Boolean(getSetting(SETTINGS.freeArchetype));
   for (const slot of buildFeatSlots(concept.level, { freeArchetype, classSystem: classDoc.system })) {
+    const isSpecializedSlot = hasSpecializedSkillSet && slot.type === "skill" && [3, 7, 15].includes(slot.level);
     const prerequisiteContext = stagedActorContext({
       level: slot.level, ancestry: ancestryDoc, heritage: heritageDoc,
       background: backgroundDoc, class: classDoc, skills: { ...provenSkills, ...loreSkills },
-      allowedSkillFeats: skillfulLessons && slot.type === "skill" && slot.level >= 3 && slot.level % 2 === 1
-        ? mentalSkills : null
+      allowedSkillFeats: isSpecializedSlot
+        ? (operativeSkill ? [operativeSkill] : [])
+        : (skillfulLessons && slot.type === "skill" && slot.level >= 3 && slot.level % 2 === 1
+          ? mentalSkills : null)
     });
     const traits = slot.archetype ? ["archetype"]
       : slot.type === "ancestry" ? [ancestryTrait]
@@ -326,11 +353,6 @@ export async function resolvePCConcept(concept, { exactContent = false } = {}) {
       level: slot.level, category: slot.type, traits, preferredNames: concept.feats,
       prerequisiteContext
     });
-    // Retry once without the trait filter before giving up: a valid slot
-    // whose ancestry/class trait matched nothing at this level (odd content
-    // packs, sparse low levels) is better filled with an on-category feat than
-    // silently dropped. Archetype slots keep their trait (loosening would just
-    // give plain class feats, defeating the slot). Issue #64 item 4a.
     if (!candidates.length && traits.length && !slot.archetype) {
       candidates = await getFeatCandidates({
         level: slot.level, category: slot.type, preferredNames: concept.feats,
@@ -339,9 +361,6 @@ export async function resolvePCConcept(concept, { exactContent = false } = {}) {
     }
     if (candidates.length) featSlots.push({ ...slot, candidates });
     else {
-      // Preserve the earned entitlement through selection and the completion
-      // manifest. Dropping an unsupported slot would let a character commit
-      // while appearing complete merely because no unresolved record existed.
       console.warn(`simplysf2e | no feat candidates for a ${slot.type}${slot.archetype ? " (archetype)" : ""} slot at level ${slot.level} — slot remains unresolved`);
       featSlots.push({ ...slot, candidates: [] });
     }
@@ -364,7 +383,7 @@ export async function resolvePCConcept(concept, { exactContent = false } = {}) {
   // pcStartingWealthGp()) is what actually fills it with coins.
   const loot = await resolveLoot(concept, { exactContent });
 
-  return { ancestryDoc, heritageDoc, backgroundDoc, classDoc, featSlots, spells, focusSpells, equipment, loot };
+  return { ancestryDoc, heritageDoc, backgroundDoc, classDoc, featSlots, spells, focusSpells, equipment, loot, pathPlan };
 }
 
 /**
@@ -709,8 +728,47 @@ export async function createCharacterActor(concept, resolved, { img = null, sele
   // Class.system.items, where the ordinary source preselector cannot reach
   // them. Stage only a proven exact bridge before Actor.create; all remaining
   // class grants still flow through PF2e's normal class item.
+  const excludeFeats = [];
+  for (const doc of [resolved.ancestryDoc, resolved.heritageDoc, resolved.backgroundDoc]) {
+    const docItems = doc?.system?.items;
+    if (docItems && typeof docItems === "object") {
+      for (const entry of Object.values(docItems)) {
+        if (typeof entry?.uuid === "string" && entry.uuid) excludeFeats.push(entry.uuid);
+        if (typeof entry?.name === "string" && entry.name) excludeFeats.push(entry.name);
+      }
+    }
+  }
+  for (const feat of resolved.feats ?? []) {
+    const entry = feat?.entry;
+    if (!entry) continue;
+    let added = false;
+    if (typeof entry === "string") {
+      excludeFeats.push(entry);
+      added = true;
+    } else if (typeof entry === "object") {
+      if (typeof entry.uuid === "string" && entry.uuid) {
+        excludeFeats.push(entry.uuid);
+        added = true;
+      } else if (entry.packId && entry._id) {
+        excludeFeats.push(`Compendium.${entry.packId}.Item.${entry._id}`);
+        added = true;
+      } else if (entry.ref?.packId && entry.ref?._id) {
+        excludeFeats.push(`Compendium.${entry.ref.packId}.Item.${entry.ref._id}`);
+        added = true;
+      } else if (typeof entry._stats?.compendiumSource === "string" && entry._stats.compendiumSource) {
+        excludeFeats.push(entry._stats.compendiumSource);
+        added = true;
+      }
+    }
+    if (added && typeof feat.name === "string" && feat.name) {
+      excludeFeats.push(feat.name);
+    }
+  }
   const stagedClassPaths = await stageClassPaths(classData, classId, {
-    context: { keyAbility, names: conceptChoiceNames(concept, resolved) }, selectChoices
+    context: { keyAbility, names: conceptChoiceNames(concept, resolved) },
+    selectChoices,
+    excludeFeats,
+    pathPlan: resolved.pathPlan ?? null
   });
   items.push(classData);
   items.push(...stagedClassPaths.items);

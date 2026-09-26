@@ -115,6 +115,13 @@ export function spontaneousSpellSlots(level) {
   return pcSpellSlots(level, null);
 }
 
+// SF2e rows: packs/sf2e/classes/{mystic,witchwarper}.json on
+// https://github.com/foundryvtt/pf2e/tree/v14-dev (publication "Starfinder Player
+// Core", remaster: true, no system.slug, so name matching applies). Casting ability:
+// mystic-spellcasting.json says Wisdom; witchwarper-spellcasting.json says Charisma
+// or Intelligence "depending on which you chose for your key attribute" (class
+// keyAbility.value ["cha","int"]), so null leaves ability to the chosen key attribute.
+// Tradition comes from connection or paradox. Both features grant "three 1st-rank spells".
 const REMASTER_SPELLCASTERS = [
   { slug: "bard", name: "Bard", title: "Pathfinder Player Core", mode: "spontaneous", ability: "cha", tradition: "occult", baseSlots: 2 },
   { slug: "sorcerer", name: "Sorcerer", title: "Pathfinder Player Core 2", mode: "spontaneous", ability: "cha", tradition: null, baseSlots: 3 },
@@ -122,7 +129,9 @@ const REMASTER_SPELLCASTERS = [
   { slug: "cleric", name: "Cleric", title: "Pathfinder Player Core", mode: "prepared", ability: "wis", tradition: "divine", baseSlots: 2 },
   { slug: "druid", name: "Druid", title: "Pathfinder Player Core", mode: "prepared", ability: "wis", tradition: "primal", baseSlots: 2 },
   { slug: "witch", name: "Witch", title: "Pathfinder Player Core", mode: "prepared", ability: "int", tradition: null, baseSlots: 2 },
-  { slug: "wizard", name: "Wizard", title: "Pathfinder Player Core", mode: "prepared", ability: "int", tradition: "arcane", baseSlots: 2 }
+  { slug: "wizard", name: "Wizard", title: "Pathfinder Player Core", mode: "prepared", ability: "int", tradition: "arcane", baseSlots: 2 },
+  { slug: "mystic", name: "Mystic", title: "Starfinder Player Core", mode: "spontaneous", ability: "wis", tradition: null, baseSlots: 3 },
+  { slug: "witchwarper", name: "Witchwarper", title: "Starfinder Player Core", mode: "spontaneous", ability: null, tradition: null, baseSlots: 3 }
 ];
 
 /** Conservative Remaster class profile. Class data itself contains only spell
@@ -137,9 +146,11 @@ export function pcSpellcastingProfile(classDoc) {
   return profile ? { mode: profile.mode, ability: profile.ability, tradition: profile.tradition, baseSlots: profile.baseSlots } : null;
 }
 
-/** Base slots only: seven class tables verified at every level against
- * https://raw.githubusercontent.com/foundryvtt/pf2e/pf2e-8.4.1/packs/pf2e/journals/classes.json
- * and master packs/journals/classes.json. Font/curriculum/feat bonuses are NOT
+/** Base slots only: nine class tables verified at every level against
+ * https://raw.githubusercontent.com/foundryvtt/pf2e/pf2e-8.4.1/packs/pf2e/journals/classes.json,
+ * master packs/journals/classes.json, and (Mystic/Witchwarper Spells per Day)
+ * https://raw.githubusercontent.com/foundryvtt/pf2e/v14-dev/packs/sf2e/journals/classes.json.
+ * Font/curriculum/feat bonuses are NOT
  * unrestricted base slots. Missing profiles retain the old 2/3 approximation. */
 export function pcSpellSlots(level, profile) {
   const baseSlots = profile?.baseSlots === 3 ? 3 : 2;
@@ -157,10 +168,13 @@ export function pcSpellSlots(level, profile) {
 /** Spell-list capacity is distinct from native casting slots for spontaneous
  * Remaster casters: their 10th-rank repertoire has two common picks at 19–20
  * while the entry still has one slot. Signature eligibility starts at level 3.
- * Only the three qualified spontaneous profiles above use this policy.
+ * Only the five qualified spontaneous profiles above use this policy.
  * Sources (master agrees under packs/classfeatures/):
  * https://raw.githubusercontent.com/foundryvtt/pf2e/pf2e-8.4.1/packs/pf2e/class-features/signature-spells.json
  * Same directory: magnum-opus.json, oracular-clarity.json, bloodline-paragon.json.
+ * SF2e (v14-dev packs/sf2e/class-features/): shared/signature-spells.json (level 3),
+ * mystic/transcendence.json and witchwarper/quantum-thesis.json (two 10th-rank
+ * repertoire spells, one 10th-rank slot).
  * Signature ranks are learned ranks, including ten; base rank controls native
  * downcasting, not which rank's signature choice is consumed. */
 export function pcSpellPlan(level, profile) {
