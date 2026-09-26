@@ -4,6 +4,14 @@ This file is inherited from the simplyPF2e scaffold. It is PF2e-era history, not
 
 Full session-by-session narrative, process notes, and the bug log. Not loaded by default context the way CLAUDE.md is — read this when you need to know *why* something is the way it is, whether a past session already investigated something, or what a specific PR actually changed. Newest first.
 
+## 2026-09-26 — tables-cite + Free Archetype slice (Orca orchestrated, merged to main at explicit user request)
+
+- Orca runs `run_2bb8541d81b3` (3 investigation workers) and `run_59e5cb012a20` (build + plan + independent review) coordinated from one terminal; all settled with zero reclaimable. Jev MCP used for claim verification (4/4 auto), roadmap decision (free-archetype-validation, confidence 1.0), and diff review (composite 0.90).
+- Tables investigation (read-only worker) vs live `foundryvtt/pf2e` v14-dev: LEVEL_DC L0-24 and TREASURE L1-20 totals (x10 credits) match with zero mismatches; all nine Building-Creatures stat arrays have no system source (57 GM Screen pages searched; nearest is Monster Adjustments delta-only, Alien Core pg 204/207). Applied as comment-only cites in `scripts/tables.mjs` on `cursor/table-cites`; live manifest drift noted (1.5.1 vs pinned 1.5.0).
+- Free Archetype slice on `cursor/free-archetype-archetype-slot-validation`: pure staged placement validation, L2+ hard stop retired, coordinator-approved test updates, independent reviewer ACCEPT. Reviewer caught 1 real nit (message claimed even-parity never enforced) fixed as `c12ea0c`; dead lang key left flagged.
+- Item Forge verification worker: 14 forge tests pass; pricing/usage-harvesting/assembly gaps listed; 7-step VPS checklist recorded.
+- Bug-log worthy: shared-worktree parallel edits need file-level ownership boundaries (tables.mjs vs pc files) to avoid branch collisions; `git -c` inline identity flags misparse in this shell — repo identity is already configured, commit bare.
+
 ## 2026-09-26 — Starfinder 2e UI overhaul (Orca orchestrated)
 
 - Started from `origin/main` tip `c297997` (PR #6 Operative & Casters / published **v0.0.6**) on branch `cursor/sf2e-ui-theming`. Coordinated via Orca orchestration (`run_d2b407bb75f6`).
