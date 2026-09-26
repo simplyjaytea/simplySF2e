@@ -30,9 +30,12 @@
 /* --------------------------------------------------------------------------
    Segmented mode switch
    -------------------------------------------------------------------------- */
+/* Four equal segments in wide windows; a 2x2 grid when the window is too
+   narrow for all four labels (auto-fit, no breakpoint needed). */
 .simplysf2e .spf-mode-toggle {
-  display: flex;
-  gap: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(8.5rem, 100%), 1fr));
+  gap: 2px;
   margin-bottom: var(--spf-space-md);
   padding: 2px;
   border: 1px solid var(--spf-border);
@@ -42,11 +45,11 @@
 }
 
 .simplysf2e .spf-mode-toggle label {
-  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.4rem;
+  min-width: 0;
   padding: var(--spf-space-sm);
   border: 1px solid transparent;
   border-radius: var(--spf-radius-sm);
@@ -56,6 +59,7 @@
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+  text-align: center;
 }
 
 .simplysf2e .spf-mode-toggle label:hover {
@@ -308,6 +312,12 @@
   color: var(--spf-success);
 }
 
+/* Grounding glyphs sit a hair off the name they annotate. */
+.simplysf2e .spf-preview .spf-statline i,
+.simplysf2e .spf-preview .spf-list i {
+  margin-left: 0.3em;
+}
+
 .simplysf2e .spf-match-summary {
   opacity: 0.85;
 }
@@ -419,11 +429,7 @@
 /* --------------------------------------------------------------------------
    Narrow windows (down to 360px)
    -------------------------------------------------------------------------- */
-@media (max-width: 520px) {
-  .simplysf2e .spf-mode-toggle {
-    gap: var(--spf-space-xs);
-  }
-
+@container spf-window (max-width: 520px) {
   .simplysf2e .spf-mode-toggle label {
     gap: var(--spf-space-xs);
     padding-inline: var(--spf-space-xs);

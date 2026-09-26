@@ -31,7 +31,9 @@
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  padding: 0.15rem var(--spf-space-xs);
+  min-height: 1.9rem;
+  padding: 0.15rem var(--spf-space-sm);
+  border-left: 2px solid transparent;
   border-radius: var(--spf-radius-sm);
   cursor: pointer;
 }
@@ -40,14 +42,37 @@
   background: var(--spf-brand-soft);
 }
 
+/* Checked packs carry an accent rail so the selection scans down a column. */
+.simplysf2e .spf-pack:has(input:checked) {
+  border-left-color: var(--spf-brand-accent);
+  background: color-mix(in srgb, var(--spf-brand-accent) 8%, transparent);
+}
+
+.simplysf2e .spf-pack:has(input:focus-visible) {
+  outline: 2px solid var(--spf-focus);
+  outline-offset: -2px;
+}
+
 .simplysf2e .spf-pack-title {
   flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .simplysf2e .spf-pack-source {
-  font-size: var(--spf-text-sm);
-  opacity: 0.7;
+  font-family: var(--spf-font-mono);
+  font-size: var(--spf-text-xs);
+  color: var(--spf-text-muted);
   white-space: nowrap;
+}
+
+/* Empty category: dashed inset so "no packs" reads as a state, not a row. */
+.simplysf2e .spf-source-category > .spf-hint {
+  margin: 0;
+  padding: var(--spf-space-sm);
+  border: 1px dashed var(--spf-border);
+  border-radius: var(--spf-radius-sm);
+  color: var(--spf-text-muted);
 }
 
 /* HUD hooks: must follow the shared .spf-hint / .spf-card rules they refine. */

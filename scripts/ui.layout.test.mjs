@@ -138,9 +138,15 @@ assert.match(
 );
 assert.match(
   css,
-  /@media \(max-width: 520px\)[\s\S]*?\.simplysf2e \.spf-row \.form-group\s*\{[^}]*flex-basis:\s*calc\(50%/s,
+  /\.window-content\s*\{[^}]*container:\s*spf-window \/ inline-size/s,
+  "the window content must be the size container, so narrow rules follow the window, not the viewport"
+);
+assert.match(
+  css,
+  /@container spf-window \(max-width: 520px\)[\s\S]*?\.simplysf2e \.spf-row \.form-group\s*\{[^}]*flex-basis:\s*calc\(50%/s,
   "narrow windows must use a readable two-column control layout"
 );
+assert.doesNotMatch(css, /@media \(max-width/, "narrow layout must query the window container, not the viewport");
 assert.match(css, /\.simplysf2e \.spf-provider-model\s*\{[^}]*text-overflow:\s*ellipsis;/s);
 assert.match(css, /\.simplysf2e \.spf-provider-presets\s*\{[^}]*grid-template-columns:\s*repeat\(3/s);
 assert.match(css, /\.simplysf2e \.spf-actions\s*\{[^}]*flex-wrap:\s*wrap;/s,

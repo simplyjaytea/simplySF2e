@@ -30,7 +30,7 @@
   </div>
   <div class="spf-provider-summary {{#if sourcesReady}}spf-provider-ready{{else}}spf-provider-attention{{/if}}">
     <span class="spf-provider-name"><i class="fa-solid fa-book-atlas"></i> <strong>{{localize "SIMPLYSF2E.Generator.CompendiumContent"}}</strong></span>
-    <span>{{#if sourcesReady}}{{localize "SIMPLYSF2E.Generator.SourcesReady" packCount=sourcePackCount}}{{else}}{{localize "SIMPLYSF2E.Generator.SourcesMissing" categories=sourceMissing}}{{/if}}</span>
+    <span class="spf-provider-detail">{{#if sourcesReady}}{{localize "SIMPLYSF2E.Generator.SourcesReady" packCount=sourcePackCount}}{{else}}{{localize "SIMPLYSF2E.Generator.SourcesMissing" categories=sourceMissing}}{{/if}}</span>
     <span class="spf-provider-actions"><button type="button" data-action="configureSources" aria-label="{{localize 'SIMPLYSF2E.Generator.ConfigureSources'}}" {{#if busy}}disabled{{/if}}><i class="fa-solid fa-gear"></i></button></span>
   </div>
   </div>
@@ -214,7 +214,9 @@
 
   {{#if created}}
   <section class="spf-preview spf-card" aria-label="{{localize 'SIMPLYSF2E.Generator.CompleteTitle'}}">
-    <h2>{{localize "SIMPLYSF2E.Generator.CompleteTitle"}}</h2>
+    <header class="spf-statblock-header">
+      <h2>{{localize "SIMPLYSF2E.Generator.CompleteTitle"}}</h2>
+    </header>
     <p>{{localize "SIMPLYSF2E.Generator.CompleteSummary" name=created.name count=created.count}}</p>
     {{#if created.grounding.total}}
       <h3>{{localize "SIMPLYSF2E.Generator.CompletionGrounding"}}</h3>
@@ -562,8 +564,10 @@
   {{/if}}
   {{#if characterReview}}
   <section class="spf-preview spf-card" aria-label="{{localize 'SIMPLYSF2E.Generator.ReviewTitle'}}">
-    <h2>{{localize "SIMPLYSF2E.Generator.ReviewTitle"}}</h2>
-    <h3>{{characterReview.actorName}}</h3>
+    <header class="spf-statblock-header">
+      <h2>{{localize "SIMPLYSF2E.Generator.ReviewTitle"}}</h2>
+    </header>
+    <p class="spf-subtitle">{{characterReview.actorName}}</p>
     <p>{{localize "SIMPLYSF2E.Skills.Snapshot"}}</p>
     {{#if characterReview.skills}}
       <h3>{{localize "SIMPLYSF2E.Skills.Result"}}</h3>
@@ -590,8 +594,8 @@
       {{/each}}
     </ul>
     <footer class="spf-actions">
-      <button type="button" data-action="openReviewedCharacter">{{localize "SIMPLYSF2E.Generator.OpenCharacter"}}</button>
-      <button type="button" data-action="dismissCharacterReview">{{localize "SIMPLYSF2E.Generator.DismissReview"}}</button>
+      <button type="button" class="spf-primary" data-action="openReviewedCharacter"><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i> {{localize "SIMPLYSF2E.Generator.OpenCharacter"}}</button>
+      <button type="button" data-action="dismissCharacterReview"><i class="fa-solid fa-xmark" aria-hidden="true"></i> {{localize "SIMPLYSF2E.Generator.DismissReview"}}</button>
     </footer>
   </section>
   {{/if}}

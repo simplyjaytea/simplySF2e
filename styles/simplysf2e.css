@@ -69,7 +69,9 @@
 
 /* --------------------------------------------------------------------------
    Window frame: keep resizable windows usable — never smaller than the
-   narrow layout that was browser-checked at 360px.
+   narrow layout that was browser-checked at 360px. The window content is
+   the size container for every narrow rule: Foundry windows resize inside
+   a wide viewport, so viewport media queries never see a narrow window.
    -------------------------------------------------------------------------- */
 .application.simplysf2e {
   min-width: 340px;
@@ -101,6 +103,7 @@
 
 /* Holographic scanline/grid texture over the window backdrop. */
 .application.simplysf2e .window-content {
+  container: spf-window / inline-size;
   background:
     repeating-linear-gradient(0deg, transparent 0 3px, var(--spf-scan) 3px 4px),
     repeating-linear-gradient(90deg, transparent 0 3px, var(--spf-grid-line) 3px 4px),
@@ -184,7 +187,8 @@
    Magenta gradient CTA; drop-shadow follows the notch where an outer
    box-shadow would be clipped away. */
 .simplysf2e button.spf-primary {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--spf-neon) 68%, #ffd7e8), color-mix(in srgb, var(--spf-neon) 52%, #5c0f2e));
+  /* Deep magenta keeps the light label >= 4.5:1 across the whole gradient. */
+  background: linear-gradient(180deg, color-mix(in srgb, var(--spf-neon) 72%, #5c0f2e), color-mix(in srgb, var(--spf-neon) 46%, #2a0614));
   border: 1px solid var(--spf-neon);
   color: var(--spf-text);
   font-weight: 700;
@@ -318,8 +322,9 @@
    -------------------------------------------------------------------------- */
 .simplysf2e .spf-provider-summary {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--spf-space-sm);
+  gap: 0.15rem var(--spf-space-sm);
   min-width: 0;
   padding: var(--spf-space-xs) var(--spf-space-md);
   border: 1px solid var(--spf-border);
@@ -335,6 +340,23 @@
   display: inline-flex;
   align-items: center;
   gap: var(--spf-space-xs);
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.simplysf2e .spf-provider-name strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--spf-text);
+}
+
+/* Readiness sentence of the compendium row: takes the free width and wraps
+   under the label instead of overlapping it. */
+.simplysf2e .spf-provider-detail {
+  flex: 1 1 12rem;
   min-width: 0;
 }
 
@@ -345,6 +367,7 @@
 }
 
 .simplysf2e .spf-provider-model {
+  flex: 1 1 6rem;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -403,8 +426,10 @@
   border-left-color: var(--spf-warning);
 }
 
+/* The cited warning orange is too dark for a lone glyph on the navy strip;
+   lift it toward peach so the icon clears 3:1 non-text contrast. */
 .simplysf2e .spf-provider-attention .spf-provider-state {
-  color: var(--spf-warning);
+  color: color-mix(in srgb, var(--spf-warning) 55%, #ffd2b8);
 }
 
 .simplysf2e .spf-provider-warning {
@@ -505,9 +530,11 @@
 .simplysf2e .spf-row .form-group {
   display: flex;
   flex-direction: column;
+  align-items: stretch;
   flex: 1 1 8.5rem;
   min-width: 0;
   gap: 0.15rem;
+  margin: 0;
 }
 
 .simplysf2e .spf-row label {
@@ -534,14 +561,17 @@
   text-align: center;
 }
 
+/* Primary action first; when the window is too narrow for the full row the
+   secondary controls wrap onto their own line instead of clipping. */
 .simplysf2e .spf-generate-row {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--spf-space-sm);
   margin-top: var(--spf-space-sm);
 }
 
 .simplysf2e .spf-generate-row button[data-action="generate"] {
-  flex: 1;
+  flex: 1 1 14rem;
 }
 
 .simplysf2e .spf-random-button {
@@ -735,14 +765,16 @@
 /* --------------------------------------------------------------------------
    Stat-block style preview (shared by generator + item forge)
    -------------------------------------------------------------------------- */
+/* Name first, then a right-aligned cluster of readout chips (level, match
+   summary, budgets). Chips wrap under the name in narrow windows. */
 .simplysf2e .spf-statblock-header {
   display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: var(--spf-space-md);
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spf-space-xs) var(--spf-space-sm);
   border-bottom: 2px solid var(--spf-brand-accent);
   margin-bottom: var(--spf-space-xs);
-  padding-bottom: 0.1rem;
+  padding-bottom: var(--spf-space-xs);
 }
 
 /* Tinted by the generator's per-mode accent; the item forge falls back to
@@ -752,6 +784,8 @@
 }
 
 .simplysf2e .spf-statblock-header h2 {
+  flex: 1 1 12rem;
+  min-width: 0;
   margin: 0;
   border: none;
   font-family: var(--spf-font-display);
@@ -759,15 +793,33 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--spf-text);
+  overflow-wrap: anywhere;
 }
 
 .simplysf2e .spf-level {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  padding: 0.05rem var(--spf-space-sm);
+  border: 1px solid color-mix(in srgb, var(--spf-mode-accent, var(--spf-brand-accent)) 55%, var(--spf-border));
+  border-radius: var(--spf-radius);
+  background: color-mix(in srgb, var(--spf-brand-dark) 70%, #0c1620);
+  font-family: var(--spf-font-mono);
   font-weight: bold;
   text-transform: uppercase;
   font-size: var(--spf-text-sm);
   white-space: nowrap;
   color: var(--spf-brand-accent);
   letter-spacing: 0.04em;
+}
+
+/* Secondary line under a section header (actor name on the review card). */
+.simplysf2e .spf-subtitle {
+  margin: 0 0 var(--spf-space-xs);
+  color: var(--spf-text-muted);
+  font-size: var(--spf-text-sm);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .simplysf2e .spf-traits {
@@ -819,6 +871,11 @@
   font-size: 0.95em;
 }
 
+/* Preview copy keeps a tight stat-block rhythm; headings carry the spacing. */
+.simplysf2e .spf-preview p {
+  margin: var(--spf-space-xs) 0;
+}
+
 .simplysf2e .spf-actions {
   display: flex;
   flex-wrap: wrap;
@@ -828,6 +885,12 @@
 
 .simplysf2e .spf-actions button {
   flex: 1 1 7rem;
+  white-space: nowrap;
+}
+
+/* The one primary action claims the most room so its label never wraps. */
+.simplysf2e .spf-actions button.spf-primary {
+  flex: 2 1 auto;
 }
 
 /* --------------------------------------------------------------------------
@@ -848,9 +911,10 @@
 
 /* --------------------------------------------------------------------------
    Narrow windows (down to 360px): two-column controls, tighter tiles.
-   App-only narrow rules live at the end of each styles/apps/*.css file.
+   Queries the window content container, not the viewport. App-only narrow
+   rules live at the end of each styles/apps/*.css file.
    -------------------------------------------------------------------------- */
-@media (max-width: 520px) {
+@container spf-window (max-width: 520px) {
   .simplysf2e .spf-inputs,
   .simplysf2e .spf-preview {
     padding-inline: var(--spf-space-md);
@@ -860,13 +924,16 @@
     flex-basis: calc(50% - var(--spf-space-md));
   }
 
-  .simplysf2e .spf-statblock-header {
-    flex-wrap: wrap;
-    gap: var(--spf-space-xs);
+  .simplysf2e .spf-statblock-header h2 {
+    flex-basis: 100%;
   }
 
   .simplysf2e .spf-provider-name select {
-    max-width: 8rem;
+    max-width: 9rem;
+  }
+
+  .simplysf2e .spf-generate-row .spf-secondary {
+    flex: 1 1 auto;
   }
 }
 

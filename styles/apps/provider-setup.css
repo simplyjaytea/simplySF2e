@@ -17,7 +17,30 @@
 .simplysf2e .simplysf2e-provider-setup .hint {
   margin: 0.15rem 0 0;
   font-size: var(--spf-text-sm);
-  opacity: 0.75;
+  color: var(--spf-text-muted);
+}
+
+/* Endpoint and API-key groups: notched cards with console-chip legends. */
+.simplysf2e .spf-provider-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spf-space-md);
+  margin: 0;
+  padding: var(--spf-space-md) var(--spf-space-lg) var(--spf-space-lg);
+}
+
+.simplysf2e .spf-provider-section legend {
+  font-family: var(--spf-font-display);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-size: var(--spf-text-sm);
+  padding: 0 var(--spf-space-sm);
+  color: var(--spf-brand-accent);
+  background: color-mix(in srgb, var(--spf-brand-dark) 85%, #0c1620);
+  border: 1px solid var(--spf-border);
+  border-radius: var(--spf-radius-sm);
+  box-shadow: var(--spf-inset-glow);
 }
 
 .simplysf2e .spf-provider-presets {
@@ -57,6 +80,8 @@
   padding: 0;
 }
 
+/* Unselected presets stay full-contrast; selection is carried by the frame,
+   fill, and weight rather than by dimming the others. */
 .simplysf2e .spf-provider-presets button {
   display: flex;
   align-items: center;
@@ -64,11 +89,16 @@
   gap: var(--spf-space-xs);
   min-width: 0;
   padding: var(--spf-space-sm);
-  opacity: 0.72;
+  color: var(--spf-text-muted);
+}
+
+.simplysf2e .spf-provider-presets button:hover {
+  color: var(--spf-text);
+  border-color: var(--spf-brand-accent);
 }
 
 .simplysf2e .spf-provider-presets button.spf-provider-preset-active {
-  opacity: 1;
+  color: var(--spf-text);
   font-weight: bold;
   background: var(--spf-brand-soft);
   border-color: var(--spf-brand-accent);
@@ -105,7 +135,7 @@
 /* --------------------------------------------------------------------------
    Narrow windows (down to 360px)
    -------------------------------------------------------------------------- */
-@media (max-width: 520px) {
+@container spf-window (max-width: 520px) {
   .simplysf2e .spf-provider-presets {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }

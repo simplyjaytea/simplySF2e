@@ -20,20 +20,30 @@
   display: flex;
   align-items: center;
   gap: var(--spf-space-sm);
-  padding: var(--spf-space-xs) var(--spf-space-xs);
+  padding: var(--spf-space-xs) var(--spf-space-sm);
   border-bottom: 1px solid var(--spf-border);
+  border-left: 2px solid transparent;
   border-radius: var(--spf-radius-sm);
 }
 
-.simplysf2e .spf-manage-list li:hover {
+.simplysf2e .spf-manage-list li:last-child {
+  border-bottom: 0;
+}
+
+.simplysf2e .spf-manage-list li:hover,
+.simplysf2e .spf-manage-list li:focus-within {
   background: var(--spf-brand-soft);
+  border-left-color: var(--spf-brand-accent);
 }
 
 .simplysf2e .spf-manage-name {
   flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: var(--spf-text);
+  font-weight: 600;
 }
 
 .simplysf2e .spf-manage-buttons {
