@@ -8,11 +8,12 @@ import { readFile } from "node:fs/promises";
 const root = new URL("../", import.meta.url);
 const read = (path) => readFile(new URL(path, root), "utf8");
 
-const [generator, itemForge, providerSetup, managePresets, progress, generatorApp, itemForgeApp, appBase, css, langJson] = await Promise.all([
+const [generator, itemForge, providerSetup, managePresets, sources, progress, generatorApp, itemForgeApp, appBase, css, langJson] = await Promise.all([
   read("templates/generator.hbs"),
   read("templates/itemforge.hbs"),
   read("templates/provider-setup.hbs"),
   read("templates/manage-presets.hbs"),
+  read("templates/sources.hbs"),
   read("templates/_progress.hbs"),
   read("scripts/generator-app.mjs"),
   read("scripts/itemforge-app.mjs"),
@@ -480,5 +481,138 @@ assert.match(reviewCard, /characterReview.skills.rows/);
 assert.match(reviewCard, /\{\{this.name\}\} — \{\{this.rank\}\}/);
 assert.match(reviewCard, /characterReview.skills.warnings/);
 assert.match(JSON.parse(langJson).SIMPLYSF2E.Skills.Snapshot, /not a full character validation/);
+
+// --- Starfinder 2e space-fantasy iconography ----------------------------
+// Generation modes use sci-fi HUD icons, not PF2e-era fantasy glyphs:
+// xenobiology (monster), personnel file (NPC), tactical ops (encounter),
+// spacefarer operative (character). Mode values, radio names, and the
+// radiogroup contract above are untouched — only the glyphs changed.
+for (const [mode, icon] of [
+  ["monster", "fa-dna"],
+  ["npc", "fa-id-badge"],
+  ["encounter", "fa-crosshairs"],
+  ["character", "fa-user-astronaut"]
+]) {
+  assert.match(
+    generator,
+    new RegExp(`fa-solid ${icon}.*SIMPLYSF2E\\.Mode\\.${mode === "npc" ? "Npc" : mode[0].toUpperCase() + mode.slice(1)}`, "s"),
+    `${mode} mode must render the ${icon} sci-fi glyph`
+  );
+}
+assert.doesNotMatch(generator, /fa-dragon/, "fantasy dragon glyph must not remain in the generator");
+assert.doesNotMatch(generator, /fa-user-tie/, "fantasy NPC glyph must not remain in the generator");
+assert.doesNotMatch(generator, /fa-people-group/, "fantasy encounter glyph must not remain in the generator");
+assert.doesNotMatch(generator, /fa-solid fa-user"/, "generic fantasy user glyph must not remain in the generator");
+for (const hintKey of ["MonsterHint", "NpcHint", "EncounterHint", "CharacterHint"]) {
+  assert.match(
+    generator,
+    new RegExp(`SIMPLYSF2E\\.Mode\\.${hintKey}`),
+    `generation mode must expose its sci-fi descriptor tooltip: ${hintKey}`
+  );
+  assert.equal(
+    typeof JSON.parse(langJson).SIMPLYSF2E.Mode[hintKey],
+    "string",
+    `Mode.${hintKey} must exist in en.json`
+  );
+}
+
+// --- Cross-app sci-fi HUD chrome ------------------------------------------
+// Every app root carries the shared HUD hook; the preset manager and the
+// compendium sources add HUD card/accent treatment. Class-only changes:
+// no data-action binding or control structure is altered.
+for (const [name, template] of [
+  ["item forge", itemForge],
+  ["preset manager", managePresets],
+  ["provider setup", providerSetup],
+  ["compendium sources", sources]
+]) {
+  assert.match(template, /spf-hud/, `${name} must carry the shared sci-fi HUD hook`);
+}
+assert.match(managePresets, /spf-manage-list spf-card/, "preset rows must sit on the shared HUD card surface");
+assert.match(managePresets, /spf-hud-actions/, "preset actions must carry the HUD treatment");
+assert.match(sources, /spf-source-category spf-card/, "source categories must keep the shared card surface");
+assert.match(sources, /spf-hud-accent/, "sources must carry a HUD accent line");
+assert.match(sources, /fa-satellite-dish/, "sources hint must use a sci-fi uplink glyph");
+
+// --- Sci-fi HUD infusion (Starfinder 2e space-fantasy chrome) -------------
+// Holographic scanlines, chamfered corner ticks, neon primary/mode glow,
+// telemetry progress, HUD readout legends, and console inputs — all
+// on-palette (SF2e navy/cyan/violet), with motion yielding to reduced motion.
+assert.match(css, /\.simplysf2e\s*\{[^}]*--spf-neon:/s, "HUD glow tokens must be defined");
+assert.match(
+  css,
+  /\.application\.simplysf2e \.window-content\s*\{[^}]*repeating-linear-gradient/s,
+  "window content must carry holographic scanline/grid texture"
+);
+assert.match(
+  css,
+  /\.simplysf2e \.spf-card\s*\{[^}]*repeating-linear-gradient/s,
+  "cards must carry holographic scanline texture"
+);
+assert.match(
+  css,
+  /\.simplysf2e \.spf-card::before\s*\{[^}]*clip-path:\s*polygon/s,
+  "cards must use chamfered angled corner ticks"
+);
+assert.match(
+  css,
+  /\.simplysf2e \.spf-card::after\s*\{[^}]*clip-path:\s*polygon/s,
+  "cards must mirror the chamfer tick on the opposite corner"
+);
+assert.match(
+  css,
+  /\.simplysf2e button\.spf-primary\s*\{[^}]*--spf-neon/s,
+  "the primary action must carry neon cyan/violet charge"
+);
+assert.match(
+  css,
+  /\.simplysf2e \.spf-mode-toggle label\.spf-mode-active\s*\{[^}]*text-shadow/s,
+  "the active mode selector must carry neon glow"
+);
+assert.match(
+  css,
+  /\.simplysf2e \.spf-progress-bar\s*\{[^}]*repeating-linear-gradient\(90deg/s,
+  "the progress bar must carry segmented telemetry divisions"
+);
+assert.match(
+  css,
+  /\.simplysf2e \.spf-progress-percent\s*\{[^}]*text-shadow/s,
+  "the telemetry readout must glow"
+);
+assert.match(css, /@keyframes spf-telemetry-blink/, "telemetry pip motion must be a named keyframe");
+assert.match(
+  css,
+  /\.simplysf2e \.spf-step-active i\s*\{[^}]*animation:\s*spf-telemetry-blink/s,
+  "the active step pip must blink telemetry"
+);
+assert.match(
+  css,
+  /prefers-reduced-motion:\s*reduce\)\s*\{[\s\S]*?\.simplysf2e \.spf-step-active i\s*\{[^}]*animation:\s*none/s,
+  "telemetry motion must yield to reduced motion"
+);
+assert.match(
+  css,
+  /\.simplysf2e \.spf-inputs legend\s*\{[^}]*background:/s,
+  "generator legends must render as HUD readout chips"
+);
+assert.match(
+  css,
+  /\.simplysf2e \.spf-source-category legend\s*\{[^}]*box-shadow/s,
+  "source legends must render as HUD readout chips"
+);
+assert.match(css, /caret-color:\s*var\(--spf-brand-accent\)/, "console inputs must carry a cyan caret");
+assert.match(
+  css,
+  /\.simplysf2e input\[type="number"\]\s*\{[^}]*tabular-nums/s,
+  "numeric console readouts must use tabular figures"
+);
+for (const hook of ["spf-hud-accent", "spf-hud-actions", "spf-hud-frame", "spf-hud-list", "spf-hud-empty"]) {
+  assert.match(
+    css,
+    new RegExp(`\\.simplysf2e \\.${hook}\\s*\\{`),
+    `shared HUD hook .${hook} must be defined`
+  );
+}
+assert.match(css, /\.simplysf2e \.spf-hud\s*\{[^}]*--spf-hud-on/s, "the app HUD root flag must be defined");
 
 console.log("UI layout contract checks passed.");

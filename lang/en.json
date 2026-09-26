@@ -203,10 +203,14 @@
     },
     "Mode": {
       "Monster": "Monster",
+      "MonsterHint": "Xenobiology specimen",
       "Npc": "NPC",
+      "NpcHint": "Personnel file",
       "Single": "Single",
       "Encounter": "Encounters",
-      "Character": "Player Character"
+      "EncounterHint": "Tactical ops engagement",
+      "Character": "Player Character",
+      "CharacterHint": "Spacefarer operative"
     },
     "Threat": {
       "Trivial": "Trivial",

@@ -827,6 +827,9 @@
   .simplysf2e .spf-progress-writing {
     animation: none;
   }
+  .simplysf2e .spf-step-active i {
+    animation: none;
+  }
   .simplysf2e .fa-spin {
     animation: none;
   }
@@ -1330,4 +1333,190 @@
   .simplysf2e .spf-provider-name select {
     max-width: 8rem;
   }
+}
+
+/* --------------------------------------------------------------------------
+   Sci-fi HUD infusion (Starfinder 2e space-fantasy chrome)
+   Appended as later same-specificity overrides so the base kit above keeps
+   every layout contract: control rows still wrap, tokens stay SF2e
+   navy/cyan/violet, and all motion yields to prefers-reduced-motion below.
+   -------------------------------------------------------------------------- */
+.simplysf2e {
+  --spf-scan: color-mix(in srgb, var(--spf-brand-accent) 7%, transparent);
+  --spf-grid-line: color-mix(in srgb, var(--spf-brand-accent) 5%, transparent);
+  --spf-console: color-mix(in srgb, var(--spf-brand-dark) 55%, rgba(8, 16, 26, 0.88));
+  --spf-neon: 0 0 10px color-mix(in srgb, var(--spf-brand-accent) 45%, transparent);
+  --spf-neon-violet: 0 0 12px color-mix(in srgb, var(--spf-brand-secondary) 60%, transparent);
+}
+
+/* Holographic scanline/grid texture over the window backdrop. */
+.application.simplysf2e .window-content {
+  background-image:
+    repeating-linear-gradient(0deg, transparent 0 3px, var(--spf-scan) 3px 4px),
+    repeating-linear-gradient(90deg, transparent 0 3px, var(--spf-grid-line) 3px 4px),
+    linear-gradient(180deg, color-mix(in srgb, #1d3c53 38%, transparent), transparent 5rem);
+  background-color: #0c1620;
+}
+
+/* Holographic scanlines on every card surface. */
+.simplysf2e .spf-card {
+  position: relative;
+  background-image:
+    repeating-linear-gradient(0deg, transparent 0 3px, var(--spf-scan) 3px 4px);
+}
+
+/* Chamfered angled corner ticks: triangular HUD brackets replace the plain
+   square corners, top-left and bottom-right on each card. */
+.simplysf2e .spf-card::before,
+.simplysf2e .spf-card::after {
+  content: "";
+  position: absolute;
+  width: 0.55rem;
+  height: 0.55rem;
+  pointer-events: none;
+}
+
+.simplysf2e .spf-card::before {
+  top: -1px;
+  left: -1px;
+  border-top: 2px solid var(--spf-brand-accent);
+  border-left: 2px solid var(--spf-brand-accent);
+  clip-path: polygon(0 0, 100% 0, 0 100%);
+}
+
+.simplysf2e .spf-card::after {
+  bottom: -1px;
+  right: -1px;
+  border-bottom: 2px solid var(--spf-brand-accent);
+  border-right: 2px solid var(--spf-brand-accent);
+  clip-path: polygon(100% 0, 100% 100%, 0 100%);
+}
+
+/* Neon cyan/violet charge on the primary action. */
+.simplysf2e button.spf-primary {
+  box-shadow: var(--spf-inset-glow), var(--spf-neon), inset 0 0 14px color-mix(in srgb, var(--spf-brand-secondary) 32%, transparent);
+}
+
+.simplysf2e button.spf-primary:not(:disabled):hover {
+  box-shadow: var(--spf-inset-glow), var(--spf-neon), var(--spf-neon-violet);
+  text-shadow: 0 0 10px color-mix(in srgb, var(--spf-brand-accent) 70%, transparent);
+}
+
+/* Active selectors glow cyan with a violet undercurrent. */
+.simplysf2e .spf-mode-toggle label.spf-mode-active {
+  text-shadow: 0 0 8px color-mix(in srgb, var(--spf-brand-accent) 65%, transparent);
+  box-shadow: inset 0 0 0 1px var(--spf-brand-accent), var(--spf-glow), inset 0 0 14px color-mix(in srgb, var(--spf-brand-secondary) 38%, transparent);
+}
+
+.simplysf2e .spf-mode-toggle label.spf-mode-active > i {
+  text-shadow: var(--spf-neon);
+}
+
+.simplysf2e .spf-kind-choice.spf-kind-selected {
+  box-shadow: inset 0 0 0 1px var(--spf-brand-accent), var(--spf-glow);
+}
+
+.simplysf2e .spf-provider-presets button.spf-provider-preset-active {
+  box-shadow: inset 0 0 0 1px var(--spf-brand-accent), var(--spf-neon);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--spf-brand-accent) 60%, transparent);
+}
+
+/* Telemetry progress: segmented division ticks behind the fill, a glowing
+   mono readout, and a blinking active-step pip. */
+.simplysf2e .spf-progress-bar {
+  background-image: repeating-linear-gradient(90deg, transparent 0 calc(10% - 1px), color-mix(in srgb, var(--spf-brand-accent) 20%, transparent) calc(10% - 1px) 10%);
+}
+
+.simplysf2e .spf-progress-percent {
+  text-shadow: 0 0 8px color-mix(in srgb, var(--spf-brand-accent) 65%, transparent);
+}
+
+.simplysf2e .spf-step-active {
+  box-shadow: inset 0 0 0 1px var(--spf-brand-accent), var(--spf-neon);
+}
+
+.simplysf2e .spf-step-active i {
+  animation: spf-telemetry-blink 1.1s ease-in-out infinite;
+}
+
+@keyframes spf-telemetry-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+
+/* HUD readout legends: console chips instead of bare text. */
+.simplysf2e .spf-inputs legend {
+  background: color-mix(in srgb, var(--spf-brand-dark) 85%, #0c1620);
+  border: 1px solid var(--spf-border);
+  border-radius: var(--spf-radius-sm);
+  box-shadow: var(--spf-inset-glow), var(--spf-neon);
+}
+
+.simplysf2e .spf-source-category legend {
+  background: color-mix(in srgb, var(--spf-brand-dark) 85%, #0c1620);
+  border: 1px solid var(--spf-border);
+  border-radius: var(--spf-radius-sm);
+  box-shadow: var(--spf-inset-glow);
+  color: var(--spf-brand-accent);
+}
+
+/* Sleek dark console inputs across every app. */
+.simplysf2e input:is([type="text"], [type="number"], [type="url"], [type="password"]),
+.simplysf2e select,
+.simplysf2e textarea {
+  background-color: var(--spf-console);
+  border: 1px solid var(--spf-border);
+  border-radius: var(--spf-radius-sm);
+  color: var(--spf-text);
+  caret-color: var(--spf-brand-accent);
+}
+
+.simplysf2e input::placeholder,
+.simplysf2e textarea::placeholder {
+  color: var(--spf-text-muted);
+  opacity: 0.7;
+}
+
+.simplysf2e input[type="number"] {
+  font-family: var(--spf-font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Shared HUD hooks carried by the app templates. .spf-hud itself is a
+   custom-property flag for future container queries, with no rendering
+   effect on its own. */
+.simplysf2e .spf-hud {
+  --spf-hud-on: 1;
+}
+
+.simplysf2e .spf-hud-accent {
+  color: var(--spf-brand-accent);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--spf-brand-accent) 55%, transparent);
+  letter-spacing: 0.04em;
+}
+
+.simplysf2e .spf-hud-accent > i {
+  color: var(--spf-brand-accent);
+}
+
+.simplysf2e .spf-hud-frame {
+  box-shadow: var(--spf-inset-glow), 0 0 10px color-mix(in srgb, var(--spf-brand-accent) 14%, transparent);
+}
+
+.simplysf2e .spf-hud-list {
+  padding: var(--spf-space-xs);
+}
+
+.simplysf2e .spf-hud-empty {
+  border-color: color-mix(in srgb, var(--spf-brand-accent) 55%, var(--spf-border));
+}
+
+.simplysf2e .spf-hud-empty > i {
+  color: var(--spf-brand-accent);
+  margin-right: var(--spf-space-xs);
+}
+
+.simplysf2e .spf-hud-actions {
+  border-top: 1px solid var(--spf-border);
+  padding-top: var(--spf-space-md);
 }

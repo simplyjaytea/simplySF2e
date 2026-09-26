@@ -1,6 +1,6 @@
-<div class="simplysf2e-manage-presets">
+<div class="simplysf2e-manage-presets spf-hud">
   {{#if presets.length}}
-    <ul class="spf-manage-list">
+    <ul class="spf-manage-list spf-card spf-hud-list">
       {{#each presets}}
         <li>
           <span class="spf-manage-name">{{this.name}}</span>
@@ -22,10 +22,10 @@
       {{/each}}
     </ul>
   {{else}}
-    <p class="spf-empty">{{localize "SIMPLYSF2E.Presets.ManageEmpty"}}</p>
+    <p class="spf-empty spf-hud-empty"><i class="fa-solid fa-satellite-dish" aria-hidden="true"></i> {{localize "SIMPLYSF2E.Presets.ManageEmpty"}}</p>
   {{/if}}
 
-  <footer class="spf-actions">
+  <footer class="spf-actions spf-hud-actions">
     <button type="button" class="spf-primary" data-action="newPreset">
       <i class="fa-solid fa-plus"></i> {{localize "SIMPLYSF2E.Presets.New"}}
     </button>
