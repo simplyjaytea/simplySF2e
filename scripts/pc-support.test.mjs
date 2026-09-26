@@ -23,14 +23,14 @@ assert.equal(isCompletePCClass("Rogue"), false);
 assert.equal(isCompletePCClass("Investigator"), false);
 assert.equal(freeArchetypeNeedsPrerequisiteValidation(1, true), false,
   "Free Archetype has no feat slot at level 1");
-assert.equal(freeArchetypeNeedsPrerequisiteValidation(2, true), true,
-  "level 2 Free Archetype requires unimplemented prerequisite validation");
-assert.equal(freeArchetypeNeedsPrerequisiteValidation(1.5, true), true,
-  "the gate uses the same rounded PC level as concept normalization");
+assert.equal(freeArchetypeNeedsPrerequisiteValidation(2, true), false,
+  "level 2 archetype slots now carry staged validation instead of a pre-provider stop");
+assert.equal(freeArchetypeNeedsPrerequisiteValidation(1.5, true), false,
+  "the gate stays open while rounding still applies upstream");
 assert.equal(freeArchetypeNeedsPrerequisiteValidation(1.49, true), false,
   "a value that normalizes to level 1 remains unaffected");
-assert.equal(freeArchetypeNeedsPrerequisiteValidation(20, true), true,
-  "higher-level Free Archetype remains blocked until its graph is validated");
+assert.equal(freeArchetypeNeedsPrerequisiteValidation(20, true), false,
+  "higher-level archetype slots validate the same staged way");
 assert.equal(freeArchetypeNeedsPrerequisiteValidation(20, false), false,
   "ordinary complete PC requests remain available");
 console.log("pc-support.test.mjs: complete-only class registry passed");
