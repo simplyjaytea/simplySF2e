@@ -39,6 +39,8 @@
       "Connections": "Saved connections",
       "ConnectionsHint": "Switching loads that connection's URL, model, and key. Save first to keep edits on the current connection.",
       "ActiveConnection": "Active connection",
+      "EndpointLegend": "Endpoint",
+      "CredentialsLegend": "API key",
       "ConnectionName": "Connection name",
       "ConnectionNamePlaceholder": "DeepSeek, local GPU, …",
       "NewConnection": "New connection",

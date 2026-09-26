@@ -3,7 +3,7 @@
     <ul class="spf-manage-list spf-card spf-hud-list">
       {{#each presets}}
         <li>
-          <span class="spf-manage-name">{{this.name}}</span>
+          <span class="spf-manage-name" title="{{this.name}}">{{this.name}}</span>
           <span class="spf-manage-buttons">
             <button type="button" class="spf-icon-btn" data-action="editPreset" data-id="{{this.id}}" data-tooltip="{{localize 'SIMPLYSF2E.Presets.EditTooltip'}}" aria-label="{{localize 'SIMPLYSF2E.Presets.EditTooltip'}}">
               <i class="fa-solid fa-pen"></i>

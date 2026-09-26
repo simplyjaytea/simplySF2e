@@ -1,0 +1,66 @@
+/* ==========================================================================
+   simplySF2e — manage presets window (templates/manage-presets.hbs only).
+   Loaded after styles/simplysf2e.css; tokens and shared kit live there.
+   ========================================================================== */
+
+.simplysf2e .simplysf2e-manage-presets {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spf-space-md);
+  padding: var(--spf-space-xs);
+}
+
+.simplysf2e .spf-manage-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.simplysf2e .spf-manage-list li {
+  display: flex;
+  align-items: center;
+  gap: var(--spf-space-sm);
+  padding: var(--spf-space-xs) var(--spf-space-sm);
+  border-bottom: 1px solid var(--spf-border);
+  border-left: 2px solid transparent;
+  border-radius: var(--spf-radius-sm);
+}
+
+.simplysf2e .spf-manage-list li:last-child {
+  border-bottom: 0;
+}
+
+.simplysf2e .spf-manage-list li:hover,
+.simplysf2e .spf-manage-list li:focus-within {
+  background: var(--spf-brand-soft);
+  border-left-color: var(--spf-brand-accent);
+}
+
+.simplysf2e .spf-manage-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--spf-text);
+  font-weight: 600;
+}
+
+.simplysf2e .spf-manage-buttons {
+  display: flex;
+  gap: var(--spf-space-xs);
+}
+
+/* HUD hooks: must follow .spf-manage-list (same specificity, padding). */
+.simplysf2e .spf-hud-list {
+  padding: var(--spf-space-xs);
+}
+
+.simplysf2e .spf-hud-empty {
+  border-color: color-mix(in srgb, var(--spf-brand-accent) 55%, var(--spf-border));
+}
+
+.simplysf2e .spf-hud-empty > i {
+  color: var(--spf-brand-accent);
+  margin-right: var(--spf-space-xs);
+}

@@ -1,0 +1,445 @@
+/* ==========================================================================
+   simplySF2e — generator window (templates/generator.hbs only).
+   Loaded after styles/simplysf2e.css; tokens and shared kit live there.
+   ========================================================================== */
+
+.simplysf2e .simplysf2e-generator.spf-busy .spf-inputs {
+  opacity: 0.58;
+}
+
+/* --------------------------------------------------------------------------
+   Mode accents: the generator root carries exactly one spf-mode-* class,
+   which tints the unified status frame and preview headers.
+   -------------------------------------------------------------------------- */
+.simplysf2e .simplysf2e-generator.spf-mode-monster {
+  --spf-mode-accent: var(--spf-mode-monster);
+}
+
+.simplysf2e .simplysf2e-generator.spf-mode-npc {
+  --spf-mode-accent: var(--spf-mode-npc);
+}
+
+.simplysf2e .simplysf2e-generator.spf-mode-encounter {
+  --spf-mode-accent: var(--spf-mode-encounter);
+}
+
+.simplysf2e .simplysf2e-generator.spf-mode-character {
+  --spf-mode-accent: var(--spf-mode-character);
+}
+
+/* --------------------------------------------------------------------------
+   Segmented mode switch
+   -------------------------------------------------------------------------- */
+/* Four equal segments in wide windows; a 2x2 grid when the window is too
+   narrow for all four labels (auto-fit, no breakpoint needed). */
+.simplysf2e .spf-mode-toggle {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(8.5rem, 100%), 1fr));
+  gap: 2px;
+  margin-bottom: var(--spf-space-md);
+  padding: 2px;
+  border: 1px solid var(--spf-border);
+  border-radius: var(--spf-radius);
+  background: var(--spf-surface);
+  box-shadow: var(--spf-inset-glow);
+}
+
+.simplysf2e .spf-mode-toggle label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-width: 0;
+  padding: var(--spf-space-sm);
+  border: 1px solid transparent;
+  border-radius: var(--spf-radius-sm);
+  cursor: pointer;
+  color: var(--spf-text-muted);
+  font-size: var(--spf-text-sm);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.simplysf2e .spf-mode-toggle label:hover {
+  color: var(--spf-text);
+  border-color: var(--spf-border);
+}
+
+/* Must precede the active rule: an active tile keeps its glow box-shadow
+   (same specificity) while focused; the outline still shows. */
+.simplysf2e .spf-mode-toggle label:focus-within {
+  outline: 2px solid var(--spf-focus);
+  outline-offset: 1px;
+  box-shadow: var(--spf-glow);
+}
+
+/* Active selectors glow cyan with a violet undercurrent. */
+.simplysf2e .spf-mode-toggle label.spf-mode-active {
+  color: var(--spf-text);
+  background: color-mix(in srgb, var(--spf-brand-mid) 72%, #0c1620);
+  border-color: var(--spf-brand-accent);
+  box-shadow: inset 0 0 0 1px var(--spf-brand-accent), var(--spf-glow), inset 0 0 14px color-mix(in srgb, var(--spf-brand-secondary) 38%, transparent);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--spf-brand-accent) 65%, transparent);
+}
+
+.simplysf2e .spf-mode-toggle label.spf-mode-active > i {
+  color: var(--spf-brand-accent);
+  text-shadow: var(--spf-neon-glow);
+}
+
+.simplysf2e .spf-mode-toggle input[type="radio"] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Each active segment glows in its own per-mode accent. */
+.simplysf2e .spf-mode-toggle label.spf-mode-monster.spf-mode-active {
+  border-color: var(--spf-mode-monster);
+  background: color-mix(in srgb, var(--spf-mode-monster) 26%, #0c1620);
+  box-shadow: inset 0 0 0 1px var(--spf-mode-monster), 0 0 12px color-mix(in srgb, var(--spf-mode-monster) 45%, transparent);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--spf-mode-monster) 65%, transparent);
+}
+
+.simplysf2e .spf-mode-toggle label.spf-mode-npc.spf-mode-active {
+  border-color: var(--spf-mode-npc);
+  background: color-mix(in srgb, var(--spf-mode-npc) 26%, #0c1620);
+  box-shadow: inset 0 0 0 1px var(--spf-mode-npc), 0 0 12px color-mix(in srgb, var(--spf-mode-npc) 45%, transparent);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--spf-mode-npc) 65%, transparent);
+}
+
+.simplysf2e .spf-mode-toggle label.spf-mode-encounter.spf-mode-active {
+  border-color: var(--spf-mode-encounter);
+  background: color-mix(in srgb, var(--spf-mode-encounter) 26%, #0c1620);
+  box-shadow: inset 0 0 0 1px var(--spf-mode-encounter), 0 0 12px color-mix(in srgb, var(--spf-mode-encounter) 45%, transparent);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--spf-mode-encounter) 65%, transparent);
+}
+
+.simplysf2e .spf-mode-toggle label.spf-mode-character.spf-mode-active {
+  border-color: var(--spf-mode-character);
+  background: color-mix(in srgb, var(--spf-mode-character) 26%, #0c1620);
+  box-shadow: inset 0 0 0 1px var(--spf-mode-character), 0 0 12px color-mix(in srgb, var(--spf-mode-character) 45%, transparent);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--spf-mode-character) 65%, transparent);
+}
+
+.simplysf2e .spf-mode-toggle label.spf-mode-monster.spf-mode-active > i {
+  color: var(--spf-mode-monster);
+}
+
+.simplysf2e .spf-mode-toggle label.spf-mode-npc.spf-mode-active > i {
+  color: var(--spf-mode-npc);
+}
+
+.simplysf2e .spf-mode-toggle label.spf-mode-encounter.spf-mode-active > i {
+  color: var(--spf-mode-encounter);
+}
+
+.simplysf2e .spf-mode-toggle label.spf-mode-character.spf-mode-active > i {
+  color: var(--spf-mode-character);
+}
+
+/* --------------------------------------------------------------------------
+   Presets, level, advanced options
+   -------------------------------------------------------------------------- */
+.simplysf2e .spf-preset {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--spf-space-sm);
+  margin: 0 0 var(--spf-space-md);
+}
+
+.simplysf2e .spf-preset > label {
+  font-size: var(--spf-text-sm);
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+.simplysf2e .spf-preset-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spf-space-sm);
+  align-items: stretch;
+  min-width: 0;
+}
+
+.simplysf2e .spf-preset-controls select {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+.simplysf2e .spf-preset-controls select optgroup {
+  font-style: normal;
+  font-weight: 600;
+}
+
+.simplysf2e .spf-preset-controls [data-action="managePresets"] {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spf-space-xs);
+  white-space: nowrap;
+}
+
+.simplysf2e .spf-preset-trust {
+  margin: 0;
+  max-width: 42rem;
+  font-size: var(--spf-text-sm);
+  line-height: 1.4;
+  color: var(--spf-text-muted);
+  padding-left: var(--spf-space-md);
+  border-left: 2px solid var(--spf-brand-accent);
+}
+
+.simplysf2e .spf-level-primary {
+  display: flex;
+  margin-top: var(--spf-space-sm);
+}
+
+.simplysf2e .spf-level-primary .form-group {
+  flex: 0 1 12rem;
+}
+
+.simplysf2e .spf-advanced {
+  margin-top: var(--spf-space-md);
+  border-top: 1px solid var(--spf-border);
+}
+
+.simplysf2e .spf-advanced summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: var(--spf-space-sm);
+  padding: var(--spf-space-sm) 0;
+  font-size: var(--spf-text-sm);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--spf-brand-accent);
+}
+
+.simplysf2e .spf-advanced summary::-webkit-details-marker {
+  display: none;
+}
+
+.simplysf2e .spf-advanced summary::before {
+  content: "";
+  width: 0.42em;
+  height: 0.42em;
+  border-right: 2px solid var(--spf-brand-accent);
+  border-bottom: 2px solid var(--spf-brand-accent);
+  transform: rotate(-45deg);
+  transition: transform 120ms ease;
+}
+
+.simplysf2e .spf-advanced[open] summary::before {
+  transform: rotate(45deg);
+}
+
+.simplysf2e .spf-advanced summary:hover {
+  color: var(--spf-text);
+}
+
+.simplysf2e .spf-advanced-content {
+  padding-bottom: var(--spf-space-sm);
+}
+
+.simplysf2e .spf-checkbox label {
+  display: flex;
+  align-items: center;
+  gap: var(--spf-space-sm);
+}
+
+/* --------------------------------------------------------------------------
+   Creature / character preview details
+   -------------------------------------------------------------------------- */
+.simplysf2e .spf-blurb {
+  margin: var(--spf-space-xs) 0;
+}
+
+.simplysf2e .spf-strikes {
+  margin: var(--spf-space-sm) 0;
+}
+
+.simplysf2e .spf-strike {
+  padding: 0.1rem 0;
+}
+
+.simplysf2e .spf-strike-traits {
+  opacity: 0.8;
+  font-size: var(--spf-text-sm);
+}
+
+.simplysf2e .spf-spell-dc {
+  font-weight: normal;
+  font-size: var(--spf-text-sm);
+  opacity: 0.85;
+}
+
+.simplysf2e .spf-list.spf-inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem 1rem;
+  list-style: none;
+  padding-left: 0;
+}
+
+.simplysf2e .spf-rank {
+  opacity: 0.75;
+  font-size: var(--spf-text-sm);
+}
+
+.simplysf2e .spf-found {
+  font-size: var(--spf-text-sm);
+  color: var(--color-text-hyperlink);
+}
+
+/* Positive per-item compendium-match indicator (issue #52) — the counterpart
+   to .spf-dropped's warning icon and .spf-custom's pill, shown when an
+   entry DID resolve to a real compendium document instead of only ever
+   flagging the negative case. */
+.simplysf2e .spf-match {
+  color: var(--spf-success);
+}
+
+/* Grounding glyphs sit a hair off the name they annotate. */
+.simplysf2e .spf-preview .spf-statline i,
+.simplysf2e .spf-preview .spf-list i {
+  margin-left: 0.3em;
+}
+
+.simplysf2e .spf-match-summary {
+  opacity: 0.85;
+}
+
+.simplysf2e .spf-match-summary i {
+  color: var(--spf-success);
+}
+
+.simplysf2e .spf-custom {
+  font-size: 0.75em;
+  font-weight: bold;
+  text-transform: uppercase;
+  background: var(--spf-success);
+  color: #fff;
+  border-radius: var(--spf-radius-sm);
+  padding: 0 0.3rem;
+}
+
+/* Spells/feats that failed to resolve are dropped from the actor entirely —
+   struck through and red to read as "won't appear", distinct from the
+   .spf-custom pill (equipment/loot instead), which still gets created. */
+.simplysf2e .spf-dropped {
+  opacity: 0.65;
+  text-decoration: line-through;
+}
+
+.simplysf2e .spf-dropped i {
+  color: var(--spf-danger);
+  text-decoration: none;
+}
+
+.simplysf2e .spf-ability-desc {
+  font-size: var(--spf-text-sm);
+  opacity: 0.9;
+  margin-left: var(--spf-space-md);
+}
+
+/* Monster preview stat grid: defenses + IWR statlines in two columns of at
+   least ~14rem, collapsing to one column in narrow windows. */
+.simplysf2e .spf-statgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: var(--spf-space-xs) var(--spf-space-md);
+}
+
+/* --------------------------------------------------------------------------
+   Encounter preview
+   -------------------------------------------------------------------------- */
+.simplysf2e .spf-encounter-members {
+  list-style: none;
+  margin: var(--spf-space-sm) 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spf-space-md);
+}
+
+/* Member cards (.spf-card) show the scanline texture as a full repeating
+   layer over the plain surface, without the shared card's tile sizing. */
+.simplysf2e .spf-encounter-member {
+  background: repeating-linear-gradient(0deg, transparent 0 3px, var(--spf-scan) 3px 4px) var(--spf-surface);
+}
+
+.simplysf2e .spf-member-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--spf-space-md);
+}
+
+.simplysf2e .spf-member-tag {
+  font-size: var(--spf-text-sm);
+  text-transform: uppercase;
+  font-weight: bold;
+  opacity: 0.75;
+  white-space: nowrap;
+}
+
+.simplysf2e .spf-member-stats {
+  font-size: var(--spf-text-sm);
+  opacity: 0.9;
+  margin-top: 0.15rem;
+}
+
+.simplysf2e .spf-member-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.simplysf2e .spf-member-count .spf-icon-btn {
+  font-size: 0.75em;
+}
+
+.simplysf2e .spf-member-count-value {
+  min-width: 1.6rem;
+  text-align: center;
+  font-weight: bold;
+}
+
+.simplysf2e .spf-member-skipped {
+  opacity: 0.45;
+}
+
+.simplysf2e .spf-over-budget {
+  color: var(--spf-danger);
+}
+
+/* --------------------------------------------------------------------------
+   Narrow windows (down to 360px)
+   -------------------------------------------------------------------------- */
+@container spf-window (max-width: 520px) {
+  .simplysf2e .spf-mode-toggle label {
+    gap: var(--spf-space-xs);
+    padding-inline: var(--spf-space-xs);
+  }
+
+  .simplysf2e .spf-member-head {
+    flex-wrap: wrap;
+  }
+
+  .simplysf2e .spf-statgrid {
+    grid-template-columns: 1fr;
+  }
+}

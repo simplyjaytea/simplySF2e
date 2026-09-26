@@ -19,53 +19,59 @@
     <p class="hint">{{localize "SIMPLYSF2E.ProviderSetup.ConnectionsHint"}}</p>
   </div>
 
-  <div class="form-group stacked">
-    <label for="spf-connection-name">{{localize "SIMPLYSF2E.ProviderSetup.ConnectionName"}}</label>
-    <input id="spf-connection-name" type="text" name="connectionName" value="{{connectionName}}" required spellcheck="false" autocomplete="off" placeholder="{{localize 'SIMPLYSF2E.ProviderSetup.ConnectionNamePlaceholder'}}">
-  </div>
-
-  <div class="spf-provider-presets" role="group" aria-label="{{localize 'SIMPLYSF2E.ProviderSetup.ChooseProvider'}}">
-    {{#each providers}}
-      <button type="button" data-action="chooseProvider" data-provider="{{this.id}}" class="{{#if this.selected}}spf-provider-preset-active{{/if}}" aria-pressed="{{#if this.selected}}true{{else}}false{{/if}}">
-        <i class="fa-solid {{this.icon}}"></i>
-        <span>{{this.label}}</span>
-      </button>
-    {{/each}}
-  </div>
-  <p class="spf-hint spf-provider-local-hint"><i class="fa-solid fa-server"></i> {{localServerHint}}</p>
-
-  <div class="form-group stacked">
-    <label for="spf-provider-base-url">{{localize "SIMPLYSF2E.Settings.ApiBaseUrl.Name"}}</label>
-    <input id="spf-provider-base-url" type="url" name="apiBaseUrl" value="{{apiBaseUrl}}" required spellcheck="false" autocomplete="url">
-    <p class="hint">{{localize "SIMPLYSF2E.ProviderSetup.BaseUrlHint"}}</p>
-  </div>
-
-  <div class="form-group stacked">
-    <label for="spf-provider-model">{{localize "SIMPLYSF2E.Settings.Model.Name"}}</label>
-    <div class="spf-model-picker">
-      <input id="spf-provider-model" type="text" name="model" value="{{model}}" list="spf-provider-model-list" required spellcheck="false" autocomplete="off" placeholder="{{localize 'SIMPLYSF2E.ProviderSetup.ModelPlaceholder'}}">
-      <button type="button" data-action="loadModels"><i class="fa-solid fa-rotate"></i> {{localize "SIMPLYSF2E.ProviderSetup.LoadModels"}}</button>
+  <fieldset class="spf-card spf-provider-section">
+    <legend>{{localize "SIMPLYSF2E.ProviderSetup.EndpointLegend"}}</legend>
+    <div class="form-group stacked">
+      <label for="spf-connection-name">{{localize "SIMPLYSF2E.ProviderSetup.ConnectionName"}}</label>
+      <input id="spf-connection-name" type="text" name="connectionName" value="{{connectionName}}" required spellcheck="false" autocomplete="off" placeholder="{{localize 'SIMPLYSF2E.ProviderSetup.ConnectionNamePlaceholder'}}">
     </div>
-    <datalist id="spf-provider-model-list">
-      {{#each availableModels}}<option value="{{this}}"></option>{{/each}}
-    </datalist>
-    <p class="hint">{{localize "SIMPLYSF2E.ProviderSetup.ModelHint"}}</p>
-  </div>
 
-  <div class="form-group stacked">
-    <label for="spf-provider-api-key">{{localize "SIMPLYSF2E.ProviderSetup.ApiKeyLabel"}}</label>
-    <input id="spf-provider-api-key" type="password" name="apiKey" value="" spellcheck="false" autocomplete="new-password" placeholder="{{#if hasApiKey}}{{localize 'SIMPLYSF2E.ProviderSetup.ApiKeySaved'}}{{else}}{{localize 'SIMPLYSF2E.ProviderSetup.ApiKeyOptional'}}{{/if}}">
-    <p class="hint">{{localize "SIMPLYSF2E.ProviderSetup.ApiKeyHint"}}</p>
-  </div>
+    <div class="spf-provider-presets" role="group" aria-label="{{localize 'SIMPLYSF2E.ProviderSetup.ChooseProvider'}}">
+      {{#each providers}}
+        <button type="button" data-action="chooseProvider" data-provider="{{this.id}}" class="{{#if this.selected}}spf-provider-preset-active{{/if}}" aria-pressed="{{#if this.selected}}true{{else}}false{{/if}}">
+          <i class="fa-solid {{this.icon}}"></i>
+          <span>{{this.label}}</span>
+        </button>
+      {{/each}}
+    </div>
+    <p class="spf-hint spf-provider-local-hint"><i class="fa-solid fa-server"></i> {{localServerHint}}</p>
 
-  {{#if hasApiKey}}
-    <label class="spf-provider-clear-key">
-      <input type="checkbox" name="clearApiKey">
-      {{localize "SIMPLYSF2E.ProviderSetup.ClearApiKey"}}
-    </label>
-  {{/if}}
+    <div class="form-group stacked">
+      <label for="spf-provider-base-url">{{localize "SIMPLYSF2E.Settings.ApiBaseUrl.Name"}}</label>
+      <input id="spf-provider-base-url" type="url" name="apiBaseUrl" value="{{apiBaseUrl}}" required spellcheck="false" autocomplete="url">
+      <p class="hint">{{localize "SIMPLYSF2E.ProviderSetup.BaseUrlHint"}}</p>
+    </div>
 
-  <p class="notification info spf-provider-privacy"><i class="fa-solid fa-shield-halved"></i> {{localize "SIMPLYSF2E.ProviderSetup.Privacy"}}</p>
+    <div class="form-group stacked">
+      <label for="spf-provider-model">{{localize "SIMPLYSF2E.Settings.Model.Name"}}</label>
+      <div class="spf-model-picker">
+        <input id="spf-provider-model" type="text" name="model" value="{{model}}" list="spf-provider-model-list" required spellcheck="false" autocomplete="off" placeholder="{{localize 'SIMPLYSF2E.ProviderSetup.ModelPlaceholder'}}">
+        <button type="button" data-action="loadModels"><i class="fa-solid fa-rotate"></i> {{localize "SIMPLYSF2E.ProviderSetup.LoadModels"}}</button>
+      </div>
+      <datalist id="spf-provider-model-list">
+        {{#each availableModels}}<option value="{{this}}"></option>{{/each}}
+      </datalist>
+      <p class="hint">{{localize "SIMPLYSF2E.ProviderSetup.ModelHint"}}</p>
+    </div>
+  </fieldset>
+
+  <fieldset class="spf-card spf-provider-section">
+    <legend>{{localize "SIMPLYSF2E.ProviderSetup.CredentialsLegend"}}</legend>
+    <div class="form-group stacked">
+      <label for="spf-provider-api-key">{{localize "SIMPLYSF2E.ProviderSetup.ApiKeyLabel"}}</label>
+      <input id="spf-provider-api-key" type="password" name="apiKey" value="" spellcheck="false" autocomplete="new-password" placeholder="{{#if hasApiKey}}{{localize 'SIMPLYSF2E.ProviderSetup.ApiKeySaved'}}{{else}}{{localize 'SIMPLYSF2E.ProviderSetup.ApiKeyOptional'}}{{/if}}">
+      <p class="hint">{{localize "SIMPLYSF2E.ProviderSetup.ApiKeyHint"}}</p>
+    </div>
+
+    {{#if hasApiKey}}
+      <label class="spf-provider-clear-key">
+        <input type="checkbox" name="clearApiKey">
+        {{localize "SIMPLYSF2E.ProviderSetup.ClearApiKey"}}
+      </label>
+    {{/if}}
+
+    <p class="notification info spf-provider-privacy"><i class="fa-solid fa-shield-halved"></i> {{localize "SIMPLYSF2E.ProviderSetup.Privacy"}}</p>
+  </fieldset>
 
   <footer class="spf-actions">
     <button type="button" class="spf-primary" data-action="saveAndTest">

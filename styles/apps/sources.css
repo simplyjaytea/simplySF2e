@@ -1,0 +1,91 @@
+/* ==========================================================================
+   simplySF2e — compendium sources window (templates/sources.hbs only).
+   Loaded after styles/simplysf2e.css; tokens and shared kit live there.
+   ========================================================================== */
+
+.simplysf2e .simplysf2e-sources {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spf-space-md);
+  padding: var(--spf-space-xs);
+  overflow-y: auto;
+}
+
+/* HUD readout legends: console chips with a neon edge. */
+.simplysf2e .spf-source-category legend {
+  font-family: var(--spf-font-display);
+  font-weight: bold;
+  font-variant: normal;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: var(--spf-text-sm);
+  padding: 0 0.3rem;
+  background: color-mix(in srgb, var(--spf-brand-dark) 85%, #0c1620);
+  border: 1px solid color-mix(in srgb, var(--spf-neon) 40%, var(--spf-border));
+  border-radius: var(--spf-radius-sm);
+  box-shadow: var(--spf-inset-glow);
+  color: var(--spf-brand-accent);
+}
+
+.simplysf2e .spf-pack {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 1.9rem;
+  padding: 0.15rem var(--spf-space-sm);
+  border-left: 2px solid transparent;
+  border-radius: var(--spf-radius-sm);
+  cursor: pointer;
+}
+
+.simplysf2e .spf-pack:hover {
+  background: var(--spf-brand-soft);
+}
+
+/* Checked packs carry an accent rail so the selection scans down a column. */
+.simplysf2e .spf-pack:has(input:checked) {
+  border-left-color: var(--spf-brand-accent);
+  background: color-mix(in srgb, var(--spf-brand-accent) 8%, transparent);
+}
+
+.simplysf2e .spf-pack:has(input:focus-visible) {
+  outline: 2px solid var(--spf-focus);
+  outline-offset: -2px;
+}
+
+.simplysf2e .spf-pack-title {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.simplysf2e .spf-pack-source {
+  font-family: var(--spf-font-mono);
+  font-size: var(--spf-text-xs);
+  color: var(--spf-text-muted);
+  white-space: nowrap;
+}
+
+/* Empty category: dashed inset so "no packs" reads as a state, not a row. */
+.simplysf2e .spf-source-category > .spf-hint {
+  margin: 0;
+  padding: var(--spf-space-sm);
+  border: 1px dashed var(--spf-border);
+  border-radius: var(--spf-radius-sm);
+  color: var(--spf-text-muted);
+}
+
+/* HUD hooks: must follow the shared .spf-hint / .spf-card rules they refine. */
+.simplysf2e .spf-hud-accent {
+  color: var(--spf-brand-accent);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--spf-brand-accent) 55%, transparent);
+  letter-spacing: 0.04em;
+}
+
+.simplysf2e .spf-hud-accent > i {
+  color: var(--spf-brand-accent);
+}
+
+.simplysf2e .spf-hud-frame {
+  box-shadow: var(--spf-inset-glow), 0 0 10px color-mix(in srgb, var(--spf-brand-accent) 14%, transparent);
+}

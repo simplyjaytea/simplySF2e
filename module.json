@@ -27,7 +27,12 @@
     "scripts/simplysf2e.mjs"
   ],
   "styles": [
-    "styles/simplysf2e.css"
+    "styles/simplysf2e.css",
+    "styles/apps/generator.css",
+    "styles/apps/itemforge.css",
+    "styles/apps/manage-presets.css",
+    "styles/apps/provider-setup.css",
+    "styles/apps/sources.css"
   ],
   "languages": [
     {
