@@ -12,16 +12,22 @@ import { slugify } from "./text.mjs";
  * `packs/sf2e/class-features/soldier/soldier-fighting-style.json`
  * filter `item:tag:soldier-fighting-style`). Same shape:
  * envoy-leadership-style, mystic-connection, witchwarper-paradox,
- * witchwarper-anchor. Solarian Solar Manifestations is GrantItem/Strike REs,
- * not an item:tag ChoiceSet — nothing to stage.
+ * witchwarper-anchor, operative-specialization. Solarian Solar
+ * Manifestations is GrantItem/Strike REs, not an item:tag ChoiceSet —
+ * nothing to stage.
  *
- * Operative stays locked: every specialization option carries a non-static
- * `item:category:skill` + `item:level:1` ChoiceSet (and a templated GrantItem).
- * Empty is better than unlocking a path that throws at create or invents a
- * skill-feat resolver.
+ * Operative's specializations
+ * (`packs/sf2e/class-features/operative/specializations/*.json`) each carry
+ * an `item:category:skill` + `item:level:1` feat ChoiceSet and a templated
+ * GrantItem; Sniper adds a `class:operative`-gated `bonusFeat` uuid choice.
+ * `stageClassPaths` closes both before create: skill feats come only from
+ * enabled `feats` packs whose prerequisites the specialization's own
+ * skill-rank upgrade proves, and every reachable grant must be choice-free.
+ * A specialization it cannot close fails the build rather than opening a
+ * native dialog.
  */
 export const COMPLETE_PC_CLASS_SLUGS = new Set([
-  "envoy", "mystic", "solarian", "soldier", "witchwarper"
+  "envoy", "mystic", "operative", "solarian", "soldier", "witchwarper"
 ]);
 
 export function supportedClassCandidates(candidates) {

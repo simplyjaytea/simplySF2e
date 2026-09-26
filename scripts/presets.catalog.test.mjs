@@ -63,7 +63,8 @@ const keys = lang.SIMPLYSF2E.Presets;
 assert.equal(keys.StandardGroup, "Standard classes");
 assert.equal(keys.CustomGroup, "Custom presets");
 assert.match(keys.FlavorGuide, /flavor guides/i);
-assert.match(keys.FlavorGuide, /Operative stays locked/);
+assert.match(keys.FlavorGuide, /all six published Starfinder 2e classes/);
+assert.match(keys.FlavorGuide, /Operative/);
 assert.doesNotMatch(keys.FlavorGuide, /Fighter|Rogue|Investigator|Magus|Witch\b/);
 for (const dropped of [
   "Alchemist", "Barbarian", "Bard", "Champion", "Cleric", "Druid", "Fighter",

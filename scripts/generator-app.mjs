@@ -922,7 +922,15 @@ export class GeneratorApp extends SpfApp {
       // Resolve ABC + grants + feat-slot candidates now (index lookups are
       // cheap/cached) so the reused equipment/spell refine helpers below have
       // real ancestry/class trait slugs for thematic context.
-      let resolved = await resolvePCConcept(concept);
+      const choiceSelector = async (groups) => {
+        const label = game.i18n.localize("SIMPLYSF2E.Progress.CharacterChoices");
+        const { picks, usage } = await selectCharacterChoices({
+          concept, groups, onProgress: (p) => this._onAIProgress(p), signal
+        });
+        this._recordTokens(label, usage);
+        return picks;
+      };
+      let resolved = await resolvePCConcept(concept, { selectChoices: choiceSelector });
       concept.traits = [slugify(resolved.ancestryDoc.name), slugify(resolved.classDoc.name)];
 
       // The real class document owns the casting mode and base slot plan.
@@ -986,8 +994,8 @@ export class GeneratorApp extends SpfApp {
       // re-resolve those parts (the ABC/grants/feat-slot lookups above are
       // cheap and index-cached, so redoing them here is harmless; keep the
       // feat picks already made).
-      const final = await resolvePCConcept(concept, { exactContent: true });
-      resolved = { ...final, feats: resolved.feats };
+      const final = await resolvePCConcept(concept, { exactContent: true, pathPlan: resolved.pathPlan });
+      resolved = { ...final, feats: resolved.feats, pathPlan: resolved.pathPlan };
       // Cross-bucket dedup BEFORE any budget math sees the loot list: the AI
       // sometimes lists the same named item as both starting equipment and
       // loot (issue found in live QA — a "+1 Striking Dwarven War Axe" and a
@@ -1040,8 +1048,8 @@ export class GeneratorApp extends SpfApp {
           // Keep the already-grounded items, add the new draft, re-ground and re-budget.
           concept.loot = [...concept.loot.filter((l) => !parseCoins(l.name)), ...normalizeLoot(draft)];
           await this.#refineLoot(concept, signal);
-          const topUp = await resolvePCConcept(concept, { exactContent: true });
-          resolved = { ...topUp, feats: resolved.feats };
+          const topUp = await resolvePCConcept(concept, { exactContent: true, pathPlan: resolved.pathPlan });
+          resolved = { ...topUp, feats: resolved.feats, pathPlan: resolved.pathPlan };
           resolved.loot = dedupeLootAgainstEquipment(resolved.loot, resolved.equipment);
           resolved.loot = enforceNamedLootBudget(resolved.loot, lootBudget);
           resolved.loot = await applyTreasureBudget(resolved.loot, lootBudget);
