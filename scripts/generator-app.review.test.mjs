@@ -8,6 +8,7 @@ import { reviewUnresolvedChoices } from "./choice-set.mjs";
 import { normalizeSkillPriorities, skillPriorityOrder } from "./pc-skills.mjs";
 import { assertComplete, completionManifest, completionSummary } from "./completion.mjs";
 import { freeArchetypeNeedsPrerequisiteValidation } from "./pc-support.mjs";
+import { validateArchetypeSlotPlacement } from "./pc-prerequisites.mjs";
 
 if (!vm.SourceTextModule) {
   const run = spawnSync(process.execPath, ["--experimental-vm-modules", import.meta.filename], { stdio: "inherit" });
@@ -51,7 +52,8 @@ const mocks = {
   SpfApp: App, MODULE_ID: "simplysf2e", SETTINGS: { freeArchetype: "freeArchetype" }, reviewUnresolvedChoices, normalizeSkillPriorities, skillPriorityOrder,
   assertComplete, completionManifest, completionSummary,
   verifyCreatedActor: () => { if (verifyFailure) throw verifyFailure; },
-  freeArchetypeNeedsPrerequisiteValidation, supportedClassCandidates: (candidates) => candidates,
+  freeArchetypeNeedsPrerequisiteValidation, validateArchetypeSlotPlacement,
+  supportedClassCandidates: (candidates) => candidates,
   getProviderRequestConfig: () => ({}), getProviderAuthWarningKey: () => null,
   BUILT_IN_PRESETS: [], getCustomPresets: () => [], findPreset: () => null, examplePrompt: () => "",
   presetPickerGroups: () => ({ selectedId: "", standard: [], custom: [] }),
@@ -124,15 +126,17 @@ assert.deepEqual(Array.from(scrollPreview.context.pcPreview.loot, ({ name, found
 ]);
 previewLoot = [];
 
-// Free Archetype begins adding feats at level 2. Until its published text
-// prerequisites can be checked on a staged actor, the production preflight
-// must stop before the first concept/provider request.
+// Free Archetype begins adding feats at level 2. Archetype slots now carry
+// staged prerequisite filtering plus post-resolution placement checks, so the
+// production preflight no longer stops before the first concept request;
+// unprovable placements fail closed into the completion manifest instead.
 freeArchetype = true;
 generatorLevel = 2;
-const beforeBlocked = conceptCalls;
+const beforeArchetype = conceptCalls;
 await actions.generateRandom.call(new GeneratorApp());
-assert.equal(conceptCalls, beforeBlocked, "unsupported Free Archetype stops before the provider concept call");
-assert.ok(notices.some(([, text]) => text === "SIMPLYSF2E.Generator.FreeArchetypeUnsupported"));
+assert.equal(conceptCalls, beforeArchetype + 1, "Free Archetype proceeds to the provider concept call under staged validation");
+assert.ok(!notices.some(([, text]) => text === "SIMPLYSF2E.Generator.FreeArchetypeUnsupported"),
+  "the retired hard-stop notice is never shown");
 freeArchetype = false;
 generatorLevel = 1;
 

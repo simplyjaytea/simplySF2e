@@ -201,3 +201,139 @@ export function featPrerequisitesMet(feat, context) {
     return skill && skillClauseMet(RANK[skill[1].toLowerCase()], skill[2], context, context.allowedSkillFeats);
   });
 }
+
+/**
+ * Fail-closed archetype-trait probe for one feat in any staged shape: a full
+ * compendium/index entry (`system.traits.value`) or an issued candidate
+ * record (`traits`). Anything unreadable is not an archetype feat.
+ */
+export function isArchetypeFeat(value) {
+  const traits = Array.isArray(value?.system?.traits?.value)
+    ? value.system.traits.value
+    : Array.isArray(value?.traits) ? value.traits : null;
+  return traits !== null && traits.includes("archetype");
+}
+
+function readableFeatLevel(value) {
+  const raw = Number.isInteger(value?.system?.level?.value)
+    ? value.system.level.value
+    : value?.level;
+  const level = Math.round(Number(raw));
+  return Number.isInteger(level) && level >= 1 && level <= 20 ? level : null;
+}
+
+function readableSlotLevel(slot) {
+  const level = Math.round(Number(slot?.level));
+  return Number.isInteger(level) && level >= 1 && level <= 20 ? level : null;
+}
+
+/**
+ * Chronological Free Archetype slot-placement validation without a grant
+ * graph. `slots` and `feats` are parallel archetype-only arrays: each slot
+ * is `{ type, level, archetype: true, candidates? }` and each feat is the
+ * resolved fill for that slot (`{ name, entry }`, where entry may be an
+ * issued candidate ref, a candidate record, or a full feat entry).
+ *
+ * Each fill is accepted only when every readable dimension proves slot fit,
+ * in slot order, with earlier accepted archetype names accumulated into the
+ * prerequisite context — so a later feat naming an earlier-placed dedication
+ * proves its chain without any new grant data. Unresolvable chains (a name
+ * clause no staged or earlier-placed feat proves) fail closed here exactly
+ * as they do at candidate time.
+ *
+ * Evidence joins the slot's own candidate list first (by ref identity, then
+ * by name); a fill with no entry is already unresolved upstream and passes
+ * through untouched. Prerequisite text is re-proven only when the fill
+ * carries a readable `system.prerequisites.value` array alongside a staged
+ * `context` — issued candidate records carry no such text because candidate
+ * time already proved it, so a null context checks placement only
+ * (trait, level, order, duplicates). Callers with skill data must pass an
+ * unrestricted context; a restricted skill-feat context cannot prove
+ * archetype placement and fails its fills closed.
+ *
+ * Never throws on malformed input: every rejection warns and lands in
+ * `dropped` for the caller to leave unresolved.
+ * @returns {{placed: number[], dropped: {index: number, name: string, reason: string}[]}}
+ */
+export function validateArchetypeSlotPlacement(slots, feats, context = null) {
+  const placed = [];
+  const dropped = [];
+  const drop = (index, name, reason) => {
+    console.warn(`simplysf2e | Free Archetype placement for "${name}" rejected: ${reason} — slot left unresolved`);
+    dropped.push({ index, name, reason });
+  };
+  if (!Array.isArray(slots) || !Array.isArray(feats)) {
+    console.warn("simplysf2e | Free Archetype placement needs parallel slot and feat lists — nothing validated");
+    return { placed, dropped };
+  }
+  if (slots.length !== feats.length) {
+    console.warn(`simplysf2e | Free Archetype placement lists diverge (${slots.length} slots, ${feats.length} fills) — validating their overlap only`);
+  }
+  const accepted = new Set();
+  let names = context?.names instanceof Set ? new Set(context.names) : null;
+  if (context && names === null) {
+    console.warn("simplysf2e | Free Archetype placement given an unusable staged context — checking placement only");
+  }
+  const count = Math.min(slots.length, feats.length);
+  for (let index = 0; index < count; index++) {
+    const slot = slots[index];
+    const fill = feats[index];
+    const slotLevel = readableSlotLevel(slot);
+    const label = typeof fill?.name === "string" && fill.name.trim() ? fill.name.trim() : `slot ${slotLevel ?? "?"}`;
+    if (slot?.archetype !== true || slot?.type !== "class" || slotLevel === null) {
+      drop(index, label, "not a readable even-level archetype class slot");
+      continue;
+    }
+    if (!fill || fill.entry == null) {
+      // A fill with no entry is already unresolved upstream; a bare full
+      // entry carries its own evidence below.
+      if (!(fill && typeof fill === "object" && (fill.system || fill.traits))) continue;
+    }
+    const candidate = (Array.isArray(slot.candidates) ? slot.candidates : [])
+      .find((item) => item?.ref === fill.entry)
+      ?? (Array.isArray(slot.candidates) ? slot.candidates : [])
+        .find((item) => typeof item?.name === "string" && typeof fill?.name === "string"
+          && slugify(item.name) === slugify(fill.name))
+      ?? null;
+    const direct = fill && typeof fill === "object" && (fill.system || fill.traits) ? fill : null;
+    const evidence = (fill.entry && typeof fill.entry === "object" && (fill.entry.system || fill.entry.traits))
+      ? fill.entry : direct ?? candidate;
+    const name = typeof fill?.name === "string" && fill.name.trim()
+      ? fill.name.trim()
+      : typeof candidate?.name === "string" ? candidate.name : label;
+    const slug = slugify(name);
+    if (!slug) {
+      drop(index, label, "no readable feat name");
+      continue;
+    }
+    if (!isArchetypeFeat(evidence)) {
+      drop(index, name, "no readable archetype trait on this slot's evidence");
+      continue;
+    }
+    const level = readableFeatLevel(evidence) ?? readableFeatLevel(fill);
+    if (level === null) {
+      drop(index, name, "no readable feat level");
+      continue;
+    }
+    if (level > slotLevel) {
+      drop(index, name, `feat level ${level} exceeds its level-${slotLevel} archetype slot`);
+      continue;
+    }
+    if (accepted.has(slug)) {
+      drop(index, name, "already placed in an earlier archetype slot");
+      continue;
+    }
+    const prerequisites = evidence?.system?.prerequisites?.value ?? null;
+    if (names !== null && Array.isArray(prerequisites)) {
+      const proof = { ...context, names: new Set(names) };
+      if (!featPrerequisitesMet({ system: { prerequisites: { value: prerequisites } } }, proof)) {
+        drop(index, name, "published prerequisites unproven by staged feats and earlier archetype placements");
+        continue;
+      }
+    }
+    accepted.add(slug);
+    if (names !== null) names.add(slug);
+    placed.push(index);
+  }
+  return { placed, dropped };
+}

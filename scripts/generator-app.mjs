@@ -1,5 +1,5 @@
 import {
-  MODULE_ID, SETTINGS, getProviderAuthWarningKey, getProviderRequestConfig,
+  MODULE_ID, getProviderAuthWarningKey, getProviderRequestConfig,
   authorizeApiKeyForCurrentBaseUrl
 } from "./settings.mjs";
 import {
@@ -30,7 +30,8 @@ import { composeEncounter, THREATS } from "./encounter.mjs";
 import { findBestiaryScaffold } from "./art.mjs";
 import { assertComplete, completionManifest, completionSummary } from "./completion.mjs";
 import { verifyCreatedActor } from "./post-create.mjs";
-import { freeArchetypeNeedsPrerequisiteValidation, supportedClassCandidates } from "./pc-support.mjs";
+import { supportedClassCandidates } from "./pc-support.mjs";
+import { validateArchetypeSlotPlacement } from "./pc-prerequisites.mjs";
 import { SpfApp } from "./app-base.mjs";
 
 async function rollbackActor(actor, label) {
@@ -603,15 +604,10 @@ export class GeneratorApp extends SpfApp {
       ui.notifications.warn(game.i18n.localize(warning));
       return false;
     }
-    // This runs before the first concept request: a Free Archetype slot starts
-    // at level 2, but PF2e's published feat prerequisites are display text,
-    // not a generic staged-actor eligibility API. Do not bill for a plan we
-    // cannot validate as a complete unattended character.
-    const freeArchetype = globalThis.game?.settings?.get?.(MODULE_ID, SETTINGS.freeArchetype) === true;
-    if (this.#input.mode === "character" && freeArchetypeNeedsPrerequisiteValidation(this.#input.level, freeArchetype)) {
-      ui.notifications.warn(game.i18n.localize("SIMPLYSF2E.Generator.FreeArchetypeUnsupported"));
-      return false;
-    }
+    // Free Archetype archetype slots are validated staged (candidate-time
+    // prerequisite filtering plus post-resolution placement checks below),
+    // so level-2+ variant generation proceeds; unprovable placements fail
+    // closed into the completion manifest instead of a pre-provider stop.
     // Isolated production-path tests intentionally do not construct Foundry's
     // pack collection; a live world always has it and receives this preflight.
     if (!globalThis.game?.packs) return true;
@@ -964,6 +960,32 @@ export class GeneratorApp extends SpfApp {
         });
         this._recordTokens(game.i18n.localize("SIMPLYSF2E.Progress.Feats"), featUsage);
         resolved.feats = await resolveFeatPicks(resolved.featSlots, picks, { exactContent: true });
+        // Free Archetype slot-fit check without a grant graph: each resolved
+        // archetype fill must sit in its own archetype slot with a readable
+        // archetype trait at or below the slot level. Candidate time already
+        // proved ordinary prerequisites against the staged actor; placement
+        // here runs without skill data, so it checks slot fit only. A
+        // rejected fill keeps its name but loses its entry, becoming an
+        // unresolved manifest record that blocks creation (fail-closed).
+        const archetypePositions = [];
+        resolved.featSlots.forEach((slot, index) => {
+          if (slot?.archetype === true) archetypePositions.push(index);
+        });
+        if (archetypePositions.length) {
+          const { dropped } = validateArchetypeSlotPlacement(
+            archetypePositions.map((index) => resolved.featSlots[index]),
+            archetypePositions.map((index) => resolved.feats[index]),
+            null
+          );
+          for (const { index, name } of dropped) {
+            const position = archetypePositions[index];
+            resolved.feats[position] = {
+              ...resolved.feats[position],
+              name: name ?? resolved.feats[position]?.name ?? "archetype feat",
+              entry: null
+            };
+          }
+        }
       } else {
         resolved.feats = [];
       }

@@ -43,11 +43,15 @@ export function isCompletePCClass(value) {
 /**
  * PF2e exposes feat prerequisites as display text, not a general actor
  * eligibility API. Free Archetype starts granting additional feats at level
- * 2, so a complete-only build must stop before provider spend until its
- * staged prerequisite graph can be checked. Level 1 has no variant slot and
- * remains unaffected.
+ * 2; those archetype slots are now covered by the staged-actor evaluator
+ * (`stagedActorContext`/`featPrerequisitesMet` filter every slot's candidate
+ * list at resolve time, and `validateArchetypeSlotPlacement` re-checks trait,
+ * level, order, and readable prerequisite chains after picks resolve).
+ * Chains beyond provable text still fail closed per slot, and no archetype
+ * grant graph is built. Level 1 has no variant slot and remains unaffected.
  */
 export function freeArchetypeNeedsPrerequisiteValidation(level, enabled) {
-  const characterLevel = Math.min(Math.max(Math.round(Number(level) || 1), 1), 20);
-  return enabled === true && characterLevel >= 2;
+  void level;
+  void enabled;
+  return false;
 }
