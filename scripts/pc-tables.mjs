@@ -1,17 +1,19 @@
 /**
  * Player Character leveling cadence from the Pathfinder 2e (remaster) Core
  * Rulebook — WHEN a PC gets an ability boost or a feat slot of each kind.
- * Transcribed core rules, same category as tables.mjs's GM Core benchmark
- * numbers: hardcoded from the book, not invented.
+ * PF2e-compatible pending SF2e source: hardcoded from the PF2e book, not
+ * invented, but NOT verified against a Starfinder source. Same category as
+ * tables.mjs's PF2e-only GM Core benchmark numbers.
  */
 
 /**
- * GM Core Table 10-10 "Character Wealth" (Chapter 1: Running the Game >
+ * PF2e-compatible wealth table, pending SF2e source — do NOT treat as SF2e
+ * published statistics. GM Core Table 10-10 "Character Wealth" (Chapter 1:
  * Rewards > Treasure > "Treasure for New Characters", GM Core pg. 61) — the
  * wealth a PC who is *created at* the given level starts with. Indexed by
  * level 1-20 via PC_WEALTH_BY_LEVEL[level - 1].
  *
- * VERIFIED against Archives of Nethys (Remaster GM Core), fetched from
+ * VERIFIED against Archives of Nethys (Remaster GM Core, i.e. PF2e), fetched from
  *   https://2e.aonprd.com/Rules.aspx?ID=2662
  * The table there has three columns — "Permanent Items", "Currency", and
  * "Lump Sum". The column transcribed below is the LUMP SUM column, verbatim:
@@ -42,7 +44,8 @@
  * lump sum is deliberately worth less than items+currency (the book says so),
  * which is the correct trade for a module that lets the buyer pick freely.
  * Modelling the recommended per-level item ladder is part of the separate
- * known equipment gap — HANDOFF.md finding #15.
+ * known equipment gap — HANDOFF.md finding #15. Pending a cited SF2e
+ * source, keep this PF2e-compatible table as-is; do not renumber by guess.
  *
  * Rules data used under the ORC License; see README for attribution.
  */
@@ -115,7 +118,10 @@ export function spontaneousSpellSlots(level) {
   return pcSpellSlots(level, null);
 }
 
-// SF2e rows: packs/sf2e/classes/{mystic,witchwarper}.json on
+// Provenance split: the seven Pathfinder rows below (bard…wizard) are PF2e
+// Player Core legacy fallback — PF2e-compatible pending SF2e equivalents, do
+// not treat as SF2e published. The two Starfinder rows (mystic, witchwarper)
+// are SF2e-cited: packs/sf2e/classes/{mystic,witchwarper}.json on
 // https://github.com/foundryvtt/pf2e/tree/v14-dev (publication "Starfinder Player
 // Core", remaster: true, no system.slug, so name matching applies). Casting ability:
 // mystic-spellcasting.json says Wisdom; witchwarper-spellcasting.json says Charisma
@@ -123,6 +129,7 @@ export function spontaneousSpellSlots(level) {
 // keyAbility.value ["cha","int"]), so null leaves ability to the chosen key attribute.
 // Tradition comes from connection or paradox. Both features grant "three 1st-rank spells".
 const REMASTER_SPELLCASTERS = [
+  // PF2e legacy fallback rows (Pathfinder Player Core / Player Core 2):
   { slug: "bard", name: "Bard", title: "Pathfinder Player Core", mode: "spontaneous", ability: "cha", tradition: "occult", baseSlots: 2 },
   { slug: "sorcerer", name: "Sorcerer", title: "Pathfinder Player Core 2", mode: "spontaneous", ability: "cha", tradition: null, baseSlots: 3 },
   { slug: "oracle", name: "Oracle", title: "Pathfinder Player Core 2", mode: "spontaneous", ability: "cha", tradition: "divine", baseSlots: 3 },
@@ -130,6 +137,7 @@ const REMASTER_SPELLCASTERS = [
   { slug: "druid", name: "Druid", title: "Pathfinder Player Core", mode: "prepared", ability: "wis", tradition: "primal", baseSlots: 2 },
   { slug: "witch", name: "Witch", title: "Pathfinder Player Core", mode: "prepared", ability: "int", tradition: null, baseSlots: 2 },
   { slug: "wizard", name: "Wizard", title: "Pathfinder Player Core", mode: "prepared", ability: "int", tradition: "arcane", baseSlots: 2 },
+  // SF2e-cited rows (Starfinder Player Core):
   { slug: "mystic", name: "Mystic", title: "Starfinder Player Core", mode: "spontaneous", ability: "wis", tradition: null, baseSlots: 3 },
   { slug: "witchwarper", name: "Witchwarper", title: "Starfinder Player Core", mode: "spontaneous", ability: null, tradition: null, baseSlots: 3 }
 ];
