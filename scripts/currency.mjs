@@ -58,6 +58,19 @@ export function gpToCredits(gp) {
   return Math.max(Math.ceil((n * DENOMINATION_RATES.gp) / DENOMINATION_RATES.credits), 1);
 }
 
+/**
+ * Convert an AI-supplied credit amount to gp-equivalent at the cited rate
+ * (÷10: `DENOMINATION_RATES.gp` = 100 per gp, `credits` = 10 per credit).
+ * The prompts now ask for "value" in credits, but the custom-item fallback
+ * edge and the loot/equipment budget math still run in gp; this is the
+ * inverse of gpToCredits. Fail closed: non-positive or non-finite input is 0.
+ */
+export function creditsToGp(credits) {
+  const n = Number(credits);
+  if (!Number.isFinite(n) || n <= 0) return 0;
+  return n / 10;
+}
+
 export function toCredits(sourceUnit, count) {
   const n = Math.max(Math.round(Number(count) || 0), 0);
   if (n <= 0) return 0;

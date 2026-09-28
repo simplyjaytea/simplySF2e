@@ -2,7 +2,7 @@ import * as T from "./tables.mjs";
 import { findEntry, getDocument, toItemData, getPacksFor, getAllPacksFor, getFeatCandidates, getHeritageCandidates, isIssuedCandidate } from "./compendium.mjs";
 import {
   parseCoins, resolveLoot, resolveEquipment, resolveFocusSpells,
-  buildEquipmentItems, buildLootItems, filterItemTypes, heightenedLevelFor
+  buildEquipmentItems, buildLootItems, filterItemTypes, heightenedLevelFor, systemIcon
 } from "./builder.mjs";
 import { slugify, capitalized, toHtml } from "./text.mjs";
 import { findRuleExemplar } from "./rule-templates.mjs";
@@ -889,7 +889,7 @@ export async function createCharacterActor(concept, resolved, { img = null, sele
       _id: entryId,
       name: `${capitalized(tradition)} Spells`,
       type: "spellcastingEntry",
-      img: "systems/pf2e/icons/default-icons/spellcastingEntry.svg",
+      img: systemIcon("icons/default-icons/spellcastingEntry.svg"),
       system: {
         tradition: { value: tradition },
         prepared: { value: mode, flexible: false },
@@ -928,7 +928,7 @@ export async function createCharacterActor(concept, resolved, { img = null, sele
       _id: focusEntryId,
       name: "Focus Spells",
       type: "spellcastingEntry",
-      img: "systems/pf2e/icons/default-icons/spellcastingEntry.svg",
+      img: systemIcon("icons/default-icons/spellcastingEntry.svg"),
       system: {
         // Real focus spells carry no tradition of their own; tag the entry
         // with the class's casting tradition only when the concept has one.
