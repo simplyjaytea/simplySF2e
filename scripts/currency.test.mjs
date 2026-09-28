@@ -1,10 +1,11 @@
 // Numeric edges in currency.mjs conversions plus the assembleCurrency()
 // fail-closed contract: zero/negative/NaN/fractional inputs and unknown
-// units must yield 0 or null, never NaN, Infinity, or an invented coin
-// document. Run: node scripts/currency.test.mjs
+// units must yield 0 or null, not NaN or an invented coin document.
+// (Extreme magnitudes can still overflow to Infinity — pre-existing
+// behavior, out of scope here.) Run: node scripts/currency.test.mjs
 
 import assert from "node:assert/strict";
-import { gpToCredits, toCredits, assembleCurrency } from "./currency.mjs";
+import { gpToCredits, toCredits, assembleCurrency, CREDSTICK_SOURCE, UPB_SOURCE } from "./currency.mjs";
 
 /* ---------------------------------------------------------------------- *
  * gpToCredits(): non-positive and non-numeric gp never becomes credits
@@ -62,6 +63,34 @@ assert.equal(assembleCurrency("bogus", 5), null, "unknown units assemble nothing
 {
   const capped = assembleCurrency("credits", 1e9);
   assert.equal(capped.system.price.value.sp, 100000, "quantities cap instead of overflowing");
+}
+
+{
+  // Bad template shapes fail closed (guards at assembleCurrency): mutate in
+  // memory, assert null, restore in finally so later suites are unaffected.
+  const credType = CREDSTICK_SOURCE.type;
+  const credCat = CREDSTICK_SOURCE.system?.category;
+  const upbType = UPB_SOURCE.type;
+  const upbSlug = UPB_SOURCE.system?.slug;
+  try {
+    CREDSTICK_SOURCE.type = "weapon";
+    assert.equal(assembleCurrency("credits", 5), null, "wrong credstick template type assembles nothing");
+    CREDSTICK_SOURCE.type = "treasure";
+    CREDSTICK_SOURCE.system.category = "goods";
+    assert.equal(assembleCurrency("credits", 5), null, "wrong credstick category assembles nothing");
+    UPB_SOURCE.type = "weapon";
+    assert.equal(assembleCurrency("upb", 5), null, "wrong UPB template type assembles nothing");
+    UPB_SOURCE.type = "treasure";
+    UPB_SOURCE.system.slug = "scrap";
+    assert.equal(assembleCurrency("upb", 5), null, "wrong UPB slug assembles nothing");
+  } finally {
+    CREDSTICK_SOURCE.type = credType;
+    CREDSTICK_SOURCE.system.category = credCat;
+    UPB_SOURCE.type = upbType;
+    UPB_SOURCE.system.slug = upbSlug;
+  }
+  assert.notEqual(assembleCurrency("credits", 5), null, "restored credstick template assembles again");
+  assert.notEqual(assembleCurrency("upb", 5), null, "restored UPB template assembles again");
 }
 
 console.log("currency.test.mjs: conversion edges and assembleCurrency fail-closed behavior passed");
