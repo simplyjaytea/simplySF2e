@@ -3,7 +3,7 @@ import { getPacksFor, findEntry, getDocument, toItemData, priceToGp, isIssuedCan
 import { slugify, capitalized, esc, toHtml } from "./text.mjs";
 import { parseRunes, applyRunes, dropUncitedRunePrefix, runeGp, hasRunes } from "./runes.mjs";
 import {
-  parseCoins, currencyQuantity, isCurrencyDocument,
+  parseCoins, currencyQuantity, isCurrencyDocument, gpToCredits,
   assembleCurrency, resolveCurrencyTemplate, CREDIT_UNIT_GP
 } from "./currency.mjs";
 
@@ -600,7 +600,7 @@ export async function applyTreasureBudget(loot, targetGp) {
       excess -= removable * unit;
     }
     if (excess > targetGp * 0.2) {
-      console.log(`simplysf2e | loot is ~${Math.round(excess)} credits over the treasure budget with no coins left to trim — named items are never removed to hit a budget`);
+      console.log(`simplysf2e | loot is ~${gpToCredits(excess)} credits over the treasure budget with no coins left to trim — named items are never removed to hit a budget`);
     }
     // Drop coin lines trimmed all the way to zero.
     return loot.filter((l) => !(parseCoins(l.name) && (Number(l.quantity) || 0) <= 0));
@@ -874,7 +874,7 @@ export function dedupeLootAgainstEquipment(loot, equipment) {
  * afterward against whatever value remains. Never throws: a non-array input
  * or a zero/negative budget just yields an empty named list.
  * @param {object[]} loot     entries from resolveLoot()
- * @param {number} budgetGp   credits remaining for loot after equipment (see equipmentValueGp)
+ * @param {number} budgetGp   gp-equivalent remaining for loot after equipment (see equipmentValueGp)
  * @returns {object[]} loot with named entries trimmed to fit budgetGp
  */
 export function enforceNamedLootBudget(loot, budgetGp) {
@@ -897,7 +897,7 @@ export function enforceNamedLootBudget(loot, budgetGp) {
   }
   if (dropped.length) {
     const droppedGp = dropped.reduce((sum, l) => sum + lineGp(l), 0);
-    console.warn(`simplysf2e | dropped ${dropped.length} named loot item(s) worth ~${Math.round(droppedGp)} credits over the PC loot budget (~${Math.round(budget)} credits): ${dropped.map((l) => l?.name).join(", ")}`);
+    console.warn(`simplysf2e | dropped ${dropped.length} named loot item(s) worth ~${gpToCredits(droppedGp)} credits over the PC loot budget (~${gpToCredits(budget)} credits): ${dropped.map((l) => l?.name).join(", ")}`);
   }
   return [...coinLines, ...kept];
 }
