@@ -687,8 +687,10 @@ export async function buildMagicItemData(concept) {
    * compendium prices, and callers (itemforge-app preview "X gp" plus
    * Item.create) round-trip that unit unchanged. Credits live at the
    * currency edge only (assembleCurrency persists a credit count as
-   * price.value.sp per currency.mjs); storing this benchmark as sp would be
-   * value-identical through priceToGp but would break compendium convention
+   * price.value.sp per currency.mjs); storing this benchmark as sp would
+   * require {sp: benchmarkGp * 10} to stay value-identical through
+   * priceToGp (priceToGp({gp:100}) === 100 but priceToGp({sp:100}) === 10),
+   * and would break compendium convention
    * and diverge from the runed-item preview path, which likewise reports gp. */
   const system = {
     level: { value: concept.level },
