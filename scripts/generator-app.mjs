@@ -324,13 +324,15 @@ export class GeneratorApp extends SpfApp {
     if (!this.#encounter) return null;
     return {
       name: this.#encounter.name,
-      budget: this.#encounter.budget,
-      spent: this.#encounter.spent,
+      // Display-boundary thousands separators only; budget math stays numeric
+      // above (overBudget comparisons use the raw values, unchanged).
+      budget: Number(this.#encounter.budget ?? 0).toLocaleString("en-US"),
+      spent: Number(this.#encounter.spent ?? 0).toLocaleString("en-US"),
       overBudget: this.#encounter.spent > this.#encounter.budget,
       // Internal treasure math stays in gp (applyTreasureBudget/lootValueGp);
       // only the display boundary converts to credits via the cited rate.
-      treasureBudget: gpToCredits(Math.round(this.#encounter.treasureBudget ?? 0)),
-      treasureSpent: gpToCredits(this.#encounter.treasureSpent ?? 0),
+      treasureBudget: gpToCredits(Math.round(this.#encounter.treasureBudget ?? 0)).toLocaleString("en-US"),
+      treasureSpent: gpToCredits(this.#encounter.treasureSpent ?? 0).toLocaleString("en-US"),
       treasureOverBudget: (this.#encounter.treasureSpent ?? 0) > (this.#encounter.treasureBudget ?? 0),
       members: this.#encounter.members.map((member, index) => {
         const stats = computeStats(member.concept);
