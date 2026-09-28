@@ -23,8 +23,8 @@ function idx(level) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Ability modifiers. Extreme is unavailable below level 1 (falls back
- * to high). */
+/* PF2e-only (no SF2e source; see file header) — Ability modifiers. Extreme
+ * is unavailable below level 1 (falls back to high). */
 export const ABILITY_MODIFIER = {
   //        lvl -1  0   1   2   3   4   5   6   7   8   9  10  11  12  13  14  15  16  17  18  19  20  21  22  23  24
   extreme:  [null, null, 5,  5,  5,  6,  6,  7,  7,  7,  7,  8,  8,  8,  9,  9,  9, 10, 10, 10, 11, 11, 11, 11, 11, 13],
@@ -33,7 +33,8 @@ export const ABILITY_MODIFIER = {
   low:      [0,  0,  1,  1,  1,  2,  2,  2,  2,  3,  3,  3,  3,  4,  4,  4,  4,  5,  5,  5,  5,  6,  6,  6,  6,  7]
 };
 
-/* Perception and saving throws share the same benchmark numbers. */
+/* PF2e-only (no SF2e source; see file header) — Perception and saving
+ * throws share the same benchmark numbers. */
 export const PERCEPTION_AND_SAVES = {
   extreme:  [9, 10, 11, 12, 14, 15, 17, 18, 20, 21, 23, 24, 26, 27, 29, 30, 32, 33, 35, 36, 38, 39, 41, 43, 44, 46],
   high:     [8,  9, 10, 11, 12, 14, 15, 17, 18, 19, 21, 22, 24, 25, 26, 28, 29, 30, 32, 33, 35, 36, 38, 39, 40, 42],
@@ -42,6 +43,7 @@ export const PERCEPTION_AND_SAVES = {
   terrible: [0,  1,  2,  3,  4,  6,  7,  8, 10, 11, 12, 14, 15, 16, 18, 19, 20, 22, 23, 24, 26, 27, 28, 30, 31, 32]
 };
 
+/* PF2e-only (no SF2e source; see file header) — Skill benchmarks. */
 export const SKILL = {
   extreme:  [8,  9, 10, 11, 13, 15, 16, 18, 20, 21, 23, 25, 26, 28, 30, 31, 33, 35, 36, 38, 40, 41, 43, 45, 46, 48],
   high:     [5,  6,  7,  8, 10, 12, 13, 15, 17, 18, 20, 22, 23, 25, 27, 28, 30, 32, 33, 35, 37, 38, 40, 42, 43, 45],
@@ -49,6 +51,7 @@ export const SKILL = {
   low:      [2,  3,  4,  5,  7,  8, 10, 11, 13, 14, 16, 17, 19, 20, 22, 23, 25, 26, 28, 29, 31, 32, 34, 35, 36, 38]
 };
 
+/* PF2e-only (no SF2e source; see file header) — Armor Class benchmarks. */
 export const AC = {
   extreme:  [18, 19, 19, 21, 22, 24, 25, 27, 28, 30, 31, 33, 34, 36, 37, 39, 40, 42, 43, 45, 46, 48, 49, 51, 52, 54],
   high:     [15, 16, 16, 18, 19, 21, 22, 24, 25, 27, 28, 30, 31, 33, 34, 36, 37, 39, 40, 42, 43, 45, 46, 48, 49, 51],
@@ -56,13 +59,15 @@ export const AC = {
   low:      [12, 13, 13, 15, 16, 18, 19, 21, 22, 24, 25, 27, 28, 30, 31, 33, 34, 36, 37, 39, 40, 42, 43, 45, 46, 48]
 };
 
-/* Hit points use the midpoint of each printed range. */
+/* PF2e-only (no SF2e source; see file header) — Hit points use the
+ * midpoint of each printed range. */
 export const HP = {
   high:     [9, 18, 25, 38, 56, 75, 94, 119, 144, 169, 194, 219, 244, 269, 294, 319, 344, 369, 394, 419, 444, 469, 500, 538, 575, 625],
   moderate: [7, 15, 20, 30, 45, 60, 75,  95, 115, 135, 155, 175, 195, 215, 235, 255, 275, 295, 315, 335, 355, 375, 400, 430, 460, 500],
   low:      [5, 12, 15, 23, 34, 45, 56,  71,  86, 101, 116, 131, 146, 161, 176, 191, 206, 221, 236, 251, 266, 281, 300, 322, 345, 375]
 };
 
+/* PF2e-only (no SF2e source; see file header) — Strike attack bonuses. */
 export const STRIKE_ATTACK = {
   extreme:  [10, 10, 11, 13, 14, 16, 17, 19, 20, 22, 23, 25, 27, 28, 29, 31, 32, 34, 35, 37, 38, 40, 41, 43, 44, 46],
   high:     [8,  8,  9, 11, 12, 14, 15, 17, 18, 20, 21, 23, 24, 26, 27, 29, 30, 32, 33, 35, 36, 38, 39, 41, 43, 45],
@@ -70,7 +75,8 @@ export const STRIKE_ATTACK = {
   low:      [4,  4,  5,  7,  8,  9, 11, 12, 13, 15, 16, 17, 19, 20, 21, 23, 24, 25, 27, 28, 29, 31, 32, 34, 35, 36]
 };
 
-/* Strike damage expressed as ready-to-roll dice formulas. */
+/* PF2e-only (no SF2e source; see file header) — Strike damage expressed
+ * as ready-to-roll dice formulas. */
 export const STRIKE_DAMAGE = {
   extreme: [
     "1d6+1", "1d6+2", "1d8+2", "1d12+4", "1d12+8", "2d10+7", "2d12+7", "2d12+10",
@@ -98,12 +104,14 @@ export const STRIKE_DAMAGE = {
   ]
 };
 
+/* PF2e-only (no SF2e source; see file header) — Spell DC benchmarks. */
 export const SPELL_DC = {
   extreme:  [19, 19, 20, 22, 23, 25, 26, 27, 29, 30, 32, 33, 34, 36, 37, 39, 40, 41, 43, 44, 46, 47, 48, 50, 51, 52],
   high:     [16, 16, 17, 18, 20, 21, 22, 24, 25, 26, 28, 29, 30, 32, 33, 34, 36, 37, 38, 40, 41, 42, 44, 45, 46, 48],
   moderate: [13, 13, 14, 15, 17, 18, 19, 21, 22, 23, 25, 26, 27, 29, 30, 31, 33, 34, 35, 37, 38, 39, 41, 42, 43, 45]
 };
 
+/* PF2e-only (no SF2e source; see file header) — Spell attack benchmarks. */
 export const SPELL_ATTACK = {
   extreme:  [11, 11, 12, 14, 15, 17, 18, 19, 21, 22, 24, 25, 26, 28, 29, 31, 32, 33, 35, 36, 38, 39, 40, 42, 43, 44],
   high:     [8,  8,  9, 10, 12, 13, 14, 16, 17, 18, 20, 21, 22, 24, 25, 26, 28, 29, 30, 32, 33, 34, 36, 37, 38, 40],
@@ -128,6 +136,7 @@ export function identificationDC(level, rarity = "common") {
   return lookup(LEVEL_DC, level, "dc", []) + (RARITY_DC_ADJUSTMENT[rarity] ?? 0);
 }
 
+/* PF2e-only (no SF2e source; see file header) — Resistance benchmarks. */
 export const RESISTANCE = {
   maximum: [1, 3, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 19, 20, 21, 22, 23, 24, 24, 26],
   minimum: [1, 1, 2, 2, 3, 4, 4, 5,  5,  6,  6,  7,  7,  8,  8,  9,  9,  9, 10, 10, 10, 11, 11, 11, 12, 12]
@@ -166,8 +175,9 @@ export const TREASURE_BY_LEVEL = {
           710000, 1030000, 1500000, 2200000]
 };
 
-/* NO SF2e SOURCE — module design choice layered on top of the level baseline:
- * uncommon/rare/unique creatures carry above-average treasure for their level. */
+/* NO SF2e SOURCE — module design choice, not published data, layered on top
+ * of the level baseline: uncommon/rare/unique creatures carry above-average
+ * treasure for their level. */
 export const RARITY_TREASURE_MULTIPLIER = { common: 1, uncommon: 1.5, rare: 2.5, unique: 4 };
 
 /* How many encounters a party plays per level: Moderate = 80 XP CITED via
@@ -186,7 +196,8 @@ export const RARITY_TREASURE_MULTIPLIER = { common: 1, uncommon: 1.5, rare: 2.5,
  * back up. */
 export const ENCOUNTERS_PER_LEVEL = 1000 / 80;
 
-/* NO SF2e SOURCE — module design choice. The per-generation "Treasure amount"
+/* NO SF2e SOURCE — module design choice, not published data. The
+ * per-generation "Treasure amount"
  * control (Stingy/Standard/Generous), applied on top of level + rarity budget. */
 export const TREASURE_AMOUNT_MULTIPLIER = { stingy: 0.5, standard: 1, generous: 1.5 };
 
