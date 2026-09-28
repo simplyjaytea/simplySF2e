@@ -46,9 +46,10 @@ assert.equal(await equipmentValueGp(plain), 2, "real base price (1 gp) x quantit
 const runed = [{ name: "+1 striking longsword", quantity: 1, value: 5, runes: { potency: 1, striking: 1, resilient: 0 }, entry: { packId: PACK_ID, _id: LONGSWORD._id, type: "weapon" } }];
 assert.equal(await equipmentValueGp(runed), 101, "a runed item must value at real base + real rune price, not the base alone");
 
-// An unmatched name (no compendium entry) falls back to the AI's own gp estimate.
-const unmatched = [{ name: "Bespoke Trinket", quantity: 3, value: 10, runes: { potency: 0, striking: 0, resilient: 0 }, entry: null }];
-assert.equal(await equipmentValueGp(unmatched), 30, "an unresolved item must fall back to value x quantity, same as resolveLoot");
+// An unmatched name (no compendium entry) falls back to the AI's own estimate,
+// now denominated in credits (÷10 to gp per the credits-first prompts).
+const unmatched = [{ name: "Bespoke Trinket", quantity: 3, value: 100, runes: { potency: 0, striking: 0, resilient: 0 }, entry: null }];
+assert.equal(await equipmentValueGp(unmatched), 30, "an unresolved item must fall back to credits ÷ 10 × quantity (100 credits = 10 gp × 3), same as resolveLoot");
 
 // Multiple lines sum together; empty/missing input is 0.
 assert.equal(await equipmentValueGp([...plain, ...unmatched]), 32, "equipmentValueGp must sum every line");
@@ -90,12 +91,12 @@ assert.match(
 // drops repeated names at embed time, so the budget deduction must match.
 {
   const dupes = [
-    { name: "Longsword", quantity: 1, value: 1, runes: null, entry: null },
-    { name: "Longsword", quantity: 1, value: 1, runes: null, entry: null },
-    { name: "longsword", quantity: 1, value: 1, runes: null, entry: null }
+    { name: "Longsword", quantity: 1, value: 10, runes: null, entry: null },
+    { name: "Longsword", quantity: 1, value: 10, runes: null, entry: null },
+    { name: "longsword", quantity: 1, value: 10, runes: null, entry: null }
   ];
   const gp = await equipmentValueGp(dupes);
-  assert.equal(gp, 1, "repeated equipment names must be valued once, matching the dedup embed");
+  assert.equal(gp, 1, "repeated equipment names must be valued once (10 credits = 1 gp), matching the dedup embed");
 }
 
 console.log("builder equipmentValueGp / PC wealth-deduction regression check: all assertions passed");

@@ -4,7 +4,7 @@ import { slugify, capitalized, esc, toHtml } from "./text.mjs";
 import { parseRunes, applyRunes, dropUncitedRunePrefix, runeGp, hasRunes } from "./runes.mjs";
 import {
   parseCoins, currencyQuantity, isCurrencyDocument, gpToCredits,
-  assembleCurrency, resolveCurrencyTemplate, CREDIT_UNIT_GP
+  assembleCurrency, resolveCurrencyTemplate, CREDIT_UNIT_GP, creditsToGp
 } from "./currency.mjs";
 
 /* Re-exported so the rest of the module keeps importing its shared helpers
@@ -500,7 +500,7 @@ export async function resolveLoot(concept, { exactContent = false } = {}) {
       const templateGp = priceToGp(templateDoc?.system?.price?.value);
       loot.push({
         name, quantity, value, runes: dropUncitedRunePrefix(name).runes, entry, scroll: { rank },
-        resolvedValue: templateGp > 0 ? templateGp : value
+        resolvedValue: templateGp > 0 ? templateGp : creditsToGp(value)
       });
       continue;
     }
@@ -519,12 +519,12 @@ export async function resolveLoot(concept, { exactContent = false } = {}) {
         (e) => (e.system?.level?.value ?? 0) <= maxLevel
       ));
     const runes = stripped.runes;
-    let resolvedValue = value;
+    let resolvedValue = creditsToGp(value);
     if (entry) {
       const doc = await getDocument(entry);
       const gp = unitPriceGp(doc);
       if (gp > 0) resolvedValue = gp + await runeGp(runes, entry.type);
-      else if (hasRunes(runes)) resolvedValue = value + await runeGp(runes, entry.type);
+      else if (hasRunes(runes)) resolvedValue = creditsToGp(value) + await runeGp(runes, entry.type);
     }
     loot.push({ name: stripped.dropped ? stripped.name : name, quantity, value, runes, entry, resolvedValue });
   }
@@ -669,7 +669,7 @@ export async function buildScrollItem(spellEntry, rank) {
  * the AI's estimated value, so the haul keeps its worth instead of vanishing.
  */
 export function customTreasureItem(name, quantity, value) {
-  const gp = Math.max(Math.round(Number(value) || 0), 0);
+  const gp = Math.max(Math.round(creditsToGp(value)), 0);
   const item = {
     name: capitalized(name),
     type: "treasure",
@@ -689,7 +689,7 @@ export function customTreasureItem(name, quantity, value) {
  * creature should be carrying doesn't silently vanish or masquerade as coins.
  */
 export function customEquipmentItem(name, quantity, value) {
-  const gp = Math.max(Math.round(Number(value) || 0), 0);
+  const gp = Math.max(Math.round(creditsToGp(value)), 0);
   const item = {
     name: capitalized(name),
     type: "equipment",
@@ -808,7 +808,7 @@ export async function equipmentValueGp(equipment) {
     const key = slugify(name);
     if (seen.has(key)) continue;
     seen.add(key);
-    let unitGp = Number(value) || 0;
+    let unitGp = creditsToGp(value);
     if (entry) {
       const doc = await getDocument(entry);
       const gp = unitPriceGp(doc);

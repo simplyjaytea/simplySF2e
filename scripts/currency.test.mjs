@@ -5,7 +5,7 @@
 // behavior, out of scope here.) Run: node scripts/currency.test.mjs
 
 import assert from "node:assert/strict";
-import { gpToCredits, toCredits, assembleCurrency, CREDSTICK_SOURCE, UPB_SOURCE } from "./currency.mjs";
+import { gpToCredits, creditsToGp, toCredits, assembleCurrency, CREDSTICK_SOURCE, UPB_SOURCE } from "./currency.mjs";
 
 /* ---------------------------------------------------------------------- *
  * gpToCredits(): non-positive and non-numeric gp never becomes credits
@@ -20,6 +20,19 @@ assert.equal(gpToCredits(0.05), 1, "a sub-credit amount rounds up to one credit,
 assert.equal(gpToCredits(0.1), 1, "one credit of gp stays one credit");
 assert.equal(gpToCredits(1.5), 15, "fractional gp converts at 10 credits per gp");
 assert.equal(gpToCredits(15), 150, "Table 10-10 level-1 lump sum surfaces as 150 credits");
+
+/* ---------------------------------------------------------------------- *
+ * creditsToGp(): the ÷10 inverse, used at the custom-item fallback edge and
+ * the loot/equipment budget math now that the prompts ask "value" in credits
+ * ---------------------------------------------------------------------- */
+
+assert.equal(creditsToGp(100), 10, "100 credits = 10 gp (the reviewer's pin)");
+assert.equal(creditsToGp(10), 1, "10 credits = 1 gp");
+assert.equal(creditsToGp(5), 0.5, "5 credits = 0.5 gp (fractional gp preserved)");
+assert.equal(creditsToGp(0), 0, "zero credits = zero gp");
+assert.equal(creditsToGp(-100), 0, "negative credits = zero gp");
+assert.equal(creditsToGp(NaN), 0, "NaN credits = zero gp, not NaN");
+assert.equal(creditsToGp("200"), 20, "string credit counts convert like numbers");
 
 /* ---------------------------------------------------------------------- *
  * toCredits(): counts round before converting; unknown units fail closed
