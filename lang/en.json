@@ -27,7 +27,7 @@
       },
       "FreeArchetype": {
         "Name": "Free Archetype variant rule",
-        "Hint": "Free Archetype is not yet available for complete one-click characters at level 2 or higher: its feat prerequisites need staged validation."
+        "Hint": "When enabled, one-click characters gain the variant's extra archetype feat slot at each even level. Picks are validated staged — candidate-time prerequisite filtering plus slot-placement checks — and unprovable placements are left unresolved instead of guessed."
       }
     },
     "ProviderSetup": {
@@ -114,7 +114,7 @@
       "RarityCap": "Rarity cap",
       "RarityCapTooltip": "Excludes ancestries, backgrounds, and heritages rarer than this from what the AI can pick — e.g. capping at Uncommon rules out Rare/Unique options",
       "TreasureAmount": "Treasure amount",
-      "TreasureReadoutTooltip": "Total loot value across all members vs. the treasure budget (per-creature budget × count). Budget numbers are inherited PF2e-compatible Treasure by Level values pending a cited Starfinder 2e source.",
+      "TreasureReadoutTooltip": "Total loot value across all members vs. the treasure budget (per-encounter share of the cited SF2e Party Treasure total, shown in credits; levels outside 1–20 are module extrapolations).",
       "AllowSpellcasting": "Allow spellcasting",
       "Generate": "Generate",
       "GenerateMonster": "Generate Monster",
@@ -140,7 +140,6 @@
       "OpenSheet": "Open Sheet",
       "GenerateAnother": "Generate Another",
       "NoSupportedClasses": "No supported complete-only player-character classes are available in the enabled compendium sources.",
-      "FreeArchetypeUnsupported": "Free Archetype at level 2 or higher needs staged feat-prerequisite validation, so complete one-click character generation is unavailable while that variant is enabled.",
       "ReviewTitle": "Character created — review",
       "ReviewHint": "These features had no recorded choice after creation. Some may be conditional or intentionally disabled; review them in Foundry. This snapshot does not refresh when you edit the character and is not a full character validation.",
       "ReviewIncomplete": "Not every item could be inspected. Review the character manually.",

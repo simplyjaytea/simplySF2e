@@ -62,7 +62,9 @@ export class ItemForgeApp extends SpfApp {
   /** Final, already-resolved item data for a RUNED (weapon/armor) concept — built at generation
    * time since its name/price/level all depend on real component documents. */
   #itemData = null;
-  /** PF2e-derived runed values for preview only; never persisted to source. */
+  /** Transient runed totals for preview only (rune-component price sum and max
+   * component level, per buildRunedItem); the cloned base source values stay
+   * untouched for system preparation and these are never persisted. */
   #runedPreview = null;
   /** Effect kinds with no real exemplar in this world (set after first scan). */
   #unavailableKinds = null;

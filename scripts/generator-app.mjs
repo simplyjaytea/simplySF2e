@@ -327,8 +327,11 @@ export class GeneratorApp extends SpfApp {
       budget: this.#encounter.budget,
       spent: this.#encounter.spent,
       overBudget: this.#encounter.spent > this.#encounter.budget,
-      treasureBudget: Math.round(this.#encounter.treasureBudget ?? 0),
-      treasureSpent: Math.round(this.#encounter.treasureSpent ?? 0),
+      // Internal treasure math stays in gp (applyTreasureBudget/lootValueGp);
+      // only the display boundary converts to credits via the cited rate.
+      treasureBudget: gpToCredits(this.#encounter.treasureBudget ?? 0),
+      treasureSpent: gpToCredits(this.#encounter.treasureSpent ?? 0),
+      treasureOverBudget: (this.#encounter.treasureSpent ?? 0) > (this.#encounter.treasureBudget ?? 0),
       members: this.#encounter.members.map((member, index) => {
         const stats = computeStats(member.concept);
         const strike = stats.strikes[0];

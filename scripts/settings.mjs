@@ -147,9 +147,10 @@ export function registerSettings(SourcesConfigApp, ProviderSetupApp) {
   });
 
   // Free Archetype is a GM campaign-rule choice, so it is world-scoped and
-  // restricted. The complete-only builder currently refuses level-2+ requests
-  // while its feat prerequisite graph remains unvalidated; level 1 has no
-  // variant slot and remains available.
+  // restricted. Archetype slots are validated staged (candidate-time
+  // prerequisite filtering plus post-resolution placement checks via
+  // validateArchetypeSlotPlacement); unprovable fills fail closed into the
+  // completion manifest. Level 1 has no variant slot and is unaffected.
   game.settings.register(MODULE_ID, SETTINGS.freeArchetype, {
     name: "SIMPLYSF2E.Settings.FreeArchetype.Name",
     hint: "SIMPLYSF2E.Settings.FreeArchetype.Hint",

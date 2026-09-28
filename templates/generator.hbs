@@ -403,7 +403,7 @@
     <header class="spf-statblock-header">
       <h2>{{encounterPreview.name}}</h2>
       <span class="spf-level {{#if encounterPreview.overBudget}}spf-over-budget{{/if}}">{{encounterPreview.spent}} / {{encounterPreview.budget}} XP</span>
-      <span class="spf-level" data-tooltip="{{localize 'SIMPLYSF2E.Generator.TreasureReadoutTooltip'}}">{{encounterPreview.treasureSpent}} / {{encounterPreview.treasureBudget}} gp</span>
+      <span class="spf-level {{#if encounterPreview.treasureOverBudget}}spf-over-budget{{/if}}" data-tooltip="{{localize 'SIMPLYSF2E.Generator.TreasureReadoutTooltip'}}">{{encounterPreview.treasureSpent}} / {{encounterPreview.treasureBudget}} credits</span>
     </header>
     <ul class="spf-encounter-members">
       {{#each encounterPreview.members}}
