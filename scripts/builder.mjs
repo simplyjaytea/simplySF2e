@@ -600,7 +600,7 @@ export async function applyTreasureBudget(loot, targetGp) {
       excess -= removable * unit;
     }
     if (excess > targetGp * 0.2) {
-      console.log(`simplysf2e | loot is ~${Math.round(excess)} gp over the treasure budget with no coins left to trim — named items are never removed to hit a budget`);
+      console.log(`simplysf2e | loot is ~${Math.round(excess)} credits over the treasure budget with no coins left to trim — named items are never removed to hit a budget`);
     }
     // Drop coin lines trimmed all the way to zero.
     return loot.filter((l) => !(parseCoins(l.name) && (Number(l.quantity) || 0) <= 0));
@@ -874,7 +874,7 @@ export function dedupeLootAgainstEquipment(loot, equipment) {
  * afterward against whatever value remains. Never throws: a non-array input
  * or a zero/negative budget just yields an empty named list.
  * @param {object[]} loot     entries from resolveLoot()
- * @param {number} budgetGp   gp remaining for loot after equipment (see equipmentValueGp)
+ * @param {number} budgetGp   credits remaining for loot after equipment (see equipmentValueGp)
  * @returns {object[]} loot with named entries trimmed to fit budgetGp
  */
 export function enforceNamedLootBudget(loot, budgetGp) {
@@ -897,7 +897,7 @@ export function enforceNamedLootBudget(loot, budgetGp) {
   }
   if (dropped.length) {
     const droppedGp = dropped.reduce((sum, l) => sum + lineGp(l), 0);
-    console.warn(`simplysf2e | dropped ${dropped.length} named loot item(s) worth ~${Math.round(droppedGp)} gp over the PC loot budget (~${Math.round(budget)} gp): ${dropped.map((l) => l?.name).join(", ")}`);
+    console.warn(`simplysf2e | dropped ${dropped.length} named loot item(s) worth ~${Math.round(droppedGp)} credits over the PC loot budget (~${Math.round(budget)} credits): ${dropped.map((l) => l?.name).join(", ")}`);
   }
   return [...coinLines, ...kept];
 }
@@ -1254,13 +1254,32 @@ export function featToAction(feat, compendiumSource = null) {
   return data;
 }
 
+/**
+ * System-icon path resolved against the live system id.
+ * The SF2e system is built from the same source tree as PF2e
+ * (foundryvtt/pf2e v14-dev, system.sf2e.json) and ships the identical
+ * static/icons tree — verified: actions/{OneAction,Reaction,FreeAction,
+ * Passive}.webp and default-icons/{lore,melee,spellcastingEntry}.svg all
+ * exist there — but serves it under systems/sf2e/, so a hardcoded
+ * systems/pf2e/ prefix 404s. The "sf2e" default keeps node/test contexts
+ * (no game global) deterministic; live, game.system.id is always set
+ * (simplysf2e.mjs refuses to boot on any other system).
+ * @param {string} rel  path relative to the system root, e.g. "icons/actions/Passive.webp"
+ * @returns {string}
+ */
+export function systemIcon(rel) {
+  const id = globalThis.game?.system?.id ?? "sf2e";
+  return `systems/${id}/${rel}`;
+}
+
 function actionIcon(actionType) {
-  return {
-    action: "systems/pf2e/icons/actions/OneAction.webp",
-    reaction: "systems/pf2e/icons/actions/Reaction.webp",
-    free: "systems/pf2e/icons/actions/FreeAction.webp",
-    passive: "systems/pf2e/icons/actions/Passive.webp"
-  }[actionType] ?? "systems/pf2e/icons/actions/Passive.webp";
+  const file = {
+    action: "OneAction.webp",
+    reaction: "Reaction.webp",
+    free: "FreeAction.webp",
+    passive: "Passive.webp"
+  }[actionType] ?? "Passive.webp";
+  return systemIcon(`icons/actions/${file}`);
 }
 
 /**
@@ -1279,7 +1298,7 @@ export async function createActor(concept, resolved, { img = null, scaffold = nu
     items.push({
       name: isLore ? skill.name : capitalized(skill.name),
       type: "lore",
-      img: "systems/pf2e/icons/default-icons/lore.svg",
+      img: systemIcon("icons/default-icons/lore.svg"),
       system: { mod: { value: skill.mod } }
     });
   }
@@ -1289,7 +1308,7 @@ export async function createActor(concept, resolved, { img = null, scaffold = nu
     items.push({
       name: capitalized(strike.name),
       type: "melee",
-      img: "systems/pf2e/icons/default-icons/melee.svg",
+      img: systemIcon("icons/default-icons/melee.svg"),
       system: {
         bonus: { value: strike.bonus },
         damageRolls: {
@@ -1354,7 +1373,7 @@ export async function createActor(concept, resolved, { img = null, scaffold = nu
       _id: entryId,
       name: `${capitalized(concept.spellcasting.tradition)} Spells`,
       type: "spellcastingEntry",
-      img: "systems/pf2e/icons/default-icons/spellcastingEntry.svg",
+      img: systemIcon("icons/default-icons/spellcastingEntry.svg"),
       system: {
         tradition: { value: concept.spellcasting.tradition },
         prepared: { value: "spontaneous", flexible: false },
@@ -1399,7 +1418,7 @@ export async function createActor(concept, resolved, { img = null, scaffold = nu
       _id: focusEntryId,
       name: "Focus Spells",
       type: "spellcastingEntry",
-      img: "systems/pf2e/icons/default-icons/spellcastingEntry.svg",
+      img: systemIcon("icons/default-icons/spellcastingEntry.svg"),
       system: {
         tradition: { value: concept.spellcasting.tradition },
         prepared: { value: "focus", flexible: false },
