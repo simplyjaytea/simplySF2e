@@ -70,8 +70,8 @@ const selectKind = appModule.namespace.ItemForgeApp.DEFAULT_OPTIONS.actions.sele
 
 let prepared = await app._prepareContext();
 assert.equal(prepared.input.kind, "wondrous");
-assert.deepEqual(Array.from(prepared.kinds, (kind) => kind.icon), ["fa-ring", "fa-sword", "fa-shield-halved"]);
-assert.deepEqual(Array.from(prepared.kinds, (kind) => kind.selected), [true, false, false]);
+assert.deepEqual(Array.from(prepared.kinds, (kind) => kind.icon), ["fa-ring", "fa-sword", "fa-shield-halved", "fa-microchip", "fa-gem"]);
+assert.deepEqual(Array.from(prepared.kinds, (kind) => kind.selected), [true, false, false, false, false]);
 
 await selectKind.call(app, null, { dataset: { kind: "weapon" } });
 prepared = await app._prepareContext();
@@ -79,7 +79,7 @@ assert.equal(prepared.input.kind, "weapon", "the production action changes the a
 assert.equal(prepared.input.prompt, "A storm-lit dueling blade", "kind changes preserve the prompt");
 assert.equal(prepared.input.level, 9, "kind changes preserve the level");
 assert.equal(prepared.input.rarity, "rare", "kind changes preserve rarity");
-assert.deepEqual(Array.from(prepared.kinds, (kind) => kind.selected), [false, true, false],
+assert.deepEqual(Array.from(prepared.kinds, (kind) => kind.selected), [false, true, false, false, false],
   "only Weapon is highlighted after selecting Weapon");
 
 controls['[name="prompt"]'].value = "Armor wrapped in winter mist";
@@ -87,7 +87,7 @@ await selectKind.call(app, null, { dataset: { kind: "armor" } });
 prepared = await app._prepareContext();
 assert.equal(prepared.input.kind, "armor");
 assert.equal(prepared.input.prompt, "Armor wrapped in winter mist");
-assert.deepEqual(Array.from(prepared.kinds, (kind) => kind.selected), [false, false, true],
+assert.deepEqual(Array.from(prepared.kinds, (kind) => kind.selected), [false, false, true, false, false],
   "only Armor is highlighted after selecting Armor");
 
 const rendersBeforeInvalid = app.renders;

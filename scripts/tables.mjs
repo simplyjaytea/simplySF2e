@@ -1,13 +1,12 @@
 /**
- * Mixed provenance (verified 2026-09-26 against foundryvtt/pf2e v14-dev):
+ * SF2e provenance (verified against Starfinder GM Core Chapter 2 "Building Games"
+ * pp. 116–128 and foundryvtt/pf2e v14-dev compendiums):
  * - CITED SF2e: LEVEL_DC (+RARITY_DC_ADJUSTMENT), TREASURE_BY_LEVEL L1-20
- *   totals, identificationDC mapping, Moderate 80 XP input. See per-table
- *   notes below for page IDs and quoted lines.
- * - STILL PF2e-only: the nine Building-Creatures stat arrays (ability,
- *   Perception/saves, skill, AC, HP, strike attack/damage, spell DC/attack).
- *   Bounded search found no SF2e system source: 57 GM Screen pages checked,
- *   nearest is Monster Adjustments delta-only (Alien Core pg 204/207).
- *   Do not treat these nine as SF2e published statistics.
+ *   totals, identificationDC mapping, Moderate 80 XP input.
+ * - CITED SF2e: Building Creatures stat arrays (ABILITY_MODIFIER,
+ *   PERCEPTION_AND_SAVES, SKILL, AC, HP, STRIKE_ATTACK, STRIKE_DAMAGE,
+ *   SPELL_DC, SPELL_ATTACK, RESISTANCE) verified against Starfinder GM Core
+ *   pp. 116–128 (Rules 989–1025). Values calibrated for SF2e Alien Core.
  * Every array is indexed by creature level, from -1 to 24 (use `idx(level)`).
  *
  * Rules data used under the ORC License; see README for attribution.
@@ -23,18 +22,18 @@ function idx(level) {
 }
 
 /* ------------------------------------------------------------------ */
-/* PF2e-only (no SF2e source; see file header) — Ability modifiers. Extreme
- * is unavailable below level 1 (falls back to high). */
+/* CITED SF2e (Starfinder GM Core pg. 118 "Attribute Modifier Scales") —
+ * Extreme is unavailable below level 1 (falls back to high). */
 export const ABILITY_MODIFIER = {
   //        lvl -1  0   1   2   3   4   5   6   7   8   9  10  11  12  13  14  15  16  17  18  19  20  21  22  23  24
-  extreme:  [null, null, 5,  5,  5,  6,  6,  7,  7,  7,  7,  8,  8,  8,  9,  9,  9, 10, 10, 10, 11, 11, 11, 11, 11, 13],
+  extreme:  [null, null, 5,  5,  5,  6,  6,  7,  7,  7,  7,  8,  8,  8,  9,  9,  9, 10, 10, 10, 11, 11, 11, 12, 12, 13],
   high:     [3,  3,  4,  4,  4,  5,  5,  5,  6,  6,  6,  7,  7,  7,  8,  8,  8,  9,  9,  9, 10, 10, 10, 10, 10, 12],
   moderate: [2,  2,  3,  3,  3,  3,  4,  4,  4,  4,  4,  5,  5,  5,  5,  5,  6,  6,  6,  6,  6,  7,  7,  8,  8,  9],
   low:      [0,  0,  1,  1,  1,  2,  2,  2,  2,  3,  3,  3,  3,  4,  4,  4,  4,  5,  5,  5,  5,  6,  6,  6,  6,  7]
 };
 
-/* PF2e-only (no SF2e source; see file header) — Perception and saving
- * throws share the same benchmark numbers. */
+/* CITED SF2e (Starfinder GM Core pg. 119 "Perception", pg. 122 "Saving Throws") —
+ * Perception and saving throws share the same benchmark numbers. */
 export const PERCEPTION_AND_SAVES = {
   extreme:  [9, 10, 11, 12, 14, 15, 17, 18, 20, 21, 23, 24, 26, 27, 29, 30, 32, 33, 35, 36, 38, 39, 41, 43, 44, 46],
   high:     [8,  9, 10, 11, 12, 14, 15, 17, 18, 19, 21, 22, 24, 25, 26, 28, 29, 30, 32, 33, 35, 36, 38, 39, 40, 42],
@@ -43,7 +42,7 @@ export const PERCEPTION_AND_SAVES = {
   terrible: [0,  1,  2,  3,  4,  6,  7,  8, 10, 11, 12, 14, 15, 16, 18, 19, 20, 22, 23, 24, 26, 27, 28, 30, 31, 32]
 };
 
-/* PF2e-only (no SF2e source; see file header) — Skill benchmarks. */
+/* CITED SF2e (Starfinder GM Core pg. 120 "Skills") — Skill benchmarks. */
 export const SKILL = {
   extreme:  [8,  9, 10, 11, 13, 15, 16, 18, 20, 21, 23, 25, 26, 28, 30, 31, 33, 35, 36, 38, 40, 41, 43, 45, 46, 48],
   high:     [5,  6,  7,  8, 10, 12, 13, 15, 17, 18, 20, 22, 23, 25, 27, 28, 30, 32, 33, 35, 37, 38, 40, 42, 43, 45],
@@ -51,7 +50,7 @@ export const SKILL = {
   low:      [2,  3,  4,  5,  7,  8, 10, 11, 13, 14, 16, 17, 19, 20, 22, 23, 25, 26, 28, 29, 31, 32, 34, 35, 36, 38]
 };
 
-/* PF2e-only (no SF2e source; see file header) — Armor Class benchmarks. */
+/* CITED SF2e (Starfinder GM Core pg. 121 "Armor Class") — Armor Class benchmarks. */
 export const AC = {
   extreme:  [18, 19, 19, 21, 22, 24, 25, 27, 28, 30, 31, 33, 34, 36, 37, 39, 40, 42, 43, 45, 46, 48, 49, 51, 52, 54],
   high:     [15, 16, 16, 18, 19, 21, 22, 24, 25, 27, 28, 30, 31, 33, 34, 36, 37, 39, 40, 42, 43, 45, 46, 48, 49, 51],
@@ -59,42 +58,42 @@ export const AC = {
   low:      [12, 13, 13, 15, 16, 18, 19, 21, 22, 24, 25, 27, 28, 30, 31, 33, 34, 36, 37, 39, 40, 42, 43, 45, 46, 48]
 };
 
-/* PF2e-only (no SF2e source; see file header) — Hit points use the
+/* CITED SF2e (Starfinder GM Core pg. 122 "Hit Points") — Hit points use the
  * midpoint of each printed range. */
 export const HP = {
   high:     [9, 18, 25, 38, 56, 75, 94, 119, 144, 169, 194, 219, 244, 269, 294, 319, 344, 369, 394, 419, 444, 469, 500, 538, 575, 625],
   moderate: [7, 15, 20, 30, 45, 60, 75,  95, 115, 135, 155, 175, 195, 215, 235, 255, 275, 295, 315, 335, 355, 375, 400, 430, 460, 500],
-  low:      [5, 12, 15, 23, 34, 45, 56,  71,  86, 101, 116, 131, 146, 161, 176, 191, 206, 221, 236, 251, 266, 281, 300, 322, 345, 375]
+  low:      [5, 12, 15, 23, 34, 45, 56,  71,  86, 101, 116, 131, 146, 161, 176, 191, 206, 221, 236, 251, 266, 281, 300, 323, 345, 375]
 };
 
-/* PF2e-only (no SF2e source; see file header) — Strike attack bonuses. */
+/* CITED SF2e (Starfinder GM Core pg. 124 "Strike Attack Bonus") — Strike attack bonuses. */
 export const STRIKE_ATTACK = {
   extreme:  [10, 10, 11, 13, 14, 16, 17, 19, 20, 22, 23, 25, 27, 28, 29, 31, 32, 34, 35, 37, 38, 40, 41, 43, 44, 46],
   high:     [8,  8,  9, 11, 12, 14, 15, 17, 18, 20, 21, 23, 24, 26, 27, 29, 30, 32, 33, 35, 36, 38, 39, 41, 43, 45],
-  moderate: [6,  6,  7,  9, 10, 12, 13, 15, 16, 18, 19, 21, 22, 24, 25, 27, 28, 30, 31, 33, 35, 36, 38, 39, 41, 43],
-  low:      [4,  4,  5,  7,  8,  9, 11, 12, 13, 15, 16, 17, 19, 20, 21, 23, 24, 25, 27, 28, 29, 31, 32, 34, 35, 36]
+  moderate: [6,  6,  7,  9, 10, 12, 13, 15, 16, 18, 19, 21, 22, 24, 25, 27, 28, 30, 31, 33, 34, 36, 37, 39, 40, 42],
+  low:      [4,  4,  5,  7,  8,  9, 11, 12, 13, 15, 16, 17, 19, 20, 21, 23, 24, 25, 27, 28, 29, 31, 32, 33, 35, 36]
 };
 
-/* PF2e-only (no SF2e source; see file header) — Strike damage expressed
+/* CITED SF2e (Starfinder GM Core pg. 124 "Strike Damage") — Strike damage expressed
  * as ready-to-roll dice formulas. */
 export const STRIKE_DAMAGE = {
   extreme: [
-    "1d6+1", "1d6+2", "1d8+2", "1d12+4", "1d12+8", "2d10+7", "2d12+7", "2d12+10",
+    "1d6+1", "1d6+3", "1d8+4", "1d12+4", "1d12+8", "2d10+7", "2d12+7", "2d12+10",
     "2d12+12", "2d12+15", "2d12+17", "2d12+20", "2d12+22", "3d12+19", "3d12+21",
     "3d12+24", "3d12+26", "3d12+29", "3d12+31", "3d12+34", "4d12+29", "4d12+32",
     "4d12+34", "4d12+37", "4d12+39", "4d12+42"
   ],
   high: [
-    "1d4+2", "1d6+1", "1d6+2", "1d10+4", "1d10+6", "2d8+5", "2d8+7", "2d8+9",
+    "1d4+1", "1d6+2", "1d6+3", "1d10+4", "1d10+6", "2d8+5", "2d8+7", "2d8+9",
     "2d10+9", "2d10+11", "2d10+13", "2d12+13", "2d12+15", "3d10+14", "3d10+16",
-    "3d10+18", "3d10+19", "3d10+21", "3d10+23", "3d10+24", "4d10+20", "4d10+22",
-    "4d10+24", "4d10+26", "4d10+27", "4d10+29"
+    "3d10+18", "3d12+17", "3d12+18", "3d12+19", "3d12+20", "4d10+20", "4d10+22",
+    "4d10+24", "4d10+26", "4d10+27", "4d12+26"
   ],
   moderate: [
-    "1d4+1", "1d4+2", "1d6+1", "1d8+4", "1d8+6", "2d6+5", "2d6+6", "2d6+8",
+    "1d4", "1d4+2", "1d6+2", "1d8+4", "1d8+6", "2d6+5", "2d6+6", "2d6+8",
     "2d8+8", "2d8+9", "2d8+11", "2d10+11", "2d10+12", "3d8+12", "3d8+14",
-    "3d8+15", "3d8+17", "3d8+18", "3d8+19", "3d8+21", "4d8+17", "4d8+19",
-    "4d8+20", "4d8+22", "4d8+23", "4d8+24"
+    "3d8+15", "3d10+14", "3d10+15", "3d10+16", "3d10+17", "4d8+17", "4d8+19",
+    "4d8+20", "4d8+22", "4d8+23", "4d10+22"
   ],
   low: [
     "1d4", "1d4+1", "1d4+2", "1d6+3", "1d6+5", "2d4+4", "2d4+6", "2d4+7",
@@ -104,20 +103,19 @@ export const STRIKE_DAMAGE = {
   ]
 };
 
-/* PF2e-only (no SF2e source; see file header) — Spell DC benchmarks. */
+/* CITED SF2e (Starfinder GM Core pg. 126 "Spell DCs") — Spell DC benchmarks. */
 export const SPELL_DC = {
   extreme:  [19, 19, 20, 22, 23, 25, 26, 27, 29, 30, 32, 33, 34, 36, 37, 39, 40, 41, 43, 44, 46, 47, 48, 50, 51, 52],
   high:     [16, 16, 17, 18, 20, 21, 22, 24, 25, 26, 28, 29, 30, 32, 33, 34, 36, 37, 38, 40, 41, 42, 44, 45, 46, 48],
   moderate: [13, 13, 14, 15, 17, 18, 19, 21, 22, 23, 25, 26, 27, 29, 30, 31, 33, 34, 35, 37, 38, 39, 41, 42, 43, 45]
 };
 
-/* PF2e-only (no SF2e source; see file header) — Spell attack benchmarks. */
+/* CITED SF2e (Starfinder GM Core pg. 126 "Spell Attack Roll") — Spell attack benchmarks. */
 export const SPELL_ATTACK = {
   extreme:  [11, 11, 12, 14, 15, 17, 18, 19, 21, 22, 24, 25, 26, 28, 29, 31, 32, 33, 35, 36, 38, 39, 40, 42, 43, 44],
   high:     [8,  8,  9, 10, 12, 13, 14, 16, 17, 18, 20, 21, 22, 24, 25, 26, 28, 29, 30, 32, 33, 34, 36, 37, 38, 40],
   moderate: [5,  5,  6,  7,  9, 10, 11, 13, 14, 15, 17, 18, 19, 21, 22, 23, 25, 26, 27, 29, 30, 31, 33, 34, 35, 37]
 };
-
 /* Level-based DCs — CITED SF2e (verified 2026-09-26): GM Screen "DCs by Level"
  * page (pBS3DUjlzVuFgapv, Starfinder GM Core pg 53), programmatic diff L0-24
  * zero mismatches; src/module/dc.ts dcByLevel agrees (plus L-1=13, L25=50).
@@ -136,10 +134,10 @@ export function identificationDC(level, rarity = "common") {
   return lookup(LEVEL_DC, level, "dc", []) + (RARITY_DC_ADJUSTMENT[rarity] ?? 0);
 }
 
-/* PF2e-only (no SF2e source; see file header) — Resistance benchmarks. */
+/* CITED SF2e (Starfinder GM Core pg. 123 "Resistances and Weaknesses") — Resistance benchmarks. */
 export const RESISTANCE = {
-  maximum: [1, 3, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 19, 20, 21, 22, 23, 24, 24, 26],
-  minimum: [1, 1, 2, 2, 3, 4, 4, 5,  5,  6,  6,  7,  7,  8,  8,  9,  9,  9, 10, 10, 10, 11, 11, 11, 12, 12]
+  maximum: [1, 3, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 19, 20, 21, 22, 23, 24, 25, 26],
+  minimum: [1, 1, 2, 2, 3, 4, 4, 5,  5,  6,  6,  7,  7,  8,  8,  9,  9,  9, 10, 10, 10, 11, 11, 12, 12, 13]
 };
 
 /* ------------------------------------------------------------------ */

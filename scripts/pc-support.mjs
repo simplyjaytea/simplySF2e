@@ -41,6 +41,24 @@ export function isCompletePCClass(value) {
 }
 
 /**
+ * Starfinder 2e multiclass dedication archetype slugs (published in sf2e.feats
+ * with traits ['archetype', 'dedication', 'multiclass']).
+ */
+export const SF2E_MULTICLASS_DEDICATIONS = {
+  envoy: "envoy-dedication",
+  mystic: "mystic-dedication",
+  operative: "operative-dedication",
+  solarian: "solarian-dedication",
+  soldier: "soldier-dedication",
+  witchwarper: "witchwarper-dedication"
+};
+
+/** Check if a class slug has an official multiclass dedication in SF2e. */
+export function getMulticlassDedicationSlug(classSlug) {
+  return SF2E_MULTICLASS_DEDICATIONS[slugify(classSlug)] ?? null;
+}
+
+/**
  * PF2e exposes feat prerequisites as display text, not a general actor
  * eligibility API. Free Archetype starts granting additional feats at level
  * 2; those archetype slots are now covered by the staged-actor evaluator

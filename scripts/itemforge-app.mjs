@@ -8,7 +8,8 @@ import {
   normalizeMagicItemConcept, buildMagicItemData, priceForLevel, getUsageOptions, describeEffect,
   describeActivation, MIN_ITEM_LEVEL, MAX_ITEM_LEVEL,
   getBaseItemCandidates, getPropertyRuneCandidates, getFundamentalRuneTiers,
-  normalizeRunedItemConcept, buildRunedItem, SECONDARY_ADJECTIVE, RUNED_ITEM_KINDS
+  normalizeRunedItemConcept, buildRunedItem, SECONDARY_ADJECTIVE, RUNED_ITEM_KINDS,
+  getGradeTiers, getUpgradeCandidates, GRADE_LEVELS, EQUIPMENT_GRADES
 } from "./item-builder.mjs";
 import { createActivationMacro } from "./macro-templates.mjs";
 import { SourcesConfigApp } from "./sources-app.mjs";
@@ -95,7 +96,9 @@ export class ItemForgeApp extends SpfApp {
       kinds: [
         { value: "wondrous", label: "SIMPLYSF2E.ItemForge.KindWondrous", hint: "SIMPLYSF2E.ItemForge.KindWondrousHint", icon: "fa-ring" },
         { value: "weapon", label: "SIMPLYSF2E.ItemForge.KindWeapon", hint: "SIMPLYSF2E.ItemForge.KindWeaponHint", icon: "fa-sword" },
-        { value: "armor", label: "SIMPLYSF2E.ItemForge.KindArmor", hint: "SIMPLYSF2E.ItemForge.KindArmorHint", icon: "fa-shield-halved" }
+        { value: "armor", label: "SIMPLYSF2E.ItemForge.KindArmor", hint: "SIMPLYSF2E.ItemForge.KindArmorHint", icon: "fa-shield-halved" },
+        { value: "augmentation", label: "SIMPLYSF2E.ItemForge.KindAugmentation", hint: "SIMPLYSF2E.ItemForge.KindAugmentationHint", icon: "fa-microchip" },
+        { value: "crystal", label: "SIMPLYSF2E.ItemForge.KindCrystal", hint: "SIMPLYSF2E.ItemForge.KindCrystalHint", icon: "fa-gem" }
       ].map((kind) => ({ ...kind, selected: kind.value === this.#input.kind })),
       rarities: [
         { value: "common", label: "SIMPLYSF2E.Rarity.Common" },
@@ -154,16 +157,22 @@ export class ItemForgeApp extends SpfApp {
   #buildRunedPreviewContext() {
     if (!this.#itemData || !this.#runedPreview) return null;
     const data = this.#itemData;
+    const preview = this.#runedPreview;
     const runes = data.system.runes ?? {};
     const secondaryField = this.#kind === "weapon" ? "striking" : "resilient";
     const secondaryTier = runes[secondaryField] ?? 0;
+    const priceText = preview.priceCredits != null
+      ? `${preview.priceCredits.toLocaleString()} credits`
+      : `${preview.priceGp.toLocaleString()} gp`;
     return {
-      concept: { name: data.name, level: this.#runedPreview.level, description: this.#concept?.description ?? "" },
-      traits: [data.system.traits.rarity !== "common" ? data.system.traits.rarity : null, ...data.system.traits.value].filter(Boolean),
-      price: `${this.#runedPreview.priceGp.toLocaleString()} gp`,
+      concept: { name: data.name, level: preview.level, description: this.#concept?.description ?? "" },
+      traits: [data.system.traits?.rarity !== "common" ? data.system.traits?.rarity : null, ...(data.system.traits?.value ?? [])].filter(Boolean),
+      price: priceText,
       runed: true,
+      grade: preview.grade ?? data.system.grade ?? "commercial",
+      upgrades: preview.upgrades ?? this.#concept?.upgrades ?? [],
       potency: runes.potency ?? 0,
-      secondary: secondaryTier ? SECONDARY_ADJECTIVE[this.#kind][secondaryTier] : null,
+      secondary: secondaryTier ? SECONDARY_ADJECTIVE[this.#kind]?.[secondaryTier] : null,
       propertyRunes: this.#concept?.propertyRunes ?? []
     };
   }
@@ -211,7 +220,8 @@ export class ItemForgeApp extends SpfApp {
   static async #onSelectKind(_event, target) {
     if (this.#busy) return;
     const kind = target?.dataset?.kind;
-    if (kind !== "wondrous" && !RUNED_ITEM_KINDS.has(kind)) return;
+    const validKinds = new Set(["wondrous", "augmentation", "crystal", ...RUNED_ITEM_KINDS]);
+    if (!validKinds.has(kind)) return;
     this.#readForm();
     this.#input = { ...this.#input, kind };
     await this.render();
@@ -237,8 +247,11 @@ export class ItemForgeApp extends SpfApp {
     this.#kind = this.#input.kind;
     this.#clearPreview();
     this.#unavailableKinds = null;
-    if (this.#kind === "wondrous") await this.#generateWondrous();
-    else await this.#generateRuned(this.#kind);
+    if (this.#kind === "wondrous" || this.#kind === "augmentation" || this.#kind === "crystal") {
+      await this.#generateWondrous();
+    } else {
+      await this.#generateRuned(this.#kind);
+    }
   }
 
   async #generateWondrous() {
@@ -254,7 +267,7 @@ export class ItemForgeApp extends SpfApp {
       const effectCatalog = await getForgeEffectCatalog(this.#input.level, this.#input.rarity);
       const availableKinds = [...new Set(effectCatalog.map((effect) => effect.kind))];
       this.#unavailableKinds = EFFECT_KINDS.filter((k) => !availableKinds.includes(k));
-      const usageOptions = await getUsageOptions();
+      const usageOptions = await getUsageOptions(this.#kind);
 
       // 2. One AI call, constrained to the available kinds and real usages.
       await this._setStep("concept");
@@ -278,7 +291,8 @@ export class ItemForgeApp extends SpfApp {
         rarity: this.#input.rarity,
         availableKinds,
         effectCatalog,
-        usageOptions
+        usageOptions,
+        kind: this.#kind
       });
       this.#price = await priceForLevel(this.#concept.level, this.#concept.rarity);
       this._throwIfCancelled();
@@ -312,18 +326,14 @@ export class ItemForgeApp extends SpfApp {
       // which fundamental rune tiers actually fit under the target level.
       await this._setStep("templates");
       const maxLevel = this.#input.level;
-      const [baseCandidates, runeCandidates, tiers] = await Promise.all([
+      const [baseCandidates, runeCandidates, tiers, gradeTiers] = await Promise.all([
         getBaseItemCandidates(kind, maxLevel),
         getPropertyRuneCandidates(kind, maxLevel),
-        getFundamentalRuneTiers(kind, maxLevel)
+        getFundamentalRuneTiers(kind, maxLevel),
+        getGradeTiers(kind, maxLevel)
       ]);
       if (!baseCandidates.length) {
         throw new Error(game.i18n.format("SIMPLYSF2E.ItemForge.NoBaseItems", { kind }));
-      }
-      if (!tiers.potencyTiers.length) {
-        throw new Error(game.i18n.format("SIMPLYSF2E.ItemForge.NoPotencyAvailable", {
-          kind, level: maxLevel, minLevel: tiers.minPotencyLevel
-        }));
       }
 
       // 2. One AI call, constrained to those real candidates.
@@ -335,6 +345,7 @@ export class ItemForgeApp extends SpfApp {
         kind,
         baseCandidates,
         runeCandidates,
+        grades: gradeTiers.grades,
         potencyTiers: tiers.potencyTiers,
         secondaryTiers: tiers.secondaryTiers,
         onProgress: (p) => this._onAIProgress(p), signal
@@ -347,6 +358,7 @@ export class ItemForgeApp extends SpfApp {
       await this._setStep("assemble");
       this.#concept = normalizeRunedItemConcept(raw, {
         kind, rarity: this.#input.rarity, baseCandidates, runeCandidates,
+        grades: gradeTiers.grades,
         potencyTiers: tiers.potencyTiers, secondaryTiers: tiers.secondaryTiers
       });
       const built = await buildRunedItem(this.#concept);

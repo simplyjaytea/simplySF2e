@@ -235,7 +235,8 @@ export function getAllEquipmentEntries() {
           category: entry.system?.category ?? null,
           // PF2e 8.4.1 weapon/armor isSpecific is true for a non-null
           // system.specific. Missing legacy/homebrew data remains ordinary.
-          specific: entry.system?.specific != null
+          specific: entry.system?.specific != null,
+          description: entry.system?.description?.value ?? ""
         });
       }
     }

@@ -17,13 +17,15 @@ import {
 import { slugify, capitalized, esc } from "./text.mjs";
 import {
   RUNED_ITEM_KINDS, SECONDARY_ADJECTIVE, SECONDARY_RUNE_FIELD, propertyRuneKey, propertyRuneFitsBase,
-  findFundamentalRune, getBaseItemCandidates, getPropertyRuneCandidates, getFundamentalRuneTiers
+  findFundamentalRune, getBaseItemCandidates, getPropertyRuneCandidates, getFundamentalRuneTiers,
+  EQUIPMENT_GRADES, GRADE_LEVELS, GRADE_CREDITS_DELTA, parseUpgradeCapacity, getGradeTiers, getUpgradeCandidates
 } from "./runes.mjs";
 
 /* Re-exported: the item forge UI imports its whole surface from this module. */
 export {
   getBaseItemCandidates, getPropertyRuneCandidates, getFundamentalRuneTiers,
-  SECONDARY_ADJECTIVE, RUNED_ITEM_KINDS
+  SECONDARY_ADJECTIVE, RUNED_ITEM_KINDS,
+  EQUIPMENT_GRADES, GRADE_LEVELS, GRADE_CREDITS_DELTA, parseUpgradeCapacity, getGradeTiers, getUpgradeCandidates
 } from "./runes.mjs";
 import {
   RARITY_TREASURE_MULTIPLIER, MAX_LEVEL, lookup,
@@ -175,7 +177,15 @@ export async function priceForLevel(level, rarity = "common") {
  * matched back against the real candidate lists the AI was shown — an
  * unmatched property rune is dropped (with a warning), never invented.
  */
-export function normalizeRunedItemConcept(raw, { kind, rarity, baseCandidates, runeCandidates, potencyTiers, secondaryTiers }) {
+/**
+ * Coerce a raw AI graded/runed item concept into a safe SF2e shape.
+ * In SF2e, weapons and armor scale through `system.grade` (commercial..paragon)
+ * and accept installed upgrade modules into `system.subitems`.
+ */
+export function normalizeRunedItemConcept(raw, {
+  kind, rarity, baseCandidates, runeCandidates = [],
+  potencyTiers = [], secondaryTiers = [], grades = []
+}) {
   const c = typeof raw === "object" && raw !== null ? raw : {};
   const findByName = (list, name) => list.find((x) => slugify(x.name) === slugify(name)) ?? null;
 
@@ -185,33 +195,46 @@ export function normalizeRunedItemConcept(raw, { kind, rarity, baseCandidates, r
     throw new Error(`The selected base ${kind} could not be matched to the offered compendium items. Generate a new plan.`);
   }
 
-  const rawPotency = POTENCY_CHOICES[c.potency];
-  if (!potencyTiers.includes(rawPotency)) {
-    console.warn(`simplysf2e | itemforge: unresolved potency tier "${c.potency}"`);
-    throw new Error("The selected potency rune is not one of the offered tiers. Generate a new plan.");
+  // Resolve equipment grade (SF2e primary scaling)
+  const gradeChoice = slugify(c.grade ?? "");
+  const availableGrades = grades.length ? grades : EQUIPMENT_GRADES;
+  let grade = "commercial";
+  if (availableGrades.includes(gradeChoice)) {
+    grade = gradeChoice;
+  } else if (c.potency) {
+    // Backward compatibility: map legacy potency "single"/"double"/"triple" to tactical/superior/ultimate
+    const legacyMap = { single: "tactical", double: "superior", triple: "ultimate" };
+    const mapped = legacyMap[c.potency];
+    if (mapped && availableGrades.includes(mapped)) grade = mapped;
+    else if (availableGrades.length) grade = availableGrades[availableGrades.length - 1];
+  } else {
+    grade = availableGrades[0] ?? "commercial";
   }
-  const potency = rawPotency;
 
-  const rawSecondary = SECONDARY_CHOICES[c.secondaryTier];
-  const secondaryTier = secondaryTiers.includes(rawSecondary) ? rawSecondary : 0;
-  if (rawSecondary !== 0 && !secondaryTiers.includes(rawSecondary)) {
-    console.warn(`simplysf2e | itemforge: dropped unavailable secondary rune tier "${c.secondaryTier}"`);
-  }
+  // Legacy potency/secondary representation for callers expecting it
+  const potency = grade === "ultimate" || grade === "paragon" ? 3
+    : grade === "superior" || grade === "elite" ? 2
+    : grade === "tactical" || grade === "advanced" ? 1 : 0;
+  const secondaryTier = grade === "elite" || grade === "paragon" ? 3
+    : grade === "advanced" || grade === "ultimate" ? 2
+    : grade === "tactical" || grade === "superior" ? 1 : 0;
 
+  // Capacity: base item's published upgrade slots in SF2e, or potency for classic rune callers
+  const maxSlots = base?.upgradeSlots != null ? base.upgradeSlots : Math.max(potency, 1);
   const propertyRunes = [];
   const seen = new Set();
-  for (const name of Array.isArray(c.propertyRunes) ? c.propertyRunes : []) {
-    if (propertyRunes.length >= potency) break;
+  const requestedUpgrades = Array.isArray(c.upgrades) ? c.upgrades
+    : Array.isArray(c.propertyRunes) ? c.propertyRunes : [];
+
+  for (const name of requestedUpgrades) {
+    if (propertyRunes.length >= maxSlots) break;
     const match = findByName(runeCandidates, name);
     if (!match) {
-      if (name) console.warn(`simplysf2e | itemforge: dropped unmatched property rune "${name}"`);
+      if (name) console.warn(`simplysf2e | itemforge: dropped unmatched upgrade/rune "${name}"`);
       continue;
     }
-    // Category-restricted armor runes (e.g. "etched-onto-light-armor") must
-    // fit the chosen base armor's real system.category — a mismatch is
-    // dropped, never bent to fit.
     if (!propertyRuneFitsBase(kind, match.usage, base?.category)) {
-      console.warn(`simplysf2e | itemforge: dropped property rune "${match.name}" (${match.usage}) — not etchable onto ${base?.category ?? "unknown-category"} ${kind} "${base?.name}"`);
+      console.warn(`simplysf2e | itemforge: dropped upgrade "${match.name}" (${match.usage}) — not installable onto ${base?.category ?? "unknown-category"} ${kind} "${base?.name}"`);
       continue;
     }
     const key = slugify(match.name);
@@ -223,9 +246,11 @@ export function normalizeRunedItemConcept(raw, { kind, rarity, baseCandidates, r
   return {
     kind,
     baseItemName: base?.name ?? null,
+    grade,
     potency,
     secondaryTier,
     propertyRunes,
+    upgrades: propertyRunes,
     rarity: RARITIES.has(rarity) ? rarity : RARITIES.has(c.rarity) ? c.rarity : "common",
     description: String(c.description ?? "").slice(0, 800)
   };
@@ -250,68 +275,88 @@ export async function buildRunedItem(concept) {
     throw new Error(`Base ${concept.kind} "${concept.baseItemName}" could not be resolved against the compendium.`);
   }
 
-  const potencyDoc = await getDocument(await findFundamentalRune(concept.kind, "potency", concept.potency));
-  const secondaryDoc = concept.secondaryTier
-    ? await getDocument(await findFundamentalRune(concept.kind, "secondary", concept.secondaryTier))
-    : null;
-
-  const propertyDocs = [];
-  for (const name of concept.propertyRunes) {
+  const grade = concept.grade ?? "commercial";
+  const upgradeDocs = [];
+  const upgradeNames = concept.upgrades ?? concept.propertyRunes ?? [];
+  for (const name of upgradeNames) {
     const entry = await findEntry(packs, name, (e) => e.type === "equipment");
     const doc = await getDocument(entry);
-    if (doc) propertyDocs.push(doc);
-    else console.warn(`simplysf2e | itemforge: property rune "${name}" could not be resolved — dropped`);
+    if (doc) upgradeDocs.push(doc);
+    else console.warn(`simplysf2e | itemforge: upgrade/rune "${name}" could not be resolved — dropped`);
   }
 
   const data = toItemData(baseDoc);
+  // Set native SF2e equipment grade (CTASEUP)
+  data.system.grade = grade;
+  // Zero runes per SF2e Migration942EquipmentGrade standard
   data.system.runes = {
-    ...(data.system.runes ?? {}),
-    potency: concept.potency,
-    [SECONDARY_RUNE_FIELD[concept.kind]]: concept.secondaryTier,
-    property: propertyDocs.map((d) => propertyRuneKey(d.name))
+    potency: 0,
+    [SECONDARY_RUNE_FIELD[concept.kind]]: 0,
+    property: []
   };
+  // Install upgrades as embedded subitems, ensuring each retains a valid unique _id
+  data.system.subitems = upgradeDocs.map((doc) => {
+    const sub = toItemData(doc);
+    sub._id = doc.id ?? doc._id ?? foundry.utils.randomID(16);
+    return sub;
+  });
 
-  // PF2e 8.4.1 computePrice() omits an ordinary nonspecific base item's
-  // price whenever it has rune value. Keep its cloned source price untouched
-  // for system preparation, but preview only the resolved rune components.
-  const gp = Math.round(
-    (potencyDoc ? priceToGp(potencyDoc.system.price?.value) : 0)
-    + (secondaryDoc ? priceToGp(secondaryDoc.system.price?.value) : 0)
-    + propertyDocs.reduce((sum, d) => sum + priceToGp(d.system.price?.value), 0)
-  );
+  // Compute preview credits & level
+  const gradeCreditDelta = (GRADE_CREDITS_DELTA[concept.kind] && GRADE_CREDITS_DELTA[concept.kind][grade]) ?? 0;
+  const baseGp = priceToGp(baseDoc.system.price?.value) || 0;
+  const upgradeGpSum = upgradeDocs.reduce((sum, d) => sum + priceToGp(d.system.price?.value), 0);
+  const totalGp = baseGp + (gradeCreditDelta / 10) + upgradeGpSum;
+  const totalCredits = (baseGp * 10) + gradeCreditDelta + (upgradeGpSum * 10);
+
+  const gradeLevel = (GRADE_LEVELS[concept.kind] && GRADE_LEVELS[concept.kind][grade]) ?? 0;
   const level = Math.max(
     data.system.level?.value ?? 0,
-    potencyDoc?.system.level?.value ?? 0,
-    secondaryDoc?.system.level?.value ?? 0,
-    ...propertyDocs.map((d) => d.system.level?.value ?? 0)
+    gradeLevel,
+    ...upgradeDocs.map((d) => d.system.level?.value ?? 0)
   );
-  // Preserve the cloned base source values. PF2e physical-item preparation
-  // derives the runed totals, so the module must never overwrite these with
-  // its transient preview values.
 
-  const nameParts = [`+${concept.potency}`];
-  if (concept.secondaryTier) nameParts.push(SECONDARY_ADJECTIVE[concept.kind][concept.secondaryTier]);
-  nameParts.push(...propertyDocs.map((d) => d.name));
-  nameParts.push(baseDoc.name);
-  data.name = nameParts.join(" ");
+  // SF2e published naming convention: "{Base Name} ({Grade})" or with upgrades
+  const gradeLabel = capitalized(grade);
+  const nameParts = [baseDoc.name];
+  if (grade !== "commercial") {
+    nameParts.push(`(${gradeLabel})`);
+  }
+  if (upgradeDocs.length) {
+    const upgradeSummary = upgradeDocs.map((d) => d.name).join(", ");
+    data.name = `${baseDoc.name} (${gradeLabel}: ${upgradeSummary})`;
+  } else {
+    data.name = nameParts.join(" ");
+  }
 
   const baseRarity = data.system.traits?.rarity ?? "common";
   const rarity = (RARITY_RANK[concept.rarity] ?? 0) > (RARITY_RANK[baseRarity] ?? 0) ? concept.rarity : baseRarity;
   const traits = new Set(data.system.traits?.value ?? []);
-  traits.add("magical");
+  // SF2e grade preparation natively supports both 'analog' and 'tech' items.
+  // Preserve the base item's published classification; only default to tech if neither is present.
+  if (!traits.has("analog") && !traits.has("tech")) {
+    traits.add("tech");
+  }
   data.system.traits = { ...(data.system.traits ?? {}), value: [...traits], rarity };
 
   const paragraphs = String(concept.description ?? "")
     .split(/\n{2,}/).map((p) => `<p>${esc(p.trim())}</p>`).filter((p) => p !== "<p></p>");
-  const runeSummary = [
-    `+${concept.potency} potency`,
-    concept.secondaryTier ? SECONDARY_ADJECTIVE[concept.kind][concept.secondaryTier] : null,
-    ...propertyDocs.map((d) => d.name)
-  ].filter(Boolean).join(", ");
-  paragraphs.push(`<hr /><p><strong>${game.i18n.localize("SIMPLYSF2E.ItemForge.RunesHeading")}</strong> ${runeSummary}.</p>`);
+  const specList = [`Grade: ${gradeLabel}`];
+  if (upgradeDocs.length) {
+    specList.push(`Installed Upgrades: ${upgradeDocs.map((d) => d.name).join(", ")}`);
+  }
+  paragraphs.push(`<hr /><p><strong>${game.i18n.localize("SIMPLYSF2E.ItemForge.RunesHeading")}</strong> ${specList.join("; ")}.</p>`);
   data.system.description = { value: paragraphs.join("\n") };
 
-  return { itemData: data, preview: { priceGp: gp, level } };
+  return {
+    itemData: data,
+    preview: {
+      priceGp: totalGp,
+      priceCredits: totalCredits,
+      level,
+      grade,
+      upgrades: upgradeDocs.map((d) => d.name)
+    }
+  };
 }
 
 /* -------------------- grounded usage strings -------------------- */
@@ -329,7 +374,9 @@ let usageOptionsPromise = null;
  * nothing harvests (pathological — no equipment packs).
  * @returns {Promise<string[]>} up to 14 usage strings, most common first
  */
-export async function getUsageOptions() {
+export async function getUsageOptions(kind = "wondrous") {
+  if (kind === "augmentation") return ["installed-in-body"];
+  if (kind === "crystal") return ["other"];
   usageOptionsPromise ??= (async () => {
     const counts = new Map();
     for (const packId of getPacksFor("equipment")) {
@@ -380,7 +427,7 @@ const clampInt = (value, min, max, fallback) => {
  * @param {string[]} args.usageOptions      harvested real usage strings
  * @param {object[]} args.effectCatalog     issued published equipment rules
  */
-export function normalizeMagicItemConcept(raw, { level, rarity, availableKinds, usageOptions, effectCatalog = [] }) {
+export function normalizeMagicItemConcept(raw, { level, rarity, availableKinds, usageOptions, effectCatalog = [], kind = "wondrous" }) {
   const c = typeof raw === "object" && raw !== null ? raw : {};
   const clampedLevel = clampInt(level, MIN_ITEM_LEVEL, MAX_ITEM_LEVEL, 1);
   const usage = normalizeUsage(c.usage, usageOptions ?? [DEFAULT_USAGE]);
@@ -402,7 +449,15 @@ export function normalizeMagicItemConcept(raw, { level, rarity, availableKinds, 
   const appliedEffects = [...effects, ...(activation?.params?.ruleEffectKinds ?? [])];
   invested ||= appliedEffects.some((effect) => effect.exemplar.requiresInvestment);
   const traits = new Set((Array.isArray(c.traits) ? c.traits : []).map(slugify).filter(Boolean));
-  traits.add("magical");
+  if (kind === "augmentation") {
+    traits.add("augmentation");
+    if (!traits.has("biotech") && !traits.has("magitech")) traits.add("cybernetic");
+  } else if (kind === "crystal") {
+    traits.add("solarian");
+    traits.add("crystal");
+  } else {
+    traits.add("magical");
+  }
   if (invested) traits.add("invested");
   else traits.delete("invested");
 
@@ -411,6 +466,7 @@ export function normalizeMagicItemConcept(raw, { level, rarity, availableKinds, 
     description: String(c.description ?? ""),
     level: clampedLevel,
     rarity: resolvedRarity,
+    kind,
     usage,
     traits: [...traits],
     bulk,
@@ -692,10 +748,22 @@ export async function buildMagicItemData(concept) {
    * priceToGp (priceToGp({gp:100}) === 100 but priceToGp({sp:100}) === 10),
    * and would break compendium convention
    * and diverge from the runed-item preview path, which likewise reports gp. */
+  const traits = new Set(concept.traits ?? []);
+  let defaultImg = "icons/svg/item-bag.svg";
+  if (concept.kind === "augmentation") {
+    traits.add("augmentation");
+    if (!traits.has("biotech") && !traits.has("magitech")) traits.add("cybernetic");
+    defaultImg = "icons/commodities/tech/sensor-red.webp";
+  } else if (concept.kind === "crystal") {
+    traits.add("solarian");
+    traits.add("crystal");
+    defaultImg = "icons/commodities/gems/gem-faceted-round-purple.webp";
+  }
+
   const system = {
     level: { value: concept.level },
     description: { value: descriptionParts.join("\n") },
-    traits: { value: concept.traits, rarity: concept.rarity },
+    traits: { value: [...traits], rarity: concept.rarity },
     usage: { value: concept.usage },
     bulk: { value: concept.bulk },
     price: { value: { gp: await priceForLevel(concept.level, concept.rarity) } },
@@ -705,7 +773,7 @@ export async function buildMagicItemData(concept) {
   const data = {
     name: capitalized(concept.name),
     type: "equipment",
-    img: "icons/svg/item-bag.svg",
+    img: defaultImg,
     system
   };
 

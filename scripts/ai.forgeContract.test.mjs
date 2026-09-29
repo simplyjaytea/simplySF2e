@@ -18,7 +18,7 @@ globalThis.fetch = async (_url, options) => {
   requests.push(JSON.parse(options.body));
   const reply = requests.length === 1
     ? { name: "QA Charm", description: "A quiet charm.", rarity: "common", usage: "worn", traits: ["magical"], bulk: "light", invested: true, effects: [] }
-    : { baseItemName: "Longsword", potency: "double", secondaryTier: "greater", propertyRunes: [], description: "A quiet blade." };
+    : { baseItemName: "Longsword", grade: "tactical", upgrades: [], description: "A quiet blade." };
   return new Response(JSON.stringify({
     choices: [{ message: { content: JSON.stringify(reply) }, finish_reason: "stop" }],
     usage: { prompt_tokens: 10, completion_tokens: 10, total_tokens: 20 }
@@ -39,17 +39,15 @@ assert.doesNotMatch(magicPrompt, /"(?:damageDice|healDice)":/);
 await generateRunedItemConcept({
   prompt: "Quiet blade", level: 12, rarity: "common", kind: "weapon",
   baseCandidates: [{ name: "Longsword", level: 0 }], runeCandidates: [],
-  potencyTiers: [1, 2], secondaryTiers: [1, 2]
+  grades: ["commercial", "tactical", "advanced", "superior", "elite"]
 });
 const runedPrompt = requests[1].messages[0].content;
-assert.match(runedPrompt, /enum: single, double/);
-assert.match(runedPrompt, /enum: none, standard, greater/);
-assert.doesNotMatch(runedPrompt, /"(?:potency|secondaryTier)":\s*number/);
-assert.doesNotMatch(runedPrompt, /Holy and Unholy|Anarchic and Axiomatic/);
+assert.match(runedPrompt, /commercial, tactical, advanced, superior, elite/);
+assert.doesNotMatch(runedPrompt, /"(?:grade|level)":\s*number/);
 assert.equal(requests.length, 2, "both forge schemas work through the normal bounded request path");
 assert.match(taskResponseProblem(AI_TASK.RUNED_ITEM_CONCEPT, {
-  baseItemName: "Longsword", potency: 3, secondaryTier: 1, propertyRunes: [], description: "A sword."
-}), /enum slugs/, "numeric rune fields trigger the existing bounded retry");
+  baseItemName: 123, description: "A sword."
+}), /non-empty string/, "invalid types trigger the existing bounded retry");
 assert.match(taskResponseProblem(AI_TASK.MAGIC_ITEM_CONCEPT, {
   name: "QA Charm", description: "A charm.", rarity: "common", usage: "worn", traits: [], bulk: 100, invested: true, effects: []
 }), /enum slugs/, "numeric bulk cannot pass the provider contract");

@@ -1089,18 +1089,15 @@ Design guidance:
  * @returns {Promise<{concept: object, usage: object}>} raw concept JSON + token usage
  */
 export async function generateRunedItemConcept({
-  prompt, level, rarity, kind, baseCandidates, runeCandidates, potencyTiers, secondaryTiers, onProgress, signal
+  prompt, level, rarity, kind, baseCandidates, runeCandidates = [],
+  potencyTiers = [], secondaryTiers = [], grades = [], onProgress, signal
 }) {
-  const secondaryLabel = kind === "weapon" ? "striking" : "resilient";
-  const potencyChoices = potencyTiers.map((tier) => ({ 1: "single", 2: "double", 3: "triple" })[tier]).filter(Boolean);
-  const secondaryChoices = ["none", ...secondaryTiers.map((tier) => ({ 1: "standard", 2: "greater", 3: "major" })[tier]).filter(Boolean)];
+  const availableGrades = grades.length ? grades : ["commercial", "tactical", "advanced", "superior", "elite", "ultimate", "paragon"];
   const baseList = baseCandidates.map((c) => {
     const category = kind === "armor" && c.category ? `${c.category} armor, ` : "";
     return c.level > 0 || category ? `${c.name} (${category}L${c.level})` : c.name;
   }).join("; ");
-  // Category-restricted armor runes are annotated ("light armor only") so the
-  // AI picks runes that fit its base; normalizeRunedItemConcept still drops a
-  // mismatch, this just spends the pick on something that survives.
+
   const runeList = runeCandidates.length
     ? runeCandidates.map((c) => {
       const note = propertyRuneRestrictionNote(c.usage);
@@ -1108,32 +1105,28 @@ export async function generateRunedItemConcept({
     }).join("; ")
     : "(none available at this level)";
 
-  const system = `You are an expert Starfinder 2e magic ${kind} designer. You choose real components; the system computes the mechanical name, price and item level from whatever you pick.
+  const system = `You are an expert Starfinder 2e ${kind} designer. In Starfinder 2e, weapons and armor scale by equipment grade (commercial, tactical, advanced, superior, elite, ultimate, paragon) and can install upgrades/modules into upgrade slots.
 
 Respond with a SINGLE JSON object only. No markdown fences, no commentary.
 
 JSON schema:
 {
   "baseItemName": string, // EXACTLY one name from the base ${kind} list below, copied exactly
-  "potency": string, // EXACTLY one enum: ${potencyChoices.join(", ")}; single/double/triple are the ordered potency tiers
-  "secondaryTier": string, // EXACTLY one enum: ${secondaryChoices.join(", ")}; none means no ${secondaryLabel} rune
-  "propertyRunes": string[], // 0 to ${Math.max(...potencyTiers)} names copied EXACTLY from the property rune list below — never more than the chosen "potency" value
-  "description": string // 2-4 sentences of evocative flavor: appearance, history, feel. Plain text. Do NOT restate the mechanical runes — a mechanical summary is appended automatically.
+  "grade": string, // EXACTLY one enum from available grades: ${availableGrades.join(", ")}
+  "upgrades": string[], // names copied EXACTLY from the upgrades list below (up to 4 upgrades)
+  "description": string // 2-4 sentences of evocative flavor: appearance, history, feel. Plain text.
 }
 
 Base ${kind}s available (name (item level)):
 ${baseList}
 
-Property runes available (name (rune level)):
+Upgrades / modules available (name (level)):
 ${runeList}
 
 Design guidance:
-- Never emit numeric fields, dice formulas, or code. Copy names and choose the offered tier enums; the module supplies all values.
-- Pick a base ${kind} and runes that together tell a clear, thematic story for the GM's concept.
-- Avoid combining runes that are thematically opposed unless the concept explicitly wants that tension.
-- "propertyRunes" length must never exceed "potency" (potency N grants N property rune slots) — prefer fewer, more thematic runes over maxing out every slot.${kind === "armor" ? `
-- A property rune marked "light armor only" / "heavy armor only" / "medium/heavy armor only" may ONLY be picked when the chosen base armor's category matches — a mismatched rune is dropped.` : ""}`;
-
+- Never emit numeric fields, dice formulas, or code. Copy names and choose the offered grade enums; the module supplies all values.
+- Pick a base ${kind}, an appropriate grade, and compatible upgrades that tell a clear story for the GM's concept.${kind === "armor" ? `
+- An upgrade marked "light armor only" / "heavy armor only" / "medium/heavy armor only" may ONLY be picked when the chosen base armor's category matches — a mismatched upgrade is dropped.` : ""}`;
   const user = [
     `${kind === "weapon" ? "Weapon" : "Armor"} target level: ${level}`,
     `Rarity: ${rarity}`,

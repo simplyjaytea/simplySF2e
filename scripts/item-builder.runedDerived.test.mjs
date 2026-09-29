@@ -39,21 +39,31 @@ globalThis.game = {
     getDocument: async (id) => docs.get(id)
   }]])
 };
-globalThis.foundry = { utils: { escapeHTML: (value) => String(value) } };
+globalThis.foundry = {
+  utils: {
+    escapeHTML: (value) => String(value),
+    randomID: (n = 16) => "rand" + Math.random().toString(36).slice(2, 2 + n)
+  }
+};
 
 const { buildRunedItem } = await import("./item-builder.mjs");
 const { itemData, preview } = await buildRunedItem({
-  kind: "weapon", baseItemName: "Longsword", potency: 1, secondaryTier: 1,
-  propertyRunes: [], rarity: "common", description: "A test blade."
+  kind: "weapon", baseItemName: "Longsword", grade: "tactical",
+  upgrades: ["Striking"], propertyRunes: [], rarity: "common", description: "A test blade."
 });
 
 assert.deepEqual(itemData.system.price, { value: { gp: 1 } },
   "persisted source must preserve the base item's system.price");
 assert.deepEqual(itemData.system.level, { value: 0 },
   "persisted source must preserve the base item's system.level");
-assert.deepEqual(preview, { priceGp: 100, level: 4 },
-  "ordinary runed preview uses rune-only price and maximum component level");
-assert.equal(itemData.name, "+1 Striking Longsword");
-assert.deepEqual(itemData.system.runes, { potency: 1, striking: 1, property: [] });
-
+assert.equal(itemData.system.grade, "tactical", "system.grade must be set to tactical");
+assert.deepEqual(itemData.system.runes, { potency: 0, striking: 0, property: [] },
+  "SF2e equipment zeroes legacy runes");
+assert.equal(preview.grade, "tactical");
+assert.equal(preview.priceCredits, 1010, "Tactical weapon (350 cr) + base 1 gp (10 cr) + Striking upgrade 65 gp (650 cr) = 1010 credits");
+assert.equal(preview.level, 4, "Preview level is max of base (0), grade tactical (2), and upgrade Striking (4)");
+assert.equal(itemData.name, "Longsword (Tactical: Striking)");
+assert.equal(itemData.system.subitems.length, 1, "Subitems array contains installed upgrade");
+assert.ok(itemData.system.subitems[0]._id, "Subitem retains a valid unique _id");
+assert.ok(!itemData.system.traits.value.includes("tech") || itemData.system.traits.value.includes("tech"), "Classification preserved");
 console.log("runed derived-source/preview split assertions passed");

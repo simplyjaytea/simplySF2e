@@ -118,9 +118,15 @@
                   <option value="{{this.id}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
                 {{/each}}
               </optgroup>
+              {{#if archetypePresets.length}}
+              <optgroup label="{{localize 'SIMPLYSF2E.Presets.ArchetypesGroup'}}">
+                {{#each archetypePresets}}
+                  <option value="{{this.id}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
+                {{/each}}
+              </optgroup>
+              {{/if}}
               {{#if customPresets.length}}
               <optgroup label="{{localize 'SIMPLYSF2E.Presets.CustomGroup'}}">
-                {{#each customPresets}}
                   <option value="{{this.id}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
                 {{/each}}
               </optgroup>
@@ -155,7 +161,16 @@
           </select>
         </div>
       {{/if}}
+      {{#unless characterMode}}
       <div class="form-group">
+        <label for="spf-generator-adjustment">{{localize "SIMPLYSF2E.Generator.Adjustment"}}</label>
+        <select id="spf-generator-adjustment" name="adjustment">
+          <option value="" {{#unless input.adjustment}}selected{{/unless}}>{{localize "SIMPLYSF2E.Generator.AdjustmentNormal"}}</option>
+          <option value="elite" {{#if (eq input.adjustment "elite")}}selected{{/if}}>{{localize "SIMPLYSF2E.Generator.AdjustmentElite"}}</option>
+          <option value="weak" {{#if (eq input.adjustment "weak")}}selected{{/if}}>{{localize "SIMPLYSF2E.Generator.AdjustmentWeak"}}</option>
+        </select>
+      </div>
+      {{/unless}}
         <label for="spf-generator-treasure-amount">{{localize "SIMPLYSF2E.Generator.TreasureAmount"}}</label>
         <select id="spf-generator-treasure-amount" name="treasureAmount">
           {{#each treasureAmounts}}
