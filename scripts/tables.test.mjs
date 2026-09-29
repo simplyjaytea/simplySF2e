@@ -7,8 +7,8 @@
 
 import assert from "node:assert/strict";
 import {
-  ABILITY_MODIFIER, AC, SKILL, LEVEL_DC, lookup, averageDamage,
-  treasureBudget, identificationDC
+  ABILITY_MODIFIER, AC, SKILL, HP, STRIKE_ATTACK, STRIKE_DAMAGE,
+  RESISTANCE, LEVEL_DC, lookup, averageDamage, treasureBudget, identificationDC
 } from "./tables.mjs";
 import { spontaneousSpellSlots, pcSpellSlots } from "./pc-tables.mjs";
 
@@ -93,6 +93,26 @@ assert.equal(
   identificationDC(5, "fancy"), identificationDC(5),
   "an unknown rarity adds +0 instead of NaN"
 );
+
+/* ---------------------------------------------------------------------- *
+ * Starfinder GM Core Building Creatures stat citations (pp. 116-128)
+ * ---------------------------------------------------------------------- */
+
+assert.equal(lookup(ABILITY_MODIFIER, 22, "extreme"), 12, "SF GM Core pg 118: extreme ability at lvl 22 is +12");
+assert.equal(lookup(ABILITY_MODIFIER, 23, "extreme"), 12, "SF GM Core pg 118: extreme ability at lvl 23 is +12");
+assert.equal(lookup(HP, 22, "low"), 323, "SF GM Core pg 122: low HP at lvl 22 midpoint is 323");
+assert.equal(lookup(STRIKE_ATTACK, 19, "moderate"), 34, "SF GM Core pg 124: moderate strike attack at lvl 19 is +34");
+assert.equal(lookup(STRIKE_ATTACK, 21, "moderate"), 37, "SF GM Core pg 124: moderate strike attack at lvl 21 is +37");
+assert.equal(lookup(STRIKE_ATTACK, 23, "moderate"), 40, "SF GM Core pg 124: moderate strike attack at lvl 23 is +40");
+assert.equal(lookup(STRIKE_ATTACK, 24, "moderate"), 42, "SF GM Core pg 124: moderate strike attack at lvl 24 is +42");
+assert.equal(lookup(STRIKE_ATTACK, 22, "low"), 33, "SF GM Core pg 124: low strike attack at lvl 22 is +33");
+assert.equal(lookup(STRIKE_DAMAGE, 0, "extreme"), "1d6+3", "SF GM Core pg 124: extreme strike damage at lvl 0");
+assert.equal(lookup(STRIKE_DAMAGE, 1, "extreme"), "1d8+4", "SF GM Core pg 124: extreme strike damage at lvl 1");
+assert.equal(lookup(STRIKE_DAMAGE, 16, "high"), "3d12+18", "SF GM Core pg 124: high strike damage at lvl 16");
+assert.equal(lookup(STRIKE_DAMAGE, 16, "moderate"), "3d10+15", "SF GM Core pg 124: moderate strike damage at lvl 16");
+assert.equal(lookup(RESISTANCE, 22, "maximum"), 24, "SF GM Core pg 123: maximum resistance at lvl 22 is 24");
+assert.equal(lookup(RESISTANCE, 23, "maximum"), 25, "SF GM Core pg 123: maximum resistance at lvl 23 is 25");
+assert.equal(lookup(RESISTANCE, 24, "minimum"), 13, "SF GM Core pg 123: minimum resistance at lvl 24 is 13");
 
 /* ---------------------------------------------------------------------- *
  * pc-tables.mjs generic fallback: unsupported classes keep the old 2-slot

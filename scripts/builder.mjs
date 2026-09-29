@@ -308,6 +308,7 @@ export function normalizeConcept(raw, { level, rarity }) {
     readAloud: String(c.readAloud ?? ""),
     recallKnowledge: String(c.recallKnowledge ?? ""),
     level: clampedLevel,
+    adjustment: c.adjustment === "elite" || c.adjustment === "weak" ? c.adjustment : null,
     rarity: RARITIES.has(rarity) ? rarity : RARITIES.has(c.rarity) ? c.rarity : "common",
     size: SIZES.has(c.size) ? c.size : "med",
     traits: validTraits,
@@ -935,9 +936,21 @@ export async function resolveFocusSpells(names, { exactContent = false } = {}) {
   return resolved;
 }
 
-/** Compute the final numeric stat block (also used by the preview). */
+/**
+ * Compute the final numeric stat block (also used by the preview).
+ * Supports Alien Core pp. 204/207 Elite and Weak adjustments:
+ * - Elite: Level +1; AC, attacks, saves, Perception, skills, DCs +2; Strike damage +2;
+ *          HP +10 (levels 1-2), +15 (3-5), +20 (6-14), +30 (15+).
+ * - Weak: Level -1; AC, attacks, saves, Perception, skills, DCs -2; Strike damage -2;
+ *         HP -10 (levels 1-2), -15 (3-5), -20 (6-14), -30 (15+).
+ */
 export function computeStats(concept) {
-  const lv = concept.level;
+  const baseLv = concept.level;
+  const adj = concept.adjustment;
+  const lv = adj === "elite" ? Math.min(baseLv + 1, T.MAX_LEVEL)
+    : adj === "weak" ? Math.max(baseLv - 1, T.MIN_LEVEL)
+    : baseLv;
+
   const abilities = {};
   for (const [key, scale] of Object.entries(concept.abilityScales)) {
     abilities[key] = T.lookup(T.ABILITY_MODIFIER, lv, scale);
@@ -1467,12 +1480,12 @@ export async function createActor(concept, resolved, { img = null, scaffold = nu
       attributes: {
         ac: { value: stats.ac, details: "" },
         hp: { value: stats.hp, max: stats.hp, temp: 0, details: "" },
+        adjustment: concept.adjustment ?? null,
         speed: {
           value: concept.speeds.find((s) => s.type === "land")?.value ?? 0,
           otherSpeeds: concept.speeds.filter((s) => s.type !== "land"),
           details: ""
         },
-        allSaves: { value: "" },
         immunities: concept.immunities.map((type) => ({ type })),
         resistances: concept.resistances.map((type) => ({ type, value: stats.resistanceValue })),
         weaknesses: concept.weaknesses.map((type) => ({ type, value: stats.resistanceValue }))
@@ -1522,4 +1535,44 @@ export async function createActor(concept, resolved, { img = null, scaffold = nu
   // Transient creation data gives post-create verification exact source
   // identity without persisting module metadata onto the actor.
   return { actor, expectedItems: safeItems };
+}
+
+/**
+ * Reskin an existing bestiary or world NPC actor:
+ * Keeps 100% of the mathematical statistics, level, AC, HP, saves, and native items,
+ * but applies fresh AI flavor: name, description, blurb, and read-aloud notes.
+ * @param {object} baseActorDoc  Source Actor document to clone and reskin
+ * @param {object} newFlavor     { name, description, blurb, readAloud, recallKnowledge }
+ * @returns {Promise<object>} Created Actor document
+ */
+export async function reskinActor(baseActorDoc, newFlavor = {}) {
+  const rawData = baseActorDoc.toObject ? baseActorDoc.toObject() : structuredClone(baseActorDoc);
+  delete rawData._id;
+
+  if (newFlavor.name) rawData.name = capitalized(newFlavor.name);
+
+  const notesParts = [];
+  if (newFlavor.readAloud) {
+    notesParts.push(`<blockquote class="spf-read-aloud"><em>${esc(newFlavor.readAloud)}</em></blockquote>`);
+  }
+  if (newFlavor.description) {
+    notesParts.push(toHtml(newFlavor.description));
+  }
+  if (newFlavor.recallKnowledge) {
+    const traits = rawData.system?.traits?.value ?? [];
+    const skill = recallKnowledgeSkill(traits);
+    const level = rawData.system?.details?.level?.value ?? 1;
+    const rarity = rawData.system?.traits?.rarity ?? "common";
+    const dc = T.identificationDC(level, rarity);
+    notesParts.push(
+      `<h3>Recall Knowledge</h3><p><strong>${capitalized(skill)}</strong> @Check[type:${skill}|dc:${dc}]: ${esc(newFlavor.recallKnowledge)}</p>`
+    );
+  }
+
+  rawData.system ??= {};
+  rawData.system.details ??= {};
+  if (newFlavor.blurb) rawData.system.details.blurb = esc(newFlavor.blurb);
+  if (notesParts.length) rawData.system.details.publicNotes = notesParts.join("\n");
+
+  return Actor.create(rawData);
 }

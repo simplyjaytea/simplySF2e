@@ -43,11 +43,34 @@ export const BUILT_IN_PRESETS = [
     id: "witchwarper",
     name: "SIMPLYSF2E.Presets.Witchwarper",
     prompt: "Build like a WITCHWARPER: a reality-warping caster. Spellcasting at high or extreme DC with a paradox theme (alternate timelines, quantum fields, displaced matter), high Charisma, high Will, low HP and AC, low attack. A quantum-field or paradox-flavored signature ability, an anchoring memory or object as flavor, a simple weapon or small-arm strike as a last resort."
+  },
+  {
+    id: "corp-guard",
+    name: "SIMPLYSF2E.Presets.CorpGuard",
+    prompt: "Build like a CORPORATE ENFORCER / GUARD: disciplined executive security. High AC, high Fortitude, moderate-to-high HP, moderate attack with a riot stun stick or auto-pistol. A covering-fire, crowd-control, or riot-shield signature ability. Intimidation or Perception, corporate armor gear. No spellcasting."
+  },
+  {
+    id: "free-captain",
+    name: "SIMPLYSF2E.Presets.FreeCaptain",
+    prompt: "Build like a FREE CAPTAIN / DIASPORA PIRATE: an audacious space corsair. High Dexterity or Charisma, high Reflex, high attack with a cutlass or scattergun strike. A dirty-tricks, boarding-action, or boarding-party command signature ability. High Acrobatics and Deception. No spellcasting."
+  },
+  {
+    id: "cyberdoc",
+    name: "SIMPLYSF2E.Presets.Cyberdoc",
+    prompt: "Build like a STREET CYBERDOC: an underground back-alley surgeon and biohacker. High Intelligence and Wisdom, high Will, moderate AC and HP. High Medicine and Crafting, an injection-dart or scalpel strike, a combat-stim or patch-job signature healing ability. Tech gear. No traditional spellcasting."
+  },
+  {
+    id: "bounty-hunter",
+    name: "SIMPLYSF2E.Presets.BountyHunter",
+    prompt: "Build like a BOUNTY HUNTER / TRACKER: a relentless manhunter across the Drift. High Dexterity or Wisdom, high Reflex and Perception, high ranged strike with a sniper rifle or tracker weapon. A quarry-tracking, pin-down, or snare signature ability. Survival and Stealth. No spellcasting."
   }
 ];
+export const STANDARD_CLASS_PRESETS = BUILT_IN_PRESETS.slice(0, 6);
+export const NPC_ARCHETYPE_PRESETS = BUILT_IN_PRESETS.slice(6);
 
-/** Module-local flavor keys for the Standard optgroup; not pack document ids. */
-export const STANDARD_PRESET_IDS = BUILT_IN_PRESETS.map((p) => p.id);
+export const STANDARD_CLASS_IDS = STANDARD_CLASS_PRESETS.map((p) => p.id);
+export const NPC_ARCHETYPE_IDS = NPC_ARCHETYPE_PRESETS.map((p) => p.id);
+export const STANDARD_PRESET_IDS = STANDARD_CLASS_IDS;
 
 /**
  * Example concept sentences shown as the description placeholder, five per
@@ -103,6 +126,34 @@ export const EXAMPLE_PROMPTS = {
     "A timeline-split survivor arguing with a self that stayed behind",
     "A memory-anchor witch who pins reality to a cracked datapad",
     "A Drift-sick warper whose spells arrive from rooms that are not there yet"
+  ],
+  "corp-guard": [
+    "A reinforced corporate shock-trooper holding the executive suite line",
+    "An armored riot warden with a shock baton and an unwavering contract",
+    "A station security officer tired of corporate syndicates treating decks like warzones",
+    "A heavy-plated bio-tech bodyguard with thermal optics and a stun carbine",
+    "A private security contractor who only fires when the client's telemetry spikes"
+  ],
+  "free-captain": [
+    "A Diaspora corsair who boards freighters with a cutlass and an open comm line",
+    "A pirate captain whose crew flies under three flags and honors only one",
+    "An asteroid-base smuggler who shoots out engine blocks before talking price",
+    "A boarding specialist who laughs loudest when the hull breaches",
+    "A swaggering privateer with a magnetic cutlass and a stolen frigate"
+  ],
+  "cyberdoc": [
+    "An underground street surgeon who charges favors instead of credits",
+    "A back-alley cyber-ripper patching up runners between police sweeps",
+    "A disgraced research physician running a neon clinic in the station underbelly",
+    "A biohacker whose dart pistol administers adrenaline or neurotoxin on a coin toss",
+    "A cybernetic technician who talks to installed implants like stray pets"
+  ],
+  "bounty-hunter": [
+    "A cold-eyed tracker who followed a bail-jumper across three star systems",
+    "A sniper with a thermographic scope and a pocket full of encrypted warrants",
+    "A cybernetic man-hunter who never leaves the mark's transponder trail",
+    "A veteran tracker with a shock-bolas and a dog-eared ledger of bounties",
+    "An operative whose marks rarely make it to the holding cells conscious"
   ]
 };
 
@@ -133,7 +184,8 @@ export function presetPickerGroups(selectedId, customPresets = []) {
   const selected = resolveSelectedPresetId(selectedId, customPresets);
   return {
     selectedId: selected,
-    standard: BUILT_IN_PRESETS.map((p) => ({ id: p.id, nameKey: p.name, selected: selected === p.id })),
+    standard: STANDARD_CLASS_PRESETS.map((p) => ({ id: p.id, nameKey: p.name, selected: selected === p.id })),
+    archetypes: NPC_ARCHETYPE_PRESETS.map((p) => ({ id: p.id, nameKey: p.name, selected: selected === p.id })),
     custom: (Array.isArray(customPresets) ? customPresets : [])
       .filter((p) => p && p.id && p.name)
       .map((p) => ({ id: p.id, name: p.name, selected: selected === p.id }))

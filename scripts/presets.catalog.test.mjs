@@ -4,12 +4,15 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import {
-  BUILT_IN_PRESETS, STANDARD_PRESET_IDS, EXAMPLE_PROMPTS,
+  BUILT_IN_PRESETS, STANDARD_PRESET_IDS, NPC_ARCHETYPE_IDS, EXAMPLE_PROMPTS,
   resolveSelectedPresetId, presetPickerGroups
 } from "./presets.mjs";
 
 const EXPECTED = [
   "envoy", "mystic", "operative", "solarian", "soldier", "witchwarper"
+];
+const ARCHETYPES = [
+  "corp-guard", "free-captain", "cyberdoc", "bounty-hunter"
 ];
 const DROPPED = [
   "alchemist", "barbarian", "bard", "champion", "cleric", "druid", "fighter",
@@ -20,7 +23,7 @@ const DROPPED = [
 ];
 
 assert.deepEqual(STANDARD_PRESET_IDS, EXPECTED, "Standard ids must be the six SF2e classes in pack order");
-assert.deepEqual(BUILT_IN_PRESETS.map((p) => p.id), EXPECTED);
+assert.deepEqual(NPC_ARCHETYPE_IDS, ARCHETYPES, "Archetype ids must be the 4 NPC archetypes");
 assert.equal(new Set(STANDARD_PRESET_IDS).size, EXPECTED.length, "preset ids must be unique");
 for (const dropped of DROPPED) {
   assert.equal(STANDARD_PRESET_IDS.includes(dropped), false, `${dropped} must not remain a built-in`);

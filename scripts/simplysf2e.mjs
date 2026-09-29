@@ -160,3 +160,43 @@ Hooks.on("pf2e.restForTheNight", async (actor) => {
     catch (err) { console.warn(`${MODULE_ID} | failed to recharge forged items on rest`, err); }
   }
 });
+
+/*
+ * Chat commands: /sf2e or /simplysf2e
+ * Usage:
+ *   /sf2e
+ *   /sf2e itemforge
+ *   /sf2e [monster|npc|character|encounter] [level] [prompt]
+ */
+Hooks.on("chatMessage", (_chatLog, message, _chatData) => {
+  const trimmed = message.trim();
+  if (!trimmed.startsWith("/sf2e") && !trimmed.startsWith("/simplysf2e")) return true;
+  if (!canOpenApps()) return false;
+
+  const args = trimmed.replace(/^\/(?:sf2e|simplysf2e)\s*/i, "").trim();
+  if (!args) {
+    openGenerator();
+    return false;
+  }
+
+  if (/^itemforge\b/i.test(args)) {
+    openItemForge();
+    return false;
+  }
+
+  // Parse optional mode and level: e.g. "npc 5 cyberdoc with stolen cyberware"
+  const match = /^(monster|npc|character|encounter)?\s*(-?\d+)?\s*(.*)$/i.exec(args);
+  const mode = match?.[1]?.toLowerCase();
+  const level = match?.[2] ? Number(match[2]) : null;
+  const prompt = match?.[3]?.trim();
+
+  openGenerator();
+  if (app && (mode || level != null || prompt)) {
+    const update = {};
+    if (mode) update.mode = mode;
+    if (level != null) update.level = level;
+    if (prompt) update.prompt = prompt;
+    app.setInput?.(update);
+  }
+  return false;
+});

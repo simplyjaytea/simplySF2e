@@ -114,6 +114,13 @@ export class GeneratorApp extends SpfApp {
   #manifest = null;
   /** Cycles the example placeholder; starts randomly so reopening varies. */
   #exampleTick = Math.floor(Math.random() * 5);
+  /** External programmatic input update (e.g. from chat command). */
+  setInput(updates = {}) {
+    this.#readForm();
+    this.#input = { ...this.#input, ...updates };
+    this.render();
+  }
+
 
   async _prepareContext() {
     const authState = getProviderRequestConfig();
@@ -154,6 +161,11 @@ export class GeneratorApp extends SpfApp {
       promptPlaceholder: `${game.i18n.localize("SIMPLYSF2E.Generator.PromptExample")} ${examplePrompt(this.#input.preset, this.#exampleTick)}...`,
       nonePresetSelected: !presetGroups.selectedId,
       standardPresets: presetGroups.standard.map((p) => ({
+        id: p.id,
+        label: game.i18n.localize(p.nameKey),
+        selected: p.selected
+      })),
+      archetypePresets: (presetGroups.archetypes ?? []).map((p) => ({
         id: p.id,
         label: game.i18n.localize(p.nameKey),
         selected: p.selected
@@ -444,7 +456,9 @@ export class GeneratorApp extends SpfApp {
     const threat = form.querySelector('[name="threat"]')?.value ?? this.#input.threat;
     const treasureAmount = form.querySelector('[name="treasureAmount"]')?.value ?? this.#input.treasureAmount;
     const rarityCap = form.querySelector('[name="rarityCap"]')?.value ?? this.#input.rarityCap;
-    this.#input = { mode, prompt, level, rarity, allowSpellcasting, preset, partySize, threat, treasureAmount, rarityCap };
+    const rawAdj = form.querySelector('[name="adjustment"]')?.value ?? this.#input.adjustment;
+    const adjustment = rawAdj === "elite" || rawAdj === "weak" ? rawAdj : null;
+    this.#input = { mode, prompt, level, rarity, adjustment, allowSpellcasting, preset, partySize, threat, treasureAmount, rarityCap };
   }
 
   _preserveForm() {
@@ -677,8 +691,11 @@ export class GeneratorApp extends SpfApp {
         onProgress: (p) => this._onAIProgress(p), signal
       });
       this._recordTokens(game.i18n.localize("SIMPLYSF2E.Progress.Concept"), usage);
-      this.#concept = { ...normalizeConcept(raw, { level: this.#input.level, rarity: this.#input.rarity }), gmPrompt };
-      // Defensive filter: allowSpellcasting is only enforced in the AI prompt,
+      this.#concept = {
+        ...normalizeConcept(raw, { level: this.#input.level, rarity: this.#input.rarity }),
+        adjustment: this.#input.adjustment ?? null,
+        gmPrompt
+      };
       // so a non-compliant model output can still return a valid tradition.
       // Strip it here (focus spells ride on it — normalizeConcept already
       // ties focusSpells to spellcasting, and every downstream resolve/build

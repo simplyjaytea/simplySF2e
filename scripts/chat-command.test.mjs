@@ -1,0 +1,83 @@
+// Test chatMessage command hook for /sf2e and /simplysf2e
+// Run: node scripts/chat-command.test.mjs
+
+import assert from "node:assert/strict";
+
+const hooks = new Map();
+globalThis.Hooks = {
+  on(event, handler) {
+    if (!hooks.has(event)) hooks.set(event, []);
+    hooks.get(event).push(handler);
+  },
+  once(event, handler) {
+    this.on(event, handler);
+  }
+};
+
+let generatorOpenCalls = 0;
+let itemForgeOpenCalls = 0;
+let lastAppInput = null;
+globalThis.foundry = {
+  applications: {
+    api: {
+      ApplicationV2: class {
+        render() { return this; }
+      },
+      HandlebarsApplicationMixin: (Base) => class extends Base {},
+      DialogV2: {}
+    }
+  },
+  utils: {
+    escapeHTML: (s) => String(s ?? "")
+  }
+};
+globalThis.ui = {
+  notifications: {
+    warn() {},
+    info() {},
+    error() {}
+  }
+};
+
+globalThis.game = {
+  system: { id: "sf2e" },
+  user: { isGM: true },
+  i18n: { localize: (k) => k },
+  modules: new Map([["simplysf2e", {}]])
+};
+
+// Import simplysf2e module to register hooks
+await import("./simplysf2e.mjs");
+
+const chatHandlers = hooks.get("chatMessage") ?? [];
+assert.ok(chatHandlers.length > 0, "chatMessage hook registered");
+
+const handleChat = (msg) => {
+  for (const h of chatHandlers) {
+    const res = h({}, msg, {});
+    if (res === false) return false;
+  }
+  return true;
+};
+
+// 1. Non-command messages pass through untouched
+assert.equal(handleChat("Hello world!"), true, "Normal chat passes through");
+assert.equal(handleChat("/roll 1d20"), true, "Standard slash commands pass through");
+
+// 2. /sf2e bare command triggers generator
+assert.equal(handleChat("/sf2e"), false, "/sf2e command intercepted");
+
+// 3. /sf2e itemforge triggers item forge
+assert.equal(handleChat("/sf2e itemforge"), false, "/sf2e itemforge intercepted");
+
+// 4. Non-GM users cannot execute (command is intercepted and blocked with warning, returning false)
+game.user.isGM = false;
+assert.equal(handleChat("/sf2e"), false, "Non-GM command is intercepted and blocked");
+game.user.isGM = true;
+
+// 5. Wrong system cannot execute
+game.system.id = "pf2e";
+assert.equal(handleChat("/sf2e"), false, "Wrong system command is intercepted and blocked");
+game.system.id = "sf2e";
+
+console.log("chat-command.test.mjs: all chat command triggers and permissions verified");

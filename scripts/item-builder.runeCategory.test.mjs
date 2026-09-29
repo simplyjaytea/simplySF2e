@@ -151,13 +151,13 @@ try {
   assert.ok(requestedFields.includes("system.specific"),
     "the equipment index explicitly requests PF2e's specific-item marker");
   assert.deepEqual(indexedBases, [
-    { name: "Leather Armor", level: 0, category: "light" },
-    { name: "Full Plate", level: 2, category: "heavy" }
-  ], "base candidates preserve real system.category values from the pack index");
+    { name: "Leather Armor", level: 0, category: "light", upgradeSlots: 0 },
+    { name: "Full Plate", level: 2, category: "heavy", upgradeSlots: 0 }
+  ], "base candidates preserve real system.category and upgradeSlots values from the pack index");
 
   const indexedWeapons = await getBaseItemCandidates("weapon", 20);
   assert.deepEqual(indexedWeapons, [
-    { name: "Longsword", level: 0, category: null }
+    { name: "Longsword", level: 0, category: null, upgradeSlots: 1 }
   ], "specific weapons are excluded while a base missing system.specific remains ordinary");
 
   const indexedRunes = await getPropertyRuneCandidates("armor", 20);

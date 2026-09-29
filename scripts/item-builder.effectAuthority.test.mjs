@@ -76,8 +76,18 @@ const buff = make({ activation: { template: "selfBuff", params: {
 assert.equal(buff.params.durationRounds, null);
 assert.equal(buff.params.durationMinutes, 1, "a self-buff has a finite module-owned default");
 assert.equal(buff.params.ruleEffectKinds[0].value, 1);
-const runeArgs = { kind: "weapon", rarity: "common", baseCandidates: [{ name: "Sword" }], runeCandidates: [], potencyTiers: [1, 2, 3], secondaryTiers: [1, 2, 3] };
-assert.throws(() => normalizeRunedItemConcept({ baseItemName: "Sword", potency: 3, secondaryTier: 3 }, runeArgs),
-  /potency rune/, "numeric rune choices cannot authorize a required tier");
-assert.equal(normalizeRunedItemConcept({ baseItemName: "Sword", potency: "double", secondaryTier: "greater" }, runeArgs).secondaryTier, 2);
+const runeArgs = {
+  kind: "weapon", rarity: "common",
+  baseCandidates: [{ name: "Sword" }],
+  runeCandidates: [],
+  grades: ["commercial", "tactical", "advanced", "superior"]
+};
+assert.equal(
+  normalizeRunedItemConcept({ baseItemName: "Sword", grade: "invalid-numeric-99" }, runeArgs).grade,
+  "commercial", "invalid grade choices fallback safely to commercial"
+);
+assert.equal(
+  normalizeRunedItemConcept({ baseItemName: "Sword", grade: "tactical" }, runeArgs).grade,
+  "tactical"
+);
 console.log("forge published-effect and enum-only mechanics authority passed");

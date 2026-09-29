@@ -37,40 +37,83 @@ export const SECONDARY_ADJECTIVE = {
 /* The system.runes field the secondary tier lives on, per kind. */
 export const SECONDARY_RUNE_FIELD = { weapon: "striking", armor: "resilient" };
 
-/* Item types that can carry runes at all. */
+/* Item types that can carry runes or grades at all. */
 export const RUNED_ITEM_KINDS = new Set(["weapon", "armor"]);
 
-/* Real system.usage.value strings marking a property rune as valid for a
+/* SF2e Equipment Grades and level thresholds.
+ * In SF2e (CTASEUP): commercial (0), tactical (2w/5a), advanced (4w/8a),
+ * superior (10w/11a), elite (12w/14a), ultimate (16w/18a), paragon (19w/20a).
+ */
+export const EQUIPMENT_GRADES = [
+  "commercial", "tactical", "advanced", "superior", "elite", "ultimate", "paragon"
+];
+
+export const GRADE_LEVELS = {
+  weapon: {
+    commercial: 0, tactical: 2, advanced: 4, superior: 10,
+    elite: 12, ultimate: 16, paragon: 19
+  },
+  armor: {
+    commercial: 0, tactical: 5, advanced: 8, superior: 11,
+    elite: 14, ultimate: 18, paragon: 20
+  }
+};
+
+export const GRADE_CREDITS_DELTA = {
+  weapon: {
+    commercial: 0, tactical: 350, advanced: 1000, superior: 10000,
+    elite: 20000, ultimate: 100000, paragon: 400000
+  },
+  armor: {
+    commercial: 0, tactical: 1600, advanced: 5000, superior: 14000,
+    elite: 45000, ultimate: 240000, paragon: 700000
+  }
+};
+
+/**
+ * Parse upgrade slot capacity from an item description or data.
+ * In SF2e, base weapons and armor declare upgrade capacity in their published text
+ * (e.g. "Upgrade Slots 1", "Upgrade Slots 0", or "1 upgrade slot").
+ * Defaults to 1 for weapons and 0 for armor if unspecified.
+ */
+export function parseUpgradeCapacity(desc, kind = "weapon") {
+  const text = String(desc ?? "");
+  const match = text.match(/upgrade\s+slots?\s*[:\-]?\s*(\d+)/i)
+    || text.match(/(\d+)\s+upgrade\s+slots?/i);
+  if (match) return Number(match[1]);
+  return kind === "weapon" ? 1 : 0;
+}
+
+/* Real system.usage.value strings marking a property rune / upgrade module as valid for a
  * weapon vs. armor, with the armor-category constraint each armor usage
- * encodes (null = any category). Verified against the real pf2e config
- * (src/scripts/config/index.ts usages) and published rune items. The three
- * usages that encode a MATERIAL constraint (etched-onto-metal-armor,
- * etched-onto-lm-nonmetal-armor, etched-onto-medium-heavy-metal-armor) are
- * deliberately absent: an armor's metal-ness isn't in the index data, so
- * those runes fail closed out of the candidate list instead of landing on an
- * illegal base. Shield/ammunition-only runes stay out of scope. */
-const WEAPON_RUNE_USAGE = new Set(["etched-onto-a-weapon"]);
+ * encodes (null = any category). Includes both classic PF2e usages and native SF2e installed usages.
+ */
+export const WEAPON_UPGRADE_USAGES = new Set([
+  "etched-onto-a-weapon",
+  "installed-in-a-weapon"
+]);
+const WEAPON_RUNE_USAGE = WEAPON_UPGRADE_USAGES;
+
 const ARMOR_RUNE_USAGE_CATEGORIES = new Map([
   ["etched-onto-armor", null],
   ["etched-onto-light-armor", ["light"]],
   ["etched-onto-heavy-armor", ["heavy"]],
-  ["etched-onto-med-heavy-armor", ["medium", "heavy"]]
+  ["etched-onto-med-heavy-armor", ["medium", "heavy"]],
+  ["installed-in-armor", null]
 ]);
-const ARMOR_RUNE_USAGE = new Set(ARMOR_RUNE_USAGE_CATEGORIES.keys());
+export const ARMOR_UPGRADE_USAGES = new Set(ARMOR_RUNE_USAGE_CATEGORIES.keys());
+const ARMOR_RUNE_USAGE = ARMOR_UPGRADE_USAGES;
 
 /**
- * Whether a property rune (by its real usage string) may be etched onto a
- * base item of this kind and system.category. Weapon-rune usages in the
- * candidate list carry no per-weapon constraint; armor usages map to the
- * category table above. An unknown usage or category fails closed.
+ * Whether a property rune or installed upgrade (by its real usage string) may be attached onto a
+ * base item of this kind and system.category.
  */
 export function propertyRuneFitsBase(kind, usage, category) {
-  if (kind !== "armor") return WEAPON_RUNE_USAGE.has(usage);
+  if (kind !== "armor") return WEAPON_UPGRADE_USAGES.has(usage);
   const allowed = ARMOR_RUNE_USAGE_CATEGORIES.get(usage);
   if (allowed === undefined) return false;
   return allowed === null || allowed.includes(category);
 }
-
 /**
  * Short human-readable note for a category-restricted armor rune usage
  * ("light armor only"), or null when the usage carries no restriction —
@@ -227,6 +270,21 @@ export async function getFundamentalRuneTiers(kind, maxLevel) {
     minPotencyLevel: potency.find((r) => r.tier === 1)?.level ?? Infinity
   };
 }
+/**
+ * Which SF2e equipment grades fit under a target item level.
+ * Falls back safely to commercial (level 0).
+ */
+export function getGradeTiers(kind, maxLevel) {
+  const levels = GRADE_LEVELS[kind] ?? GRADE_LEVELS.weapon;
+  const eligible = EQUIPMENT_GRADES.filter((g) => (levels[g] ?? 0) <= maxLevel);
+  const highestGrade = eligible.length ? eligible[eligible.length - 1] : "commercial";
+  return {
+    grades: eligible.length ? eligible : ["commercial"],
+    highestGrade,
+    minLevel: levels.commercial ?? 0
+  };
+}
+
 
 /**
  * Clamp parsed runes to the tiers a `level` item may actually carry, using the
@@ -282,7 +340,12 @@ export async function getBaseItemCandidates(kind, maxLevel) {
   return entries
     .filter((e) => e.type === kind && !e.specific && e.level <= maxLevel)
     .sort((a, b) => a.level - b.level || a.name.localeCompare(b.name))
-    .map((e) => ({ name: e.name, level: e.level, category: e.category ?? null }));
+    .map((e) => ({
+      name: e.name,
+      level: e.level,
+      category: e.category ?? null,
+      upgradeSlots: parseUpgradeCapacity(e.description, kind)
+    }));
 }
 
 /* Fundamental rune items share the same "etched onto a weapon/armor" usage
@@ -312,6 +375,13 @@ export async function getPropertyRuneCandidates(kind, maxLevel) {
     .sort((a, b) => a.level - b.level || a.name.localeCompare(b.name))
     .map((e) => ({ name: e.name, level: e.level, usage: e.usage }));
 }
+/**
+ * Candidate upgrade items / modules for SF2e weapons and armor (installed subitems).
+ * Aliased to getPropertyRuneCandidates for backward compatibility while also supporting
+ * SF2e installed-in-* usages.
+ */
+export const getUpgradeCandidates = getPropertyRuneCandidates;
+
 
 /* -------------------- property rune keys -------------------- */
 
