@@ -8,7 +8,7 @@ Read this first, then CLAUDE.md. HISTORY.md is the PF2e-era scaffold narrative; 
 - Wiring audit: Elite/Weak (generator selector → `computeStats`/`createActor`) and the chat command (`chatMessage` hook → `GeneratorApp.setInput`) are wired end to end. `reskinActor()` (`builder.mjs`) and `SF2E_MULTICLASS_DEDICATIONS` / `getMulticlassDedicationSlug` (`pc-support.mjs`) are exported and tested, but **nothing calls them**. The docs now call them helpers.
 - Docs synced: CLAUDE.md Files table (added `simplysf2e`, `ai-response-validation`, `art`, `macro-templates`, `provider-setup-app`; fixed stale `tables`/`runes`/`class-paths` rows), glossary, current state and roadmap. README status/limitations updated to match.
 - Moved the SimplyPF2e v0.3.5.63 audit to `docs/archive/pf2e/` (HISTORY.md link updated).
-- Deleted the remote branches already merged into `main`: `cursor/free-archetype-archetype-slot-validation`, `cursor/table-cites`, `integrate/wave-p0-p4`.
+- Remote branches already fully merged into `main` and safe to delete: `cursor/free-archetype-archetype-slot-validation`, `cursor/table-cites`, `integrate/wave-p0-p4`. The cloud session couldn't delete them (git proxy returned 403 on the delete push); delete them from GitHub's Branches page.
 - 99/99 test suites pass.
 
 ## Next
