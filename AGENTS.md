@@ -1,12 +1,12 @@
 # AGENTS.md — operating rules for any AI agent in this repo
 
-This file is the tool-neutral contract for every agent (Codex, Claude, or otherwise) working on simplySF2e. The deep project brief lives in [CLAUDE.md](CLAUDE.md) — read it first; it holds the glossary, invariants, architecture, and current state. [HISTORY.md](HISTORY.md) holds the session-by-session narrative and the bug log — check it before re-investigating anything. [HANDOFF.md](HANDOFF.md) is the live baton between sessions — read it at session start, update it at session end.
+This file is the tool-neutral contract for every agent (Codex, Claude, or otherwise) working on simplySF2e. The deep project brief lives in [CLAUDE.md](CLAUDE.md) — read it first; it holds the glossary, invariants, architecture, and current state. [HISTORY.md](HISTORY.md) holds the session-by-session narrative and the bug log — check it before re-investigating anything. [HANDOFF.md](HANDOFF.md) is the live baton between sessions — read it at session start, update it at session end. The current plan is the **GM-ready checklist (G1–G13)** in HANDOFF.md; tick items with a PR link instead of deleting them.
 
 ## Non-negotiable rules (summarized from CLAUDE.md — that file wins on conflict)
 
 1. **Never push or merge to `main` directly.** A merge to `main` auto-publishes a public release to every install. Branch + PR always.
 2. **Clone real Rule Elements, never hand-author them.** No hand-written RE fallback exists, by design.
-3. **When a system field name or shape matters, fetch the real installed `sf2e` source** — never recall it from PF2e memory. Schema discovery is the next parked slice.
+3. **When a system field name or shape matters, fetch the real installed `sf2e` source** — never recall it from PF2e memory. Source: `https://raw.githubusercontent.com/foundryvtt/pf2e/v14-dev/<path>` (e.g. `system.sf2e.json`, `src/scripts/config/index.ts`).
 4. **The AI (in-module) never emits numbers or code** — scale words and enum slugs only; the module supplies values.
 5. **Escape AI/user text before HTML** via `text.mjs` `esc`/`toHtml`.
 6. **Fail closed** — drop unresolved picks with `console.warn`, never guess (exceptions listed in CLAUDE.md invariant 5).
@@ -33,6 +33,7 @@ At session **end** (or before any risky long operation):
 
 ## Known environment quirks
 
-- `gh` CLI hangs indefinitely on this machine (mise-installed, auth/network issue). Use `curl https://api.github.com/repos/simplyjaytea/simplySF2e/...` for reads; ask the user before any authenticated GitHub write.
+- Local machine: `gh` CLI hangs (mise-installed, auth/network issue). Use `curl https://api.github.com/repos/simplyjaytea/simplySF2e/...` for reads; ask the user before any authenticated GitHub write.
+- Claude Code cloud sessions: no `gh`; use the GitHub MCP tools. Git pushes are limited to the session's designated branch (deleting other remote branches returns 403), so subagent workers commit locally and the coordinator pushes.
 - No local Foundry install. Live QA happens on the user's VPS-hosted Foundry — coordinate with the user for access.
 - Git identity for this repo: `user.name "jt"`, `user.email "jt_f@ymail.com"`.
