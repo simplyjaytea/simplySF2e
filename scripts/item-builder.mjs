@@ -38,6 +38,7 @@ const RARITIES = new Set(["common", "uncommon", "rare", "unique"]);
 
 /* Item levels the forge accepts (items start at 1; creature MAX_LEVEL caps it). */
 export const MIN_ITEM_LEVEL = 1;
+export const MAX_ITEM_LEVEL = MAX_LEVEL;
 
 /** Item Forge kinds built from an AI concept (not from a real base item). */
 export const CONCEPT_ITEM_KINDS = new Set(["wondrous", "augmentation", "crystal"]);
@@ -53,9 +54,8 @@ export const CONCEPT_ITEM_KINDS = new Set(["wondrous", "augmentation", "crystal"
  *   There is no "solarian" equipment trait and no "crystal" trait.
  */
 export const AUGMENTATION_CATEGORIES = Object.freeze(["tech", "biotech", "magitech", "necrograft"]);
-const KIND_USAGE = Object.freeze({ augmentation: "implanted", crystal: "other" });
+export const KIND_USAGE = Object.freeze({ augmentation: "implanted", crystal: "other" });
 const UNSUPPORTED_KIND_TRAITS = new Set(["augmentation", "cybernetic", "apex", "solarian", "crystal"]);
-export const MAX_ITEM_LEVEL = MAX_LEVEL;
 
 /* -------------------- activation (Phase 2) -------------------- */
 

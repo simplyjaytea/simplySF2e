@@ -51,7 +51,7 @@ class MockSpfApp {
 }
 const mocks = {
   MODULE_ID: "simplysf2e", SpfApp: MockSpfApp,
-  RUNED_ITEM_KINDS: new Set(["weapon", "armor"]), CONCEPT_ITEM_KINDS: new Set(["wondrous", "augmentation", "crystal"]), MIN_ITEM_LEVEL: 0, MAX_ITEM_LEVEL: 20,
+  RUNED_ITEM_KINDS: new Set(["weapon", "armor"]), CONCEPT_ITEM_KINDS: new Set(["wondrous", "augmentation", "crystal"]), KIND_USAGE: { augmentation: "implanted", crystal: "other" }, MIN_ITEM_LEVEL: 0, MAX_ITEM_LEVEL: 20,
   getProviderRequestConfig: () => ({ provider: {}, connections: [] }),
   getProviderAuthWarningKey: () => null,
   EFFECT_KINDS: ["itemBonus"], getForgeEffectCatalog: async () => [{ kind: "itemBonus" }],

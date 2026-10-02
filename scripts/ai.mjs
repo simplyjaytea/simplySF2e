@@ -1008,15 +1008,6 @@ function itemActivationDoc() {
   }`;
 }
 
-/**
- * Ask the configured model for a wondrous magic item concept (item forge).
- * `availableKinds` MUST be the effect kinds rule-templates.mjs found real
- * rule exemplars for — the schema shown to the model is built from that
- * list, so it can never ask for an effect this world can't automate.
- * `usageOptions` are real system.usage.value strings harvested from the
- * equipment compendium (item-builder.getUsageOptions()).
- * @returns {Promise<{concept: object, usage: object}>} raw concept JSON + token usage
- */
 const ITEM_KIND_GUIDES = {
   wondrous: {
     noun: "wondrous item",
@@ -1035,6 +1026,15 @@ const ITEM_KIND_GUIDES = {
   }
 };
 
+/**
+ * Ask the configured model for a wondrous magic item concept (item forge).
+ * `availableKinds` MUST be the effect kinds rule-templates.mjs found real
+ * rule exemplars for — the schema shown to the model is built from that
+ * list, so it can never ask for an effect this world can't automate.
+ * `usageOptions` are real system.usage.value strings harvested from the
+ * equipment compendium (item-builder.getUsageOptions()).
+ * @returns {Promise<{concept: object, usage: object}>} raw concept JSON + token usage
+ */
 export async function generateMagicItemConcept({ prompt, level, rarity, availableKinds, usageOptions, effectCatalog = [], kind = "wondrous", onProgress, signal }) {
   const guide = ITEM_KIND_GUIDES[kind] ?? ITEM_KIND_GUIDES.wondrous;
   const kinds = (availableKinds ?? []).filter((k) => ITEM_EFFECT_DOCS[k]);
@@ -1060,7 +1060,7 @@ JSON schema (all keys required unless marked OPTIONAL):
   "usage": string, // EXACTLY one of: ${usageOptions.join(", ")}
   "traits": string[], // ${guide.traits}${guide.extraKeys}
   "bulk": "negligible"|"light"|"one"|"two",
-  "invested": boolean, // true for most worn magic items (they must be invested to function); false for held items
+  "invested": boolean, // true for most worn magic items (they must be invested to function); false for held items, augmentations, and crystals
   "effects": [ // 0-3 ALWAYS-ON PASSIVE effects, each one of these shapes ("kind" MUST be from this list):
 ${effectDocs}
   ],

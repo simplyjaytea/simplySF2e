@@ -8,7 +8,7 @@ import {
   normalizeMagicItemConcept, buildMagicItemData, priceForLevel, getUsageOptions, describeEffect,
   describeActivation, MIN_ITEM_LEVEL, MAX_ITEM_LEVEL,
   getBaseItemCandidates, getPropertyRuneCandidates, getFundamentalRuneTiers,
-  normalizeRunedItemConcept, buildRunedItem, SECONDARY_ADJECTIVE, RUNED_ITEM_KINDS, CONCEPT_ITEM_KINDS,
+  normalizeRunedItemConcept, buildRunedItem, SECONDARY_ADJECTIVE, RUNED_ITEM_KINDS, CONCEPT_ITEM_KINDS, KIND_USAGE,
   getGradeTiers, getUpgradeCandidates, GRADE_LEVELS, EQUIPMENT_GRADES
 } from "./item-builder.mjs";
 import { createActivationMacro } from "./macro-templates.mjs";
@@ -51,7 +51,7 @@ export class ItemForgeApp extends SpfApp {
     body: { template: `modules/${MODULE_ID}/templates/itemforge.hbs` }
   };
 
-  /** Form values, kept across re-renders. "kind": "wondrous"|"weapon"|"armor". */
+  /** Form values, kept across re-renders. "kind": "wondrous"|"augmentation"|"crystal"|"weapon"|"armor". */
   #input = { prompt: "", level: 4, rarity: "common", kind: "wondrous" };
   #busy = false;
   #error = null;
@@ -264,7 +264,11 @@ export class ItemForgeApp extends SpfApp {
       // 1. Ground truth first: which effect kinds have real rule exemplars
       // in this world's compendiums? Only those are offered to the AI.
       await this._setStep("templates");
-      const effectCatalog = await getForgeEffectCatalog(this.#input.level, this.#input.rarity);
+      // Implanted and "other" items are never invested, so effects that need
+      // investment are not offered for them.
+      const fixedUsage = KIND_USAGE[this.#kind];
+      const effectCatalog = (await getForgeEffectCatalog(this.#input.level, this.#input.rarity))
+        .filter((effect) => !fixedUsage || !effect.exemplar?.requiresInvestment);
       const availableKinds = [...new Set(effectCatalog.map((effect) => effect.kind))];
       this.#unavailableKinds = EFFECT_KINDS.filter((k) => !availableKinds.includes(k));
       const usageOptions = await getUsageOptions(this.#kind);
