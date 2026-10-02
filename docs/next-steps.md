@@ -11,7 +11,7 @@ All four were answered on 2026-10-02. New design choices that come up during a s
 - **D-U1 · UI direction.** Polish the current "Neon Drift" look and fix what the audit finds (recommended), or redesign the generator layout (for example a two-pane form + sticky preview). **Decided 2026-10-02 (JT): polish the current look.**
 - **D-U2 · Reskin tab accent and icon.** Claude picked mint `--spf-mode-reskin: #6ef2c2` and the masks icon in G6; JT never confirmed. Keep (recommended) or change. **Decided 2026-10-02 (JT): keep.**
 - **D-J1 · Where Jev runs.** (a) Inside the module, making the generator's grounded catalog picks fast (recommended); (b) in the Claude Code dev workflow only (a plugin for the agents that edit this repo); (c) both. **Decided 2026-10-02 (JT): (a) inside the module.** JD1 is not planned.
-- **D-J2 · What "always on" means in the module.** (a) Jev runs automatically whenever the active connection is OpenRouter, reusing that key, with no toggle (recommended); (b) also add a separate Jev connection so non-OpenRouter users can turn it on. **Decided 2026-10-02 (JT): (b).** Jev runs automatically on an OpenRouter connection, and Provider Setup also gets a separate Jev connection. Because the TypeSafe endpoint fails the browser CORS check (see below), the separate connection must default to OpenRouter's endpoint, and the setup screen must say a TypeSafe-direct key will likely not work from Foundry.
+- **D-J2 · What "always on" means in the module.** (a) Jev runs automatically whenever the active connection is OpenRouter, reusing that key, with no toggle (recommended); (b) also add a separate Jev connection so non-OpenRouter users can turn it on. **Decided 2026-10-02 (JT): (b).** Jev runs automatically on an OpenRouter connection, and Provider Setup also gets a separate Jev connection. Because the TypeSafe endpoint fails the browser CORS check (see below), the separate connection is a key-only field on OpenRouter's fixed endpoint (J1b), and the setup screen must say a TypeSafe-direct key will likely not work from Foundry.
 - **Per-audit design picks.** U3 lists findings it tags `design`. The coordinator posts those to JT as decision cards; U6 builds only the approved ones.
 
 ## What Jev is (research, 2026-10-02)
@@ -75,19 +75,20 @@ Ground rules for every J step (they extend CLAUDE.md's invariants):
 
 - [ ] **J1a · Jev client and resolver (no UI).** New `scripts/jev.mjs`, pure parts node-testable:
   - `JEV_ENDPOINT = "https://openrouter.ai/api/v1/systemone"` and `JEV_MODEL = "typesafe/jev-1.13"`: one fixed endpoint, because TypeSafe's own endpoint fails the browser CORS check (above) and the pinned model id is OpenRouter's naming.
-  - `resolveJevConfig()` → `{ endpoint, apiKey } | null`, the **only** gate J2–J5 use. Order: the dedicated Jev key from J1b when present (`getJevRequestConfig().apiKey`), else the active connection's key when `describeProvider(baseUrl).id === "openrouter"` (`getProviderRequestConfig().apiKey`, `settings.mjs` ~525, empty unless bound to that exact base URL; never read raw settings), else `null`. Until J1b merges, `getJevRequestConfig` does not exist; write the resolver so the dedicated branch is a single call J1b fills in. Reusing a key bound to `https://openrouter.ai/api/v1` for its sibling `/systemone` path is the same host and account, so it stays inside the binding's intent (the binding prevents sending a key to a *different* endpoint); say so in a code comment.
+  - `resolveJevConfig({ provider = getProviderRequestConfig, dedicated = () => null } = {})` → `{ endpoint, apiKey } | null`, the **only** gate J2–J5 use. Use these injected parameters (Node ESM cannot stub named imports; tests pass fakes). Order: `dedicated()?.apiKey` when non-empty; else, when `describeProvider(provider().baseUrl).id === "openrouter"` and `provider().apiKey` is **non-empty** (`settings.mjs` ~525 returns `""` unless the key is bound to that exact base URL; never read raw settings), that key; else `null`. Never return an empty key. J1b changes only the `dedicated` default to `getJevRequestConfig`. Reusing a key bound to `https://openrouter.ai/api/v1` for its sibling `/systemone` path is the same host and account, so it stays inside the binding's intent (the binding prevents sending a key to a *different* endpoint); say so in a code comment.
   - `buildChoiceQuestion({ instructions, candidates })` → `{ type: "choice", instructions, criteria: { [id]: name } }`, rejecting more than 255 options (caller falls back).
   - `parseJevAnswers(json, questionIds)` → validates the cited response shape; returns `null` on any mismatch.
   - `requestJevDecision({ endpoint, apiKey, state, questions, signal })`: `fetch` with an `AbortSignal` combined with a timeout constant (4 s), returns `{ answers, usage, model, ms }` or `null`. Never throws to the caller. Never logs the key.
-  - `tokens.mjs` gets a separate "Jev" usage line (input tokens; cost from `usage.cost` when OpenRouter returns it).
-  - Tests: `scripts/jev.test.mjs` for resolver order (stub both accessors), question building (keyed criteria, 255 cap), response parsing (cited example passes; missing `answers`, wrong `type`, unknown id all return `null`).
+  - A pure `normalizeJevUsage(usage)` in `tokens.mjs` (input tokens; cost from `usage.cost` when OpenRouter returns it). Nothing calls it yet; the report line itself (`app-base.mjs` `_tokenUsage`) is added in J2 and shown in J6.
+  - Tests: `scripts/jev.test.mjs` for resolver order (inject fake `provider`/`dedicated`; an unbound OpenRouter key returns `null`), question building (keyed criteria, 255 cap), response parsing (cited example passes; missing `answers`, wrong `type`, unknown id all return `null`).
   No call sites and no UI. **Review:** independent; reviewer re-fetches the two cited doc pages and checks every field name.
-- [ ] **J1b · Separate Jev key in Provider Setup (D-J2 b).** **Before building, post JT a decision card on the section's look and wording** (with a U1 harness screenshot if U1 has merged); **do not merge J1b until JT answers.** Mechanism (not a design choice): a key-only field on the fixed OpenRouter endpoint, kept **outside** `providerBank` (it is not a chat connection). Build, mirroring the provider-key code in `settings.mjs` (~525–610) without touching it:
-  - client settings `jevApiKey` and `jevApiKeyBaseUrl` (the binding target, always `https://openrouter.ai/api/v1`), registered `config: false` like the provider key;
-  - `getJevRequestConfig()` → `{ apiKey }`, empty unless `jevApiKeyBaseUrl` equals the fixed URL;
-  - `authorizeJevKey()` that writes the binding when the GM saves the key;
-  - fill the dedicated branch in `resolveJevConfig()`.
-  Files: `settings.mjs`, `provider-setup-app.mjs`, `templates/provider-setup.hbs`, `styles/apps/provider-setup.css`, `lang/en.json`. The section says Jev needs an OpenRouter key and that a TypeSafe-direct key will not work from Foundry. Tests for the binding (wrong/missing binding returns an empty key). **Review:** independent.
+- [ ] **J1b · Separate Jev key in Provider Setup (D-J2 b).** Needs J1a merged. **Before building, post JT a decision card on the section's look and wording** (attach a U1 harness screenshot if U1 has merged; the card does not wait for U1); **do not merge J1b until JT answers.** Mechanism, settled here (not part of the card):
+  - A key-only field on the fixed OpenRouter endpoint, kept **outside** `providerBank` (it is not a chat connection). **No base-URL binding:** there is exactly one endpoint the key can ever go to, so there is nothing to bind against; say so in a comment.
+  - One client setting `jevApiKey`: `scope: "client"`, `config: false`, `restricted: true`, mirroring the provider key's registration (`settings.mjs` ~90–105).
+  - `getJevRequestConfig()` → `{ apiKey }` (trimmed, `""` when unset). J1a's `resolveJevConfig` gets `dedicated = getJevRequestConfig` as its default.
+  - Saving: the Jev field has **its own save action**, independent of `#saveSettings` (`provider-setup-app.mjs` ~214–264), so a GM with no chat model can still save a Jev key and re-saving the chat form never touches it. Follow the chat key's pattern: the input renders `value=""` with a "key stored" placeholder (`provider-setup.hbs` ~62), an empty submit keeps the stored key, and a "clear Jev key" checkbox removes it (like `clearApiKey`, ~67–72).
+  - The section says Jev needs an OpenRouter key and that a TypeSafe-direct key will not work from Foundry.
+  Files: `settings.mjs`, `provider-setup-app.mjs`, `templates/provider-setup.hbs`, `styles/apps/provider-setup.css`, `lang/en.json`, `scripts/jev.mjs` (default only), `scripts/jev.test.mjs`. Tests: empty save keeps the key, clear removes it, chat-form save leaves it; register the new setting in the `game` stub the way `settings.auth.test.mjs` does. **Review:** independent.
 
 ### Wave J-2 (sequential: each edits `ai.mjs` / `builder.mjs`)
 
@@ -112,7 +113,8 @@ Ground rules for every J step (they extend CLAUDE.md's invariants):
 
 ```
 Now (parallel):        U1   U2   U4   J1a
-After U1:              U3   J1b (card first; J1b also needs J1a)
+After U1:              U3
+After J1a:             J1b (card to JT first; merge only after JT answers)
 After U3:              U5a
 After U3 and J1b:      U5b                     U6 after JT's audit picks
 After J1a:             J2 → J3 → J4 → J5 (sequential, shared files)
