@@ -215,3 +215,81 @@ export async function jevPickLoot({ concept, candidates, jevConfig, signal, requ
   }
   return { loot: [...merged.values()], ms, usage, attempted: true };
 }
+
+/** Cap on first-draft entries Jev answers for, matching the chat-model prompts' "up to N". */
+const CREATURE_FEAT_CAP = 3;
+const CREATURE_ABILITY_CAP = 6;
+
+/**
+ * One Choice per draft entry over the issued catalog plus a `none` key
+ * ("no published option fits"). Returns `{ picks: (candidate|null)[], allNone, ms,
+ * usage }`, or `null` (with `ms`/`usage`) when Jev cannot answer: the caller then
+ * runs the chat model. A `none` or low-confidence answer is a null pick, not a
+ * failure, because "fewer picks" is valid here.
+ */
+async function pickPerDraftEntry({ concept, entries, candidates, jevConfig, signal, request, describe }) {
+  const none = { ms: 0, usage: null };
+  if (!jevConfig || !entries.length || !candidates?.length) return none;
+  const questions = {};
+  for (const [index, entry] of entries.entries()) {
+    const question = buildChoiceQuestion({
+      instructions: describe(entry),
+      candidates: [...asCandidates(candidates), { id: JEV_NONE_KEY, name: "No published option fits" }]
+    });
+    if (!question) return none;
+    questions[`entry${index}`] = question;
+  }
+  const { result, ms, usage } = await ask({ jevConfig, state: buildJevState(concept), questions, signal, request });
+  if (!result) return { ms, usage, attempted: true };
+  const byId = new Map(candidates.map((candidate) => [candidate.id, candidate]));
+  let allNone = true;
+  const picks = entries.map((_, index) => {
+    const answer = result.answers[`entry${index}`];
+    if (answer?.choice === JEV_NONE_KEY && confident(answer)) return null;
+    allNone = false;
+    return confident(answer) ? byId.get(answer.choice) ?? null : null;
+  });
+  return { picks, allNone, ms, usage, attempted: true };
+}
+
+const distinct = (picks) => {
+  const seen = new Set();
+  return picks.filter((candidate) => candidate && !seen.has(candidate.id) && seen.add(candidate.id));
+};
+
+/**
+ * Pick class-like creature feats through Jev. `omitted` is true only when every
+ * draft entry confidently answers `none`: that is the explicit "nothing fits" the
+ * caller treats as declining the wishlist. All-dropped with any doubt is not that,
+ * so it returns `feats: null` and the chat model decides. Returns
+ * `{ feats|null, omitted, ms, usage, attempted? }`.
+ */
+export async function jevPickCreatureFeats({ concept, candidates, jevConfig, signal, request = requestJevDecision }) {
+  const entries = (Array.isArray(concept?.feats) ? concept.feats : []).slice(0, CREATURE_FEAT_CAP)
+    .map((feat) => (typeof feat === "string" ? feat : feat?.name)).filter(Boolean);
+  const out = await pickPerDraftEntry({
+    concept, entries, candidates, jevConfig, signal, request,
+    describe: (name) => `Which listed published class feat best fits the draft feat idea "${name}" for this creature's role and tactics? Choose "${JEV_NONE_KEY}" when no listed feat fits.`
+  });
+  if (!out.picks) return { feats: null, omitted: false, ms: out.ms, usage: out.usage, ...(out.attempted ? { attempted: true } : {}) };
+  const feats = distinct(out.picks).map((candidate) => ({ name: candidate.name, ...(candidate.ref ? { candidate: candidate.ref } : {}) }));
+  if (!feats.length && !out.allNone) return { feats: null, omitted: false, ms: out.ms, usage: out.usage, attempted: true };
+  return { feats, omitted: feats.length === 0, ms: out.ms, usage: out.usage, attempted: true };
+}
+
+/**
+ * Pick published bestiary actions for the draft special abilities through Jev.
+ * A dropped entry stays narrative-only for the caller, as with the chat model.
+ * Returns `{ abilities|null, ms, usage, attempted? }`.
+ */
+export async function jevPickCreatureAbilities({ concept, candidates, jevConfig, signal, request = requestJevDecision }) {
+  const entries = (Array.isArray(concept?.specialAbilities) ? concept.specialAbilities : []).slice(0, CREATURE_ABILITY_CAP)
+    .map((ability) => ability?.glossary ?? ability?.name).filter(Boolean);
+  const out = await pickPerDraftEntry({
+    concept, entries, candidates, jevConfig, signal, request,
+    describe: (name) => `Which listed published bestiary action best matches the draft ability "${name}" for this creature? Choose "${JEV_NONE_KEY}" when no listed action fits.`
+  });
+  if (!out.picks) return { abilities: null, ms: out.ms, usage: out.usage, ...(out.attempted ? { attempted: true } : {}) };
+  const abilities = distinct(out.picks).map((candidate) => ({ name: candidate.name, ...(candidate.ref ? { candidate: candidate.ref } : {}) }));
+  return { abilities, ms: out.ms, usage: out.usage, attempted: true };
+}

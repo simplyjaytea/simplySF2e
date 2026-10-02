@@ -1263,10 +1263,10 @@ export class GeneratorApp extends SpfApp {
         concept.specialAbilities = [...draft.filter((ability) => ability.glossary), ...narratives].slice(0, 6);
         return;
       }
-      const { abilities, usage } = await selectCreatureAbilities({
+      const { abilities, usage, timing } = await selectCreatureAbilities({
         concept, candidates, onProgress: (p) => this._onAIProgress(p), signal
       });
-      this._recordTokens(game.i18n.localize("SIMPLYSF2E.Progress.Abilities"), usage);
+      this._recordTokens(game.i18n.localize("SIMPLYSF2E.Progress.Abilities"), usage, timing);
       concept.specialAbilities = [...abilities, ...narratives].slice(0, 6);
     } catch (err) {
       if (err?.cancelled) throw err;
@@ -1284,10 +1284,10 @@ export class GeneratorApp extends SpfApp {
         preferredNames: concept.feats.map((feat) => typeof feat === "string" ? feat : feat.name)
       });
       if (!candidates.length) return;
-      const { feats, omitted, usage } = await selectCreatureFeats({
+      const { feats, omitted, usage, timing } = await selectCreatureFeats({
         concept, candidates, onProgress: (p) => this._onAIProgress(p), signal
       });
-      this._recordTokens(game.i18n.localize("SIMPLYSF2E.Progress.Feats"), usage);
+      this._recordTokens(game.i18n.localize("SIMPLYSF2E.Progress.Feats"), usage, timing);
       // An explicit empty selection is allowed for this optional wishlist;
       // invalid picks/provider failures must not silently erase requirements.
       if (feats.length || omitted === true) concept.feats = feats;
