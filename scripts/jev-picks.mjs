@@ -4,7 +4,7 @@
 // (the caller then runs the chat-model call) on any doubt, so a step never
 // changes kind because Jev was used.
 import { JEV_MIN_CONFIDENCE, buildChoiceQuestion, requestJevDecision } from "./jev.mjs";
-import { normalizeJevUsage } from "./tokens.mjs";
+import { estimateTokens, normalizeJevUsage } from "./tokens.mjs";
 import { parseCoins } from "./currency.mjs";
 
 /** Key of the extra "no weapon fits this strike" option. Candidate ids never equal it (buildChoiceQuestion rejects a duplicate). */
@@ -292,4 +292,134 @@ export async function jevPickCreatureAbilities({ concept, candidates, jevConfig,
   if (!out.picks) return { abilities: null, ms: out.ms, usage: out.usage, ...(out.attempted ? { attempted: true } : {}) };
   const abilities = distinct(out.picks).map((candidate) => ({ name: candidate.name, ...(candidate.ref ? { candidate: candidate.ref } : {}) }));
   return { abilities, ms: out.ms, usage: out.usage, attempted: true };
+}
+
+/** Module default, not a rules number: half of Jev's ~64k request limit (docs/next-steps.md J5), leaving headroom. */
+export const JEV_REQUEST_TOKEN_BUDGET = 32000;
+/** More requests than this sends the whole step to the chat model instead. */
+const JEV_MAX_BATCHES = 4;
+
+/** The PC concept summary Jev reads as `state`. Plain text, bounded. */
+export function buildJevPcState(concept) {
+  const feats = (Array.isArray(concept?.feats) ? concept.feats : []).map((feat) => (typeof feat === "string" ? feat : feat?.name)).filter(Boolean);
+  return [
+    concept.gmPrompt ? `Original GM request: ${clip(concept.gmPrompt)}` : null,
+    `Character: ${concept.name} (level ${concept.level}${concept.class ? `, ${concept.class}` : ""})`,
+    concept.ancestry ? `Ancestry: ${concept.ancestry}${concept.heritage ? ` (${concept.heritage})` : ""}` : null,
+    concept.background ? `Background: ${concept.background}` : null,
+    concept.keyAbility ? `Key ability: ${concept.keyAbility}` : null,
+    concept.blurb ? `Blurb: ${clip(concept.blurb)}` : null,
+    feats.length ? `First-draft feat wishlist (inspiration only): ${feats.join(", ")}` : null,
+    concept.equipment?.length ? `Equipment: ${concept.equipment.map((item) => item.name).join(", ")}` : null
+  ].filter(Boolean).join("\n");
+}
+
+/** Split `{ key: question }` entries into requests whose state + questions stay under the token budget; null when too many. */
+function batchQuestions(entries, state) {
+  const batches = [];
+  let current = {};
+  let used = estimateTokens(state);
+  for (const [key, question] of entries) {
+    const cost = estimateTokens(JSON.stringify(question));
+    if (Object.keys(current).length && used + cost > JEV_REQUEST_TOKEN_BUDGET) {
+      batches.push(current);
+      current = {};
+      used = estimateTokens(state);
+    }
+    current[key] = question;
+    used += cost;
+  }
+  if (Object.keys(current).length) batches.push(current);
+  return batches.length <= JEV_MAX_BATCHES ? batches : null;
+}
+
+/** Run batches in parallel; null when any fails. `ms` is the wall time of the whole round. */
+async function askBatches({ jevConfig, state, batches, signal, request }) {
+  const started = Date.now();
+  const rounds = await Promise.all(batches.map((questions) => ask({ jevConfig, state, questions, signal, request })));
+  let usage = null;
+  for (const round of rounds) usage = mergeUsage(usage, round.usage);
+  const ms = Date.now() - started;
+  if (rounds.some((round) => !round.result)) return { answers: null, ms, usage };
+  return { answers: Object.assign({}, ...rounds.map((round) => round.result.answers)), ms, usage };
+}
+
+/**
+ * Pick one feat per slot through Jev: one Choice per slot over that slot's own
+ * allowed ids (`encoded` is encodeFeatCandidateSlots output). Slots that share an
+ * allowed list get the same top answer, so slots are walked in order and each
+ * takes its highest-probability id not already used, still at JEV_MIN_CONFIDENCE.
+ * A slot with more than 255 ids, a failed request, or no confident unused id sends
+ * the whole call to the chat model, because a feat slot must not end up empty
+ * (CLAUDE.md invariant 5). Returns `{ picks: {slot,id}[]|null, ms, usage, attempted? }`.
+ */
+export async function jevPickFeats({ concept, encoded, jevConfig, signal, request = requestJevDecision }) {
+  const none = { picks: null, ms: 0, usage: null };
+  const slots = (encoded?.slots ?? []).filter((slot) => slot.ids.length);
+  if (!jevConfig || !slots.length) return none;
+  const nameById = new Map(encoded.catalog.map(({ id, name }) => [id, name]));
+  const entries = [];
+  for (const slot of slots) {
+    const question = buildChoiceQuestion({
+      instructions: `Which listed feat best fits this character for ${slot.type} slot ${slot.number} (character level ${slot.level})?`,
+      candidates: slot.ids.map((id) => ({ id, name: nameById.get(id) ?? id }))
+    });
+    if (!question) return none;
+    entries.push([`slot${slot.number}`, question]);
+  }
+  const state = buildJevPcState(concept);
+  const batches = batchQuestions(entries, state);
+  if (!batches) return none;
+  const { answers, ms, usage } = await askBatches({ jevConfig, state, batches, signal, request });
+  if (!answers) return { picks: null, ms, usage, attempted: true };
+
+  const usedIds = new Set();
+  const usedNames = new Set();
+  const picks = [];
+  for (const slot of slots) {
+    const answer = answers[`slot${slot.number}`];
+    if (answer?.type !== "choice") return { picks: null, ms, usage, attempted: true };
+    const probability = (id) => Number(answer.probabilities?.[id]) || 0;
+    const ranked = [...slot.ids].sort((a, b) => probability(b) - probability(a));
+    const id = ranked.find((candidate) => !usedIds.has(candidate) && !usedNames.has(String(nameById.get(candidate)).toLowerCase()));
+    if (!id || probability(id) < JEV_MIN_CONFIDENCE) return { picks: null, ms, usage, attempted: true };
+    usedIds.add(id);
+    usedNames.add(String(nameById.get(id)).toLowerCase());
+    picks.push({ slot: slot.number, id });
+  }
+  return { picks, ms, usage, attempted: true };
+}
+
+/**
+ * Pick native character-choice options through Jev: one Choice per group over its
+ * option ids. `catalog` is `[{ id, item, prompt, options: [{ id, label }] }]`
+ * (already localized). Any miss sends the whole batch to the chat model.
+ * Returns `{ picks: {choice, option}[]|null, ms, usage, attempted? }`.
+ */
+export async function jevPickCharacterChoices({ concept, catalog, jevConfig, signal, request = requestJevDecision }) {
+  const none = { picks: null, ms: 0, usage: null };
+  if (!jevConfig || !catalog?.length) return none;
+  const entries = [];
+  for (const [index, group] of catalog.entries()) {
+    const question = buildChoiceQuestion({
+      instructions: `${group.prompt || "Choose an option"} (granted by ${group.item}). Which option best fits this character?`,
+      candidates: group.options.map(({ id, label }) => ({ id, name: label }))
+    });
+    if (!question) return none;
+    entries.push([`group${index}`, question]);
+  }
+  const state = buildJevPcState(concept);
+  const batches = batchQuestions(entries, state);
+  if (!batches) return none;
+  const { answers, ms, usage } = await askBatches({ jevConfig, state, batches, signal, request });
+  if (!answers) return { picks: null, ms, usage, attempted: true };
+  const picks = [];
+  for (const [index, group] of catalog.entries()) {
+    const answer = answers[`group${index}`];
+    if (!confident(answer) || !group.options.some((option) => option.id === answer.choice)) {
+      return { picks: null, ms, usage, attempted: true };
+    }
+    picks.push({ choice: group.id, option: answer.choice });
+  }
+  return { picks, ms, usage, attempted: true };
 }

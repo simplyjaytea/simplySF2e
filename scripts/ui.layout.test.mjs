@@ -190,7 +190,7 @@ assert.match(generatorApp, /const manifest = completionManifest\([\s\S]*?assertC
   "a single generation must retain its validated manifest until creation commits");
 assert.doesNotMatch(generatorApp, /this\.#created = \{ name: actor\.name, actorId: actor\.id, count: 1 \};\s*\}\s*finally/,
   "generation failure handling must not fabricate a creation result from an unavailable actor");
-assert.match(generatorApp, /selectChoices: async \(groups\) =>[\s\S]*?selectCharacterChoices\([\s\S]*?this\._recordTokens\(label, usage\)/,
+assert.match(generatorApp, /selectChoices: async \(groups\) =>[\s\S]*?selectCharacterChoices\([\s\S]*?this\._recordTokens\(label, usage, timing\)/,
   "character creation must use the grounded provider selector and record its usage");
 assert.match(generatorApp, /finally \{\s*this\.#busy = false;\s*this\.#busyMessage = null;\s*this\._finishRun\(\);/,
   "character success and failure must clear both native and AI progress state");

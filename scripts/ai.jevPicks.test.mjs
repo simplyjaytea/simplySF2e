@@ -30,7 +30,7 @@ globalThis.fetch = async (url, options) => {
   }), { headers: { "content-type": "application/json" } });
 };
 
-const { selectEquipment, selectLoot, selectCreatureFeats, selectCreatureAbilities } = await import("./ai.mjs");
+const { selectEquipment, selectLoot, selectCreatureFeats, selectCreatureAbilities, selectFeats, selectCharacterChoices } = await import("./ai.mjs");
 const jevConfig = { endpoint: "https://openrouter.ai/api/v1/systemone", apiKey: "k" };
 const ref = { packId: "sf2e.equipment", _id: "medkit" };
 const candidates = [{ id: "E0", name: "Medkit", type: "equipment", level: 1, ref }];
@@ -128,5 +128,59 @@ assert.deepEqual(out.abilities, []);
 jevReplies.push(new Error("offline"));
 llmReplies.push({ abilityIds: ["A0"] });
 out = await selectCreatureAbilities({ concept: grounded, candidates: abilityCandidates, jevConfig });
+assert.equal(out.timing.source, "llm");
+
+// PC feat slots: Jev picks with cross-slot dedupe; transport failure falls back to the chat model.
+const pcConcept = { name: "Vex", level: 3, class: "Soldier", blurb: "b", feats: ["Alpha"] };
+const slotFeat = (name) => ({ name, id: name, ref: { packId: "sf2e.feats", _id: name } });
+const featSlots = [
+  { type: "class", level: 1, candidates: [slotFeat("Alpha"), slotFeat("Beta")] },
+  { type: "class", level: 2, candidates: [slotFeat("Alpha"), slotFeat("Beta")] }
+];
+const slotAnswer = (top, other, otherProbability) => ({
+  type: "choice", choice: top, confidence: 0.9, probabilities: { [top]: 0.9, [other]: otherProbability }
+});
+jevReplies.push({
+  model: "typesafe/jev-1.13",
+  answers: { slot1: slotAnswer("F0", "F1", 0.05), slot2: slotAnswer("F0", "F1", 0.85) },
+  usage: { input_tokens: 70, output_tokens: 2 }
+});
+out = await selectFeats({ concept: pcConcept, slots: featSlots, jevConfig });
+assert.deepEqual(out.picks.map((p) => [p.slot, p.name]), [[1, "Alpha"], [2, "Beta"]], "slot 2 takes the next-best unused feat");
+assert.equal(out.timing.source, "jev");
+
+// Runner-up below the confidence bar: whole call goes to the chat model, which fills both slots.
+jevReplies.push({
+  model: "typesafe/jev-1.13",
+  answers: { slot1: slotAnswer("F0", "F1", 0.05), slot2: slotAnswer("F0", "F1", 0.05) }, usage: null
+});
+llmReplies.push({ picks: [{ slot: 1, id: "F0" }, { slot: 2, id: "F1" }] });
+out = await selectFeats({ concept: pcConcept, slots: featSlots, jevConfig });
+assert.deepEqual(out.picks.map((p) => p.name), ["Alpha", "Beta"]);
+assert.equal(out.timing.source, "llm");
+assert.ok("jevMs" in out.timing);
+
+jevReplies.push(new Error("offline"));
+llmReplies.push({ picks: [{ slot: 1, id: "F0" }] });
+out = await selectFeats({ concept: pcConcept, slots: featSlots, jevConfig });
+assert.equal(out.timing.source, "llm");
+
+// Character choices: Jev answer is validated like a chat-model one; any miss falls back.
+const choiceGroups = [{ id: "choice-a", item: "Fighter", prompt: "Choose a skill", options: [{ id: "a-ath", label: "Athletics" }, { id: "a-acr", label: "Acrobatics" }] }];
+jevReplies.push({
+  model: "typesafe/jev-1.13",
+  answers: { group0: { type: "choice", choice: "a-acr", confidence: 0.9, probabilities: { "a-acr": 0.9, "a-ath": 0.1 } } },
+  usage: { input_tokens: 30, output_tokens: 2 }
+});
+out = await selectCharacterChoices({ concept: pcConcept, groups: choiceGroups, jevConfig });
+assert.deepEqual(out.picks, [{ choice: "choice-a", option: "a-acr" }]);
+assert.equal(out.timing.source, "jev");
+jevReplies.push({
+  model: "typesafe/jev-1.13",
+  answers: { group0: { type: "choice", choice: "a-acr", confidence: 0.2, probabilities: { "a-acr": 0.2, "a-ath": 0.1 } } }, usage: null
+});
+llmReplies.push({ picks: [{ choice: "choice-a", option: "a-ath" }] });
+out = await selectCharacterChoices({ concept: pcConcept, groups: choiceGroups, jevConfig });
+assert.deepEqual(out.picks, [{ choice: "choice-a", option: "a-ath" }]);
 assert.equal(out.timing.source, "llm");
 console.log("ai.jevPicks tests passed");

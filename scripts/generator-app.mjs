@@ -996,10 +996,10 @@ export class GeneratorApp extends SpfApp {
       // real ancestry/class trait slugs for thematic context.
       const choiceSelector = async (groups) => {
         const label = game.i18n.localize("SIMPLYSF2E.Progress.CharacterChoices");
-        const { picks, usage } = await selectCharacterChoices({
+        const { picks, usage, timing } = await selectCharacterChoices({
           concept, groups, onProgress: (p) => this._onAIProgress(p), signal
         });
-        this._recordTokens(label, usage);
+        this._recordTokens(label, usage, timing);
         return picks;
       };
       let resolved = await resolvePCConcept(concept, { selectChoices: choiceSelector });
@@ -1031,10 +1031,10 @@ export class GeneratorApp extends SpfApp {
 
       await this._setStep("feats");
       if (resolved.featSlots.length) {
-        const { picks, usage: featUsage } = await selectFeats({
+        const { picks, usage: featUsage, timing: featTiming } = await selectFeats({
           concept, slots: resolved.featSlots, onProgress: (p) => this._onAIProgress(p), signal
         });
-        this._recordTokens(game.i18n.localize("SIMPLYSF2E.Progress.Feats"), featUsage);
+        this._recordTokens(game.i18n.localize("SIMPLYSF2E.Progress.Feats"), featUsage, featTiming);
         resolved.feats = await resolveFeatPicks(resolved.featSlots, picks, { exactContent: true });
         // Free Archetype slot-fit check without a grant graph: each resolved
         // archetype fill must sit in its own archetype slot with a readable
@@ -1488,10 +1488,10 @@ export class GeneratorApp extends SpfApp {
           ], { cancellable: false });
           try {
             await this._setStep("choices");
-            const { picks, usage } = await selectCharacterChoices({
+            const { picks, usage, timing } = await selectCharacterChoices({
               concept: this.#pcConcept, groups, onProgress: (p) => this._onAIProgress(p), signal
             });
-            this._recordTokens(label, usage);
+            this._recordTokens(label, usage, timing);
             if (picks.length < groups.length) {
               ui.notifications.warn(game.i18n.localize("SIMPLYSF2E.Generator.ChoicesNeedInput"));
             }

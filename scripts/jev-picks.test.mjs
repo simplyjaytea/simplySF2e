@@ -1,6 +1,6 @@
 // Jev equipment/loot pick logic with an injected request function (no network).
 import assert from "node:assert/strict";
-import { jevPickEquipment, jevPickLoot, jevPickCreatureFeats, jevPickCreatureAbilities, jevScoreIndex, mergeUsage, JEV_NONE_KEY } from "./jev-picks.mjs";
+import { jevPickEquipment, jevPickLoot, jevPickCreatureFeats, jevPickCreatureAbilities, jevPickFeats, jevPickCharacterChoices, jevScoreIndex, mergeUsage, JEV_NONE_KEY } from "./jev-picks.mjs";
 
 const jevConfig = { endpoint: "https://openrouter.ai/api/v1/systemone", apiKey: "k" };
 const ref = (id) => ({ packId: "sf2e.equipment", _id: id });
@@ -162,5 +162,76 @@ assert.equal(mergeUsage({ prompt: 1, completion: 1, total: 2, cost: 0.1 }, { pro
   const low = scripted(response({ entry0: choice("A0", 0.1), entry1: choice(JEV_NONE_KEY), entry2: choice(JEV_NONE_KEY) }));
   assert.deepEqual((await jevPickCreatureAbilities({ concept: concept({ specialAbilities }), candidates: acts, jevConfig, request: low.request })).abilities, []);
   assert.equal((await jevPickCreatureAbilities({ concept: concept({ specialAbilities }), candidates: acts, jevConfig, request: scripted(null).request })).abilities, null);
+}
+
+// PC feat slots: one Choice per slot over that slot's own ids; cross-slot dedupe by probability.
+{
+  const { encodeFeatCandidateSlots, resolveEncodedFeatPicks } = await import("./ai-candidate-format.mjs");
+  const cand = (name) => ({ name, id: name, ref: ref(name) });
+  const same = [cand("Alpha"), cand("Beta"), cand("Gamma")];
+  const encoded = encodeFeatCandidateSlots([
+    { type: "class", level: 1, candidates: same },
+    { type: "class", level: 2, candidates: same },
+    { type: "skill", level: 2, candidates: [cand("Delta")] },
+    { type: "general", level: 3, candidates: [] }
+  ]);
+  const id = (name) => encoded.catalog.find((c) => c.name === name).id;
+  const probs = (top, second) => ({ type: "choice", choice: top, confidence: 0.9, probabilities: { [top]: 0.9, [second]: 0.8 } });
+  // Slots 1 and 2 both rank Alpha first: slot 2 takes its runner-up if that clears the confidence bar.
+  let run = scripted(response({
+    slot1: probs(id("Alpha"), id("Beta")), slot2: probs(id("Alpha"), id("Beta")), slot3: choice(id("Delta"))
+  }));
+  let out = await jevPickFeats({ concept: concept({ class: "Soldier" }), encoded, jevConfig, request: run.request });
+  assert.deepEqual(out.picks, [{ slot: 1, id: id("Alpha") }, { slot: 2, id: id("Beta") }, { slot: 3, id: id("Delta") }]);
+  assert.deepEqual(Object.keys(run.calls[0].questions), ["slot1", "slot2", "slot3"], "empty slot gets no question");
+  assert.deepEqual(Object.keys(run.calls[0].questions.slot3.criteria), [id("Delta")]);
+  assert.equal(resolveEncodedFeatPicks(encoded, out.picks).length, 3);
+  // Runner-up below the confidence bar -> whole call goes to the chat model.
+  run = scripted(response({
+    slot1: choice(id("Alpha")), slot2: { type: "choice", choice: id("Alpha"), confidence: 0.9, probabilities: { [id("Alpha")]: 0.9, [id("Beta")]: 0.3 } }, slot3: choice(id("Delta"))
+  }));
+  out = await jevPickFeats({ concept: concept(), encoded, jevConfig, request: run.request });
+  assert.equal(out.picks, null);
+  assert.equal(out.attempted, true);
+  // Top pick below the bar, transport failure, no config -> null.
+  run = scripted(response({ slot1: choice(id("Alpha"), 0.4), slot2: choice(id("Beta")), slot3: choice(id("Delta")) }));
+  assert.equal((await jevPickFeats({ concept: concept(), encoded, jevConfig, request: run.request })).picks, null);
+  assert.equal((await jevPickFeats({ concept: concept(), encoded, jevConfig, request: scripted(null).request })).picks, null);
+  assert.equal((await jevPickFeats({ concept: concept(), encoded, jevConfig: null })).picks, null);
+  // A slot over the 255 cap -> no request at all.
+  const wide = encodeFeatCandidateSlots([{ type: "class", level: 1, candidates: Array.from({ length: 256 }, (_, i) => cand(`F${i}`)) }]);
+  run = scripted();
+  assert.equal((await jevPickFeats({ concept: concept(), encoded: wide, jevConfig, request: run.request })).picks, null);
+  assert.equal(run.calls.length, 0);
+  // Big requests split into batches under the token budget; every slot is answered across them.
+  const bigSlots = Array.from({ length: 12 }, (_, n) => ({
+    type: "class", level: n + 1,
+    candidates: Array.from({ length: 200 }, (_, i) => cand(`Long feat name number ${n}-${i} with extra words`))
+  }));
+  const bigEncoded = encodeFeatCandidateSlots(bigSlots);
+  run = scripted();
+  out = await jevPickFeats({ concept: concept(), encoded: bigEncoded, jevConfig, request: async (args) => {
+    run.calls.push(args);
+    return response(Object.fromEntries(Object.entries(args.questions).map(([key, q]) => [key, choice(Object.keys(q.criteria)[0])])));
+  } });
+  assert.equal(out.picks.length, 12);
+  assert.ok(run.calls.length >= 2, "split across requests");
+}
+
+// Character choices: one Choice per group; any miss -> null for the whole batch.
+{
+  const catalog = [
+    { id: "c1", item: "Fighter", prompt: "Choose a skill", options: [{ id: "ath", label: "Athletics" }, { id: "acr", label: "Acrobatics" }] },
+    { id: "c2", item: "Soldier", prompt: "Choose a weapon", options: [{ id: "g", label: "Gun" }] }
+  ];
+  let run = scripted(response({ group0: choice("ath"), group1: choice("g") }));
+  let out = await jevPickCharacterChoices({ concept: concept(), catalog, jevConfig, request: run.request });
+  assert.deepEqual(out.picks, [{ choice: "c1", option: "ath" }, { choice: "c2", option: "g" }]);
+  assert.deepEqual(run.calls[0].questions.group0.criteria, { ath: "Athletics", acr: "Acrobatics" });
+  run = scripted(response({ group0: choice("ath"), group1: choice("g", 0.3) }));
+  assert.equal((await jevPickCharacterChoices({ concept: concept(), catalog, jevConfig, request: run.request })).picks, null);
+  assert.equal((await jevPickCharacterChoices({ concept: concept(), catalog, jevConfig, request: scripted(null).request })).picks, null);
+  assert.equal((await jevPickCharacterChoices({ concept: concept(), catalog: [{ ...catalog[0], options: [] }], jevConfig, request: scripted().request })).picks, null);
+  assert.equal((await jevPickCharacterChoices({ concept: concept(), catalog, jevConfig: null })).picks, null);
 }
 console.log("jev-picks tests passed");
