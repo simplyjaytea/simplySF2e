@@ -18,6 +18,9 @@ export const PROVIDER_PRESETS = Object.freeze([
   { id: "custom", label: "Custom", icon: "fa-sliders", baseUrl: "", model: "", preserve: true }
 ]);
 
+/** Presets that talk to a server the GM runs, so the CORS / OLLAMA_ORIGINS hint applies. */
+const LOCAL_PRESET_IDS = new Set(["ollama", "lmstudio", "custom"]);
+
 /** Focused provider setup, reachable both from module settings and the generator. */
 export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) {
   #onSaved;
@@ -89,6 +92,7 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
       availableModels: this.#availableModels,
       hasApiKey: state.hasConfiguredApiKey,
       hasJevKey: Boolean(getJevRequestConfig().apiKey),
+      showLocalHint: LOCAL_PRESET_IDS.has(selected),
       localServerHint: game.i18n.format("SIMPLYSF2E.ProviderSetup.LocalServerHint", {
         origin: globalThis.location?.origin ?? "Foundry"
       })
@@ -101,6 +105,14 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
       if (normalizeApiBaseUrl(event.currentTarget.value) !== this.#modelsBaseUrl) {
         this.#clearModelSuggestions();
       }
+    });
+    // Enter in a field runs the visual primary (Save & Test), not the plain submit button.
+    this.element.addEventListener?.("keydown", (event) => {
+      if (event.key !== "Enter" || event.isComposing || event.defaultPrevented) return;
+      const field = event.target;
+      if (field?.tagName !== "INPUT" || ["checkbox", "button", "submit"].includes(field.type)) return;
+      event.preventDefault();
+      this.element.querySelector("[data-action='saveAndTest']")?.click();
     });
     this.element.querySelector("[name='activeConnection']")?.addEventListener("change", (event) =>
       ProviderSetupApp.#switchConnection.call(this, event.currentTarget.value)
@@ -199,6 +211,8 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
     const preset = PROVIDER_PRESETS.find((entry) => entry.id === target.dataset.provider);
     if (!preset) return;
     this.#selectedPreset = preset.id;
+    const localHint = this.element.querySelector(".spf-provider-local-hint");
+    if (localHint) localHint.hidden = !LOCAL_PRESET_IDS.has(preset.id);
     for (const button of this.element.querySelectorAll("[data-action='chooseProvider']")) {
       const active = button === target;
       button.classList.toggle("spf-provider-preset-active", active);

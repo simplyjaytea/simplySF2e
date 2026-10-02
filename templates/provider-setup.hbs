@@ -34,7 +34,7 @@
         </button>
       {{/each}}
     </div>
-    <p class="spf-hint spf-provider-local-hint"><i class="fa-solid fa-server"></i> {{localServerHint}}</p>
+    <p class="spf-hint spf-provider-local-hint" {{#unless showLocalHint}}hidden{{/unless}}><i class="fa-solid fa-server"></i> {{localServerHint}}</p>
 
     <div class="form-group stacked">
       <label for="spf-provider-base-url">{{localize "SIMPLYSF2E.Settings.ApiBaseUrl.Name"}}</label>
