@@ -351,6 +351,12 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 | 12h.2 | Shrink the Sources window so the list scrolls. | **Save** and **Reset to defaults** stay pinned at the bottom while the categories scroll under them. | Sources | | |
 | 12h.3 | With every compendium pack disabled in the world, open Sources. | One "No compendium packs…" message, not one per category, and **Save** is disabled. | Sources | | |
 
+## 12i. U6 Manage Presets delete cue
+
+| # | Do | Expect | Where | Pass | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 12i.1 | Open Manage Presets with several presets. | The trash button is red-tinted and spaced apart from Edit, Duplicate and Export; hover or Tab to it turns the fill red. Clicking still asks for confirmation. | Manage Presets | | |
+
 ## 13. Firefox (if available)
 
 | # | Step | Expected | Where to look | Result | Evidence |
