@@ -35,6 +35,7 @@ import { verifyCreatedActor } from "./post-create.mjs";
 import { supportedClassCandidates } from "./pc-support.mjs";
 import { validateArchetypeSlotPlacement } from "./pc-prerequisites.mjs";
 import { SpfApp } from "./app-base.mjs";
+import { signed } from "./text.mjs";
 
 async function rollbackActor(actor, label) {
   if (!actor) return null;
@@ -380,6 +381,7 @@ export class GeneratorApp extends SpfApp {
       members: this.#encounter.members.map((member, index) => {
         const stats = adjustedStats(computeStats(member.concept), member.concept);
         const strike = stats.strikes[0];
+        const t = (key) => game.i18n.localize(`SIMPLYSF2E.Preview.${key}`);
         return {
           index,
           count: member.count,
@@ -388,9 +390,9 @@ export class GeneratorApp extends SpfApp {
           name: member.concept.name,
           level: stats.level,
           blurb: member.concept.blurb,
-          statline: `AC ${stats.ac}, ${game.i18n.localize("SIMPLYSF2E.Preview.Fort")} +${stats.saves.fortitude}, ${game.i18n.localize("SIMPLYSF2E.Preview.Ref")} +${stats.saves.reflex}, ${game.i18n.localize("SIMPLYSF2E.Preview.Will")} +${stats.saves.will}, HP ${stats.hp}, Per +${stats.perception}`
-            + (strike ? `, ${strike.name} +${strike.bonus} (${strike.damage})` : "")
-            + (stats.spellDC ? `, ${game.i18n.localize("SIMPLYSF2E.Preview.Spells")} DC ${stats.spellDC}` : "")
+          statline: `${t("AC")} ${stats.ac}, ${t("Fort")} ${signed(stats.saves.fortitude)}, ${t("Ref")} ${signed(stats.saves.reflex)}, ${t("Will")} ${signed(stats.saves.will)}, ${t("HP")} ${stats.hp}, ${t("PerceptionShort")} ${signed(stats.perception)}`
+            + (strike ? `, ${strike.name} ${signed(strike.bonus)} (${strike.damage})` : "")
+            + (stats.spellDC ? `, ${t("Spells")} ${t("DC")} ${stats.spellDC}` : "")
         };
       })
     };
@@ -412,9 +414,23 @@ export class GeneratorApp extends SpfApp {
     const feats = GeneratorApp.#mapNamed(this.#resolved?.feats);
     const equipment = GeneratorApp.#mapGear(this.#resolved?.equipment);
     const loot = GeneratorApp.#mapGear(this.#resolved?.loot);
+    // Signed display strings live beside `stats`, never in it: stats also feeds
+    // actor creation and arithmetic elsewhere.
+    const display = {
+      perception: signed(stats.perception),
+      skills: (stats.skills ?? []).map((skill) => ({ name: skill.name, mod: signed(skill.mod) })),
+      saves: {
+        fortitude: signed(stats.saves?.fortitude),
+        reflex: signed(stats.saves?.reflex),
+        will: signed(stats.saves?.will)
+      },
+      strikes: (stats.strikes ?? []).map((strike) => ({ ...strike, bonusText: signed(strike.bonus) })),
+      spellAttack: signed(stats.spellAttack)
+    };
     return {
       concept,
       stats,
+      display,
       traits: [concept.rarity !== "common" ? concept.rarity : null, concept.size, ...concept.traits].filter(Boolean),
       speeds: concept.speeds.map((s) => `${s.type} ${s.value} ft.`).join(", "),
       senses: concept.senses.map((s) => [s.type, s.acuity, s.range ? `${s.range} ft.` : null].filter(Boolean).join(" ")).join(", "),

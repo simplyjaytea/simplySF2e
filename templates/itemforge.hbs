@@ -121,8 +121,6 @@
       <h3>{{localize "SIMPLYSF2E.ItemForge.RunesHeading"}}</h3>
       <ul class="spf-list">
         {{#if preview.grade}}<li><strong>{{localize "SIMPLYSF2E.ItemForge.Grade"}}</strong> {{preview.grade}}</li>{{/if}}
-        {{#if preview.potency}}<li>{{localize "SIMPLYSF2E.ItemForge.Potency"}} +{{preview.potency}}</li>{{/if}}
-        {{#if preview.secondary}}<li>{{localize "SIMPLYSF2E.ItemForge.SecondaryTier"}} {{preview.secondary}}</li>{{/if}}
         {{#each preview.upgrades}}
           <li>{{this}}</li>
         {{/each}}

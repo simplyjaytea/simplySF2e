@@ -303,22 +303,22 @@
     </div>
 
     <div class="spf-statline">
-      <span><strong>{{localize "SIMPLYSF2E.Preview.Perception"}}</strong> +{{preview.stats.perception}}{{#if preview.senses}}; {{preview.senses}}{{/if}}</span>
+      <span><strong>{{localize "SIMPLYSF2E.Preview.Perception"}}</strong> {{preview.display.perception}}{{#if preview.senses}}; {{preview.senses}}{{/if}}</span>
       {{#if preview.languages}}<span><strong>{{localize "SIMPLYSF2E.Preview.Languages"}}</strong> {{preview.languages}}</span>{{/if}}
       {{#if preview.stats.skills.length}}
         <span><strong>{{localize "SIMPLYSF2E.Preview.Skills"}}</strong>
-          {{#each preview.stats.skills}}{{this.name}} +{{this.mod}}{{#unless @last}}, {{/unless}}{{/each}}
+          {{#each preview.display.skills}}{{this.name}} {{this.mod}}{{#unless @last}}, {{/unless}}{{/each}}
         </span>
       {{/if}}
     </div>
 
     <div class="spf-statgrid">
     <div class="spf-statline spf-defenses">
-      <span><strong>AC</strong> {{preview.stats.ac}}</span>
-      <span><strong>{{localize "SIMPLYSF2E.Preview.Fort"}}</strong> +{{preview.stats.saves.fortitude}}</span>
-      <span><strong>{{localize "SIMPLYSF2E.Preview.Ref"}}</strong> +{{preview.stats.saves.reflex}}</span>
-      <span><strong>{{localize "SIMPLYSF2E.Preview.Will"}}</strong> +{{preview.stats.saves.will}}</span>
-      <span><strong>HP</strong> {{preview.stats.hp}}</span>
+      <span><strong>{{localize "SIMPLYSF2E.Preview.AC"}}</strong> {{preview.stats.ac}}</span>
+      <span><strong>{{localize "SIMPLYSF2E.Preview.Fort"}}</strong> {{preview.display.saves.fortitude}}</span>
+      <span><strong>{{localize "SIMPLYSF2E.Preview.Ref"}}</strong> {{preview.display.saves.reflex}}</span>
+      <span><strong>{{localize "SIMPLYSF2E.Preview.Will"}}</strong> {{preview.display.saves.will}}</span>
+      <span><strong>{{localize "SIMPLYSF2E.Preview.HP"}}</strong> {{preview.stats.hp}}</span>
     </div>
     {{#if preview.iwr.immunities}}<div class="spf-statline"><span><strong>{{localize "SIMPLYSF2E.Preview.Immunities"}}</strong> {{preview.iwr.immunities}}</span></div>{{/if}}
     {{#if preview.iwr.resistances}}<div class="spf-statline"><span><strong>{{localize "SIMPLYSF2E.Preview.Resistances"}}</strong> {{preview.iwr.resistances}}</span></div>{{/if}}
@@ -330,10 +330,10 @@
     </div>
 
     <div class="spf-strikes">
-      {{#each preview.stats.strikes}}
+      {{#each preview.display.strikes}}
         <div class="spf-strike">
           <strong>{{#if (eq this.type "ranged")}}{{localize "SIMPLYSF2E.Preview.Ranged"}}{{else}}{{localize "SIMPLYSF2E.Preview.Melee"}}{{/if}}</strong>
-          {{this.name}} +{{this.bonus}},
+          {{this.name}} {{this.bonusText}},
           <strong>{{localize "SIMPLYSF2E.Preview.Damage"}}</strong> {{this.damage}} {{this.damageType}}
           {{#if this.average}}(avg {{this.average}}){{/if}}
           {{#if this.traits.length}}<span class="spf-strike-traits">({{#each this.traits}}{{this}}{{#unless @last}}, {{/unless}}{{/each}})</span>{{/if}}
@@ -363,7 +363,7 @@
 
     {{#if preview.concept.spellcasting}}
       <h3>{{localize "SIMPLYSF2E.Preview.Spells"}}
-        <span class="spf-spell-dc">DC {{preview.stats.spellDC}}, {{localize "SIMPLYSF2E.Preview.Attack"}} +{{preview.stats.spellAttack}} ({{preview.concept.spellcasting.tradition}})</span>
+        <span class="spf-spell-dc">{{localize "SIMPLYSF2E.Preview.DC"}} {{preview.stats.spellDC}}, {{localize "SIMPLYSF2E.Preview.Attack"}} {{preview.display.spellAttack}} ({{preview.concept.spellcasting.tradition}})</span>
       </h3>
       <ul class="spf-list spf-inline">
         {{#each preview.spells}}

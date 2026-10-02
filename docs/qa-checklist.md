@@ -70,6 +70,7 @@ Use one prompt at level 5. The goal is to prove the adjustment is applied once (
 | 3.5 | Create a **Weak (-1 Level)** version. | Level 4. | Sheet | | |
 | 3.6 | Compare Weak to Normal. | Exactly -2 to AC, saves, Perception, attacks, skills, spell DC. First damage -2. HP lower by exactly 15 (the 3-5 row of the weak HP adjustment, keyed to the base level 5). | Sheet | | |
 | 3.7 | Create an Elite at **level 1** and a Weak at **level 2**. | Elite at level 1: level 2, HP +10. Weak at level 2: level 1, HP -10. | Sheet | | |
+| 3.8 | Generate a **Weak** creature at level -1 (or any low-level creature with a negative save, Perception or strike bonus); read the preview and, in Encounter mode, the member statline. | Negative modifiers read `-1`, never `+-1`; zero reads `+0`. "AC", "HP", "DC" and "Per" still appear. | Preview | | |
 
 ## 4. Encounter
 
