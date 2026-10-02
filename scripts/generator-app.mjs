@@ -9,7 +9,7 @@ import {
 } from "./ai.mjs";
 import {
   getSpellCandidates, getEquipmentCandidates, getLootCandidates, getScrollSpellCandidates,
-  getAncestryCandidates, getBackgroundCandidates, getClassCandidates, getHeritageCandidates, getFocusSpellCandidates, getFeatCandidates, getAbilityCandidates, sourceReadiness
+  getAncestryCandidates, getBackgroundCandidates, getClassCandidates, getHeritageCandidates, getFocusSpellCandidates, getFeatCandidates, getAbilityCandidates, sourceReadiness, describeMissingSources
 } from "./compendium.mjs";
 import {
   normalizeConcept, normalizeLoot, resolveConcept, resolveLoot, computeStats, adjustedStats, createActor,
@@ -160,7 +160,7 @@ export class GeneratorApp extends SpfApp {
       providerReady: !authWarningKey,
       sourcesReady: sources?.ready ?? true,
       sourcePackCount: sources?.packCount ?? 0,
-      sourceMissing: sources?.missing ?? [],
+      sourceMissing: describeMissingSources(sources?.missing),
       canAuthorizeApiKey: Boolean(
         authState.baseUrl && authState.hasConfiguredApiKey && !authState.apiKeyIsBound
       ),
@@ -698,7 +698,7 @@ export class GeneratorApp extends SpfApp {
     const sources = sourceReadiness(this.#input.mode, { allowSpellcasting: this.#input.allowSpellcasting });
     if (!sources.ready) {
       ui.notifications.warn(game.i18n.format("SIMPLYSF2E.Generator.SourcesMissing", {
-        categories: sources.missing.join(", ")
+        categories: describeMissingSources(sources.missing)
       }));
       return false;
     }
@@ -1655,7 +1655,7 @@ export class GeneratorApp extends SpfApp {
         Array.from({ length: member.count }, () => member.manifest)
       ));
       this.#encounter = null;
-      this.#created = { name: folder.name, actorId: actors[0]?.id ?? null, count: created, grounding };
+      this.#created = { name: folder.name, actorId: actors[0]?.id ?? null, count: created, inFolder: true, grounding };
       committed = true;
       try {
         ui.notifications.info(game.i18n.format("SIMPLYSF2E.Generator.CreatedAll", {

@@ -255,6 +255,14 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
     steps.forEach((step, i) => {
       const li = items[i];
       li.className = `spf-step-${step.state}`;
+      const state = li.querySelector(".spf-step-state");
+      if (state) {
+        state.textContent = game.i18n.localize(
+          step.state === "done" ? "SIMPLYSF2E.Progress.StepDone"
+            : step.state === "active" ? "SIMPLYSF2E.Progress.StepActive"
+              : "SIMPLYSF2E.Progress.StepPending"
+        );
+      }
       const icon = li.querySelector("i");
       if (!icon) return;
       icon.className = step.state === "done"
@@ -263,6 +271,10 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
           ? "fa-solid fa-spinner fa-spin"
           : "fa-regular fa-circle";
     });
+    // One polite announcement per step change (not per percent tick).
+    const active = steps.find((step) => step.state === "active");
+    const announce = this.element?.querySelector(".spf-progress-announce");
+    if (announce && active) announce.textContent = active.label;
     return true;
   }
 
@@ -290,5 +302,9 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (bar) bar.setAttribute("aria-valuenow", String(progress.percent));
     if (pct) pct.textContent = `${progress.percent}%`;
     if (detail) detail.textContent = progress.detail;
+    if (progress.phase === "cancelling") {
+      const announce = root.querySelector(".spf-progress-announce");
+      if (announce) announce.textContent = progress.detail;
+    }
   }
 }
