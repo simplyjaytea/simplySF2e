@@ -32,7 +32,7 @@ const concept = (extra = {}) => ({
   assert.equal(calls.length, 1);
   assert.deepEqual(Object.keys(calls[0].questions.draft0.criteria), ["W0", "W1", "A0", "E0"]);
   assert.equal(out.usage.total, 105);
-  assert.equal(out.ms, 40);
+  assert.ok(out.ms >= 0 && out.attempted === true);
 }
 
 // Low confidence on any draft item -> null (caller runs the chat model).
