@@ -91,6 +91,7 @@ Claude-side orchestration (when running as Fable/Opus with subagent tools):
 - **Never delegate the two things that bite this repo**: (1) sf2e schema verification — the delegate must be explicitly told to fetch real `foundryvtt/pf2e` **v14-dev** source (`system.sf2e.json` / `packs/sf2e/`), and the coordinator spot-checks the citation; (2) release/workflow `.yml` reasoning.
 - **Every schema-dependent or balance-sensitive diff gets an independent reviewer agent** (fresh context, not the builder) before the PR is called done — proven to catch real bugs three separate times (HISTORY.md process notes).
 - Subagent claims of "verified" require a quoted source line; treat unquoted verification claims as recalled, i.e. unverified.
+- **Sonnet worker recipe:** `Agent` with `model: "sonnet"`, `isolation: "worktree"`, `run_in_background: true`, one checklist ID per worker. Use the prompt template in HANDOFF.md "How to run this with Sonnet workers". The coordinator pastes any cited upstream values into the prompt; workers never look up schema themselves. Workers commit in their worktree and never push, because cloud sessions can push only to the designated branch. The coordinator merges their commits, reruns all tests, gets independent review where required, then pushes and opens the PR.
 
 ## How to work here
 
@@ -112,6 +113,8 @@ Inherited PF2e-era notes for the scaffolded builders. They are **not** SF2e sche
 
 ## Current state (2026-10-01)
 
+**Active plan: the GM-ready checklist (G1–G13) in [HANDOFF.md](HANDOFF.md).** Work it in the waves listed there.
+
 **Starfinder 2e "Neon Drift" UI overhaul.** simplySF2e identity is `simplysf2e` / SimplySF2e, targeting system **`sf2e` 1.5.0**. Status is **Alpha**. Every merge to `main` publishes the next tag; check GitHub Releases for the current version rather than pinning it here. Git is authoritative for branch state; [HANDOFF.md](HANDOFF.md) is the live baton.
 
 - **Pack defaults:** `DEFAULT_PACKS` uses real `sf2e.*` collection ids from `system.sf2e.json` 1.5.0 (`classes`, `class-features`, `feats`, `spells`, `equipment`, `ancestries`, `heritages`, `backgrounds`, `bestiary-ability-glossary-srd`, `alien-core-bestiary`).
@@ -123,15 +126,17 @@ Inherited PF2e-era notes for the scaffolded builders. They are **not** SF2e sche
 - **Equipment grades & Item Forge:** Item Forge weapon/armor generation targets the native SF2e equipment grade (commercial, tactical, advanced, superior, elite, ultimate, paragon) and installed upgrade modules model (`system.subitems`). Legacy system runes are zeroed per Migration942EquipmentGrade, base analog/tech classification is preserved, and prices preview in credits.
 - **Rest hook residual:** v14-dev still fires `Hooks.callAll("pf2e.restForTheNight", actor)`. No `sf2e.restForTheNight` is cited. The module keeps that exact string.
 - **Generator extras:** Elite/Weak adjustment selector (Alien Core pp. 204/207) and the `/sf2e` chat command are wired end to end. `reskinActor()` and the multiclass dedication map are tested helpers only — no UI or pipeline calls them.
-- **Still later:** Item Forge live verification, full Free Archetype graphs, wiring reskin and multiclass.
+- **Upstream drift:** v14-dev `system.sf2e.json` now reads 1.5.1; the module still cites 1.5.0 (checklist G2).
+- **Still later:** see the GM-ready checklist. Deferred past GM-ready: full Free Archetype graphs, upgrade prerequisite validation, shields/ammo.
 - **Inherited code:** NPC/PC/forge pipelines, fail-closed grounding, cloned Rule Elements. Treat [HISTORY.md](HISTORY.md) as parent-project history, not simplySF2e releases.
 
 **Recorded live evidence:** none for simplySF2e.
 
 ## Known gaps
 
-Inherited from the PF2e scaffold and **not re-evaluated for SF2e**. Do not treat these as Starfinder class/feat coverage.
+Inherited from the PF2e scaffold and **not re-evaluated for SF2e** (checklist G9). Do not treat these as Starfinder class/feat coverage.
 
+- **SF2e skills Computers/Piloting are missing** from the hardcoded skill lists (`builder.mjs` `STANDARD_SKILLS`/`CHECK_TYPES`, `pc-skills.mjs` `SKILL_ATTRIBUTES`). v14-dev adds them when `SYSTEM_ID === "sf2e"` (computers: int, piloting: dex). Checklist G1.
 - **Skill completion limits:** unknown grant timing, non-floor native rank transformations, and missing class data are warned rather than inferred. Duplicate native feat grants and arbitrary new Lore replacements remain manual; this is not full feat-prerequisite validation or a historical level-up simulator. The latest native-clone/skill-write workflow has not been live-tested.
 
 - **PC casting coverage:** Mystic and Witchwarper now have cited SF2e spontaneous profiles and slot tables in `pc-tables.mjs` matching v14-dev journal tables (3 base slots per rank, 5 cantrips, 10th-rank spell at level 19).
