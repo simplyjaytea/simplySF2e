@@ -434,9 +434,14 @@ export function normalizeLoot(raw) {
     .slice(0, 24); // fits LOOT_GUIDE's hoard guidance (~12-20 items) with headroom, still bounds runaway output
 }
 
-/** Recognize scroll loot like "Scroll of Fireball" or "Scroll of Fireball (Rank 3)". */
+/**
+ * Recognize spell-consumable loot like "Spell Gem of Fireball (Rank 3)". sf2e's
+ * only spell consumable is the spell gem (v14-dev
+ * src/scripts/config/spell-consumables.ts); a PF2e-style "Scroll of X" draft
+ * is read the same way and built as a spell gem.
+ */
 export function parseScroll(name) {
-  const match = /^\s*scroll of\s+(.+?)\s*(?:\(\s*rank\s*(\d+)\s*\))?\s*$/i.exec(String(name ?? ""));
+  const match = /^\s*(?:scroll|spell gem) of\s+(.+?)\s*(?:\(\s*rank\s*(\d+)\s*\))?\s*$/i.exec(String(name ?? ""));
   if (!match) return null;
   return { spellName: match[1], rank: match[2] ? Number(match[2]) : null };
 }
@@ -444,11 +449,11 @@ export function parseScroll(name) {
 /**
  * Resolve loot names against the equipment packs. Loot may sit a little above
  * the creature's level — treasure rewards run ahead of encounter level.
- * Scrolls resolve their SPELL instead (PF2e ships no premade scroll items);
- * the scroll consumable is assembled from the rank template at creation.
+ * Spell gems resolve their SPELL instead (sf2e ships only blank rank
+ * templates); the gem is assembled from the rank template at creation.
  *
  * Each returned entry carries `resolvedValue`: the real per-unit gp price of
- * the matched compendium item (or the rank template, for scrolls), falling
+ * the matched compendium item (or the rank template, for spell gems), falling
  * back to the AI's own estimate when nothing matched or the match has no
  * price. The treasure-budget enforcement sums these, so real prices beat the
  * AI's guesses wherever a real item resolved. A runed name resolves to its
@@ -489,9 +494,9 @@ export async function resolveLoot(concept, { exactContent = false } = {}) {
       }
       const baseRank = entry?.system?.level?.value ?? 1;
       const rank = Math.min(Math.max(scroll.rank ?? baseRank, baseRank), 10);
-      // A scroll's real price lives on the rank template it will be built
-      // from at creation (there is no premade scroll item to price).
-      const templateDoc = await getDocument(await findScrollTemplate(rank));
+      // A spell gem's real price lives on the rank template it will be built
+      // from at creation (there is no premade gem to price).
+      const templateDoc = await getDocument(await findSpellGemTemplate(rank));
       const templateGp = priceToGp(templateDoc?.system?.price?.value);
       loot.push({
         name, quantity, value, runes: dropUncitedRunePrefix(name).runes, entry, scroll: { rank },
@@ -626,36 +631,51 @@ export function heightenedLevelFor(spellSystemData, assignedRank) {
 
 const RANK_ORDINALS = ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th"];
 
-/** Find the blank "Scroll of Nth-rank Spell" template item for a rank. */
-async function findScrollTemplate(rank) {
+/**
+ * Find the blank spell gem template for a rank. v14-dev
+ * src/scripts/config/spell-consumables.ts lists sf2e's only spell consumable,
+ * "spell-gem", with one template per rank (e.g. rank 1:
+ * "Compendium.sf2e.equipment.Item.R6LuVXimv1Hh8ehE", named
+ * "Spell Gem (1st-Rank Spell)" in packs/sf2e/equipment/consumables/spell-gems).
+ */
+async function findSpellGemTemplate(rank) {
   const ordinal = RANK_ORDINALS[rank - 1] ?? "1st";
-  // Remaster naming first, pre-remaster "level" naming as fallback
-  return (await findEntry(getPacksFor("equipment"), `Scroll of ${ordinal}-rank Spell`, (e) => e.type === "consumable"))
-    ?? (await findEntry(getPacksFor("equipment"), `Scroll of ${ordinal}-level Spell`, (e) => e.type === "consumable"));
+  return findEntry(getPacksFor("equipment"), `Spell Gem (${ordinal}-Rank Spell)`, (e) => e.type === "consumable");
 }
 
 /**
- * Assemble a scroll consumable the way the PF2e system does on spell drag:
- * clone the "Scroll of Nth-rank Spell" template and embed the real spell.
+ * Assemble a spell gem the way the system's createConsumableFromSpell does
+ * (v14-dev src/module/item/consumable/spell-consumables.ts): clone the rank
+ * template, merge the spell's traits and rarity, drop "magical" when a
+ * tradition trait is present, name it from the "spell-gem" nameTemplate
+ * ("Spell Gem of {name} (Rank {level})"), link the spell above the template
+ * description, and embed the spell heightened to the gem's rank.
  * @param {object} spellEntry  index entry of the spell (from resolveLoot)
- * @param {number} rank        rank the scroll casts the spell at
+ * @param {number} rank        rank the gem casts the spell at
  * @returns {Promise<object|null>} item data, or null when spell/template is missing
  */
-export async function buildScrollItem(spellEntry, rank) {
+export async function buildSpellGemItem(spellEntry, rank) {
   const spellDoc = await getDocument(spellEntry);
   if (!spellDoc) return null;
-  const template = await findScrollTemplate(rank);
-  const templateDoc = await getDocument(template);
+  const templateDoc = await getDocument(await findSpellGemTemplate(rank));
   if (!templateDoc) return null;
   const data = toItemData(templateDoc);
   const spell = spellDoc.toObject();
-  delete spell._id;
-  spell.system.location = { ...(spell.system.location ?? {}), heightenedLevel: rank };
-  data.name = `Scroll of ${spellDoc.name} (Rank ${rank})`;
+  spell._id = foundry.utils.randomID();
+  spell.system.location = { ...(spell.system.location ?? {}), value: null, heightenedLevel: rank };
+  data.name = `Spell Gem of ${spellDoc.name} (Rank ${rank})`;
   data.system.spell = spell;
-  const traditions = spellDoc.system?.traits?.traditions ?? [];
+
   data.system.traits ??= { value: [] };
-  data.system.traits.value = [...new Set([...(data.system.traits.value ?? []), ...traditions])];
+  const traits = [...new Set([...(data.system.traits.value ?? []), ...(spellDoc.system?.traits?.value ?? [])])];
+  if (traits.includes("magical") && traits.some((t) => IWR_TRADITIONS.includes(t))) traits.splice(traits.indexOf("magical"), 1);
+  data.system.traits.value = traits.sort();
+  data.system.traits.rarity = spellDoc.system?.traits?.rarity ?? data.system.traits.rarity;
+
+  const sourceId = spellDoc.uuid ?? spellEntry?.uuid;
+  const link = sourceId ? `@UUID[${sourceId}]{${spellDoc.name}}` : esc(spellDoc.name);
+  data.system.description ??= { value: "" };
+  data.system.description.value = `<p>${link}</p><hr />${data.system.description.value ?? ""}`;
   return data;
 }
 
@@ -1243,8 +1263,8 @@ export async function buildLootItems(loot) {
       continue;
     }
     if (scroll) {
-      const data = await buildScrollItem(entry, scroll.rank);
-      if (!data) throw new Error(`Cannot create scroll "${name}": its spell or template source is unavailable`);
+      const data = await buildSpellGemItem(entry, scroll.rank);
+      if (!data) throw new Error(`Cannot create spell gem "${name}": its spell or template source is unavailable`);
       items.push(setQuantity(data, quantity));
       continue;
     }

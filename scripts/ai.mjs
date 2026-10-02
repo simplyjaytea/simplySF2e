@@ -100,7 +100,7 @@ export function lootGuide(amount, subject = "creature") {
     ? "a DISTINCT set of items bought with MOST of their starting wealth (not everyday adventuring gear, which is handled separately — spend the bulk of the budget on worthwhile gear, keeping only a modest credit reserve rather than leaving most of it unspent)"
     : "3-8 items dropped on defeat";
   const hoardTrigger = subject === "character" ? "the character's backstory" : "the creature's description";
-  return `${amountNote} ${origin}; "value" is the approximate price of ONE unit in credits (legacy fallback: 1 gp = 10 credits; used when an item has no compendium match). Currency: use "Credits" or "Credstick" with quantity = the number of credits (e.g. {"name": "Credits", "quantity": 350, "value": 1}), scaled to level and rarity. For crafting or raw-materials hauls, "UPB" is also currency at the same per-unit value. Do not write gold, silver, or platinum pieces. Spell scrolls: "Scroll of {exact Starfinder 2e spell name} (Rank {n})" with a real non-cantrip spell and a rank it exists at, castable at the ${subject}'s level (rank <= ceil((level+2)/2)). Other items MUST be EXACT published item names ${REMASTER_NOTE}, including a grade word when the published name already has one; NO invented items, invented grade suffixes, or fundamental-rune prefixes. Prefer a smaller set of DISTINCT items over padding the count — never repeat the same item to hit a number. Include 1-2 currency entries, 1-2 consumables, and 1-2 treasure or magic items of the ${subject}'s level or lower (adjusted per the amount guidance above). EXCEPTION: if ${hoardTrigger} or the GM's request explicitly calls for abundant loot (a hoard, riches, a wealthy creature, "lots of loot", etc.), scale UP to roughly 12-20 items with proportionally more currency, treasure, and magic-item entries regardless of the amount setting; otherwise stay within the guidance above.`;
+  return `${amountNote} ${origin}; "value" is the approximate price of ONE unit in credits (legacy fallback: 1 gp = 10 credits; used when an item has no compendium match). Currency: use "Credits" or "Credstick" with quantity = the number of credits (e.g. {"name": "Credits", "quantity": 350, "value": 1}), scaled to level and rarity. For crafting or raw-materials hauls, "UPB" is also currency at the same per-unit value. Do not write gold, silver, or platinum pieces. Spell gems (Starfinder 2e has no scrolls): "Spell Gem of {exact Starfinder 2e spell name} (Rank {n})" with a real non-cantrip spell and a rank it exists at, castable at the ${subject}'s level (rank <= ceil((level+2)/2)). Other items MUST be EXACT published item names ${REMASTER_NOTE}, including a grade word when the published name already has one; NO invented items, invented grade suffixes, or fundamental-rune prefixes. Prefer a smaller set of DISTINCT items over padding the count — never repeat the same item to hit a number. Include 1-2 currency entries, 1-2 consumables, and 1-2 treasure or magic items of the ${subject}'s level or lower (adjusted per the amount guidance above). EXCEPTION: if ${hoardTrigger} or the GM's request explicitly calls for abundant loot (a hoard, riches, a wealthy creature, "lots of loot", etc.), scale UP to roughly 12-20 items with proportionally more currency, treasure, and magic-item entries regardless of the amount setting; otherwise stay within the guidance above.`;
 }
 
 /**
@@ -325,7 +325,7 @@ JSON schema (loot key required):
   "loot": [ { "name": string, "quantity": number, "value": number } ]
 }
 
-${lootGuide(amount, "character")} Favor items that reinforce the character's class and concept (a caster's backup scroll, a martial's signature weapon, skill-focused utility gear) over generic treasure — this represents deliberate purchases, not random battlefield loot. When the character's level affords it, spend on a published graded item whose catalog name already includes the grade (Commercial, Tactical, Advanced, …) rather than inventing a rune prefix or an unpublished grade suffix.`;
+${lootGuide(amount, "character")} Favor items that reinforce the character's class and concept (a caster's backup spell gem, a martial's signature weapon, skill-focused utility gear) over generic treasure — this represents deliberate purchases, not random battlefield loot. When the character's level affords it, spend on a published graded item whose catalog name already includes the grade (Commercial, Tactical, Advanced, …) rather than inventing a rune prefix or an unpublished grade suffix.`;
 
   const user = [
     `Character: ${concept.name} (level ${concept.level})`,
@@ -410,7 +410,7 @@ JSON schema (all keys required unless marked optional):
     "spells": [ { "name": string, "rank": number } ] // rank 0 = cantrip; real Starfinder 2e spell names as a first draft (${REMASTER_NOTE}; the final list is chosen from the compendium in a second step)
   }, // null if the class you chose isn't a caster, or spellcasting is disallowed
   "focusSpells": string[], // EXACT published Starfinder 2e focus spell names (they carry the "focus" trait) granted by this character's class/subclass, 1-3 names, [] if none apply — first draft, grounded against the real compendium afterward. Independent of "spellcasting": include focus spells when the class grants them, even if the class has no spell slots
-  "equipment": [ { "name": string, "quantity": number, "value": number } ] // 4-8 first-draft carried items with EXACT Starfinder 2e item names (${REMASTER_NOTE}) fitting the class, level and concept — include starting armor appropriate to the class's armor proficiency when they would wear armor, a weapon, useful mundane gear, AND at least 1-2 level-appropriate magic items (a potion or elixir; for a spellcaster, a spell scroll of a real Starfinder 2e spell in their tradition they'd want as backup) when the character's level plausibly affords them; lightly-armored casters may deliberately carry no armor. When the level affords it, pick a published graded item whose catalog name already includes the grade; do not invent a rune prefix or unpublished grade suffix. Also include skill-supporting gear matching the character's likely trained skills, plus general utility items. Inspiration only, the final picks are chosen from the compendium in a second step
+  "equipment": [ { "name": string, "quantity": number, "value": number } ] // 4-8 first-draft carried items with EXACT Starfinder 2e item names (${REMASTER_NOTE}) fitting the class, level and concept — include starting armor appropriate to the class's armor proficiency when they would wear armor, a weapon, useful mundane gear, AND at least 1-2 level-appropriate magic items (a potion or elixir; for a spellcaster, a spell gem of a real Starfinder 2e spell in their tradition they'd want as backup) when the character's level plausibly affords them; lightly-armored casters may deliberately carry no armor. When the level affords it, pick a published graded item whose catalog name already includes the grade; do not invent a rune prefix or unpublished grade suffix. Also include skill-supporting gear matching the character's likely trained skills, plus general utility items. Inspiration only, the final picks are chosen from the compendium in a second step
 }
 
 Design guidance:
@@ -717,7 +717,7 @@ Pick the logical items the creature would carry: the weapons it wields (match it
  * haul from names guaranteed to exist — the loot counterpart of
  * selectEquipment(). Without this, a recalled first-draft name cannot be
  * substituted for its published equivalent after the selection catalog is issued.
- * Coins and spell scrolls stay free-form: they are not plain compendium items
+ * Coins and spell gems stay free-form: they are not plain compendium items
  * (parseCoins/parseScroll in builder.mjs build them specially).
  * @param {object} args
  * @param {object} args.concept       normalized concept (for context)
@@ -734,10 +734,10 @@ export async function selectLoot({ concept, candidates, scrollCandidates = [], o
     .map(([type, names]) => `${type}: ${names.join("; ")}`)
     .join("\n");
 
-  const system = `${GM_CONCEPT_PRIORITY}\n\nYou are selecting dropped loot for a Starfinder 2e creature. Choose ONLY IDs from the provided lists. Coins are module-built and retain their first-draft quantities automatically. A scroll must use an offered spell ID and a rank no lower than that spell's base rank. Respond with a single JSON object and nothing else:
-{ "loot": [ { "id": string, "quantity": number }, { "scrollSpellId": string, "rank": number, "quantity": number } ] }
+  const system = `${GM_CONCEPT_PRIORITY}\n\nYou are selecting dropped loot for a Starfinder 2e creature. Choose ONLY IDs from the provided lists. Coins are module-built and retain their first-draft quantities automatically. A spell gem must use an offered spell ID and a rank no lower than that spell's base rank. Respond with a single JSON object and nothing else:
+{ "loot": [ { "id": string, "quantity": number }, { "gemSpellId": string, "rank": number, "quantity": number } ] }
 ${GRADE_NAME_NOTE}
-Recreate the first-draft haul: replace each non-coin entry with the closest valid item or scroll spell. Keep the draft's quantities. Drop an entry only when nothing available comes close.`;
+Recreate the first-draft haul: replace each non-coin entry with the closest valid item or spell gem spell. Keep the draft's quantities. Drop an entry only when nothing available comes close.`;
 
   const user = [
     concept.gmPrompt ? `Original GM request: ${concept.gmPrompt}` : null,
@@ -748,7 +748,7 @@ Recreate the first-draft haul: replace each non-coin entry with the closest vali
     concept.equipment?.length ? `Already carried equipment: ${concept.equipment.map((item) => item.name).join(", ")}` : null,
     "",
     "Available items:", list,
-    scrollCandidates.length ? `Available scroll spells (ID | name | base rank): ${scrollCandidates.map((s) => `${s.id} | ${s.name} | ${s.rank}`).join("; ")}` : null
+    scrollCandidates.length ? `Available spell gem spells (ID | name | base rank): ${scrollCandidates.map((s) => `${s.id} | ${s.name} | ${s.rank}`).join("; ")}` : null
   ].filter((line) => line !== null).join("\n");
 
   const { data: parsed, usage } = await requestJSON({
@@ -767,11 +767,11 @@ Recreate the first-draft haul: replace each non-coin entry with the closest vali
       value: 0
     }));
   for (const pick of picks) {
-    const spell = candidateForPick(scrollCandidates, { id: pick?.scrollSpellId });
+    const spell = candidateForPick(scrollCandidates, { id: pick?.gemSpellId });
     if (!spell) continue;
     const rank = Math.min(Math.max(Math.round(Number(pick.rank) || spell.rank), spell.rank), 10);
     loot.push({
-      name: `Scroll of ${spell.name} (Rank ${rank})`,
+      name: `Spell Gem of ${spell.name} (Rank ${rank})`,
       ...(spell.ref ? { scrollCandidate: spell.ref } : {}),
       quantity: Math.max(Math.round(Number(pick.quantity) || 1), 1),
       value: 0

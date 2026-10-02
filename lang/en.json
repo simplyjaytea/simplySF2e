@@ -139,7 +139,7 @@
       "CompletionGrounding": "Content grounding",
       "CompletionCompendium": "Compendium content: {count}",
       "CompletionNative": "Native SF2e selections: {count}",
-      "CompletionModuleBuilt": "Module-built currency or scrolls: {count}",
+      "CompletionModuleBuilt": "Module-built currency or spell gems: {count}",
       "CompletionCustomNarrative": "Deliberate custom narrative abilities: {count}",
       "OpenSheet": "Open Sheet",
       "GenerateAnother": "Generate Another",

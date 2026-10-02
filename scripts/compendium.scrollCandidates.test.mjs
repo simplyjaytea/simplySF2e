@@ -8,6 +8,18 @@ import assert from "node:assert/strict";
 const requestedFields = [];
 const entries = [
   {
+    // Shape from v14-dev packs/sf2e/equipment/consumables/spell-gems/spell-gem-1st-rank-spell.json
+    _id: "R6LuVXimv1Hh8ehE",
+    name: "Spell Gem (1st-Rank Spell)",
+    type: "consumable",
+    system: {
+      level: { value: 1 },
+      category: "spell-gem",
+      traits: { value: ["consumable", "magical"] },
+      spell: null
+    }
+  },
+  {
     _id: "RjuupS9xyXDLgyIr",
     name: "Scroll of 1st-rank Spell",
     type: "consumable",
@@ -76,6 +88,8 @@ assert.ok(!equipmentNames.includes("Scroll of 1st-rank Spell"),
   "a blank scroll template with an absent system.spell must not be equipment candidate");
 assert.ok(!lootNames.includes("Scroll of 2nd-rank Spell"),
   "a blank scroll template with system.spell null must not be loot candidate");
+assert.ok(!equipmentNames.includes("Spell Gem (1st-Rank Spell)") && !lootNames.includes("Spell Gem (1st-Rank Spell)"),
+  "a blank sf2e spell gem template is not a candidate");
 assert.ok(equipmentNames.includes("Scroll of Embedded Spell"),
   "a scroll carrying an embedded spell remains an eligible equipment candidate");
 assert.ok(lootNames.includes("Scroll of Embedded Spell"),
@@ -92,5 +106,10 @@ const template = await findEntry(["test.equipment"], "Scroll of 1st-rank Spell",
 );
 assert.equal(template?._id, "RjuupS9xyXDLgyIr",
   "the underlying index remains able to resolve a blank scroll template for building");
+
+const gemTemplate = await findEntry(["test.equipment"], "Spell Gem (1st-Rank Spell)", (entry) =>
+  entry.type === "consumable"
+);
+assert.equal(gemTemplate?._id, "R6LuVXimv1Hh8ehE", "the spell gem builder can still resolve its template");
 
 console.log("compendium.scrollCandidates.test.mjs: blank-template filtering assertions passed");

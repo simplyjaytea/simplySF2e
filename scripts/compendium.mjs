@@ -13,6 +13,8 @@ export const CATEGORIES = [
   "abilities", "spells", "feats", "equipment", "ancestries", "backgrounds", "classes", "classFeatures", "heritages", "bestiaryActors"
 ];
 
+const BLANK_SPELL_CONSUMABLES = new Set(["spell-gem", "scroll"]);
+
 export const DEFAULT_PACKS = {
   // Collection ids are `sf2e.<packs[].name>` from system.sf2e.json 1.5.1
   // (foundryvtt/pf2e v14-dev). SF2e has no family-ability glossary packs.
@@ -561,7 +563,7 @@ export async function getSpellCandidates(tradition, maxRank, keywords = [], plan
 }
 
 /**
- * Bounded exact candidates for spell scrolls. Scroll legality is independent
+ * Bounded exact candidates for spell gems. Gem legality is independent
  * of a creature's casting tradition, but it still excludes cantrips/rituals
  * and carries the published base rank for local validation.
  */
@@ -639,11 +641,11 @@ export async function getEquipmentCandidates(
     if (!entries) continue;
     for (const entry of entries) {
       if (!EQUIPMENT_TYPES.has(entry.type) || (!treasure && entry.type === "treasure")) continue;
-      // PF2e's published scroll consumables are blank rank templates: their
-      // category is "scroll" and system.spell is null/absent. They are only
-      // an internal builder source, not a selectable finished item. A scroll
-      // with an embedded spell remains eligible for packs that publish one.
-      if (entry.type === "consumable" && entry.system?.category === "scroll" && entry.system?.spell == null) continue;
+      // Published spell gems (sf2e) and scrolls (PF2e) are blank rank
+      // templates: category "spell-gem"/"scroll" with a null system.spell.
+      // They are only an internal builder source, not a selectable finished
+      // item. One with an embedded spell remains eligible.
+      if (entry.type === "consumable" && BLANK_SPELL_CONSUMABLES.has(entry.system?.category) && entry.system?.spell == null) continue;
       const itemLevel = entry.system?.level?.value ?? 0;
       if (itemLevel > maxLevel) continue;
       if (seen.has(entry.normalized)) continue;

@@ -351,13 +351,13 @@ export class GeneratorApp extends SpfApp {
 
   /**
    * Rows for equipment or loot. A runed name is shown as the AI wrote it (the
-   * entry is only the base item), a scroll as the item it will be built into,
+   * entry is only the base item), a spell gem as the item it will be built into,
    * and a stack gets its ×N suffix.
    */
   static #mapGear(list) {
     return (list ?? []).map(({ name, quantity, runes, entry, scroll }) => ({
       name: (scroll && entry?.name
-        ? `Scroll of ${entry.name} (Rank ${scroll.rank})`
+        ? `Spell Gem of ${entry.name} (Rank ${scroll.rank})`
         : (runes?.potency ? name : entry?.name ?? name)) + (quantity > 1 ? ` ×${quantity}` : ""),
       found: Boolean(entry)
     }));
