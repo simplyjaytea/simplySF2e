@@ -200,7 +200,7 @@ skillReport = { rows: [{ slug: "medicine", rank: 2, name: null }, { slug: "lore:
   warnings: ["unspent-increases"], automatic: true, trainingBudget: 3, unspentTraining: 0, unspentIncreases: 1 };
 const skills = await generate();
 assert.equal(skills.context.pcPreview.automaticSkills, true);
-assert.equal(skills.context.pcPreview.skillPriorities.length, 16);
+assert.equal(skills.context.pcPreview.skillPriorities.length, 18, "16 core skills plus sf2e Computers and Piloting");
 await actions.createActor.call(skills);
 assert.equal(skills.context.characterReview.skills.rows[0].name, "medicine");
 assert.equal(skills.context.characterReview.skills.rows[0].rank, "SIMPLYSF2E.Skills.Rank2");

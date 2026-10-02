@@ -1,10 +1,13 @@
-/** Core skill slugs/attributes match PF2e CONFIG.PF2E.skills (master/8.4.1).
+/** Core skill slugs/attributes match CONFIG.PF2E.skills on pf2e v14-dev
+ * (src/scripts/config/index.ts), including the sf2e-only Computers/Piloting.
  * Numeric allocations belong here, never in the model response. */
 export const SKILL_ATTRIBUTES = Object.freeze({
   acrobatics: "dex", arcana: "int", athletics: "str", crafting: "int",
   deception: "cha", diplomacy: "cha", intimidation: "cha", medicine: "wis",
   nature: "wis", occultism: "int", performance: "cha", religion: "wis",
-  society: "int", stealth: "dex", survival: "wis", thievery: "dex"
+  society: "int", stealth: "dex", survival: "wis", thievery: "dex",
+  // sf2e-only skills, pf2e v14-dev src/scripts/config/index.ts (SYSTEM_ID === "sf2e")
+  computers: "int", piloting: "dex"
 });
 export const CORE_SKILLS = Object.freeze(Object.keys(SKILL_ATTRIBUTES));
 

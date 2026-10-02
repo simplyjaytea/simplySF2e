@@ -23,7 +23,9 @@ const SPEED_TYPES = new Set(["land", "fly", "swim", "climb", "burrow"]);
 const STANDARD_SKILLS = new Set([
   "acrobatics", "arcana", "athletics", "crafting", "deception", "diplomacy",
   "intimidation", "medicine", "nature", "occultism", "performance", "religion",
-  "society", "stealth", "survival", "thievery"
+  "society", "stealth", "survival", "thievery",
+  // sf2e adds these when SYSTEM_ID === "sf2e" (pf2e v14-dev src/scripts/config/index.ts)
+  "computers", "piloting"
 ]);
 
 /*
@@ -994,7 +996,7 @@ const DAMAGE_TYPES =
   "acid|bludgeoning|cold|electricity|fire|force|mental|piercing|poison|slashing|sonic|spirit|vitality|void|bleed|precision|untyped";
 const SAVE_TYPES = "fortitude|reflex|will";
 const CHECK_TYPES =
-  "acrobatics|arcana|athletics|crafting|deception|diplomacy|intimidation|medicine|nature|occultism|performance|religion|society|stealth|survival|thievery|perception|flat";
+  "acrobatics|arcana|athletics|crafting|deception|diplomacy|intimidation|medicine|nature|occultism|performance|religion|society|stealth|survival|thievery|computers|piloting|perception|flat";
 
 /**
  * Turn conventional rules phrasing in AI ability text into PF2e inline
