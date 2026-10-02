@@ -105,3 +105,24 @@ export function normalizeUsage(usage, { content, system, user, reasoningChars = 
     estimated: true
   };
 }
+
+/**
+ * Shape a Jev (System One) usage block, `{ input_tokens, output_tokens, cost? }`,
+ * into `{ prompt, completion, total, cost, estimated }`. Jev's output is free, so
+ * `completion` may be 0. `cost` is the provider-reported amount, or null when the
+ * response carried none. Returns null without a usable `input_tokens` (never guessed).
+ */
+export function normalizeJevUsage(usage) {
+  const input = Number(usage?.input_tokens);
+  if (usage?.input_tokens == null || !Number.isFinite(input) || input < 0) return null;
+  const output = Number(usage?.output_tokens);
+  const completion = Number.isFinite(output) && output >= 0 ? output : 0;
+  const cost = usage?.cost == null ? NaN : Number(usage.cost);
+  return {
+    prompt: input,
+    completion,
+    total: input + completion,
+    cost: Number.isFinite(cost) && cost >= 0 ? cost : null,
+    estimated: false
+  };
+}
