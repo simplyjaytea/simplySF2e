@@ -1,6 +1,6 @@
 # AGENTS.md — operating rules for any AI agent in this repo
 
-This file is the tool-neutral contract for every agent (Codex, Claude, or otherwise) working on simplySF2e. The deep project brief lives in [CLAUDE.md](CLAUDE.md) — read it first; it holds the glossary, invariants, architecture, and current state. [HISTORY.md](HISTORY.md) holds the session-by-session narrative and the bug log — check it before re-investigating anything. [HANDOFF.md](HANDOFF.md) is the live baton between sessions — read it at session start, update it at session end. The current plan is the **GM-ready checklist (G1–G13)** in HANDOFF.md; tick items with a PR link instead of deleting them.
+This file is the tool-neutral contract for every agent (Codex, Claude, or otherwise) working on simplySF2e. The deep project brief lives in [CLAUDE.md](CLAUDE.md) — read it first; it holds the glossary, invariants, architecture, and current state. [HISTORY.md](HISTORY.md) holds the session-by-session narrative and the bug log — check it before re-investigating anything. [HANDOFF.md](HANDOFF.md) is the live baton between sessions — read it at session start, update it at session end. The current plan is [docs/next-steps.md](docs/next-steps.md) (tracks U and J); the GM-ready checklist (G1–G13) in HANDOFF.md still owns live QA and release. Tick items with a PR link instead of deleting them.
 
 ## Non-negotiable rules (summarized from CLAUDE.md — that file wins on conflict)
 
