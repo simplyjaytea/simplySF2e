@@ -30,5 +30,6 @@ body { padding: 20px; font-family: "Signika", system-ui, sans-serif; font-size: 
 
 /* The module caps the generator/forge body at 80vh and scrolls inside it. The
    screenshots show the full content instead so nothing is hidden from review;
-   a tall result therefore looks taller here than in a window on a short screen. */
-.application .simplysf2e-generator { max-height: none !important; overflow-y: visible !important; }
+   a tall result therefore looks taller here than in a window on a short screen.
+   shoot.mjs drops the lift (html.spf-short-window) for its short-window pass. */
+html:not(.spf-short-window) .application .simplysf2e-generator { max-height: none !important; overflow-y: visible !important; }

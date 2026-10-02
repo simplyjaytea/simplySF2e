@@ -427,6 +427,14 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 | 12p.3 | Reroll loot on a preview, then generate a PC. | Neither fails on unmatched loot or equipment; skipped items show the same way. | Preview | | |
 | 12p.4 | Generate "a scavenger who fights with a rusted dagger" at level 1. | Equipment lists a real knife-group weapon (usually Knife) instead of skipping the dagger. | Preview | | |
 
+## 12r. Window scrolling
+
+| # | Do | Expect | Where | Pass | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 12r.1 | Generate a monster, then drag the Generator window's bottom edge up to about a third of the screen. | The window body scrolls with the mouse wheel down to the stat block's end. Create Actor, Reroll Loot and Discard stay visible at the bottom edge while the preview scrolls. | Generator | | |
+| 12r.2 | Do the same with an Item Forge preview, AI Provider Setup, Manage Presets (with several presets) and Compendium Sources. | Each window scrolls to its last field; its button row stays at the bottom edge. Nothing is cut off. | Each window | | |
+| 12r.3 | Shrink the Foundry browser window to a short height (about 600 px) and open each window fresh. | No window runs past the screen with unreachable content; each scrolls inside. | Each window | | |
+
 ## 13. Firefox (if available)
 
 | # | Step | Expected | Where to look | Result | Evidence |

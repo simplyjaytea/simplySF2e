@@ -665,4 +665,32 @@ assert.match(css, /\.simplysf2e \.spf-statusbar\s*\{/, "statusbar strip must be 
 assert.match(css, /\.simplysf2e \.spf-statgrid\s*\{/, "stat grid must be styled");
 assert.match(css, /\.simplysf2e \.spf-card\s*\{[^}]*clip-path:/s, "cards must be notched via clip-path");
 
+// Window scrolling (QA 12r): Foundry clips .window-content, so every module
+// window's root part must fill it and scroll, or a short or resized window
+// hides its lower fields and buttons with no way to reach them.
+for (const [name, template] of [
+  ["generator", generator],
+  ["item forge", itemForge],
+  ["provider setup", providerSetup],
+  ["preset manager", managePresets],
+  ["sources", sources]
+]) {
+  assert.match(template.trimStart(), /^<div class="spf-window-body /, `${name} root part must carry spf-window-body`);
+}
+assert.match(
+  css,
+  /\.application\.simplysf2e \.window-content\s*\{[^}]*min-height:\s*0;[^}]*overflow:\s*hidden;/s,
+  "window content must stay clipped and shrinkable so only the body scrolls"
+);
+assert.match(
+  css,
+  /\.window-content > \.spf-window-body\s*\{[^}]*flex:\s*1 1 auto;[^}]*min-height:\s*0;[^}]*overflow-y:\s*auto;/s,
+  "the window body must fill the window and scroll"
+);
+assert.match(
+  css,
+  /\.spf-window-body footer\.spf-actions\s*\{[^}]*position:\s*sticky;/s,
+  "action rows must stay pinned while the body scrolls"
+);
+
 console.log("UI layout contract checks passed.");
