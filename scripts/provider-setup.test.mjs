@@ -415,7 +415,15 @@ values.set(SETTINGS.jevApiKey, "or-jev-3");
 values.set(SETTINGS.jevSource, "openrouter");
 await jevAction({ jevSource: "openrouter" });
 assert.equal(values.get(SETTINGS.jevApiKey), "or-jev-3", "same source with blank input keeps the key");
-await jevAction({ jevSource: "typesafe" });
+{
+  const order = [];
+  const realSet = game.settings.set;
+  game.settings.set = async (m, key, value) => { order.push([key, value]); return realSet(m, key, value); };
+  await jevAction({ jevSource: "typesafe" });
+  game.settings.set = realSet;
+  assert.deepEqual(order, [[SETTINGS.jevApiKey, ""], [SETTINGS.jevSource, "typesafe"]],
+    "old key is cleared before the source moves");
+}
 assert.equal(values.get(SETTINGS.jevSource), "typesafe", "source change is saved");
 assert.equal(values.get(SETTINGS.jevApiKey), "", "switching source without a new key clears the old key");
 await jevAction({ jevSource: "openrouter", jevApiKey: " or-jev-4 " });

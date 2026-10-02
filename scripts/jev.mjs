@@ -178,7 +178,8 @@ export function parseJevAnswers(json, questions) {
 /**
  * POST one System One request and say why it failed. Resolves
  * `{ ok: true, answers, usage, model, ms }` or `{ ok: false, reason, status?, ms }`,
- * where `reason` is "nokey", "http", "shape", "timeout", "cancelled" or "network"
+ * where `reason` is "nokey", "unusable" (no fetch or no questions), "http", "shape",
+ * "timeout", "cancelled" or "network"
  * (a browser reports a CORS refusal as a plain network error). Never throws and
  * never logs the key. Aborts after `timeoutMs` or when `signal` aborts.
  */
@@ -196,7 +197,7 @@ export async function callJev({
   const fail = (reason, extra = {}) => ({ ok: false, reason, ms: Date.now() - started, ...extra });
   const key = String(apiKey ?? "").trim();
   if (!key) return fail("nokey");
-  if (typeof fetchImpl !== "function" || !isRecord(questions) || !Object.keys(questions).length) return fail("shape");
+  if (typeof fetchImpl !== "function" || !isRecord(questions) || !Object.keys(questions).length) return fail("unusable");
   if (signal?.aborted) return fail("cancelled");
   const controller = new AbortController();
   let timedOut = false;
@@ -242,7 +243,7 @@ export async function requestJevDecision(options = {}) {
   }
   if (result.reason === "http") {
     console.warn(`simplysf2e | Jev request failed (HTTP ${result.status || "?"}); using the chat model.`);
-  } else if (result.reason === "shape" && String(options.apiKey ?? "").trim() && options.questions) {
+  } else if (result.reason === "shape") {
     console.warn("simplysf2e | Jev response had an unexpected shape; using the chat model.");
   } else if (result.reason === "timeout" || result.reason === "cancelled" || result.reason === "network") {
     console.warn(`simplysf2e | Jev request ${result.reason === "network" ? "errored" : "timed out or was cancelled"}; using the chat model.`);

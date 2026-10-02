@@ -150,6 +150,8 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
       // A saved key belongs to its source; picking the other one asks for a new key.
       const hasKey = Boolean(getJevRequestConfig().apiKey) && source === stored;
       if (input) input.placeholder = ProviderSetupApp.#jevPlaceholder(hasKey, source);
+      const clearLabel = this.element.querySelector(".spf-jev-clear");
+      if (clearLabel) clearLabel.hidden = !hasKey;
     });
     this.element.querySelector("[name='apiBaseUrl']")?.addEventListener("input", (event) => {
       if (normalizeApiBaseUrl(event.currentTarget.value) !== this.#modelsBaseUrl) {
@@ -346,9 +348,12 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
     const picker = this.element.querySelector("[name='jevSource']");
     const source = picker ? normalizeJevSource(picker.value) : storedSource;
     const sourceChanged = source !== storedSource;
+    // Clear the old key before the source moves, so no read in between (or a
+    // failed later write) can pair the old key with the other service.
+    if (sourceChanged && stored.apiKey) await game.settings.set(MODULE_ID, SETTINGS.jevApiKey, "");
     if (sourceChanged) await game.settings.set(MODULE_ID, SETTINGS.jevSource, source);
     if (clear) {
-      await game.settings.set(MODULE_ID, SETTINGS.jevApiKey, "");
+      if (!sourceChanged || !stored.apiKey) await game.settings.set(MODULE_ID, SETTINGS.jevApiKey, "");
       return "cleared";
     }
     if (entered) {
@@ -356,11 +361,7 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
       return "saved";
     }
     if (!sourceChanged) return null;
-    if (stored.apiKey) {
-      await game.settings.set(MODULE_ID, SETTINGS.jevApiKey, "");
-      return "cleared";
-    }
-    return "source";
+    return stored.apiKey ? "cleared" : "source";
   }
 
   /** Toast for a #saveJevKey result; null shows nothing. */
@@ -394,6 +395,7 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
         ProviderSetupApp.#notifyJevSaved(result);
         // Update in place: a re-render would discard unsaved chat fields.
         this.#syncJevControls(Boolean(getJevRequestConfig().apiKey));
+        await this.#onSaved?.();
       }
     } catch (err) {
       console.error("simplysf2e | Jev key save failed", err);
@@ -415,7 +417,11 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
     if (!busy) return;
     try {
       const saved = await ProviderSetupApp.#saveJevKey.call(this);
-      if (saved) this.#syncJevControls(Boolean(getJevRequestConfig().apiKey));
+      if (saved) {
+        ProviderSetupApp.#notifyJevSaved(saved);
+        this.#syncJevControls(Boolean(getJevRequestConfig().apiKey));
+        await this.#onSaved?.();
+      }
       const notice = jevTestNotice(await testJevConnection());
       ui.notifications[notice.level](game.i18n.format(notice.key, notice.data));
     } catch (err) {
@@ -481,7 +487,9 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
     const busy = this.#beginBusy(target);
     if (!busy) return;
     try {
-      await ProviderSetupApp.#saveJevKey.call(this);
+      const jev = await ProviderSetupApp.#saveJevKey.call(this);
+      ProviderSetupApp.#notifyJevSaved(jev);
+      if (jev) this.#syncJevControls(Boolean(getJevRequestConfig().apiKey));
       const { provider, model, state } = await ProviderSetupApp.#saveSettings.call(this, { notify: false });
       const warningKey = getProviderAuthWarningKey(state);
       if (warningKey) throw new Error(game.i18n.localize(warningKey));
