@@ -109,7 +109,7 @@ While a generation runs, a progress bar names each step and has a **Cancel gener
 
 - **Preset**: a flavor guide for the AI. It offers the six Standard classes (Envoy, Mystic, Operative, Solarian, Soldier, Witchwarper), four Starfinder Archetypes (Corp Enforcer, Free Captain (Pirate), Street Cyberdoc, Bounty Hunter), and your own custom presets. **Manage Presets** lets you create, edit, duplicate, delete, export and import custom presets as JSON. Custom presets are saved in the world.
 - **Rarity**: the creature's rarity. In Player Character mode this becomes **Rarity cap**, which excludes ancestries, backgrounds and heritages rarer than the cap.
-- **Monster Adjustment**: **Normal**, **Elite (+1 Level)** or **Weak (-1 Level)** (not shown in Player Character mode). It applies to single Monster and NPC generation.
+- **Monster Adjustment**: **Normal**, **Elite (+1 Level)** or **Weak (-1 Level)** (not shown in Player Character or Encounter mode). It applies to single Monster and NPC generation.
 - **Treasure amount**: **Stingy**, **Standard** or **Generous**.
 - **Allow spellcasting**: untick it to keep spells off the result.
 - In Encounters mode: **Party size** (1–8) and **Threat** (**Trivial**, **Low**, **Moderate**, **Severe**, **Extreme**).

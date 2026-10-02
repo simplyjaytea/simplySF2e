@@ -187,7 +187,8 @@
           </select>
         </div>
       {{/if}}
-      {{#unless characterMode}}
+      {{! Elite/Weak applies to a single Monster/NPC only; encounter members ignore it. }}
+      {{#unless characterMode}}{{#unless encounterMode}}
       <div class="form-group">
         <label for="spf-generator-adjustment">{{localize "SIMPLYSF2E.Generator.Adjustment"}}</label>
         <select id="spf-generator-adjustment" name="adjustment">
@@ -196,7 +197,7 @@
           <option value="weak" {{#if (eq input.adjustment "weak")}}selected{{/if}}>{{localize "SIMPLYSF2E.Generator.AdjustmentWeak"}}</option>
         </select>
       </div>
-      {{/unless}}
+      {{/unless}}{{/unless}}
       <div class="form-group">
         <label for="spf-generator-treasure-amount">{{localize "SIMPLYSF2E.Generator.TreasureAmount"}}</label>
         <select id="spf-generator-treasure-amount" name="treasureAmount">
