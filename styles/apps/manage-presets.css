@@ -51,6 +51,19 @@
   gap: var(--spf-space-xs);
 }
 
+/* Delete is set apart and tinted so it never reads as another row action (audit M3). */
+.simplysf2e .spf-manage-buttons button[data-action="deletePreset"] {
+  margin-left: var(--spf-space-sm);
+  color: #ff9d9a;
+  border-color: color-mix(in srgb, var(--spf-danger) 70%, var(--spf-border));
+}
+
+.simplysf2e .spf-manage-buttons button[data-action="deletePreset"]:hover:not(:disabled),
+.simplysf2e .spf-manage-buttons button[data-action="deletePreset"]:focus-visible {
+  background: color-mix(in srgb, var(--spf-danger) 35%, transparent);
+  color: #ffd2d0;
+}
+
 /* HUD hooks: must follow .spf-manage-list (same specificity, padding). */
 .simplysf2e .spf-hud-list {
   padding: var(--spf-space-xs);

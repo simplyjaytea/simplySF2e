@@ -14,10 +14,8 @@
   margin: 0;
 }
 
-.simplysf2e .simplysf2e-provider-setup .hint {
+.simplysf2e .simplysf2e-provider-setup .spf-hint {
   margin: 0.15rem 0 0;
-  font-size: var(--spf-text-sm);
-  color: var(--spf-text-muted);
 }
 
 /* Endpoint and API-key groups: notched cards with console-chip legends. */

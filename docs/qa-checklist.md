@@ -325,6 +325,8 @@ Needs an OpenRouter connection, as 12b.
 | 12f.2 | Open Compendium Sources with a long-id homebrew pack. | Source id wraps beside the title; title keeps readable width. | Sources | | |
 | 12f.3 | Open Manage Presets with no presets, then with some. | Empty text points to New Preset / Import; each row button reads aloud as "Edit preset <name>" etc. | Presets | | |
 | 12f.4 | Item Forge Level and Rarity row. | Labels share one line and the fields sit together. | Item Forge | | |
+| 12f.5 | Provider Setup: set Base URL to `ftp://x`, press Save & Authorize. | Error toast "Could not save provider settings: ..."; window stays open with your edits. A valid save still closes the window. | Provider Setup | | |
+| 12f.6 | With a screen reader (or the accessibility tree), tab through Provider Setup, Item Forge, Sources and Manage Presets. | Decorative icons are not announced; buttons read by their text. | All four | | |
 
 ## 12g. Generator UI fixes (U5a)
 
@@ -348,6 +350,12 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 | 12h.1 | Tick a pack, then click **Reset to defaults** and choose **No**. | A confirm dialog appears; No changes nothing and keeps your ticks. Yes resets and shows the "reset" notice. | Sources | | |
 | 12h.2 | Shrink the Sources window so the list scrolls. | **Save** and **Reset to defaults** stay pinned at the bottom while the categories scroll under them. | Sources | | |
 | 12h.3 | With every compendium pack disabled in the world, open Sources. | One "No compendium packs…" message, not one per category, and **Save** is disabled. | Sources | | |
+
+## 12i. U6 Manage Presets delete cue
+
+| # | Do | Expect | Where | Pass | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 12i.1 | Open Manage Presets with several presets. | The trash button is red-tinted and spaced apart from Edit, Duplicate and Export; hover or Tab to it turns the fill red. Clicking still asks for confirmation. | Manage Presets | | |
 
 ## 12j. U6 Provider Setup flow
 
