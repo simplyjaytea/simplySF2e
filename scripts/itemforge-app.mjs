@@ -8,7 +8,7 @@ import {
   normalizeMagicItemConcept, buildMagicItemData, priceForLevel, getUsageOptions, describeEffect,
   describeActivation, MIN_ITEM_LEVEL, MAX_ITEM_LEVEL,
   getBaseItemCandidates, getPropertyRuneCandidates, getFundamentalRuneTiers,
-  normalizeRunedItemConcept, buildRunedItem, SECONDARY_ADJECTIVE, RUNED_ITEM_KINDS, CONCEPT_ITEM_KINDS, KIND_USAGE,
+  normalizeRunedItemConcept, buildRunedItem, RUNED_ITEM_KINDS, CONCEPT_ITEM_KINDS, KIND_USAGE,
   getGradeTiers, getUpgradeCandidates, GRADE_LEVELS, EQUIPMENT_GRADES
 } from "./item-builder.mjs";
 import { createActivationMacro } from "./macro-templates.mjs";
@@ -158,9 +158,6 @@ export class ItemForgeApp extends SpfApp {
     if (!this.#itemData || !this.#runedPreview) return null;
     const data = this.#itemData;
     const preview = this.#runedPreview;
-    const runes = data.system.runes ?? {};
-    const secondaryField = this.#kind === "weapon" ? "striking" : "resilient";
-    const secondaryTier = runes[secondaryField] ?? 0;
     const priceText = preview.priceCredits != null
       ? `${preview.priceCredits.toLocaleString()} credits`
       : `${preview.priceGp.toLocaleString()} gp`;
@@ -171,8 +168,6 @@ export class ItemForgeApp extends SpfApp {
       runed: true,
       grade: preview.grade ?? data.system.grade ?? "commercial",
       upgrades: preview.upgrades ?? this.#concept?.upgrades ?? [],
-      potency: runes.potency ?? 0,
-      secondary: secondaryTier ? SECONDARY_ADJECTIVE[this.#kind]?.[secondaryTier] : null,
       propertyRunes: this.#concept?.propertyRunes ?? []
     };
   }

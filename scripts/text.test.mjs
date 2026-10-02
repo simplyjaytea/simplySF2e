@@ -1,7 +1,7 @@
 // Pure HTML escaping independent of Foundry globals.
 // Run: node scripts/text.test.mjs
 import assert from "node:assert/strict";
-import { esc, toHtml } from "./text.mjs";
+import { esc, toHtml, signed } from "./text.mjs";
 
 const originalFoundry = Object.getOwnPropertyDescriptor(globalThis, "foundry");
 const hostileText = `<img src="x" onerror='alert(1)'> & already &lt;`;
@@ -15,6 +15,15 @@ try {
   assert.equal(esc(undefined), "");
   assert.equal(esc(0), "0");
   assert.equal(esc("ordinary text"), "ordinary text");
+  assert.equal(signed(3), "+3");
+  assert.equal(signed(0), "+0");
+  assert.equal(signed(-2), "-2");
+  assert.equal(signed("-1"), "-1");
+  assert.equal(signed("4"), "+4");
+  assert.equal(signed(null), "");
+  assert.equal(signed(undefined), "");
+  assert.equal(signed(NaN), "");
+  assert.equal(signed(-0), "+0");
   assert.equal(toHtml(null), "");
   assert.equal(toHtml(undefined), "");
   assert.equal(toHtml(""), "");

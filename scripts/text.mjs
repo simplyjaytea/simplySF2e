@@ -35,3 +35,14 @@ export function esc(text) {
 export const toHtml = (text) => (text
   ? `<p>${String(text).split(/\n{2,}/).map((p) => esc(p.trim())).filter(Boolean).join("</p><p>")}</p>`
   : "");
+
+/**
+ * Format a modifier with an explicit sign for display: 3 -> "+3", 0 -> "+0",
+ * -2 -> "-2" (ASCII hyphen-minus). Display only: never feed the result back
+ * into stats or actor data. Non-finite input returns "".
+ */
+export function signed(value) {
+  const n = Number(value);
+  if (value == null || value === "" || !Number.isFinite(n)) return "";
+  return n < 0 ? `-${Math.abs(n)}` : `+${n}`;
+}

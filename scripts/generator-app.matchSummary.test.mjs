@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import vm from "node:vm";
+import { signed } from "./text.mjs";
 
 if (!vm.SourceTextModule) {
   const run = spawnSync(process.execPath, ["--experimental-vm-modules", import.meta.filename], { stdio: "inherit" });
@@ -14,7 +15,8 @@ if (!vm.SourceTextModule) {
 const source = (await readFile(new URL("./generator-app.mjs", import.meta.url), "utf8"))
   .replace(/#(concept|resolved|buildPreviewContext|matchSummary)\b/g, "_test_$1");
 const context = vm.createContext({ console, game: { i18n: { format: (_key, { matched, total }) => `${matched}/${total}` } } });
-const mocks = { SpfApp: class {}, MODULE_ID: "simplysf2e", computeStats: () => ({}), adjustedStats: (stats) => stats };
+let fakeStats = {};
+const mocks = { signed, SpfApp: class {}, MODULE_ID: "simplysf2e", computeStats: () => fakeStats, adjustedStats: (stats) => stats };
 const module = new vm.SourceTextModule(source, { context });
 await module.link((specifier) => {
   const imports = [...source.matchAll(/import\s*\{([^}]+)\}\s*from\s*"([^"]+)"/g)]
@@ -62,4 +64,18 @@ assert.equal(preview.matchSummary.text, "12/14", "unresolved required equipment 
 app._test_resolved.abilities = app._test_resolved.abilities.slice(0, 1);
 app._test_resolved.equipment = [];
 assert.equal(app._test_buildPreviewContext().matchSummary, null, "narrative-only preview has no published-content denominator");
+// Signed display fields: negatives render "-1", never "+-1"; raw stats stay numeric.
+fakeStats = {
+  perception: -1, saves: { fortitude: 5, reflex: -2, will: 0 }, spellAttack: -1,
+  skills: [{ name: "Stealth", mod: -3 }, { name: "Piloting", mod: 4 }],
+  strikes: [{ name: "Claw", bonus: -1, damage: "1d4" }]
+};
+preview = app._test_buildPreviewContext();
+assert.equal(preview.display.perception, "-1");
+assert.deepEqual({ ...preview.display.saves }, { fortitude: "+5", reflex: "-2", will: "+0" });
+assert.deepEqual(preview.display.skills.map((s) => s.mod), ["-3", "+4"]);
+assert.equal(preview.display.strikes[0].bonusText, "-1");
+assert.equal(preview.display.spellAttack, "-1");
+assert.equal(preview.stats.perception, -1, "raw stats must stay numeric");
+assert.equal(preview.stats.strikes[0].bonus, -1);
 console.log("generator-app.matchSummary.test.mjs: production preview and summary assertions passed");
