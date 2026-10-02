@@ -48,7 +48,7 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
     form: {
       handler: ProviderSetupApp.#onSubmit,
       submitOnChange: false,
-      closeOnSubmit: true
+      closeOnSubmit: false
     },
     actions: {
       chooseProvider: ProviderSetupApp.#onChooseProvider,
@@ -328,6 +328,13 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
         ));
       }
       await ProviderSetupApp.#saveSettings.call(this);
+      await this.close();
+    } catch (err) {
+      // closeOnSubmit is off so a failed save keeps the form open with its edits.
+      console.error("simplysf2e | provider save failed", err);
+      ui.notifications.error(game.i18n.format("SIMPLYSF2E.ProviderSetup.SaveFailed", {
+        message: err?.message ?? String(err)
+      }));
     } finally {
       this.#endBusy(state);
     }

@@ -2,7 +2,7 @@
   <div class="spf-statusbar">
   <div class="spf-provider-summary {{#if providerReady}}spf-provider-ready{{else}}spf-provider-attention{{/if}}" data-tooltip="{{providerBaseUrl}}">
     <span class="spf-provider-name">
-      <i class="fa-solid {{#if provider.local}}fa-server{{else}}fa-cloud{{/if}}"></i>
+      <i aria-hidden="true" class="fa-solid {{#if provider.local}}fa-server{{else}}fa-cloud{{/if}}"></i>
       {{#if canSwitchConnection}}
         <label for="spf-itemforge-connection" class="spf-sr-only">{{localize "SIMPLYSF2E.ProviderSetup.ActiveConnection"}}</label>
         <select id="spf-itemforge-connection" name="activeConnection" {{#if busy}}disabled{{/if}} aria-label="{{localize 'SIMPLYSF2E.ProviderSetup.ActiveConnection'}}">
@@ -19,11 +19,11 @@
     <span class="spf-provider-actions">
       {{#if providerReady}}
         <button type="button" data-action="testProvider" data-tooltip="{{localize 'SIMPLYSF2E.ProviderSetup.TestConnection'}}" aria-label="{{localize 'SIMPLYSF2E.ProviderSetup.TestConnection'}}" {{#if busy}}disabled{{/if}}>
-          <i class="fa-solid fa-signal"></i>
+          <i aria-hidden="true" class="fa-solid fa-signal"></i>
         </button>
       {{/if}}
       <button type="button" data-action="configureProvider" data-tooltip="{{localize 'SIMPLYSF2E.ProviderSetup.Configure'}}" aria-label="{{localize 'SIMPLYSF2E.ProviderSetup.Configure'}}" {{#if busy}}disabled{{/if}}>
-        <i class="fa-solid fa-gear"></i>
+        <i aria-hidden="true" class="fa-solid fa-gear"></i>
       </button>
       <i class="fa-solid {{#if providerReady}}fa-circle-check{{else}}fa-triangle-exclamation{{/if}} spf-provider-state" role="img" aria-label="{{#if providerReady}}{{localize 'SIMPLYSF2E.Generator.ProviderReady'}}{{else}}{{apiKeyWarning}}{{/if}}" data-tooltip="{{#if providerReady}}{{localize 'SIMPLYSF2E.Generator.ProviderReady'}}{{else}}{{apiKeyWarning}}{{/if}}"></i>
     </span>
@@ -61,11 +61,11 @@
         <label for="spf-itemforge-level">{{localize "SIMPLYSF2E.ItemForge.Level"}}</label>
         <div class="spf-level-controls">
           <button type="button" class="spf-icon-btn" data-action="levelDown" data-tooltip="{{localize 'SIMPLYSF2E.Generator.LevelDown'}}" aria-label="{{localize 'SIMPLYSF2E.Generator.LevelDown'}}">
-            <i class="fa-solid fa-minus"></i>
+            <i aria-hidden="true" class="fa-solid fa-minus"></i>
           </button>
           <input id="spf-itemforge-level" type="number" name="level" min="{{minLevel}}" max="{{maxLevel}}" step="1" value="{{input.level}}">
           <button type="button" class="spf-icon-btn" data-action="levelUp" data-tooltip="{{localize 'SIMPLYSF2E.Generator.LevelUp'}}" aria-label="{{localize 'SIMPLYSF2E.Generator.LevelUp'}}">
-            <i class="fa-solid fa-plus"></i>
+            <i aria-hidden="true" class="fa-solid fa-plus"></i>
           </button>
         </div>
       </div>
@@ -80,11 +80,11 @@
     </div>
     <div class="spf-generate-row">
       <button type="button" class="spf-primary" data-action="generate" {{#if busy}}disabled{{/if}}>
-        <i class="fa-solid fa-wand-sparkles"></i>
+        <i aria-hidden="true" class="fa-solid fa-wand-sparkles"></i>
         {{#if preview}}{{localize "SIMPLYSF2E.Generator.Regenerate"}}{{else}}{{localize "SIMPLYSF2E.Generator.Generate"}}{{/if}}
       </button>
       <button type="button" class="spf-random-button" data-action="configureSources" data-tooltip="{{localize 'SIMPLYSF2E.Generator.ConfigureSources'}}" aria-label="{{localize 'SIMPLYSF2E.Generator.ConfigureSources'}}" {{#if busy}}disabled{{/if}}>
-        <i class="fa-solid fa-gear"></i>
+        <i aria-hidden="true" class="fa-solid fa-gear"></i>
       </button>
     </div>
   </fieldset>
@@ -178,10 +178,10 @@
 
     <footer class="spf-actions">
       <button type="button" class="spf-primary" data-action="createItem" {{#if busy}}disabled{{/if}}>
-        <i class="fa-solid fa-box-open"></i> {{localize "SIMPLYSF2E.ItemForge.CreateItem"}}
+        <i aria-hidden="true" class="fa-solid fa-box-open"></i> {{localize "SIMPLYSF2E.ItemForge.CreateItem"}}
       </button>
       <button type="button" data-action="discard" {{#if busy}}disabled{{/if}}>
-        <i class="fa-solid fa-trash"></i> {{localize "SIMPLYSF2E.Generator.Discard"}}
+        <i aria-hidden="true" class="fa-solid fa-trash"></i> {{localize "SIMPLYSF2E.Generator.Discard"}}
       </button>
     </footer>
   </section>

@@ -40,6 +40,7 @@ function providerSetup(selected, patch = {}) {
     model: "anthropic/claude-sonnet-5",
     availableModels: [],
     hasApiKey: true,
+    hasJevKey: false,
     localServerHint: localize("SIMPLYSF2E.ProviderSetup.LocalServerHint", { origin: "http://localhost:30000" }),
     ...patch
   };

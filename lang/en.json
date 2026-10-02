@@ -88,7 +88,8 @@
       "SavedAuthorized": "Saved {provider} with model {model}; the key is authorized for this endpoint.",
       "SavedNeedsKey": "Saved {provider} with model {model}, but this remote provider still needs an API key.",
       "TestSuccess": "Connected to {provider} with model {model} ({total} tokens).",
-      "TestFailed": "Provider connection test failed: {message}"
+      "TestFailed": "Provider connection test failed: {message}",
+      "SaveFailed": "Could not save provider settings: {message}"
     },
     "Generator": {
       "Title": "SimplySF2e — Generator",
