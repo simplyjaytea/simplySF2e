@@ -60,6 +60,7 @@ out = await selectEquipment({ concept, candidates, jevConfig });
 assert.deepEqual(seen, { jev: 2, llm: 1 });
 assert.equal(out.equipment[0].name, "Medkit");
 assert.equal(out.timing.source, "llm");
+assert.ok(out.timing.jevMs >= 0 && "jevMs" in out.timing, "failed Jev call time is recorded");
 assert.ok(out.usage.total >= 30, "fallback usage includes the chat call");
 
 // Network error: same fallback.
@@ -68,6 +69,7 @@ llmReplies.push({ equipment: [] });
 out = await selectEquipment({ concept, candidates, jevConfig });
 assert.equal(out.omitted, true);
 assert.equal(out.timing.source, "llm");
+assert.ok("jevMs" in out.timing, "errored Jev call time is recorded");
 
 // No Jev config (local provider): chat model only.
 llmReplies.push({ equipment: [{ id: "E0", quantity: 1 }] });

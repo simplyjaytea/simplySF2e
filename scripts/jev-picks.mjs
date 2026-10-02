@@ -66,8 +66,10 @@ const confident = (answer) => answer?.type === "choice" && answer.confidence >= 
 
 /** Ask one batch of questions; `result` is null on any failure. */
 async function ask({ jevConfig, state, questions, signal, request }) {
+  const started = Date.now();
   const result = await request({ ...jevConfig, state, questions, signal });
-  return { result, ms: result?.ms ?? 0, usage: result ? normalizeJevUsage(result.usage) : null };
+  // Wall time is measured here so a timed-out or failed request still shows its cost.
+  return { result, ms: Date.now() - started, usage: result ? normalizeJevUsage(result.usage) : null };
 }
 
 /**
@@ -114,7 +116,7 @@ export async function jevPickEquipment({ concept, candidates, jevConfig, signal,
   const first = await ask({ jevConfig, state, questions, signal, request });
   let ms = first.ms;
   let usage = first.usage;
-  if (!first.result) return { equipment: null, ms, usage };
+  if (!first.result) return { equipment: null, ms, usage, attempted: true };
   const answers = first.result.answers;
 
   const byId = new Map(candidates.map((candidate) => [candidate.id, candidate]));
@@ -123,7 +125,7 @@ export async function jevPickEquipment({ concept, candidates, jevConfig, signal,
   for (const key of draftKeys) {
     const answer = answers[key];
     // One doubtful draft item sends the whole step to the chat model (simple, predictable).
-    if (!confident(answer) || !byId.has(answer.choice)) return { equipment: null, ms, usage };
+    if (!confident(answer) || !byId.has(answer.choice)) return { equipment: null, ms, usage, attempted: true };
     if (seen.has(answer.choice)) continue;
     seen.add(answer.choice);
     picked.push(byId.get(answer.choice));
@@ -147,6 +149,7 @@ export async function jevPickEquipment({ concept, candidates, jevConfig, signal,
     const second = await ask({ jevConfig, state, questions: quantityQuestions, signal, request });
     ms += second.ms;
     usage = mergeUsage(usage, second.usage);
+    // Quantity is not a pick: an unreadable or missing answer just means 1 (answer confidence is not checked).
     for (const candidate of stackable) {
       const index = jevScoreIndex(second.result?.answers?.[`qty_${candidate.id}`], JEV_QUANTITY_WORDS);
       if (index != null) quantities.set(candidate.id, JEV_QUANTITY_VALUES[index]);
@@ -159,7 +162,7 @@ export async function jevPickEquipment({ concept, candidates, jevConfig, signal,
     quantity: Math.min(Math.max(quantities.get(candidate.id) ?? 1, 1), EQUIPMENT_QUANTITY_CAP),
     value: 0
   }));
-  return { equipment, ms, usage };
+  return { equipment, ms, usage, attempted: true };
 }
 
 /**
@@ -189,13 +192,13 @@ export async function jevPickLoot({ concept, candidates, jevConfig, signal, requ
   const { result, ms, usage } = await ask({
     jevConfig, state: buildJevState(concept, { includeEquipment: true }), questions, signal, request
   });
-  if (!result) return { loot: null, ms, usage };
+  if (!result) return { loot: null, ms, usage, attempted: true };
 
   const byId = new Map(candidates.map((candidate) => [candidate.id, candidate]));
   const merged = new Map();
   for (const [index, entry] of plain.entries()) {
     const answer = result.answers[`loot${index}`];
-    if (!confident(answer) || !byId.has(answer.choice)) return { loot: null, ms, usage };
+    if (!confident(answer) || !byId.has(answer.choice)) return { loot: null, ms, usage, attempted: true };
     const quantity = Math.max(Math.round(Number(entry.quantity) || 1), 1);
     const existing = merged.get(answer.choice);
     // Two draft entries mapped to one item: keep one row with the combined quantity.
@@ -210,5 +213,5 @@ export async function jevPickLoot({ concept, candidates, jevConfig, signal, requ
       });
     }
   }
-  return { loot: [...merged.values()], ms, usage };
+  return { loot: [...merged.values()], ms, usage, attempted: true };
 }

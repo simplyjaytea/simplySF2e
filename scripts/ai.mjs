@@ -21,6 +21,9 @@ import { jevPickEquipment, jevPickLoot, mergeUsage } from "./jev-picks.mjs";
    to Pathfinder memory unless told to use the installed Starfinder 2e names. */
 const REMASTER_NOTE = `using CURRENT Starfinder 2e published names from the installed sf2e compendium, never Pathfinder or invented names`;
 
+// Jev may omit `usage`; a zero entry keeps the step (and its timing) in the token report.
+const NO_TOKENS = Object.freeze({ prompt: 0, completion: 0, total: 0, estimated: false });
+
 let warnedLegacyDeepSeekModel = false;
 
 /**
@@ -670,7 +673,7 @@ export async function selectEquipment({ concept, candidates, onProgress, signal,
   const jev = await jevPickEquipment({ concept, candidates, jevConfig, signal });
   if (jev.equipment) {
     return {
-      equipment: jev.equipment, omitted: jev.equipment.length === 0, usage: jev.usage,
+      equipment: jev.equipment, omitted: jev.equipment.length === 0, usage: jev.usage ?? NO_TOKENS,
       timing: { source: "jev", ms: jev.ms }
     };
   }
@@ -721,7 +724,7 @@ Pick the logical items the creature would carry: the weapons it wields (match it
     }));
   return {
     equipment, omitted: parsed.equipment.length === 0, usage: mergeUsage(usage, jev.usage),
-    timing: { source: "llm", ms: Date.now() - started, ...(jev.ms ? { jevMs: jev.ms } : {}) }
+    timing: { source: "llm", ms: Date.now() - started, ...(jev.attempted ? { jevMs: jev.ms } : {}) }
   };
 }
 
@@ -742,7 +745,7 @@ export async function selectLoot({ concept, candidates, scrollCandidates = [], o
   // Jev handles plain-item hauls only; coins and spell gems keep the chat-model path (see jevPickLoot).
   const jev = await jevPickLoot({ concept, candidates, jevConfig, signal });
   if (jev.loot) {
-    return { loot: jev.loot, omitted: false, usage: jev.usage, timing: { source: "jev", ms: jev.ms } };
+    return { loot: jev.loot, omitted: false, usage: jev.usage ?? NO_TOKENS, timing: { source: "jev", ms: jev.ms } };
   }
   const started = Date.now();
   const byType = new Map();
@@ -799,7 +802,7 @@ Recreate the first-draft haul: replace each non-coin entry with the closest vali
   }
   return {
     loot, omitted: parsed.loot.length === 0, usage: mergeUsage(usage, jev.usage),
-    timing: { source: "llm", ms: Date.now() - started, ...(jev.ms ? { jevMs: jev.ms } : {}) }
+    timing: { source: "llm", ms: Date.now() - started, ...(jev.attempted ? { jevMs: jev.ms } : {}) }
   };
 }
 
