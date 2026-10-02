@@ -425,6 +425,7 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 | 12p.1 | Generate a monster whose prompt names gear the sf2e packs lack (e.g. "a goblin scavenger with a rusted dagger"). | Generation finishes. Any gear with no published match shows struck through with the warning icon in Equipment or Loot; no "Generation is incomplete" error. | Preview | | |
 | 12p.2 | Create it. | The actor has only real compendium items. The completion card shows "Skipped gear with no published match: N" when anything was skipped. Console shows `skipped equipment "<name>"`. | Inventory, chat card, console | | |
 | 12p.3 | Reroll loot on a preview, then generate a PC. | Neither fails on unmatched loot or equipment; skipped items show the same way. | Preview | | |
+| 12p.4 | Generate "a scavenger who fights with a rusted dagger" at level 1. | Equipment lists a real knife-group weapon (usually Knife) instead of skipping the dagger. | Preview | | |
 
 ## 13. Firefox (if available)
 
