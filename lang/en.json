@@ -80,7 +80,7 @@
       "JevSaveFailed": "Could not save the Jev key: {message}",
       "SaveAuthorize": "Save & Authorize",
       "SaveTest": "Save & Test",
-      "Cancel": "Cancel",
+      "Cancel": "Close",
       "Configure": "Configure AI provider",
       "TestConnection": "Test provider connection",
       "InvalidBaseUrl": "Enter a complete HTTP or HTTPS API Base URL.",

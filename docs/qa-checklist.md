@@ -357,6 +357,14 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 | --- | --- | --- | --- | --- | --- |
 | 12i.1 | Open Manage Presets with several presets. | The trash button is red-tinted and spaced apart from Edit, Duplicate and Export; hover or Tab to it turns the fill red. Clicking still asks for confirmation. | Manage Presets | | |
 
+## 12j. U6 Provider Setup flow
+
+| # | Do | Expect | Where | Pass | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 12j.1 | Open Provider Setup, type in the Connection name or Model field and press Enter. | Runs **Save & Test** (the highlighted primary), not Save & Authorize. | Provider Setup | | |
+| 12j.2 | Click through DeepSeek, OpenAI, OpenRouter, then Ollama, LM Studio, Custom. | The Ollama / LM Studio CORS paragraph is hidden for the three hosted providers and shown for the other three. | Provider Setup | | |
+| 12j.3 | Look at the bottom button that used to say Cancel. | It reads **Close** and just closes the window; Load Models and connection changes have already saved. | Provider Setup | | |
+
 ## 12k. U6 Run safety
 
 | # | Do | Expect | Where | Pass | Notes |

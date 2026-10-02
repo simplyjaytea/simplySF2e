@@ -41,6 +41,7 @@ function providerSetup(selected, patch = {}) {
     availableModels: [],
     hasApiKey: true,
     hasJevKey: false,
+    showLocalHint: ["ollama", "lmstudio", "custom"].includes(selected),
     localServerHint: localize("SIMPLYSF2E.ProviderSetup.LocalServerHint", { origin: "http://localhost:30000" }),
     ...patch
   };
