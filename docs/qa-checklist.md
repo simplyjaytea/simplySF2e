@@ -193,7 +193,7 @@ Per class and level:
 | 7a.4 | Focus spells. | In a separate focus entry with no slots. Count non-cantrip focus spells: `__`. | Spellcasting tab | | |
 | 7a.5 | Focus pool. | Max focus points equals the non-cantrip focus spell count, capped at 3. The sf2e system derives it from the embedded focus spells (no module rule); hand-editing the max does not stick. | Sheet focus pips | | |
 | 7a.6 | Cast a focus spell, then Refocus. | Spends one focus point; Refocus restores it. | Chat, sheet | | |
-| 7a.7 | Console check. | The warning "no real focus-pool rule exemplar found…" must NOT appear. If it does, the pool stays 0: FAIL. | Console | | |
+| 7a.7 | Console check. | No focus-pool warning from simplysf2e appears (the module no longer adds a focus-pool rule). | Console | | |
 | 7a.8 | (Optional) Create at level 19. | A 10th-rank slot exists. | Spellcasting tab | | |
 
 ### 7b. Non-casting classes
