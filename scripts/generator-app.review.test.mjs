@@ -116,13 +116,13 @@ async function generate() {
 // Exact scroll references carry identity only, not a spell display name.
 // Exercise the production private mapper through the real preview lifecycle.
 previewLoot = [
-  { name: "Scroll of Fear (Rank 2)", quantity: 2, scroll: { rank: 2 }, entry: { packId: "spells", _id: "fear" } },
-  { name: "Scroll of Draft (Rank 1)", quantity: 1, scroll: { rank: 1 }, entry: { name: "Heal" } }
+  { name: "Spell Gem of Fear (Rank 2)", quantity: 2, scroll: { rank: 2 }, entry: { packId: "spells", _id: "fear" } },
+  { name: "Spell Gem of Draft (Rank 1)", quantity: 1, scroll: { rank: 1 }, entry: { name: "Heal" } }
 ];
 const scrollPreview = await generate();
 assert.deepEqual(Array.from(scrollPreview.context.pcPreview.loot, ({ name, found }) => ({ name, found })), [
-  { name: "Scroll of Fear (Rank 2) ×2", found: true },
-  { name: "Scroll of Heal (Rank 1)", found: true }
+  { name: "Spell Gem of Fear (Rank 2) ×2", found: true },
+  { name: "Spell Gem of Heal (Rank 1)", found: true }
 ]);
 previewLoot = [];
 
