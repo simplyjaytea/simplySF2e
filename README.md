@@ -14,11 +14,11 @@ Every merge to `main` auto-publishes the next release tag (Alpha). See [Releases
 
 ## Status
 
-**Alpha.** Identity is `simplysf2e` targeting system `sf2e` **1.5.0** (Foundry 14.361+ / verified 14.367).
+**Alpha.** Identity is `simplysf2e` targeting system `sf2e` **1.5.0 or later**, checked against 1.5.1 (Foundry 14.361+ / verified 14.367).
 
 What works as far as node tests allow (live Foundry QA is still outstanding):
 
-- Module loads against `sf2e` with pack defaults from `system.sf2e.json` 1.5.0 (`sf2e.classes`, `class-features`, `feats`, `spells`, `equipment`, `ancestries`, `heritages`, `backgrounds`, `bestiary-ability-glossary-srd`, `alien-core-bestiary`).
+- Module loads against `sf2e` with pack defaults from `system.sf2e.json` 1.5.1 (`sf2e.classes`, `class-features`, `feats`, `spells`, `equipment`, `ancestries`, `heritages`, `backgrounds`, `bestiary-ability-glossary-srd`, `alien-core-bestiary`).
 - Six Standard presets: Envoy, Mystic, Operative, Solarian, Soldier, Witchwarper (flavor guides; scale-words only).
 - Generated loot/wealth assembles as **Credits/Credstick** and **UPB** from cited v14-dev templates. Gold-piece language converts at 1 gp = 10 credits (`DENOMINATION_RATES`). Starting-wealth math is the inherited PF2e Table 10-10 lump sum (PF2e provenance — not an SF2e-authored table), **surfaced in credits**. Unmatched custom-item estimates are credits-first at the AI edge and normalize credits→gp (`creditsToGp`) at the builder fallback edge for both creation and budgeting.
 - Encounter preview shows treasure in **credits** with thousands separators and over-budget styling parity with the XP readout. Generated item icons resolve against the active system id (`systems/sf2e/`, pf2e-compatible fallback) instead of hardcoded pf2e paths.
@@ -41,4 +41,4 @@ Limitations (honest residuals):
 
 - Repository: https://github.com/simplyjaytea/simplySF2e
 - Foundry: v14 (compat minimum 14.361)
-- Game system: [`sf2e`](https://foundryvtt.com/packages/sf2e) 1.5.0 (Starfinder Second Edition)
+- Game system: [`sf2e`](https://foundryvtt.com/packages/sf2e) 1.5.0 or later, checked against 1.5.1 (Starfinder Second Edition)
