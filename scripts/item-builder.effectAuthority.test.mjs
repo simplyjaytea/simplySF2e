@@ -76,6 +76,11 @@ const buff = make({ activation: { template: "selfBuff", params: {
 assert.equal(buff.params.durationRounds, null);
 assert.equal(buff.params.durationMinutes, 1, "a self-buff has a finite module-owned default");
 assert.equal(buff.params.ruleEffectKinds[0].value, 1);
+const named = make({ activation: { template: "selfBuff", params: {
+  effectName: "A & <b>",
+  ruleEffectKinds: [{ kind: "itemBonus", statistic: "stealth", scale: "low" }]
+} } }).activation;
+assert.equal(named.params.effectName, "A & <b>", "effectName stays raw; each HTML sink escapes it");
 const runeArgs = {
   kind: "weapon", rarity: "common",
   baseCandidates: [{ name: "Sword" }],

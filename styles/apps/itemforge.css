@@ -54,8 +54,9 @@
   color: var(--spf-brand-accent);
 }
 
+/* Accent, not neon: neon on the selected tile fill is 2.88:1 (audit F7). */
 .simplysf2e .spf-kind-choice.spf-kind-selected > i {
-  color: var(--spf-neon);
+  color: var(--spf-brand-accent);
   text-shadow: var(--spf-neon-glow);
 }
 
@@ -82,4 +83,14 @@
     min-height: 0;
     padding: var(--spf-space-sm) var(--spf-space-md);
   }
+}
+
+/* Level / Rarity: top-align so both labels share a baseline and keep the
+   two fields together instead of floating Rarity to the far edge (audit F6). */
+.simplysf2e .spf-itemforge-levelrow {
+  align-items: flex-start;
+}
+
+.simplysf2e .spf-itemforge-levelrow .form-group {
+  flex: 0 1 12rem;
 }

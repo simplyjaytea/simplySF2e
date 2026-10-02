@@ -314,6 +314,15 @@ Needs an OpenRouter connection, as 12b.
 | 12e.3 | Generate the 12e.1 PC with Jev on, then with a non-OpenRouter connection. | Compare the Spells step time in the token report; record both. This decides whether J5 stays. | Preview | | |
 | 12e.4 | Generate a creature (NPC) with spellcasting. | Spells still chosen by the chat model (no Jev spell requests). | Preview, console | | |
 
+## 12f. U5b Item Forge, Sources and Presets fixes
+
+| # | Do | Expect | Where | Pass | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 12f.1 | Forge a wondrous item with a 1/day self-buff whose name has `&` or `<` (type it in the prompt), then activate it. | Preview shows the name literally; the item description and chat line show it escaped, never as markup; the Effect item's name is the plain text. | Preview, chat | | |
+| 12f.2 | Open Compendium Sources with a long-id homebrew pack. | Source id wraps beside the title; title keeps readable width. | Sources | | |
+| 12f.3 | Open Manage Presets with no presets, then with some. | Empty text points to New Preset / Import; each row button reads aloud as "Edit preset <name>" etc. | Presets | | |
+| 12f.4 | Item Forge Level and Rarity row. | Labels share one line and the fields sit together. | Item Forge | | |
+
 ## 13. Firefox (if available)
 
 | # | Step | Expected | Where to look | Result | Evidence |

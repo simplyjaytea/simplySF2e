@@ -54,7 +54,7 @@ Dev-workflow option (D-J1 b, **not chosen**): Jev also ships as a Claude Code sk
 ### Wave U-3 (after U3 merges)
 
 - [ ] **U5a · Fix U3 `bug` findings in the Generator** (`generator.hbs`, `styles/apps/generator.css`, shared kit only where the bug is shared). Before/after harness screenshots in the PR. **Review:** independent.
-- [ ] **U5b · Fix U3 `bug` findings in Item Forge, Provider Setup, Sources, Manage Presets.** Disjoint files from U5a, so it runs in parallel. If both need `styles/simplysf2e.css`, U5a owns it and U5b sends its change to U5a's thread through the coordinator. **Review:** independent.
+- [x] **U5b (Item Forge, Sources, Presets part; Provider Setup P1/P5 follow after J1b) · Fix U3 `bug` findings in Item Forge, Provider Setup, Sources, Manage Presets.** Disjoint files from U5a, so it runs in parallel. If both need `styles/simplysf2e.css`, U5a owns it and U5b sends its change to U5a's thread through the coordinator. **Review:** independent.
 - [ ] **U6 · Build the U3 `design` findings JT approved.** D-U1 = polish, so only small look/flow changes; **blocked on the per-audit cards.** One PR per approved cluster.
 - [x] **U7 · Reskin accent and icon.** JT kept mint + masks on 2026-10-02; no code change.
 

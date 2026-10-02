@@ -56,7 +56,7 @@
       <label for="spf-itemforge-prompt">{{localize "SIMPLYSF2E.ItemForge.Prompt"}}</label>
       <textarea id="spf-itemforge-prompt" name="prompt" rows="3" placeholder="{{localize 'SIMPLYSF2E.ItemForge.PromptPlaceholder'}}">{{input.prompt}}</textarea>
     </div>
-    <div class="spf-row">
+    <div class="spf-row spf-itemforge-levelrow">
       <div class="form-group">
         <label for="spf-itemforge-level">{{localize "SIMPLYSF2E.ItemForge.Level"}}</label>
         <div class="spf-level-controls">
@@ -153,12 +153,8 @@
       {{#if preview.activation}}
         <h3>{{localize "SIMPLYSF2E.ItemForge.ActivationHeading"}}</h3>
         <ul class="spf-list">
-          {{!-- describeActivation()'s free-text params (duration, effectName)
-               are HTML-escaped once at normalize time so the same string is
-               safe in the macro body's raw-HTML sinks; triple-stache here
-               avoids Handlebars escaping them a second time. Everything else
-               in the string is enum/dice/localized text. --}}
-          <li>{{{preview.activation}}}</li>
+          {{!-- describeActivation() returns plain text; Handlebars escapes it. --}}
+          <li>{{preview.activation}}</li>
         </ul>
       {{/if}}
     {{/if}}
