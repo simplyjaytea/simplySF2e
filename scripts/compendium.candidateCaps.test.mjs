@@ -52,6 +52,13 @@ assert.deepEqual(
 
 /* PC plans reserve sufficient choices per rank inside the same hard cap. */
 const pcSlots = { 0: 5, 1: 4, 2: 4, 3: 4, 4: 4, 5: 4, 6: 4, 7: 4, 8: 4, 9: 4, 10: 1 };
+/* No keyword hit: each rank's sample spans the whole alphabet, not only its
+ * first names (sf2e arcane used to never offer late names such as "X-Ray Vision"). */
+const noHitSpells = limitSpellCandidates(spells, ["fireball"]);
+const rankOneIndexes = noHitSpells.filter((spell) => spell.rank === 1).map((spell) => Number(spell.name.slice(-2)));
+assert.ok(rankOneIndexes.length > 0 && Math.max(...rankOneIndexes) >= 30,
+  "a no-match spell rank is sampled across its whole list");
+
 const pcCandidates = limitSpellCandidates(spells, exactSpellNames, SPELL_CANDIDATE_LIMIT, pcSlots);
 assert.ok(pcCandidates.length <= SPELL_CANDIDATE_LIMIT);
 for (const [rank, count] of Object.entries(pcSlots)) {

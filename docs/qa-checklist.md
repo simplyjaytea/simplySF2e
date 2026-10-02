@@ -427,6 +427,12 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 | 12p.3 | Reroll loot on a preview, then generate a PC. | Neither fails on unmatched loot or equipment; skipped items show the same way. | Preview | | |
 | 12p.4 | Generate "a scavenger who fights with a rusted dagger" at level 1. | Equipment lists a real knife-group weapon (usually Knife) instead of skipping the dagger. | Preview | | |
 
+## 12q. Spell catalog spread
+
+| # | Do | Expect | Where | Pass | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 12q.1 | Generate an arcane caster NPC at level 10 with a prompt that names no spells (e.g. "a corporate techno-mage"). Repeat once. | Picked spells come from across the alphabet (late names such as Supercharge Weapon, Wall of Plasma or X-Ray Vision can appear), not only names starting A to M. | Preview | | |
+
 ## 13. Firefox (if available)
 
 | # | Step | Expected | Where to look | Result | Evidence |
