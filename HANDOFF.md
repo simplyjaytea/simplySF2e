@@ -1,11 +1,11 @@
 # HANDOFF.md — live session baton
 
-Read this first, then CLAUDE.md. **The active plan is now [docs/next-steps.md](docs/next-steps.md)** (UI polish track U, Jev fast-picks track J, open decisions for JT, and how a step thread builds, reviews and merges). The GM-ready checklist below still owns G11–G13. HISTORY.md is the PF2e-era scaffold narrative; do not treat its v0.3.5.x release baton as simplySF2e state.
+Read this first, then CLAUDE.md. **The active plan is now [docs/next-steps.md](docs/next-steps.md)** (UI polish track U, Jev fast-picks track J, JT's decisions, and how a step thread builds, reviews and merges). The GM-ready checklist below still owns G11–G13. HISTORY.md is the PF2e-era scaffold narrative; do not treat its v0.3.5.x release baton as simplySF2e state.
 
 ## Last session — 2026-10-02 next-steps plan
 
-- Wrote [docs/next-steps.md](docs/next-steps.md): Jev research (TypeSafe's typed decision model; only the OpenRouter route is browser-reachable, CORS probed 2026-10-02), UI track U1–U7, Jev track J1–J6 + JD1, open decisions D-U1, D-U2, D-J1, D-J2.
-- Nothing in that plan is built yet. JT answered all four decisions on 2026-10-02 (Jev in the module; automatic on OpenRouter plus a separate Jev connection; polish the current UI; keep the Reskin mint + masks). U1, U2, U4 and J1 are ready.
+- Wrote [docs/next-steps.md](docs/next-steps.md): Jev research (TypeSafe's typed decision model; only the OpenRouter route is browser-reachable, CORS probed 2026-10-02), UI track U1–U7, Jev track J1–J6 + JD1, decisions D-U1, D-U2, D-J1, D-J2.
+- Nothing in that plan is built yet. JT answered all four decisions on 2026-10-02 (Jev in the module; automatic on OpenRouter plus a separate Jev connection; polish the current UI; keep the Reskin mint + masks). U1, U2, U4 and J1a are ready.
 
 ## Earlier session — 2026-10-01 cleanup + GM-ready plan
 
