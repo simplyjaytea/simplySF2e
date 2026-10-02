@@ -1540,7 +1540,8 @@ export async function createActor(concept, resolved, { img = null, scaffold = nu
   }
   if (concept.recallKnowledge) {
     const skill = recallKnowledgeSkill(concept.traits);
-    const dc = T.identificationDC(concept.level, concept.rarity);
+    // pf2e recall-knowledge.ts uses the prepared (Elite/Weak-adjusted) level.
+    const dc = T.identificationDC(adjustedLevel(concept.level, concept.adjustment ?? null), concept.rarity);
     notesParts.push(
       `<h3>Recall Knowledge</h3><p><strong>${capitalized(skill)}</strong> @Check[type:${skill}|dc:${dc}]: ${esc(concept.recallKnowledge)}</p>`
     );
@@ -1635,6 +1636,6 @@ export async function reskinActor(baseActorDoc, newFlavor = {}) {
 export function reskinActorData(rawData, flavor = {}) {
   return applyReskin(rawData, flavor, {
     recallSkill: recallKnowledgeSkill,
-    recallDC: (level, rarity) => T.identificationDC(level, rarity)
+    recallDC: (level, rarity) => T.identificationDC(adjustedLevel(level, rawData.system?.attributes?.adjustment ?? null), rarity)
   });
 }

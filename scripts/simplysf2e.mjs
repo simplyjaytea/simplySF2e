@@ -170,10 +170,12 @@ Hooks.on("pf2e.restForTheNight", async (actor) => {
  */
 Hooks.on("chatMessage", (_chatLog, message, _chatData) => {
   const trimmed = message.trim();
-  if (!trimmed.startsWith("/sf2e") && !trimmed.startsWith("/simplysf2e")) return true;
+  // Whole command word only, any case: "/SF2E npc" counts, "/sf2efoo" does not.
+  const command = /^\/(?:sf2e|simplysf2e)(?=\s|$)/i.exec(trimmed);
+  if (!command) return true;
   if (!canOpenApps()) return false;
 
-  const args = trimmed.replace(/^\/(?:sf2e|simplysf2e)\s*/i, "").trim();
+  const args = trimmed.slice(command[0].length).trim();
   if (!args) {
     openGenerator();
     return false;

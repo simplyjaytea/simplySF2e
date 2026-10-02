@@ -121,8 +121,14 @@ export class GeneratorApp extends SpfApp {
   #exampleTick = Math.floor(Math.random() * 5);
   /** External programmatic input update (e.g. from chat command). */
   setInput(updates = {}) {
-    this.#readForm();
-    this.#input = { ...this.#input, ...updates };
+    // The chat command calls this right after render(true), which is async:
+    // on first open there is no form to read yet.
+    if (this.element) this.#readForm();
+    const input = { ...this.#input, ...updates };
+    const [levelMin, levelMax] = ["monster", "npc"].includes(input.mode) ? [-1, 24] : [1, 20];
+    const level = Math.round(Number(input.level));
+    input.level = Number.isFinite(level) ? Math.min(levelMax, Math.max(levelMin, level)) : this.#input.level;
+    this.#input = input;
     this.render();
   }
 
