@@ -103,7 +103,7 @@ Ground rules for every J step (they extend CLAUDE.md's invariants):
 
 ### Wave J-3
 
-- [ ] **J6 · Show it and document it.** A small "Fast picks: Jev" indicator in the generator status bar when active, and Jev time/tokens in the token report. **Look and wording are a design choice: the coordinator posts a card before this step starts.** README GM-guide section (what Jev is, that it needs an OpenRouter connection or the separate Jev key, cost, privacy: the concept summary and candidate names go to OpenRouter/TypeSafe). New rows in `docs/qa-checklist.md` (Jev on vs. off timing, fallback when offline). Touches `generator.hbs`, so it runs after U5a merges.
+- [x] **J6 · Show it and document it.** (done: own status-bar row per JT's card; token report timing; README; QA rows 12n) A small "Fast picks: Jev" indicator in the generator status bar when active, and Jev time/tokens in the token report. **Look and wording are a design choice: the coordinator posts a card before this step starts.** README GM-guide section (what Jev is, that it needs an OpenRouter connection or the separate Jev key, cost, privacy: the concept summary and candidate names go to OpenRouter/TypeSafe). New rows in `docs/qa-checklist.md` (Jev on vs. off timing, fallback when offline). Touches `generator.hbs`, so it runs after U5a merges.
 
 ### Dev-workflow Jev (not planned: D-J1 = a)
 

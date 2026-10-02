@@ -141,7 +141,7 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   /**
    * Record one AI call's token usage under a step label. `timing` (optional,
-   * `{ source: "jev"|"llm", ms }`) rides along for the token report (J6 shows it).
+   * `{ source: "jev"|"llm", ms, jevMs? }`) is shown on the token report line.
    */
   _recordTokens(label, usage, timing = null) {
     if (usage) this._tokenUsage.push({ label, usage, ...(timing ? { timing } : {}) });
@@ -156,7 +156,7 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const total = this._tokenUsage.reduce((sum, e) => sum + stepTotal(e.usage), 0);
     const anyEstimated = this._tokenUsage.some((e) => e.usage.estimated);
     return {
-      steps: this._tokenUsage.map(({ label, usage }) => {
+      steps: this._tokenUsage.map(({ label, usage, timing }) => {
         const showSplit = !usage.estimated && ((usage.prompt || 0) > 0 || (usage.completion || 0) > 0);
         const text = usage.estimated
           ? game.i18n.format("SIMPLYSF2E.Tokens.StepEstimated", {
@@ -171,13 +171,25 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
             : game.i18n.format("SIMPLYSF2E.Tokens.StepTotal", {
                 total: (usage.total || 0).toLocaleString()
               });
-        return { label, text };
+        const via = this._formatStepTiming(timing);
+        return { label, text: via ? `${text} · ${via}` : text };
       }),
       totalText: game.i18n.format(
         anyEstimated ? "SIMPLYSF2E.Tokens.TotalEstimated" : "SIMPLYSF2E.Tokens.Total",
         { total: total.toLocaleString() }
       )
     };
+  }
+
+  /** "Jev, 0.8 s" / "chat model, 6.1 s" / fallback wording; null without a usable timing. */
+  _formatStepTiming(timing) {
+    const ms = Number(timing?.ms);
+    if (!Number.isFinite(ms) || ms < 0 || !["jev", "llm"].includes(timing?.source)) return null;
+    const seconds = (ms / 1000).toFixed(1);
+    const key = timing.source === "jev"
+      ? "SIMPLYSF2E.Tokens.ViaJev"
+      : Number.isFinite(Number(timing.jevMs)) ? "SIMPLYSF2E.Tokens.ViaChatFallback" : "SIMPLYSF2E.Tokens.ViaChat";
+    return game.i18n.format(key, { seconds });
   }
 
   /** Compact last-run copy for the provider strip. Null when no finished run. */

@@ -497,6 +497,11 @@
   border-left: 3px solid var(--spf-warning);
 }
 
+/* Jev "off" is a normal state (no OpenRouter route), not a warning. */
+.simplysf2e .spf-statusbar .spf-provider-summary.spf-provider-off {
+  border-left: 3px solid var(--spf-border);
+}
+
 /* --------------------------------------------------------------------------
    Input form (shared by generator + item forge)
    -------------------------------------------------------------------------- */

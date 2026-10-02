@@ -44,8 +44,8 @@ export const PROVIDER_ATTENTION = {
 
 export const TOKEN_REPORT = {
   steps: [
-    { label: "Concept", text: "1,204 prompt + 612 completion = 1,816 tokens" },
-    { label: "Equipment", text: "≈ 900 tokens (estimated)" }
+    { label: "Concept", text: "1,204 prompt + 612 completion = 1,816 tokens · chat model, 6.1 s" },
+    { label: "Equipment", text: "820 tokens · Jev, 0.8 s" }
   ],
   totalText: "Total: 2,716 tokens"
 };

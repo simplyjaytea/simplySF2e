@@ -63,6 +63,16 @@ Open **Configure Settings → SimplySF2e** and click **Configure Provider**. Thi
 - **Delete connection** (the trash button) removes the active connection. You cannot delete the last one.
 - When you have more than one saved connection, the generator and Item Forge headers show a drop-down so you can switch without opening setup. The headers also have **Test provider connection** and **Configure AI provider** buttons.
 
+### Fast picks (Jev)
+
+Jev is TypeSafe's fast decision model. It never writes text: it only picks from lists, which is the "choose the right compendium entry" part of a generation. SimplySF2e uses it for equipment and loot, creature feats and abilities, Player Character feats, class and ancestry choices, and Player Character spells. Concepts, descriptions and everything the AI writes still come from your chat model.
+
+- **It is always on when it can run.** No toggle. The generator header has a **Fast picks: Jev** line that reads "on" or "off" and why.
+- **What it needs.** Either your active connection is **OpenRouter** (its key is reused), or you save a separate OpenRouter key in **AI Provider Setup → Fast picks (Jev)**. A TypeSafe-direct key will not work from Foundry. Any other connection works as before, without Jev.
+- **Fallback.** If Jev is slow (4 s limit), offline, unsure, or answers badly, that step runs on your chat model instead. Nothing is guessed and the result looks the same either way. The console notes "using the chat model".
+- **Cost.** Jev requests are billed on your OpenRouter account (see OpenRouter's pricing for `typesafe/jev-1.13`). The token report after each run lists each step's tokens and which model did it, with seconds, for example "Jev, 0.8 s" or "chat model after Jev fell back, 7.0 s".
+- **Privacy.** Jev sees your concept summary and the names of candidate compendium entries, and nothing else. They go to openrouter.ai, which passes them to TypeSafe. Your Jev key is stored in your browser only and sent only to openrouter.ai.
+
 ### 3. Other settings
 
 These appear directly in **Configure Settings → SimplySF2e**:
@@ -93,7 +103,7 @@ The chat command is not case-sensitive. It only pre-fills the form; nothing is g
 
 ## Using the generator
 
-The window header shows the active connection and model, and a **Compendium Content** line. That line reads "Ready — N enabled packs", or tells you which categories are missing.
+The window header shows the active connection and model, a **Compendium Content** line, and a **Fast picks: Jev** line. The Compendium line reads "Ready — N enabled packs", or tells you which categories are missing. The Jev line says whether fast picks are on (see [Fast picks (Jev)](#fast-picks-jev)).
 
 Choose a mode with the buttons at the top: **Monster**, **NPC**, **Encounters**, **Player Character**, **Reskin**.
 
@@ -103,7 +113,7 @@ Every mode except Reskin has three ways to start:
 - **Preview Plan** generates the same thing but only shows a preview. Nothing is written to the world until you press **Create Actor** (or **Create All Actors** for an encounter). **Discard** throws the preview away.
 - The **dice button** ignores your description and rolls a surprise concept at the chosen level. It always stops at the preview.
 
-While a generation runs, a progress bar names each step and has a **Cancel generation** button. After each run the window shows token usage per step.
+While a generation runs, a progress bar names each step and has a **Cancel generation** button. After each run the window shows token usage per step, with how long each step took and whether Jev or the chat model did it.
 
 **Advanced options** (a fold-out under the description) holds:
 

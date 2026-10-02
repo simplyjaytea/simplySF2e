@@ -44,6 +44,7 @@ export function generatorContext(mode, patch = {}) {
     progress: null,
     ...providerContext(),
     sourcesReady: true,
+    jevSource: "connection",
     sourcePackCount: 10,
     sourceMissing: "",
     rarities: RARITIES,
@@ -131,6 +132,8 @@ export default [
     app: "generator",
     context: generatorContext("monster", { ...PROVIDER_ATTENTION, sourcesReady: false, sourceMissing: "Spells, Feats" })
   },
+  { id: "generator-jev-off", app: "generator", context: generatorContext("monster", { jevSource: null }) },
+  { id: "generator-jev-key", app: "generator", context: generatorContext("monster", { jevSource: "key" }) },
   {
     id: "generator-two-connections",
     app: "generator",

@@ -35,6 +35,7 @@ import { verifyCreatedActor } from "./post-create.mjs";
 import { supportedClassCandidates } from "./pc-support.mjs";
 import { validateArchetypeSlotPlacement } from "./pc-prerequisites.mjs";
 import { SpfApp } from "./app-base.mjs";
+import { jevKeySource } from "./jev.mjs";
 import { signed } from "./text.mjs";
 
 async function rollbackActor(actor, label) {
@@ -159,6 +160,7 @@ export class GeneratorApp extends SpfApp {
       canSwitchConnection: (authState.connections?.length ?? 0) > 1,
       providerReady: !authWarningKey,
       sourcesReady: sources?.ready ?? true,
+      jevSource: jevKeySource(),
       sourcePackCount: sources?.packCount ?? 0,
       sourceMissing: describeMissingSources(sources?.missing),
       canAuthorizeApiKey: Boolean(
