@@ -8,7 +8,7 @@ import {
   normalizeMagicItemConcept, buildMagicItemData, priceForLevel, getUsageOptions, describeEffect,
   describeActivation, MIN_ITEM_LEVEL, MAX_ITEM_LEVEL,
   getBaseItemCandidates, getPropertyRuneCandidates, getFundamentalRuneTiers,
-  normalizeRunedItemConcept, buildRunedItem, SECONDARY_ADJECTIVE, RUNED_ITEM_KINDS,
+  normalizeRunedItemConcept, buildRunedItem, SECONDARY_ADJECTIVE, RUNED_ITEM_KINDS, CONCEPT_ITEM_KINDS, KIND_USAGE,
   getGradeTiers, getUpgradeCandidates, GRADE_LEVELS, EQUIPMENT_GRADES
 } from "./item-builder.mjs";
 import { createActivationMacro } from "./macro-templates.mjs";
@@ -51,7 +51,7 @@ export class ItemForgeApp extends SpfApp {
     body: { template: `modules/${MODULE_ID}/templates/itemforge.hbs` }
   };
 
-  /** Form values, kept across re-renders. "kind": "wondrous"|"weapon"|"armor". */
+  /** Form values, kept across re-renders. "kind": "wondrous"|"augmentation"|"crystal"|"weapon"|"armor". */
   #input = { prompt: "", level: 4, rarity: "common", kind: "wondrous" };
   #busy = false;
   #error = null;
@@ -109,11 +109,11 @@ export class ItemForgeApp extends SpfApp {
       unavailableNote: this.#unavailableKinds?.length
         ? game.i18n.format("SIMPLYSF2E.ItemForge.KindsUnavailable", { kinds: this.#unavailableKinds.join(", ") })
         : null,
-      preview: this.#kind === "wondrous" ? this.#buildPreviewContext() : this.#buildRunedPreviewContext(),
+      preview: CONCEPT_ITEM_KINDS.has(this.#kind) ? this.#buildPreviewContext() : this.#buildRunedPreviewContext(),
       tokenReport: this._buildTokenReport(),
       // Presentation only: getting-started panel when there is no result yet.
       showEmptyState: !this.#busy && !this.#error
-        && !(this.#kind === "wondrous" ? this.#concept : this.#itemData)
+        && !(CONCEPT_ITEM_KINDS.has(this.#kind) ? this.#concept : this.#itemData)
     };
   }
 
@@ -145,7 +145,7 @@ export class ItemForgeApp extends SpfApp {
     // The kind tiles are buttons, so preserve the authoritative selected kind
     // when no form control for it exists in the current render.
     const rawKind = form.querySelector('[name="kind"]:checked')?.value ?? this.#input.kind;
-    const kind = rawKind === "wondrous" || RUNED_ITEM_KINDS.has(rawKind) ? rawKind : "wondrous";
+    const kind = CONCEPT_ITEM_KINDS.has(rawKind) || RUNED_ITEM_KINDS.has(rawKind) ? rawKind : "wondrous";
     this.#input = { prompt, level, rarity, kind };
   }
 
@@ -220,7 +220,7 @@ export class ItemForgeApp extends SpfApp {
   static async #onSelectKind(_event, target) {
     if (this.#busy) return;
     const kind = target?.dataset?.kind;
-    const validKinds = new Set(["wondrous", "augmentation", "crystal", ...RUNED_ITEM_KINDS]);
+    const validKinds = new Set([...CONCEPT_ITEM_KINDS, ...RUNED_ITEM_KINDS]);
     if (!validKinds.has(kind)) return;
     this.#readForm();
     this.#input = { ...this.#input, kind };
@@ -247,7 +247,7 @@ export class ItemForgeApp extends SpfApp {
     this.#kind = this.#input.kind;
     this.#clearPreview();
     this.#unavailableKinds = null;
-    if (this.#kind === "wondrous" || this.#kind === "augmentation" || this.#kind === "crystal") {
+    if (CONCEPT_ITEM_KINDS.has(this.#kind)) {
       await this.#generateWondrous();
     } else {
       await this.#generateRuned(this.#kind);
@@ -264,7 +264,11 @@ export class ItemForgeApp extends SpfApp {
       // 1. Ground truth first: which effect kinds have real rule exemplars
       // in this world's compendiums? Only those are offered to the AI.
       await this._setStep("templates");
-      const effectCatalog = await getForgeEffectCatalog(this.#input.level, this.#input.rarity);
+      // Implanted and "other" items are never invested, so effects that need
+      // investment are not offered for them.
+      const fixedUsage = KIND_USAGE[this.#kind];
+      const effectCatalog = (await getForgeEffectCatalog(this.#input.level, this.#input.rarity))
+        .filter((effect) => !fixedUsage || !effect.exemplar?.requiresInvestment);
       const availableKinds = [...new Set(effectCatalog.map((effect) => effect.kind))];
       this.#unavailableKinds = EFFECT_KINDS.filter((k) => !availableKinds.includes(k));
       const usageOptions = await getUsageOptions(this.#kind);
@@ -278,6 +282,7 @@ export class ItemForgeApp extends SpfApp {
         availableKinds,
         effectCatalog,
         usageOptions,
+        kind: this.#kind,
         onProgress: (p) => this._onAIProgress(p), signal
       });
       this._recordTokens(game.i18n.localize("SIMPLYSF2E.ItemForge.ProgressConcept"), usage);
@@ -382,13 +387,13 @@ export class ItemForgeApp extends SpfApp {
 
   static async #onCreateItem() {
     if (this.#busy) return;
-    if (this.#kind === "wondrous" ? !this.#concept : !this.#itemData) return;
+    if (CONCEPT_ITEM_KINDS.has(this.#kind) ? !this.#concept : !this.#itemData) return;
     this.#busy = true;
     this.#error = null;
     try {
       await this.render();
       const concept = this.#concept;
-      const data = this.#kind === "wondrous"
+      const data = CONCEPT_ITEM_KINDS.has(this.#kind)
         ? await buildMagicItemData(concept)
         : this.#itemData;
       const item = await Item.create(data);
@@ -398,7 +403,7 @@ export class ItemForgeApp extends SpfApp {
       // presentation work so a display failure cannot enable duplicate writes.
       this.#clearPreview();
       try {
-        if (this.#kind === "wondrous" && concept.activation) {
+        if (CONCEPT_ITEM_KINDS.has(this.#kind) && concept.activation) {
           try {
             await createActivationMacro({ item, concept });
           } catch (err) {

@@ -39,6 +39,7 @@ const mocks = {
   MODULE_ID: "simplysf2e",
   SpfApp: MockSpfApp,
   RUNED_ITEM_KINDS: new Set(["weapon", "armor"]),
+  CONCEPT_ITEM_KINDS: new Set(["wondrous", "augmentation", "crystal"]), KIND_USAGE: { augmentation: "implanted", crystal: "other" },
   MIN_ITEM_LEVEL: 0,
   MAX_ITEM_LEVEL: 20,
   getProviderRequestConfig: () => requestConfig,
@@ -102,5 +103,13 @@ assert.equal((await app._prepareContext()).input.level, 7, "provider and catalog
 controls['[name="level"]'].value = "not-a-level";
 await selectKind.call(app, null, { dataset: { kind: "wondrous" } });
 assert.equal((await app._prepareContext()).input.level, 7, "malformed level input preserves the last valid level");
+
+for (const kind of ["augmentation", "crystal"]) {
+  await selectKind.call(app, null, { dataset: { kind } });
+  app._preserveForm();
+  prepared = await app._prepareContext();
+  assert.equal(prepared.input.kind, kind, `re-reading the form keeps ${kind} (it used to fall back to wondrous)`);
+  assert.equal(prepared.showEmptyState, true, `${kind} uses the concept preview path`);
+}
 
 console.log("itemforge-app.kindSelection.test.mjs: production kind selection and preservation passed");
