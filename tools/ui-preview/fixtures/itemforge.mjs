@@ -51,7 +51,7 @@ const wondrous = (kind = "wondrous") => ({
   invested: true,
   effects: ["Item bonus +1 to Perception", "Resistance 3 mental"],
   hasEffects: true,
-  activation: "<strong>Activate</strong> [reaction] — attempt a DC 24 Will save; 1/day"
+  activation: "Activate (reaction) — deal 2d6 mental damage, DC 24 basic Will save (1/day)"
 });
 
 export default [
@@ -86,11 +86,13 @@ export default [
   {
     id: "itemforge-wondrous-preview",
     app: "itemforge",
+    optionalKeys: ["preview.runed"],
     context: itemforgeContext("wondrous", { showEmptyState: false, tokenReport: TOKEN_REPORT, lastRunCost: "Last run: 1,840 tokens", preview: wondrous() })
   },
   {
     id: "itemforge-wondrous-no-effects",
     app: "itemforge",
+    optionalKeys: ["preview.runed"],
     context: itemforgeContext("wondrous", {
       showEmptyState: false,
       preview: { ...wondrous(), effects: [], hasEffects: false, activation: null, invested: false }
@@ -99,11 +101,13 @@ export default [
   {
     id: "itemforge-augmentation-preview",
     app: "itemforge",
+    optionalKeys: ["preview.runed"],
     context: itemforgeContext("augmentation", { showEmptyState: false, preview: { ...wondrous("augmentation"), usage: "implanted" } })
   },
   {
     id: "itemforge-crystal-preview",
     app: "itemforge",
+    optionalKeys: ["preview.runed"],
     context: itemforgeContext("crystal", { showEmptyState: false, preview: wondrous("crystal") })
   },
   ...["weapon", "armor"].map((kind) => ({
@@ -112,12 +116,12 @@ export default [
     context: itemforgeContext(kind, {
       showEmptyState: false, tokenReport: TOKEN_REPORT,
       preview: {
-        concept: { name: kind === "weapon" ? "Tactical Plasma Rifle, Advanced" : "Advanced Fortress Plate", level: 5, description: "Grade-native gear with installed upgrade modules." },
+        concept: { name: kind === "weapon" ? "Plasma Rifle (Advanced: Flaming Module, Ghost Touch Module)" : "Fortress Plate (Advanced: Hardened Plating, Servo Assist)", level: 5, description: "Grade-native gear with installed upgrade modules." },
         traits: ["uncommon", "tech"],
         price: "1,350 credits",
         runed: true,
         grade: "advanced",
-        upgrades: ["Flaming (installed in a weapon)", "Ghost Touch (installed in a weapon)"],
+        upgrades: kind === "weapon" ? ["Flaming Module", "Ghost Touch Module"] : ["Hardened Plating", "Servo Assist"],
         potency: 0,
         secondary: null,
         propertyRunes: []

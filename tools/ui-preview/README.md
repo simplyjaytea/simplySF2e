@@ -17,7 +17,8 @@ Output goes to `tools/ui-preview/out/` (gitignored): `<fixture-id>@720.png`, `<f
 
 The command exits non-zero, and lists the problems, when a fixture is out of step with its template:
 
-- a template reads a **root** context key the fixture does not define (the real `_prepareContext()` always returns every key, so this means the fixture drifted and would render a silent blank);
+- a template reads a context key, at any depth (reported as a dotted path), that the fixture does not define. The real builders return every key (null or empty when unset), so this means the fixture drifted and would render a silent blank. Keys the real code genuinely omits go in the fixture's `optionalKeys`. Keys behind a condition no fixture turns on are not exercised, so cover each branch with a fixture;
+- a stylesheet, font or other request fails to load (for example `npm install` was skipped);
 - a `localize` key is missing from `lang/en.json` (rendered visibly as `⟦KEY⟧`).
 
 It also prints a `note:` line when a window scrolls sideways.

@@ -54,13 +54,15 @@ try {
     for (const width of WIDTHS) {
       const { html, missingKeys, missingTranslations } = renderFixture(fixture, { cssBase: "/", width });
       if (width === WIDTHS[0]) {
-        for (const key of missingKeys) problems.push(`${fixture.id}: template reads root key "${key}" the fixture lacks`);
+        for (const key of missingKeys) problems.push(`${fixture.id}: template reads "${key}" but the fixture lacks it`);
         for (const key of missingTranslations) problems.push(`${fixture.id}: missing translation ⟦${key}⟧`);
       }
       const name = `${fixture.id}@${width}`;
       writeFileSync(join(OUT, `${name}.html`), html);
       const page = await browser.newPage({ viewport: { width: width + 40, height: 1000 } });
-      await page.goto(`${origin}/out/${name}.html`, { waitUntil: "networkidle" }).catch(() => {});
+      page.on("requestfailed", (r) => problems.push(`${name}: request failed ${r.url()}`));
+      page.on("response", (r) => { if (r.status() >= 400) problems.push(`${name}: HTTP ${r.status()} ${r.url()}`); });
+      await page.goto(`${origin}/out/${name}.html`, { waitUntil: "networkidle" });
       await page.locator(".application").screenshot({ path: join(OUT, `${name}.png`) });
       const overflow = await page.evaluate(() => {
         const content = document.querySelector(".window-content");

@@ -47,25 +47,34 @@ export const APPS = {
 };
 
 /**
- * Wraps `context` in a Proxy that records every top-level key the template
- * reads which the fixture does not define. The real `_prepareContext()`
- * always returns every key it has (null when empty), so a read of a missing
- * root key means the fixture drifted from the real context and would render
- * a silent blank.
+ * Wraps `context` (and, lazily, every nested object and array) in a Proxy that
+ * records each property the template reads which the fixture does not define,
+ * as a dotted path. The real context builders return every key they have
+ * (null or "" when empty), so a read of an absent key means the fixture
+ * drifted and would render a silent blank. Array indexes and `length` are
+ * never reported; Handlebars also probes `toString`-style inherited names,
+ * which `in` covers.
  */
-function watchRoot(context, missing) {
-  return new Proxy(context, {
+function watch(value, missing, path = "") {
+  if (value === null || typeof value !== "object") return value;
+  return new Proxy(value, {
     get(target, prop, receiver) {
-      if (typeof prop === "string" && !(prop in target)) missing.add(prop);
-      return Reflect.get(target, prop, receiver);
+      if (typeof prop !== "string") return Reflect.get(target, prop, receiver);
+      if (!(prop in target)) {
+        if (!Array.isArray(target) || !/^\d+$/.test(prop)) missing.add(path ? `${path}.${prop}` : prop);
+        return undefined;
+      }
+      const child = Reflect.get(target, prop, receiver);
+      return typeof child === "function" ? child : watch(child, missing, Array.isArray(target) ? `${path}[]` : path ? `${path}.${prop}` : prop);
     }
   });
 }
 
 /**
  * Render one fixture to a full HTML page.
- * A fixture may list `optionalKeys`: root keys the real context genuinely
- * omits (and a template or partial reads anyway), so they are not drift.
+ * A fixture may list `optionalKeys`: dotted paths (array levels written `[]`)
+ * the real context genuinely omits though a template reads them, so they are
+ * not drift.
  * @returns {{html: string, missingKeys: string[], missingTranslations: string[]}}
  */
 export function renderFixture(fixture, { cssBase = "/", width = 720 } = {}) {
@@ -74,7 +83,7 @@ export function renderFixture(fixture, { cssBase = "/", width = 720 } = {}) {
   const hbs = createEnvironment();
   const source = readFileSync(join(REPO, "templates", app.template), "utf8");
   const missing = new Set();
-  const body = hbs.compile(source)(watchRoot(fixture.context, missing));
+  const body = hbs.compile(source)(watch(fixture.context, missing));
   const title = localize(app.title);
   const tag = app.tag;
   const busy = fixture.context.busy ? " spf-busy" : "";

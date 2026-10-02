@@ -119,7 +119,15 @@ export default [
   {
     id: "generator-empty-attention",
     app: "generator",
-    context: generatorContext("monster", { ...PROVIDER_ATTENTION, sourcesReady: false, sourceMissing: "Spells, Feats" })
+    context: generatorContext("monster", { ...PROVIDER_ATTENTION, sourcesReady: false, sourceMissing: ["spells", "feats"] })
+  },
+  {
+    id: "generator-two-connections",
+    app: "generator",
+    context: generatorContext("monster", {
+      canSwitchConnection: true,
+      connections: [{ id: "c1", name: "OpenRouter", active: true }, { id: "c2", name: "Home Ollama with a long profile name", active: false }]
+    })
   },
   {
     id: "generator-busy-progress",
@@ -157,8 +165,9 @@ export default [
     };
   })(),
   (() => {
-    // Level -1, terrible scales, Weak adjustment: Perception, saves, skills and
-    // the strike bonus all go negative, which is what the "+-1" bug shows.
+    // Level -1, terrible scales, Weak adjustment: Perception, saves and skills go
+    // negative, which is what the "+-1" bug shows. The strike bonus cannot: the
+    // lowest cited attack bonus at level -1 is +4, so Weak gives +2.
     const c = concept({
       name: "Weak Scrap Drone With A Deliberately Overlong Name For Wrapping Checks",
       level: -1,
@@ -190,7 +199,7 @@ export default [
       return {
         index, count: member.count, skipped: member.count === 0,
         role: `SIMPLYSF2E.Role.${cap(member.role)}`,
-        name: member.concept.name, level: member.concept.level, blurb: member.blurb,
+        name: member.concept.name, level: stats.level, blurb: member.blurb,
         // Same string the real #buildEncounterPreviewContext() assembles.
         statline: `AC ${stats.ac}, ${localize("SIMPLYSF2E.Preview.Fort")} +${stats.saves.fortitude}, ${localize("SIMPLYSF2E.Preview.Ref")} +${stats.saves.reflex}, ${localize("SIMPLYSF2E.Preview.Will")} +${stats.saves.will}, HP ${stats.hp}, Per +${stats.perception}`
           + (strike ? `, ${strike.name} +${strike.bonus} (${strike.damage})` : "")
