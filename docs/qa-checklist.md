@@ -325,6 +325,8 @@ Needs an OpenRouter connection, as 12b.
 | 12f.2 | Open Compendium Sources with a long-id homebrew pack. | Source id wraps beside the title; title keeps readable width. | Sources | | |
 | 12f.3 | Open Manage Presets with no presets, then with some. | Empty text points to New Preset / Import; each row button reads aloud as "Edit preset <name>" etc. | Presets | | |
 | 12f.4 | Item Forge Level and Rarity row. | Labels share one line and the fields sit together. | Item Forge | | |
+| 12f.5 | Provider Setup: set Base URL to `ftp://x`, press Save & Authorize. | Error toast "Could not save provider settings: ..."; window stays open with your edits. A valid save still closes the window. | Provider Setup | | |
+| 12f.6 | With a screen reader (or the accessibility tree), tab through Provider Setup, Item Forge, Sources and Manage Presets. | Decorative icons are not announced; buttons read by their text. | All four | | |
 
 ## 12g. Generator UI fixes (U5a)
 

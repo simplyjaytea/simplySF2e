@@ -113,7 +113,11 @@ const submit = async ({ baseUrl, model, apiKey = "", clearApiKey = false, connec
     removeAttribute: () => {}
   };
   if (expectFail) {
-    await assert.rejects(ProviderSetupApp.DEFAULT_OPTIONS.form.handler.call(app));
+    // Failed saves are reported with an error toast (and the form stays open).
+    const before = notices.error.length;
+    await ProviderSetupApp.DEFAULT_OPTIONS.form.handler.call(app);
+    assert.equal(notices.error.length, before + 1, "a failed save must notify");
+    assert.equal(saved, 0, "a failed save must not refresh the generator");
     return;
   }
   await ProviderSetupApp.DEFAULT_OPTIONS.form.handler.call(app);

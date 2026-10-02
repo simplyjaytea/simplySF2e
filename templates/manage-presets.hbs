@@ -6,16 +6,16 @@
           <span class="spf-manage-name" title="{{this.name}}">{{this.name}}</span>
           <span class="spf-manage-buttons">
             <button type="button" class="spf-icon-btn" data-action="editPreset" data-id="{{this.id}}" data-tooltip="{{localize 'SIMPLYSF2E.Presets.EditTooltip'}}" aria-label="{{localize 'SIMPLYSF2E.Presets.EditAria' name=this.name}}">
-              <i class="fa-solid fa-pen"></i>
+              <i aria-hidden="true" class="fa-solid fa-pen"></i>
             </button>
             <button type="button" class="spf-icon-btn" data-action="duplicatePreset" data-id="{{this.id}}" data-tooltip="{{localize 'SIMPLYSF2E.Presets.DuplicateTooltip'}}" aria-label="{{localize 'SIMPLYSF2E.Presets.DuplicateAria' name=this.name}}">
-              <i class="fa-solid fa-copy"></i>
+              <i aria-hidden="true" class="fa-solid fa-copy"></i>
             </button>
             <button type="button" class="spf-icon-btn" data-action="exportPreset" data-id="{{this.id}}" data-tooltip="{{localize 'SIMPLYSF2E.Presets.ExportTooltip'}}" aria-label="{{localize 'SIMPLYSF2E.Presets.ExportAria' name=this.name}}">
-              <i class="fa-solid fa-file-export"></i>
+              <i aria-hidden="true" class="fa-solid fa-file-export"></i>
             </button>
             <button type="button" class="spf-icon-btn" data-action="deletePreset" data-id="{{this.id}}" data-tooltip="{{localize 'SIMPLYSF2E.Presets.DeleteTooltip'}}" aria-label="{{localize 'SIMPLYSF2E.Presets.DeleteAria' name=this.name}}">
-              <i class="fa-solid fa-trash"></i>
+              <i aria-hidden="true" class="fa-solid fa-trash"></i>
             </button>
           </span>
         </li>
@@ -27,13 +27,13 @@
 
   <footer class="spf-actions spf-hud-actions">
     <button type="button" class="spf-primary" data-action="newPreset">
-      <i class="fa-solid fa-plus"></i> {{localize "SIMPLYSF2E.Presets.New"}}
+      <i aria-hidden="true" class="fa-solid fa-plus"></i> {{localize "SIMPLYSF2E.Presets.New"}}
     </button>
     <button type="button" data-action="exportAll" {{#unless presets.length}}disabled{{/unless}}>
-      <i class="fa-solid fa-file-export"></i> {{localize "SIMPLYSF2E.Presets.ExportAll"}}
+      <i aria-hidden="true" class="fa-solid fa-file-export"></i> {{localize "SIMPLYSF2E.Presets.ExportAll"}}
     </button>
     <button type="button" data-action="importPresets">
-      <i class="fa-solid fa-file-import"></i> {{localize "SIMPLYSF2E.Presets.Import"}}
+      <i aria-hidden="true" class="fa-solid fa-file-import"></i> {{localize "SIMPLYSF2E.Presets.Import"}}
     </button>
   </footer>
 </div>
