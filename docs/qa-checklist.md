@@ -290,6 +290,17 @@ Needs an OpenRouter connection, as 12b.
 | 12c.2 | Generate a creature with an odd ability no published action matches. | That ability stays labeled narrative-only; creation is not blocked. | Preview | | |
 | 12c.3 | Block `openrouter.ai/api/v1/systemone` in DevTools, then generate the 12c.1 creature. | "using the chat model" warning; feats and abilities still resolve. | Console | | |
 
+## 12d. Jev PC feat and choice picks (J4)
+
+Needs an OpenRouter connection, as 12b.
+
+| # | Step | Expected | Where to look | Result | Evidence |
+|---|------|----------|---------------|--------|----------|
+| 12d.1 | OpenRouter connection, generate a level 5+ soldier PC. | Every class/general/skill feat slot is filled with a real feat, no feat repeats across slots, class slots carry the class trait. No "Jev request" warning in the console. | Preview, console | | |
+| 12d.2 | Generate a PC whose class or ancestry has a choice (for example a skill choice) and create it. | The choice is pre-answered or prompts natively; nothing breaks. | Sheet | | |
+| 12d.3 | Block `openrouter.ai/api/v1/systemone` in DevTools, then generate the 12d.1 PC. | "using the chat model" warning; all feat slots still filled. | Console | | |
+| 12d.4 | Generate a PC at level 15+ (many feat slots). | All slots filled; compare step time against a non-OpenRouter connection. | Preview | | |
+
 ## 13. Firefox (if available)
 
 | # | Step | Expected | Where to look | Result | Evidence |
