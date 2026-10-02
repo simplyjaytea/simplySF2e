@@ -2,7 +2,7 @@
  * Fuzzy lookups against compendium packs so the AI can reference abilities,
  * spells, feats and equipment by name and we pull the real documents. Which
  * packs each category draws from is configurable (Compendium Sources menu);
- * the SF2e system packs are the defaults (system.sf2e.json 1.5.0 on v14-dev).
+ * the SF2e system packs are the defaults (system.sf2e.json 1.5.1 on v14-dev; 1.5.0 has the same packs).
  */
 
 import { SETTINGS, getSetting } from "./settings.mjs";
@@ -14,7 +14,7 @@ export const CATEGORIES = [
 ];
 
 export const DEFAULT_PACKS = {
-  // Collection ids are `sf2e.<packs[].name>` from system.sf2e.json 1.5.0
+  // Collection ids are `sf2e.<packs[].name>` from system.sf2e.json 1.5.1
   // (foundryvtt/pf2e v14-dev). SF2e has no family-ability glossary packs.
   abilities: ["sf2e.bestiary-ability-glossary-srd"],
   spells: ["sf2e.spells"],

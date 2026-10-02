@@ -1,4 +1,4 @@
-// SF2e pack defaults follow system.sf2e.json 1.5.0 collection ids
+// SF2e pack defaults follow system.sf2e.json 1.5.1 collection ids (same as 1.5.0)
 // (`sf2e.<packs[].name>`). Missing configured packs warn and fall back.
 // Run: node scripts/compendium.packDefaults.test.mjs
 import assert from "node:assert/strict";

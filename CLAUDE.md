@@ -7,7 +7,7 @@ Foundry VTT module. An AI generates Starfinder 2e NPCs/monsters, Player Characte
 ## Glossary
 
 - **Foundry** — the VTT this is a module for. **Actor** = a character/creature sheet. **Item** = anything embedded on one.
-- **sf2e system** — Starfinder Second Edition (`sf2e`), sourced from the PF2e monorepo branch **v14-dev**, manifest `system.sf2e.json` **1.5.0** (Foundry compat minimum 14.361 / verified 14.367). Pack collection ids are `sf2e.<packs[].name>`. "Real source" = that repo's actual TS/JSON, fetched live, not recalled from PF2e memory.
+- **sf2e system** — Starfinder Second Edition (`sf2e`), sourced from the PF2e monorepo branch **v14-dev**, manifest `system.sf2e.json` **1.5.1** (Foundry compat minimum 14.361 / verified 14.367; the 1.5.0 manifest is identical apart from version/download, so the module still allows 1.5.0). Pack collection ids are `sf2e.<packs[].name>`. "Real source" = that repo's actual TS/JSON, fetched live, not recalled from PF2e memory.
 - **Compendium / pack** — a bundled library of real game content. The module never invents content: a pick either matches a real document or is marked custom.
 - **GM Core** — *Starfinder GM Core* Building Creatures / Treasure by Level tables, hardcoded and cited in `tables.mjs` (Chapter 2, pp. 116–128). **Do not invent SF2e table numbers**; any new number needs a citation.
 - **ABC item** — Ancestry/Background/Class, the real items a PC embeds to derive stats. **Heritage** — a 4th, in its own pack.
@@ -116,9 +116,9 @@ Inherited PF2e-era notes for the scaffolded builders. They are **not** SF2e sche
 
 **Active plan: the GM-ready checklist (G1–G13) in [HANDOFF.md](HANDOFF.md).** Work it in the waves listed there.
 
-**Starfinder 2e "Neon Drift" UI overhaul.** simplySF2e identity is `simplysf2e` / SimplySF2e, targeting system **`sf2e` 1.5.0**. Status is **Alpha**. Every merge to `main` publishes the next tag; check GitHub Releases for the current version rather than pinning it here. Git is authoritative for branch state; [HANDOFF.md](HANDOFF.md) is the live baton.
+**Starfinder 2e "Neon Drift" UI overhaul.** simplySF2e identity is `simplysf2e` / SimplySF2e, targeting system **`sf2e` 1.5.0 or later** (cited against 1.5.1). Status is **Alpha**. Every merge to `main` publishes the next tag; check GitHub Releases for the current version rather than pinning it here. Git is authoritative for branch state; [HANDOFF.md](HANDOFF.md) is the live baton.
 
-- **Pack defaults:** `DEFAULT_PACKS` uses real `sf2e.*` collection ids from `system.sf2e.json` 1.5.0 (`classes`, `class-features`, `feats`, `spells`, `equipment`, `ancestries`, `heritages`, `backgrounds`, `bestiary-ability-glossary-srd`, `alien-core-bestiary`).
+- **Pack defaults:** `DEFAULT_PACKS` uses real `sf2e.*` collection ids from `system.sf2e.json` 1.5.1, unchanged since 1.5.0 (`classes`, `class-features`, `feats`, `spells`, `equipment`, `ancestries`, `heritages`, `backgrounds`, `bestiary-ability-glossary-srd`, `alien-core-bestiary`).
 - **Chrome:** cited SF2e navy/cyan/violet tokens (`src/styles/sf2e/index.scss`) plus a magenta primary action and per-mode accents (`--spf-mode-*`). Shared kit lives in `styles/simplysf2e.css`; rules used by one template live in `styles/apps/<app>.css`; `module.json` `styles` lists the shared file first. Narrow-window rules use `@container spf-window` on `.window-content` (never viewport `@media`) because Foundry windows resize inside a wide viewport.
 - **Standard presets:** the six published SF2e classes only (envoy, mystic, operative, solarian, soldier, witchwarper). Flavor guides; scale-words only.
 - **Currency:** generated loot/wealth prefers **credits** (Credstick) and **UPB** via verbatim copies of v14-dev `credstick.json` / `upb.json`. Gold-piece AI language converts through cited `DENOMINATION_RATES` (1 gp = 10 credits). Starting-wealth math is surfaced in credits via `gpToCredits` / `pcStartingWealthCredits`. Classic `pf2e.equipment-srd` coin UUIDs are not the happy path and are not invented under `sf2e.equipment`.
@@ -127,7 +127,6 @@ Inherited PF2e-era notes for the scaffolded builders. They are **not** SF2e sche
 - **Equipment grades & Item Forge:** Item Forge weapon/armor generation targets the native SF2e equipment grade (commercial, tactical, advanced, superior, elite, ultimate, paragon) and installed upgrade modules model (`system.subitems`). Legacy system runes are zeroed per Migration942EquipmentGrade, base analog/tech classification is preserved, and prices preview in credits.
 - **Rest hook residual:** v14-dev still fires `Hooks.callAll("pf2e.restForTheNight", actor)`. No `sf2e.restForTheNight` is cited. The module keeps that exact string.
 - **Generator extras:** Elite/Weak adjustment selector (Alien Core pp. 204/207) and the `/sf2e` chat command are wired end to end. The **Reskin** generator mode (G6) is wired: the GM drops an NPC from the Actors sidebar or a compendium, the AI writes new fiction and may rename strikes/abilities by id, and the module creates a copy (stats, rules, traits, items unchanged). The multiclass dedication map is still a tested helper only.
-- **Upstream drift:** v14-dev `system.sf2e.json` now reads 1.5.1; the module still cites 1.5.0 (checklist G2).
 - **Still later:** see the GM-ready checklist. Deferred past GM-ready: full Free Archetype graphs, upgrade prerequisite validation, shields/ammo.
 - **Inherited code:** NPC/PC/forge pipelines, fail-closed grounding, cloned Rule Elements. Treat [HISTORY.md](HISTORY.md) as parent-project history, not simplySF2e releases.
 
