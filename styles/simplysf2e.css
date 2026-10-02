@@ -334,7 +334,12 @@
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
+  /* Auto-height windows grow to at most this, then the body scrolls, even
+     if Foundry does not clamp the window to the screen itself. */
+  max-height: 80vh;
   overscroll-behavior: contain;
+  /* Keyboard focus scrolls a control clear of the pinned action row. */
+  scroll-padding-block-end: 3.5rem;
   scrollbar-color: var(--spf-brand-dark) #0c1620;
 }
 
@@ -345,8 +350,18 @@
   position: sticky;
   bottom: calc(var(--spf-space-xs) * -1);
   z-index: 1;
-  padding-block: var(--spf-space-sm) var(--spf-space-xs);
+  padding-bottom: var(--spf-space-xs);
   background: color-mix(in srgb, var(--spf-brand-dark) 40%, #0a121b);
+}
+
+/* .spf-hud-actions rows keep their own md top padding and rule. */
+.simplysf2e .spf-window-body footer.spf-actions:not(.spf-hud-actions) {
+  padding-top: var(--spf-space-sm);
+}
+
+/* Inside a preview card the pinned row matches the card surface. */
+.simplysf2e .spf-window-body .spf-card > footer.spf-actions {
+  background: var(--spf-surface-raised);
 }
 
 /* --------------------------------------------------------------------------
@@ -357,8 +372,6 @@
   flex-direction: column;
   gap: var(--spf-space-md);
   padding: var(--spf-space-xs);
-  /* Auto-height windows grow to at most this, then the body scrolls. */
-  max-height: 80vh;
 }
 
 /* --------------------------------------------------------------------------

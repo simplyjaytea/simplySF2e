@@ -19,7 +19,7 @@ const SHORT_HEIGHT = 360;
 // Foundry core gives .window-content flex: 1 and overflow: hidden, and clamps
 // a window to the screen or to the size the user drags it to. The default
 // harness lifts all of that to show full content; this restores it, and the
-// spf-short-window class drops harness.css's lift of the generator's own cap.
+// spf-short-window class drops harness.css's lift of the body's own 80vh cap.
 const SHORT_WINDOW_CSS = `
   .application { height: ${SHORT_HEIGHT}px !important; }
   .application .window-content { flex: 1; min-height: 0; overflow: hidden !important; }

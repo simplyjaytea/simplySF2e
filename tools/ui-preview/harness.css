@@ -28,8 +28,8 @@ body { padding: 20px; font-family: "Signika", system-ui, sans-serif; font-size: 
 .application .hint, .application .notes { font-size: 0.85em; opacity: 0.8; margin: 0; }
 .application .spf-sr-only, .application .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
-/* The module caps the generator/forge body at 80vh and scrolls inside it. The
+/* The module caps each window body at 80vh and scrolls inside it. The
    screenshots show the full content instead so nothing is hidden from review;
    a tall result therefore looks taller here than in a window on a short screen.
    shoot.mjs drops the lift (html.spf-short-window) for its short-window pass. */
-html:not(.spf-short-window) .application .simplysf2e-generator { max-height: none !important; overflow-y: visible !important; }
+html:not(.spf-short-window) .application .spf-window-body { max-height: none !important; overflow-y: visible !important; }

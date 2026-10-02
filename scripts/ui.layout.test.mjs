@@ -689,6 +689,14 @@ assert.match(
 );
 assert.match(
   css,
+  /\.window-content > \.spf-window-body\s*\{[^}]*max-height:\s*80vh;[^}]*scroll-padding-block-end:/s,
+  "auto-height windows must cap at 80vh and keep focused controls clear of the pinned row"
+);
+for (const [name, app] of [["generator", generatorApp], ["item forge", itemForgeApp]]) {
+  assert.match(app, /templates\/[a-z-]+\.hbs`, scrollable: \[""\] \}/, `${name} must keep its scroll place across re-renders`);
+}
+assert.match(
+  css,
   /\.spf-window-body footer\.spf-actions\s*\{[^}]*position:\s*sticky;/s,
   "action rows must stay pinned while the body scrolls"
 );

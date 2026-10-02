@@ -110,7 +110,7 @@ export class ManagePresetsApp extends HandlebarsApplicationMixin(ApplicationV2) 
   };
 
   static PARTS = {
-    body: { template: `modules/${MODULE_ID}/templates/manage-presets.hbs` }
+    body: { template: `modules/${MODULE_ID}/templates/manage-presets.hbs`, scrollable: [""] }
   };
 
   /** The generator app that opened this dialog, re-rendered after changes so
