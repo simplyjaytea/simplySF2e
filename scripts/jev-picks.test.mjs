@@ -1,6 +1,6 @@
 // Jev equipment/loot pick logic with an injected request function (no network).
 import assert from "node:assert/strict";
-import { jevPickEquipment, jevPickLoot, jevPickCreatureFeats, jevPickCreatureAbilities, jevPickFeats, jevPickCharacterChoices, jevScoreIndex, mergeUsage, JEV_NONE_KEY } from "./jev-picks.mjs";
+import { jevPickEquipment, jevPickLoot, jevPickCreatureFeats, jevPickCreatureAbilities, jevPickFeats, jevPickCharacterChoices, jevPickSpells, JEV_SPELL_FIT_WORDS, jevScoreIndex, mergeUsage, JEV_NONE_KEY } from "./jev-picks.mjs";
 
 const jevConfig = { endpoint: "https://openrouter.ai/api/v1/systemone", apiKey: "k" };
 const ref = (id) => ({ packId: "sf2e.equipment", _id: id });
@@ -233,5 +233,76 @@ assert.equal(mergeUsage({ prompt: 1, completion: 1, total: 2, cost: 0.1 }, { pro
   assert.equal((await jevPickCharacterChoices({ concept: concept(), catalog, jevConfig, request: scripted(null).request })).picks, null);
   assert.equal((await jevPickCharacterChoices({ concept: concept(), catalog: [{ ...catalog[0], options: [] }], jevConfig, request: scripted().request })).picks, null);
   assert.equal((await jevPickCharacterChoices({ concept: concept(), catalog, jevConfig: null })).picks, null);
+}
+
+// Spells: Score per candidate, module takes the top plannedPicks per rank.
+{
+  const spell = (id, name, rank, rarity = "common") => ({ id, name, rank, rarity, ref: { packId: "sf2e.spells", _id: id } });
+  const spellCandidates = [
+    spell("S0", "Detect Magic", 0), spell("S1", "Shield", 0), spell("S2", "Ray of Frost", 0),
+    spell("S3", "Force Barrage", 1), spell("S4", "Fear", 1), spell("S5", "Fireball", 3), spell("S6", "Wish", 10, "uncommon"), spell("S7", "Meteor", 10)
+  ];
+  const focus = [{ id: "F0", name: "Counter Reaction", rank: 1, ref: { packId: "sf2e.spells", _id: "F0" } }, { id: "F1", name: "Minor Gift", rank: 1, ref: { packId: "sf2e.spells", _id: "F1" } }];
+  const score = (index, confidence = 0.9, raw = index) => ({
+    type: "score", score: raw, confidence, probabilities: {}, legend: Object.fromEntries(JEV_SPELL_FIT_WORDS.map((w, i) => [String(i), w]))
+  });
+  const base = { concept: concept({ spellcasting: { tradition: "arcane", spells: [{ name: "Fireball" }] } }), candidates: spellCandidates, jevConfig };
+  // Question keys are opaque, so answer by the spell name inside each question's text; unlisted questions get no answer (parse would fail), so list all asked.
+  const names = { spell_0: "Detect Magic", spell_1: "Shield", spell_2: "Ray of Frost", spell_3: "Force Barrage", spell_4: "Fear", spell_5: "Fireball", spell_7: "Meteor", focus_0: "Counter Reaction", focus_1: "Minor Gift" };
+  const answersFor = (map) => (args) => response(Object.fromEntries(Object.entries(args.questions).map(([key, q]) => {
+    const label = Object.keys(map).find((k) => q.instructions.includes(`"${names[k]}"`) && q.instructions.includes(k.startsWith("focus") ? "focus spell" : "the spell"));
+    return [key, map[label] ?? score(2)];
+  })));
+
+  // Top plannedPicks per rank by raw score, base-rank slots only, one signature at the signature rank, ref retained.
+  {
+    const { request, calls } = scripted(answersFor({
+      spell_0: score(1), spell_1: score(3, 0.9, 2.9), spell_2: score(3, 0.9, 3), spell_3: score(2), spell_4: score(1), spell_5: score(3)
+    }));
+    const out = await jevPickSpells({ ...base, maxRank: 3, plannedPicks: { 0: 2, 1: 1, 3: 1 }, preparationMode: "spontaneous", signatureRanks: [1, 3], request });
+    assert.deepEqual(out.spells.map((s) => [s.name, s.rank, s.signature === true]), [
+      ["Ray of Frost", 0, false], ["Shield", 0, false], ["Force Barrage", 1, true], ["Fireball", 3, true]
+    ]);
+    assert.equal(out.spells[0].candidate, spellCandidates[2].ref);
+    assert.equal(calls.length, 1, "one request for a bounded candidate list");
+    assert.equal(calls[0].questions.spell_0.type, "score");
+    assert.deepEqual(calls[0].questions.spell_0.criteria, [...JEV_SPELL_FIT_WORDS]);
+    assert.match(calls[0].state, /Spell tradition: arcane/);
+    assert.equal(out.attempted, true);
+  }
+  // Rank-ten spontaneous takes common only: the uncommon spell is never asked about.
+  {
+    const { request, calls } = scripted(answersFor({ spell_7: score(2) }));
+    const out = await jevPickSpells({ ...base, maxRank: 10, plannedPicks: { 10: 1 }, preparationMode: "spontaneous", request });
+    assert.deepEqual(out.spells.map((s) => s.name), ["Meteor"]);
+    assert.deepEqual(Object.keys(calls[0].questions), ["spell_0"]);
+    assert.match(calls[0].questions.spell_0.instructions, /Meteor/);
+  }
+  // Focus spells: only top-level fit, capped; none qualifying is still a success.
+  {
+    const { request } = scripted(answersFor({ spell_3: score(2), focus_0: score(3), focus_1: score(2) }));
+    const out = await jevPickSpells({ ...base, focusCandidates: focus, maxRank: 1, plannedPicks: { 1: 1 }, preparationMode: "prepared", request });
+    assert.deepEqual(out.focusSpells.map((s) => s.name), ["Counter Reaction"]);
+    const none = await jevPickSpells({ ...base, focusCandidates: focus, maxRank: 1, plannedPicks: { 1: 1 }, preparationMode: "prepared",
+      request: scripted(answersFor({ spell_3: score(2), focus_0: score(2), focus_1: score(1) })).request });
+    assert.deepEqual(none.focusSpells, []);
+    assert.ok(none.spells);
+  }
+  // Fallback (spells: null) on: low confidence leaving a rank short, unreadable legend, request failure, thin pool, no config, creature path.
+  const args = { ...base, maxRank: 1, plannedPicks: { 1: 2 }, preparationMode: "prepared" };
+  const ok = { spell_3: score(2), spell_4: score(2) };
+  assert.ok((await jevPickSpells({ ...args, request: scripted(answersFor(ok)).request })).spells);
+  assert.equal((await jevPickSpells({ ...args, request: scripted(answersFor({ ...ok, spell_4: score(2, 0.3) })).request })).spells, null);
+  assert.equal((await jevPickSpells({ ...args, request: scripted(answersFor({ ...ok, spell_4: score(0) })).request })).spells, null, "a poor fit never fills a slot");
+  const badLegend = { ...score(2), legend: { 2: "wrong" } };
+  assert.equal((await jevPickSpells({ ...args, request: scripted(answersFor({ ...ok, spell_4: badLegend })).request })).spells, null);
+  const failed = await jevPickSpells({ ...args, request: scripted(null).request });
+  assert.equal(failed.spells, null);
+  assert.equal(failed.attempted, true);
+  const unasked = scripted();
+  assert.equal((await jevPickSpells({ ...args, plannedPicks: { 1: 3 }, request: unasked.request })).spells, null, "fewer eligible candidates than slots");
+  assert.equal(unasked.calls.length, 0);
+  assert.equal((await jevPickSpells({ ...args, jevConfig: null })).spells, null);
+  assert.equal((await jevPickSpells({ ...args, plannedPicks: undefined, request: unasked.request })).spells, null, "creature path stays on the chat model");
 }
 console.log("jev-picks tests passed");
