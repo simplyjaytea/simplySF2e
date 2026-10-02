@@ -431,7 +431,7 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 
 | # | Do | Expect | Where | Pass | Notes |
 | --- | --- | --- | --- | --- | --- |
-| 12q.1 | Generate an arcane caster NPC at level 10 with a prompt that names no spells (e.g. "a corporate techno-mage"). Repeat once. | Picked spells come from across the alphabet (late names such as Supercharge Weapon, Wall of Plasma or X-Ray Vision can appear), not only names starting A to M. | Preview | | |
+| 12q.1 | Generate an arcane caster NPC at level 10 with a prompt that names no spells (e.g. "a corporate techno-mage"). Repeat once. | Picked spells span the alphabet within each rank (late names such as Wall of Plasma or Summon Robot can appear), not only names starting A to M. Exact picks vary with the AI's spell keywords. | Preview | | |
 
 ## 13. Firefox (if available)
 
