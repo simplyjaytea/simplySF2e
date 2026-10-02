@@ -35,7 +35,7 @@
   </div>
   <div class="spf-provider-summary {{#if jevSource}}spf-provider-ready{{else}}spf-provider-off{{/if}}">
     <span class="spf-provider-name"><i aria-hidden="true" class="fa-solid fa-bolt"></i> <strong>{{localize "SIMPLYSF2E.Generator.JevRow"}}</strong></span>
-    <span class="spf-provider-detail">{{#if (eq jevSource "key")}}{{localize "SIMPLYSF2E.Generator.JevOnKey"}}{{else if (eq jevSource "connection")}}{{localize "SIMPLYSF2E.Generator.JevOnConnection"}}{{else}}{{localize "SIMPLYSF2E.Generator.JevOff"}}{{/if}}</span>
+    <span class="spf-provider-detail">{{#if (eq jevSource "key")}}{{localize "SIMPLYSF2E.Generator.JevOnKey"}}{{else if (eq jevSource "typesafe")}}{{localize "SIMPLYSF2E.Generator.JevOnTypeSafe"}}{{else if (eq jevSource "connection")}}{{localize "SIMPLYSF2E.Generator.JevOnConnection"}}{{else}}{{localize "SIMPLYSF2E.Generator.JevOff"}}{{/if}}</span>
     <span class="spf-provider-actions"><button type="button" data-action="configureProvider" data-tooltip="{{localize 'SIMPLYSF2E.Generator.JevConfigure'}}" aria-label="{{localize 'SIMPLYSF2E.Generator.JevConfigure'}}" {{#if busy}}disabled{{/if}}><i aria-hidden="true" class="fa-solid fa-gear"></i></button></span>
   </div>
   </div>

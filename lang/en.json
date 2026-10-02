@@ -11,7 +11,11 @@
       },
       "JevApiKey": {
         "Name": "Jev API Key",
-        "Hint": "OpenRouter key used only for Jev fast picks. Stored in this browser; manage it through AI Provider Setup."
+        "Hint": "OpenRouter or TypeSafe AI key used only for Jev fast picks. Stored in this browser; manage it through AI Provider Setup."
+      },
+      "JevSource": {
+        "Name": "Jev Source",
+        "Hint": "Where the separate Jev key is sent: OpenRouter or TypeSafe AI. Manage it through AI Provider Setup."
       },
       "Model": {
         "Name": "Model",
@@ -69,12 +73,23 @@
       "Privacy": "Each connection's key stays in this browser and is sent only to the exact endpoint authorized when you save that connection.",
       "JevLegend": "Fast picks (Jev)",
       "JevHint": "Jev runs automatically on an OpenRouter connection. Add a key here only if your chat model is not on OpenRouter.",
-      "JevKeyLabel": "OpenRouter key for Jev (this browser only)",
-      "JevKeyPlaceholder": "Optional: OpenRouter key",
+      "JevSourceLabel": "Jev source",
+      "JevKeyLabel": "Jev key (this browser only)",
+      "JevKeyPlaceholder": "Optional: {source} key",
       "JevKeySaved": "A Jev key is saved — leave blank to keep it",
       "ClearJevKey": "Clear the saved Jev key",
       "SaveJevKey": "Save Jev key",
-      "JevCorsWarning": "A TypeSafe-direct key will most likely not work from Foundry (browser CORS). Use an OpenRouter key. It is sent only to openrouter.ai.",
+      "JevCorsWarning": "TypeSafe AI currently blocks calls from a browser (CORS), so Foundry most likely cannot reach it directly. Use Test Jev to check, or switch to OpenRouter. A TypeSafe key is sent only to api.typesafe.ai.",
+      "TestJev": "Test Jev",
+      "JevSourceSaved": "Jev source saved.",
+      "JevTestSuccess": "Jev is working: {source} answered in {seconds} s.",
+      "JevTestOff": "Jev is off: save a Jev key, or save an OpenRouter chat connection with its key.",
+      "JevTestBadKey": "{source} rejected the Jev key (HTTP {status}).",
+      "JevTestHttp": "{source} refused the Jev request (HTTP {status}).",
+      "JevTestTypeSafeCors": "TypeSafe AI blocks calls from a browser (CORS), so Foundry cannot reach it directly. Switch the Jev source to OpenRouter.",
+      "JevTestNetwork": "Could not reach {source}. Check your network connection.",
+      "JevTestTimeout": "{source} did not answer within 15 s.",
+      "JevTestShape": "{source} answered, but not in Jev's format. Check that the key is for Jev.",
       "JevSaved": "Jev key saved.",
       "JevCleared": "Jev key cleared.",
       "JevSaveFailed": "Could not save the Jev key: {message}",
@@ -187,6 +202,7 @@
       "JevRow": "Fast picks: Jev",
       "JevOnConnection": "on (OpenRouter connection)",
       "JevOnKey": "on (separate Jev key)",
+      "JevOnTypeSafe": "on (TypeSafe AI key)",
       "JevOff": "off (needs an OpenRouter connection or a Jev key)",
       "JevConfigure": "Set up Jev",
       "SourcesReady": "Ready — {packCount} enabled packs",
