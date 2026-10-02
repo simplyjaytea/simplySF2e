@@ -384,6 +384,15 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 | 12l.2 | Open the Item Forge. | A "Compendium Content" row sits under the provider row with a gear that opens Compendium Sources; Generate stands alone in its row. | Item Forge | | |
 | 12l.3 | Generate an item, then look at the primary button. | It still reads **Generate**, not Regenerate; pressing it again makes a new version. | Item Forge | | |
 
+## 12m. U6 Narrow windows
+
+| # | Do | Expect | Where | Pass | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 12m.1 | Set the Generator to about 460 px wide. | The five modes sit on one row, icon above label; "Player Character" wraps to two lines inside its own segment and no label breaks mid-word. | Generator | | |
+| 12m.2 | Encounter and Character modes at the same width. | The Generate button label stays on one line; Preview Plan drops to a second line if there is no room. | Generator | | |
+| 12m.3 | Item Forge at about 460 px. | Kind tiles sit two per row, so Generate and the preview are higher up. | Item Forge | | |
+| 12m.4 | Shrink the Generator under about 400 px. | Modes wrap into a grid again without overflow. | Generator | | |
+
 ## 13. Firefox (if available)
 
 | # | Step | Expected | Where to look | Result | Evidence |

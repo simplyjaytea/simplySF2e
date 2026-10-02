@@ -79,9 +79,15 @@
 /* Narrow windows: the tiles stack full-width, so drop the fixed tile height
    and tighten padding; title and hint both stay visible. */
 @container spf-window (max-width: 520px) {
+  /* Two tiles per row instead of a single tall stack (audit F5). */
+  .simplysf2e .spf-kind-choices {
+    grid-template-columns: repeat(auto-fit, minmax(min(9.5rem, 100%), 1fr));
+    gap: var(--spf-space-xs);
+  }
+
   .simplysf2e .spf-kind-choice {
     min-height: 0;
-    padding: var(--spf-space-sm) var(--spf-space-md);
+    padding: var(--spf-space-sm);
   }
 }
 

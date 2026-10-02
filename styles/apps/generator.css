@@ -544,3 +544,21 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Medium-narrow (about 400-520px): keep all five modes on one row, icon over
+   label, so "Player Character" no longer breaks mid-segment (audit G3). Below
+   that the auto-fit grid above wraps the segments instead. */
+@container spf-window (min-width: 400px) and (max-width: 520px) {
+  .simplysf2e .spf-mode-toggle {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .simplysf2e .spf-mode-toggle label {
+    flex-direction: column;
+    gap: 0.2rem;
+    padding: var(--spf-space-xs) 2px;
+    font-size: 0.66em;
+    letter-spacing: 0;
+    line-height: 1.15;
+  }
+}
