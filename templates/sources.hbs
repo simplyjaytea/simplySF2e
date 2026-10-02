@@ -1,6 +1,9 @@
 <div class="simplysf2e-sources spf-hud">
   <p class="spf-hint spf-hud-accent"><i class="fa-solid fa-satellite-dish" aria-hidden="true"></i> {{localize "SIMPLYSF2E.Sources.Hint"}}</p>
 
+  {{#if noPacks}}
+    <p class="spf-hint spf-source-empty">{{localize "SIMPLYSF2E.Sources.NonePacksFound"}}</p>
+  {{else}}
   {{#each categories}}
     <fieldset class="spf-source-category spf-card spf-hud-frame">
       <legend>{{localize this.label}}</legend>
@@ -17,9 +20,10 @@
       {{/if}}
     </fieldset>
   {{/each}}
+  {{/if}}
 
   <footer class="spf-actions spf-hud-actions">
-    <button type="submit" class="spf-primary">
+    <button type="submit" class="spf-primary" {{#if noPacks}}disabled{{/if}}>
       <i aria-hidden="true" class="fa-solid fa-floppy-disk"></i> {{localize "SIMPLYSF2E.Sources.Save"}}
     </button>
     <button type="button" data-action="reset">
