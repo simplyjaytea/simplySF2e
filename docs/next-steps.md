@@ -73,7 +73,7 @@ Ground rules for every J step (they extend CLAUDE.md's invariants):
 
 ### Wave J-1
 
-- [ ] **J1a · Jev client and resolver (no UI).** New `scripts/jev.mjs`, pure parts node-testable:
+- [x] **J1a · Jev client and resolver (no UI).** (done: PR pending) New `scripts/jev.mjs`, pure parts node-testable:
   - `JEV_ENDPOINT = "https://openrouter.ai/api/v1/systemone"` and `JEV_MODEL = "typesafe/jev-1.13"`: one fixed endpoint, because TypeSafe's own endpoint fails the browser CORS check (above) and the pinned model id is OpenRouter's naming.
   - `resolveJevConfig({ provider = getProviderRequestConfig, dedicated = () => null } = {})` → `{ endpoint, apiKey } | null`, the **only** gate J2–J5 use. Use these injected parameters (Node ESM cannot stub named imports; tests pass fakes). Order: `dedicated()?.apiKey` when non-empty; else call `provider()` once and, when its `.provider.id === "openrouter"` (`getProviderRequestConfig` already includes `describeProvider`'s result) and its `apiKey` is **non-empty** (`settings.mjs` ~525 returns `""` unless the key is bound to that exact base URL; never read raw settings), that key; else `null`. Never return an empty key. J1b changes only the `dedicated` default to `getJevRequestConfig`. Reusing a key bound to `https://openrouter.ai/api/v1` for its sibling `/systemone` path is the same host and account, so it stays inside the binding's intent (the binding prevents sending a key to a *different* endpoint); say so in a code comment.
   - `buildChoiceQuestion({ instructions, candidates })` → `{ type: "choice", instructions, criteria: { [id]: name } }`, rejecting more than 255 options (caller falls back).
