@@ -63,7 +63,10 @@
   font-family: var(--spf-font-mono);
   font-size: var(--spf-text-xs);
   color: var(--spf-text-muted);
-  white-space: nowrap;
+  /* Wrap long package ids so they do not squeeze the title (audit S4). */
+  overflow-wrap: anywhere;
+  text-align: right;
+  max-width: 45%;
 }
 
 /* Empty category: dashed inset so "no packs" reads as a state, not a row. */
