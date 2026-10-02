@@ -940,19 +940,16 @@ export async function resolveFocusSpells(names, { exactContent = false } = {}) {
 }
 
 /**
- * Compute the final numeric stat block (also used by the preview).
- * Supports Alien Core pp. 204/207 Elite and Weak adjustments:
- * - Elite: Level +1; AC, attacks, saves, Perception, skills, DCs +2; Strike damage +2;
- *          HP +10 (levels 1-2), +15 (3-5), +20 (6-14), +30 (15+).
- * - Weak: Level -1; AC, attacks, saves, Perception, skills, DCs -2; Strike damage -2;
- *         HP -10 (levels 1-2), -15 (3-5), -20 (6-14), -30 (15+).
+ * Compute the numeric stat block written to the actor: always at the
+ * concept's base level. Elite/Weak (Alien Core pp. 204/207) is NOT applied
+ * here. createActor stores `attributes.adjustment`, and v14-dev
+ * npc/document.ts applies it on every prep (level shift, +/-2 to every base
+ * modifier, the HP adjustment, strike and spell damage, spell DC/attack).
+ * Applying it here too counted it twice. Use adjustedStats() to show what
+ * the sheet will display.
  */
 export function computeStats(concept) {
-  const baseLv = concept.level;
-  const adj = concept.adjustment;
-  const lv = adj === "elite" ? Math.min(baseLv + 1, T.MAX_LEVEL)
-    : adj === "weak" ? Math.max(baseLv - 1, T.MIN_LEVEL)
-    : baseLv;
+  const lv = concept.level;
 
   const abilities = {};
   for (const [key, scale] of Object.entries(concept.abilityScales)) {
@@ -990,6 +987,75 @@ export function computeStats(concept) {
       high: T.lookup(T.SPELL_DC, lv, "high"),
       moderate: T.lookup(T.SPELL_DC, lv, "moderate")
     }
+  };
+}
+
+/**
+ * Elite/Weak level, mirroring pf2e v14-dev npc/document.ts prepareBaseData:
+ * "Elite: Increase the creature's level by 1; if the creature is -1 or 0,
+ * instead increase its level by 2 / Weak: Decrease the creature's level by 1;
+ * if the creature is level 1, instead decrease its level by 2".
+ */
+export function adjustedLevel(level, adjustment) {
+  if (adjustment === "elite") return level < 1 ? level + 2 : level + 1;
+  if (adjustment === "weak") return level === 1 ? level - 2 : level - 1;
+  return level;
+}
+
+/**
+ * Elite/Weak HP change, a copy of pf2e v14-dev creature/helpers.ts
+ * getHpAdjustment (elite: 20+ 30HP, 5~19 20HP, 2~4 15HP, 1 or lower 10HP;
+ * weak: 21+ -30HP, 6~20 -20HP, 3~5 -15HP, 1-2 -10HP).
+ */
+export function hpAdjustment(level, adjustment) {
+  if (adjustment === "elite") {
+    if (level >= 20) return 30;
+    if (level >= 5) return 20;
+    if (level >= 2) return 15;
+    return 10;
+  }
+  if (adjustment === "weak") {
+    if (level >= 21) return -30;
+    if (level >= 6) return -20;
+    if (level >= 3) return -15;
+    if (level === 1 || level === 2) return -10;
+  }
+  return 0;
+}
+
+function shiftFormula(formula, delta) {
+  const m = /^(\d+d\d+)([+-]\d+)?$/.exec(String(formula).replaceAll(" ", ""));
+  if (!m) return formula;
+  const flat = Number(m[2] ?? 0) + delta;
+  return flat === 0 ? m[1] : `${m[1]}${flat > 0 ? "+" : ""}${flat}`;
+}
+
+/**
+ * Preview-only: the numbers the sheet shows once pf2e applies the stored
+ * Elite/Weak adjustment to computeStats() output (npc/document.ts
+ * `getNewValue: (base: number) => base + 2` on every base modifier,
+ * melee/document.ts +/-2 on the first damage instance, the
+ * spellcasting-entry +/-2, and getHpAdjustment on HP). Never persisted.
+ */
+export function adjustedStats(stats, concept) {
+  const adj = concept.adjustment;
+  const delta = adj === "elite" ? 2 : adj === "weak" ? -2 : 0;
+  if (!delta) return { ...stats, level: concept.level };
+  const strikes = stats.strikes.map((strike) => {
+    const damage = shiftFormula(strike.damage, delta);
+    return { ...strike, bonus: strike.bonus + delta, damage, average: T.averageDamage(damage) };
+  });
+  return {
+    ...stats,
+    level: adjustedLevel(concept.level, adj),
+    ac: stats.ac + delta,
+    hp: Math.max(1, stats.hp + hpAdjustment(concept.level, adj)),
+    perception: stats.perception + delta,
+    saves: Object.fromEntries(Object.entries(stats.saves).map(([key, value]) => [key, value + delta])),
+    skills: stats.skills.map((skill) => ({ ...skill, mod: skill.mod + delta })),
+    strikes,
+    spellDC: stats.spellDC === null ? null : stats.spellDC + delta,
+    spellAttack: stats.spellAttack === null ? null : stats.spellAttack + delta
   };
 }
 
@@ -1491,7 +1557,9 @@ export async function createActor(concept, resolved, { img = null, scaffold = nu
       ),
       attributes: {
         ac: { value: stats.ac, details: "" },
-        hp: { value: stats.hp, max: stats.hp, temp: 0, details: "" },
+        // max is the base value; pf2e adds the Elite/Weak HP modifier on prep.
+        // value starts full, matching npc/document.ts applyAdjustment.
+        hp: { value: Math.max(1, stats.hp + hpAdjustment(concept.level, concept.adjustment ?? null)), max: stats.hp, temp: 0, details: "" },
         adjustment: concept.adjustment ?? null,
         speed: {
           value: concept.speeds.find((s) => s.type === "land")?.value ?? 0,
