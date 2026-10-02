@@ -811,10 +811,10 @@ export class GeneratorApp extends SpfApp {
       assertComplete(manifest);
       this.#manifest = manifest;
       const eq = this.#resolved.equipment;
-      if (eq.length) {
-        const misses = eq.filter((e) => !e.entry).map((e) => e.name);
-        console.log(`${MODULE_ID} | equipment matches: ${eq.length - misses.length}/${eq.length}`,
-          misses.length ? { missing: misses } : "");
+      const misses = (this.#resolved.skippedGear ?? []).filter((g) => g.category === "equipment").map((g) => g.name);
+      if (eq.length || misses.length) {
+        console.log(`${MODULE_ID} | equipment matches: ${eq.length}/${eq.length + misses.length}`,
+          misses.length ? { skipped: misses } : "");
       }
       console.log(`${MODULE_ID} | token usage`, this._tokenUsage);
     } catch (err) {
@@ -919,10 +919,11 @@ export class GeneratorApp extends SpfApp {
         member.treasureEach = lootValueGp(member.resolved.loot);
       }
       const allEq = members.flatMap((m) => m.resolved.equipment);
-      if (allEq.length) {
-        const misses = allEq.filter((e) => !e.entry).map((e) => e.name);
-        console.log(`${MODULE_ID} | equipment matches: ${allEq.length - misses.length}/${allEq.length}`,
-          misses.length ? { missing: misses } : "");
+      const misses = members.flatMap((m) => m.resolved.skippedGear ?? [])
+        .filter((g) => g.category === "equipment").map((g) => g.name);
+      if (allEq.length || misses.length) {
+        console.log(`${MODULE_ID} | equipment matches: ${allEq.length}/${allEq.length + misses.length}`,
+          misses.length ? { skipped: misses } : "");
       }
       this._throwIfCancelled();
       this.#encounter = {

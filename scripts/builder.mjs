@@ -793,7 +793,10 @@ export async function resolveConcept(concept, { exactContent = false } = {}) {
 function skipUnmatched(exactContent, skipped, category, name, quantity) {
   if (!exactContent) return false;
   console.warn(`simplysf2e | skipped ${category} "${name}": no published compendium match`);
-  if (Array.isArray(skipped)) skipped.push({ category, name, quantity });
+  if (!Array.isArray(skipped)) return true;
+  const repeat = skipped.find((item) => item.category === category && item.name === name);
+  if (repeat) repeat.quantity += Number(quantity) || 0;
+  else skipped.push({ category, name, quantity });
   return true;
 }
 
