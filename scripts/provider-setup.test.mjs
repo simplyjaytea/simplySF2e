@@ -83,6 +83,22 @@ assert.equal(modelControl.value, "", "local presets must require a model that is
 assert.equal(ollamaButton["aria-pressed"], "true");
 assert.equal(openAIButton["aria-pressed"], "false");
 
+{
+  const hintEl = { hidden: false };
+  const hintApp = new ProviderSetupApp();
+  const hintOpenAI = makeButton("openai");
+  hintApp.element = {
+    querySelector: (selector) => selector.includes("local-hint") ? hintEl : (selector.includes("apiBaseUrl") ? { value: "" } : { value: "" }),
+    querySelectorAll: () => [hintOpenAI]
+  };
+  await ProviderSetupApp.DEFAULT_OPTIONS.actions.chooseProvider.call(hintApp, null, hintOpenAI);
+  assert.equal(hintEl.hidden, true, "hosted presets hide the local-server hint");
+  await ProviderSetupApp.DEFAULT_OPTIONS.actions.chooseProvider.call(hintApp, null, makeButton("lmstudio"));
+  assert.equal(hintEl.hidden, false, "local presets show the local-server hint");
+  await ProviderSetupApp.DEFAULT_OPTIONS.actions.chooseProvider.call(hintApp, null, makeButton("custom"));
+  assert.equal(hintEl.hidden, false, "custom endpoints keep the local-server hint");
+}
+
 const setCurrent = ({ baseUrl, model = "old-model", apiKey = "old-secret", bound = baseUrl }) => {
   values.set(SETTINGS.apiBaseUrl, baseUrl);
   values.set(SETTINGS.model, model);
