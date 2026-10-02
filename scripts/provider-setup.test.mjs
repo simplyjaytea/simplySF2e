@@ -120,14 +120,16 @@ const submit = async ({ baseUrl, model, apiKey = "", clearApiKey = false, connec
   assert.equal(saved, 1, "successful setup must refresh the calling generator");
 };
 
-const jevAction = async ({ jevApiKey = "", clearJevApiKey = false }) => {
+const jevAction = async ({ jevApiKey = "", clearJevApiKey = false, chatKey = "" }) => {
+  let rendered = 0;
   const app = new ProviderSetupApp();
-  app.render = async () => {};
+  app.render = async () => { rendered += 1; };
   const button = makeButton("jev");
   button.querySelector = () => null;
   const controls = new Map([
     ["[name='jevApiKey']", { value: jevApiKey, disabled: false }],
-    ["[name='clearJevApiKey']", { checked: clearJevApiKey, disabled: false }]
+    ["[name='clearJevApiKey']", { checked: clearJevApiKey, disabled: false }],
+    ["[name='apiKey']", { value: chatKey, disabled: false }]
   ]);
   app.element = {
     querySelector: (selector) => controls.get(selector) ?? null,
@@ -136,6 +138,8 @@ const jevAction = async ({ jevApiKey = "", clearJevApiKey = false }) => {
     removeAttribute: () => {}
   };
   await ProviderSetupApp.DEFAULT_OPTIONS.actions.saveJevKey.call(app, null, button);
+  assert.equal(rendered, 0, "Jev save must not re-render and discard unsaved chat fields");
+  assert.equal(controls.get("[name='apiKey']").value, chatKey, "typed chat key survives a Jev save");
 };
 
 setCurrent({ baseUrl: "https://old-provider.example/v1" });
@@ -368,7 +372,7 @@ assert.equal(getProviderRequestConfig().apiKey, "deepseek-secret");
 
 // Jev key: saveJevKey action (empty keeps, typed saves, clear removes).
 values.set(SETTINGS.jevApiKey, "");
-await jevAction({ jevApiKey: "  or-jev-1  " });
+await jevAction({ jevApiKey: "  or-jev-1  ", chatKey: "typed-chat-key" });
 assert.equal(values.get(SETTINGS.jevApiKey), "or-jev-1", "typed Jev key is trimmed and saved");
 await jevAction({});
 assert.equal(values.get(SETTINGS.jevApiKey), "or-jev-1", "empty input keeps the stored Jev key");

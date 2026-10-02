@@ -278,6 +278,20 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
     return clear ? "cleared" : "saved";
   }
 
+  #syncJevControls(hasKey) {
+    const input = this.element.querySelector("[name='jevApiKey']");
+    if (input) {
+      input.value = "";
+      input.placeholder = game.i18n.localize(hasKey
+        ? "SIMPLYSF2E.ProviderSetup.JevKeySaved"
+        : "SIMPLYSF2E.ProviderSetup.JevKeyPlaceholder");
+    }
+    const clear = this.element.querySelector("[name='clearJevApiKey']");
+    if (clear) clear.checked = false;
+    const label = this.element.querySelector(".spf-jev-clear");
+    if (label) label.hidden = !hasKey;
+  }
+
   static async #onSaveJevKey(_event, target) {
     const busy = this.#beginBusy(target);
     if (!busy) return;
@@ -289,7 +303,8 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
             ? "SIMPLYSF2E.ProviderSetup.JevCleared"
             : "SIMPLYSF2E.ProviderSetup.JevSaved"
         ));
-        await this.render();
+        // Update in place: a re-render would discard unsaved chat fields.
+        this.#syncJevControls(result === "saved");
       }
     } catch (err) {
       console.error("simplysf2e | Jev key save failed", err);
@@ -306,7 +321,12 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
     if (!state) return;
     try {
       // First, so a Jev key typed before Save is kept even if the chat save throws.
-      await ProviderSetupApp.#saveJevKey.call(this);
+      const jev = await ProviderSetupApp.#saveJevKey.call(this);
+      if (jev) {
+        ui.notifications.info(game.i18n.localize(
+          jev === "cleared" ? "SIMPLYSF2E.ProviderSetup.JevCleared" : "SIMPLYSF2E.ProviderSetup.JevSaved"
+        ));
+      }
       await ProviderSetupApp.#saveSettings.call(this);
     } finally {
       this.#endBusy(state);

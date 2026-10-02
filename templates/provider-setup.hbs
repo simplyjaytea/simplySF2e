@@ -84,12 +84,10 @@
       </div>
     </div>
 
-    {{#if hasJevKey}}
-      <label class="spf-provider-clear-key">
-        <input type="checkbox" name="clearJevApiKey">
-        {{localize "SIMPLYSF2E.ProviderSetup.ClearJevKey"}}
-      </label>
-    {{/if}}
+    <label class="spf-provider-clear-key spf-jev-clear" {{#unless hasJevKey}}hidden{{/unless}}>
+      <input type="checkbox" name="clearJevApiKey">
+      {{localize "SIMPLYSF2E.ProviderSetup.ClearJevKey"}}
+    </label>
 
     <p class="notification warning spf-jev-warning"><i class="fa-solid fa-triangle-exclamation"></i> {{localize "SIMPLYSF2E.ProviderSetup.JevCorsWarning"}}</p>
   </fieldset>
