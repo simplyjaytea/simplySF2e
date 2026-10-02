@@ -43,7 +43,7 @@ Read this first, then CLAUDE.md. HISTORY.md is the PF2e-era scaffold narrative; 
   - a privacy note: prompts and candidate lists go to the configured provider
 
   Use the real `lang/en.json` labels so the guide matches the UI. **Worker: Sonnet.**
-- [ ] **G9 · Re-evaluate "Known gaps" for SF2e.** CLAUDE.md's list is inherited from PF2e. Check, with citations: which SF2e classes have focus pools; whether the focus-pool RE exemplar exists in `sf2e.*` packs (`rule-templates.mjs` `focusPool`); whether passive Item Forge REs have eligible exemplars in `sf2e.equipment`. Also rewrite the rune-era Phase 3 notes in upgrade terms. **Worker: Opus** (research), Sonnet for the doc edit.
+- [x] **G9 · Re-evaluate "Known gaps" for SF2e.** CLAUDE.md's list is inherited from PF2e. Check, with citations: which SF2e classes have focus pools; whether the focus-pool RE exemplar exists in `sf2e.*` packs (`rule-templates.mjs` `focusPool`); whether passive Item Forge REs have eligible exemplars in `sf2e.equipment`. Also rewrite the rune-era Phase 3 notes in upgrade terms. **Worker: Opus** (research), Sonnet for the doc edit. Done 2026-10-02: only Mystic/Witchwarper have focus pools; no `sf2e.*` focus-pool RE exists, but v14-dev `spell/document.ts` adds +1 per focus spell so the pool works without it; forge passive kinds with sf2e.equipment exemplars are item bonus, resistance, sense (none for weakness/immunity/speed). Known gaps rewritten.
 - [ ] **G10 · Live QA script.** Write `docs/qa-checklist.md`: per feature, give exact steps, the expected result, where to look on the sheet, and a result/evidence column. Cover:
   - Item Forge grade/upgrades/credits
   - NPC with GM Core stats, including Elite/Weak
