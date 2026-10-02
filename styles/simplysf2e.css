@@ -585,7 +585,11 @@
 }
 
 .simplysf2e .spf-generate-row button[data-action="generate"] {
-  flex: 1 1 14rem;
+  /* Natural width, never wrapped: if the row is too tight the other buttons
+     wrap to the next line instead of breaking the label (audit G4). */
+  flex: 1 1 auto;
+  min-width: max-content;
+  white-space: nowrap;
 }
 
 .simplysf2e .spf-random-button {

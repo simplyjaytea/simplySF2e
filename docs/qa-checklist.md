@@ -376,6 +376,15 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 | 12k.5 | With a preview showing, click **Discard**. | A confirm dialog; Cancel keeps the preview, Confirm clears it. Check monster, encounter, character and Forge previews. | Both | | |
 | 12k.6 | Type a prompt and press Ctrl+Enter (Cmd+Enter on Mac). | Starts Generate exactly as the button does; does nothing while busy. | Both | | |
 
+## 12m. U6 Narrow windows
+
+| # | Do | Expect | Where | Pass | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 12m.1 | Set the Generator to about 460 px wide. | The five modes sit on one row, icon above label; "Player Character" wraps to two lines inside its own segment and no label breaks mid-word. | Generator | | |
+| 12m.2 | Encounter and Character modes at the same width. | The Generate button label stays on one line; Preview Plan drops to a second line if there is no room. | Generator | | |
+| 12m.3 | Item Forge at about 460 px. | Kind tiles sit two per row, so Generate and the preview are higher up. | Item Forge | | |
+| 12m.4 | Shrink the Generator under about 400 px. | Modes wrap into a grid again without overflow. | Generator | | |
+
 ## 13. Firefox (if available)
 
 | # | Step | Expected | Where to look | Result | Evidence |
