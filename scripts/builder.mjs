@@ -87,36 +87,34 @@ function thrownRangeFromTraits(traits) {
  * the REAL pf2e allowed-value lists (invariant 2: fetched live, not recalled)
  * and anything that doesn't match is dropped with a console.warn.
  *
- * Sources (fetched 2026-08-28 from raw.githubusercontent.com/foundryvtt/pf2e/master):
+ * Sources (fetched 2026-10-02 from raw.githubusercontent.com/foundryvtt/pf2e/v14-dev,
+ * the branch sf2e 1.5.1 is built from):
  *
  * - src/scripts/config/iwr.ts — immunityTypes / weaknessTypes / resistanceTypes
  *   each `...`-spread three shared pieces before their own explicit keys:
- *     - materialDamageEffects from src/scripts/config/damage.ts: precious
- *       materials with IWR effects, R.pick()'d from preciousMaterials as
- *       ["abysium","adamantine","cold-iron","dawnsilver","djezet","duskwood",
- *       "inubrix","keep-stone","noqual","orichalcum","peachwood","siccatite",
- *       "silver","sisterstone-dusk","sisterstone-scarlet","sovereign-steel",
- *       "warpglass"], then iwr.ts itself R.omit()s six of those as niche
- *       ("keep-stone","peachwood","sisterstone-dusk","sisterstone-scarlet",
- *       "sovereign-steel","warpglass") — the 11 below are what's left.
- *     - magicTraditions from src/scripts/config/traits.ts: arcane/divine/
- *       occult/primal.
- *     - a local `sanctifiedIWR` object: holy/unholy.
- * - src/module/actor/creature/values.ts — SENSE_TYPES (the Sense DataModel's
- *   StringField choices in creature/sense.ts) and LANGUAGES (built from
- *   COMMON_LANGUAGES + UNCOMMON_LANGUAGES + RARE_LANGUAGES + "common" +
- *   "wildsong").
+ *     - materialIWR: src/scripts/config/damage.ts materialDamageEffects
+ *       (abysium, adamantine, cold-iron, dawnsilver, djezet, duskwood,
+ *       inubrix, keep-stone, noqual, orichalcum, peachwood, siccatite, silver,
+ *       sisterstone-dusk, sisterstone-scarlet, sovereign-steel, warpglass)
+ *       minus iwr.ts's R.omit of "keep-stone", "sisterstone-dusk",
+ *       "sisterstone-scarlet", "sovereign-steel", "warpglass" — the 12 below.
+ *     - traditionIWR: magicTraditions (src/scripts/config/traits.ts):
+ *       arcane/divine/occult/primal.
+ *     - sanctifiedIWR: holy/unholy.
+ * - src/module/actor/creature/values.ts — SENSE_TYPES, and LANGUAGES, which
+ *   is ["common", ...LANGUAGES_BY_RARITY[SYSTEM_ID]] — the `sf2e` entry
+ *   (common + uncommon; rare and secret are empty), not PF2e's list.
  */
 const IWR_MATERIALS = [
   "abysium", "adamantine", "cold-iron", "dawnsilver", "djezet", "duskwood",
-  "inubrix", "noqual", "orichalcum", "siccatite", "silver"
+  "inubrix", "noqual", "orichalcum", "peachwood", "siccatite", "silver"
 ];
 const IWR_SANCTIFIED = ["holy", "unholy"];
 const IWR_TRADITIONS = ["arcane", "divine", "occult", "primal"];
 
 const IMMUNITY_TYPES = new Set([
   ...IWR_MATERIALS, ...IWR_SANCTIFIED, ...IWR_TRADITIONS,
-  "acid", "air", "alchemical", "area-damage", "auditory", "bleed", "blinded",
+  "acid", "aging", "air", "alchemical", "area-damage", "auditory", "bleed", "blinded",
   "bludgeoning", "clumsy", "cold", "confused", "controlled", "critical-hits",
   "curse", "custom", "dazzled", "deafened", "death-effects", "detection",
   "disease", "doomed", "drained", "earth", "electricity", "emotion", "energy",
@@ -126,10 +124,10 @@ const IMMUNITY_TYPES = new Set([
   "misfortune-effects", "non-magical", "nonlethal-attacks",
   "object-immunities", "off-guard", "olfactory", "paralyzed",
   "persistent-damage", "petrified", "physical", "piercing", "plant", "poison",
-  "polymorph", "possession", "precision", "prone", "radiation", "restrained",
+  "polymorph", "possession", "precision", "prediction", "prone", "radiation", "restrained",
   "salt-water", "scrying", "sickened", "slashing", "sleep", "slowed", "sonic",
   "spell-deflection", "spirit", "stunned", "stupefied", "swarm-attacks",
-  "swarm-mind", "trip", "unarmed-attacks", "unconscious", "visual", "vitality",
+  "swarm-mind", "time", "trip", "unarmed-attacks", "unconscious", "visual", "vitality",
   "void", "water", "wood", "wounded"
 ]);
 
@@ -142,7 +140,7 @@ const WEAKNESS_TYPES = new Set([
   "metal", "mythic", "non-magical", "nonlethal-attacks", "persistent-damage",
   "physical", "piercing", "plant", "poison", "precision", "radiation", "salt",
   "salt-water", "slashing", "sonic", "spells", "spirit", "splash-damage",
-  "unarmed-attacks", "vampire-weaknesses", "vitality", "void", "vorpal",
+  "time", "unarmed-attacks", "vampire-weaknesses", "vitality", "void", "vorpal",
   "vorpal-fear", "vulnerable-to-sunlight", "water", "weapons",
   "weapons-shedding-bright-light", "wood"
 ]);
@@ -155,44 +153,37 @@ const RESISTANCE_TYPES = new Set([
   "magical", "mental", "metal", "mythic", "non-magical", "nonlethal",
   "nonlethal-attacks", "persistent-damage", "physical", "piercing", "plant",
   "poison", "precision", "protean-anatomy", "radiation", "salt", "salt-water",
-  "slashing", "sonic", "spells", "spirit", "unarmed-attacks", "vitality",
+  "slashing", "sonic", "spells", "spirit", "time", "unarmed-attacks", "vitality",
   "void", "vorpal", "vorpal-adamantine", "water", "weapons",
   "weapons-shedding-bright-light", "wood"
 ]);
 
 const SENSE_TYPES = new Set([
-  "darkvision", "echolocation", "greater-darkvision", "infrared-vision",
-  "lifesense", "low-light-vision", "magicsense", "motion-sense", "scent",
+  "bloodsense", "darkvision", "echolocation", "electromagnetic-sense",
+  "greater-darkvision", "infrared-vision", "lifesense", "low-light-vision", "magicsense", "motion-sense", "scent",
   "see-invisibility", "spiritsense", "thoughtsense", "tremorsense",
   "truesight", "wavesense"
 ]);
 
 const LANGUAGE_TYPES = new Set([
   "common",
-  // COMMON_LANGUAGES
-  "draconic", "dwarven", "elven", "fey", "gnomish", "goblin", "halfling",
-  "jotun", "orcish", "sakvroth", "taldane",
-  // UNCOMMON_LANGUAGES
-  "adlet", "aklo", "alghollthu", "amurrun", "arboreal", "boggard", "calda",
-  "caligni", "chthonian", "cyclops", "daemonic", "diabolic", "ekujae",
-  "empyrean", "grippli", "hallit", "iruxi", "kelish", "kholo", "kibwani",
-  "kitsune", "lirgeni", "muan", "mwangi", "mzunu", "nagaji", "necril",
-  "ocotan", "osiriani", "petran", "protean", "pyric", "requian",
-  "shadowtongue", "shoanti", "skald", "sphinx", "sussuran", "tang", "tengu",
-  "thalassic", "tien", "utopian", "vanara", "varisian", "vudrani", "xanmba",
-  "wayang", "ysoki",
-  // RARE_LANGUAGES
-  "akitonian", "anadi", "ancient-osiriani", "androffan", "anugobu",
-  "arcadian", "azlanti", "destrachan", "drooni", "dziriak", "elder-thing",
-  "erutaki", "formian", "garundi", "girtablilu", "goloma", "grioth", "hwan",
-  "iblydan", "ikeshti", "immolis", "jistkan", "jyoti", "kaava", "kashrishi",
-  "kovintal", "lashunta", "mahwek", "migo", "minaten", "minkaian", "munavri",
-  "okaiyan", "orvian", "rasu", "ratajin", "razatlani", "russian", "samsaran",
-  "sasquatch", "senzar", "shae", "shisk", "shobhad", "shoony", "shory",
-  "strix", "surki", "talican", "tanuki", "tekritanin", "thassilonian",
-  "varki", "vishkanyan", "wyrwood", "yaksha", "yithian",
-  // secret
-  "wildsong"
+  // LANGUAGES_BY_RARITY.sf2e.common
+  "akitonian", "brethedan", "castrovelian", "diasporan", "draconic", "eoxian",
+  "kasatha", "pact-common", "pahtra", "trinary", "vercite", "vesk",
+  // LANGUAGES_BY_RARITY.sf2e.uncommon
+  "aballonian", "acsie", "aklo", "alghollthu", "arboreal", "atraxid", "azlanti",
+  "bantridi", "binnaquid", "brenneri", "chthonian", "copaxi", "coshyco",
+  "daemonic", "diabolic", "dorjosh", "dwarven", "elindrian", "elven", "embri",
+  "empyrean", "entu", "fey", "first-one", "formian", "garaggakal", "gfolian",
+  "gnarefuroid", "gnomish", "goblin", "halfling", "izalguun", "jinsul", "jotun",
+  "kalo", "khizar", "kothama", "krethiskarian", "kucharn", "kuxoran",
+  "lashunta", "lazelan", "madrosarai", "maraquoi", "maratan",
+  "morandomandranan", "muan", "nchaki", "necril", "orbian", "orcish", "osharu",
+  "petran", "prelurian", "primacy", "pyric", "raxi", "requian", "rodnarthian",
+  "sarcesian", "sarcesian-signed", "shadowtongue", "shirren", "shobhad",
+  "starsong", "sussuran", "szandite", "talican", "talphirian", "thalassic",
+  "triaxian", "urog", "utopian", "vlaka", "vulkari", "worlanisi", "xofirthian",
+  "ysoki"
 ]);
 
 /**
