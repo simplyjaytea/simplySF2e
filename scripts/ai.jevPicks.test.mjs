@@ -196,7 +196,7 @@ const pcSpellArgs = {
 const spellScore = (score, confidence = 0.9) => ({
   type: "score", score, confidence, probabilities: {}, legend: { 0: "poor", 1: "fair", 2: "good", 3: "excellent" }
 });
-jevReplies.push({ model: "typesafe/jev-1.13", answers: { spell_S0: spellScore(2), spell_S1: spellScore(3) }, usage: { input_tokens: 40, output_tokens: 2 } });
+jevReplies.push({ model: "typesafe/jev-1.13", answers: { spell_0: spellScore(2), spell_1: spellScore(3) }, usage: { input_tokens: 40, output_tokens: 2 } });
 const seenBefore = { ...seen };
 out = await selectSpells(pcSpellArgs);
 assert.equal(seen.llm, seenBefore.llm, "no chat-model request");
@@ -204,7 +204,7 @@ assert.deepEqual(out.spells, [
   { name: "Detect Magic", candidate: spellCandidates[0].ref, rank: 0 }, { name: "Force Barrage", candidate: spellCandidates[1].ref, rank: 1 }
 ]);
 assert.equal(out.timing.source, "jev");
-jevReplies.push({ model: "typesafe/jev-1.13", answers: { spell_S0: spellScore(2, 0.2), spell_S1: spellScore(3) }, usage: null });
+jevReplies.push({ model: "typesafe/jev-1.13", answers: { spell_0: spellScore(2, 0.2), spell_1: spellScore(3) }, usage: null });
 llmReplies.push({ spells: [{ id: "S0", rank: "cantrip", signature: "regular" }, { id: "S1", rank: "rank-one", signature: "regular" }], focusSpellIds: [] });
 out = await selectSpells(pcSpellArgs);
 assert.deepEqual(out.spells.map((s) => s.name), ["Detect Magic", "Force Barrage"]);

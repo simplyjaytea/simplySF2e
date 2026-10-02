@@ -440,7 +440,7 @@ const FOCUS_SPELL_CAP = 3;
  * - A slot's spell is a candidate whose base rank equals the slot rank (no
  *   heightening); a rank with fewer eligible candidates than slots falls back.
  *   Rank-ten spontaneous slots take common spells only, as the chat prompt requires.
- * - Only readable answers at JEV_MIN_CONFIDENCE compete; picks are distinct per rank.
+ * - Only readable answers at JEV_MIN_CONFIDENCE and above "poor" compete; picks are distinct per rank.
  * - Signature spells (module-owned eligibility): the best-scored selected spell at
  *   each signature rank. Module default, not guidance on which spell heightens well.
  * - Focus spells: up to 3 candidates scored at the top level; none is valid.
@@ -475,14 +475,20 @@ export async function jevPickSpells({
   ].filter(Boolean).join("\n");
 
   const entries = [];
-  const questionFor = (key, candidate, kind) => entries.push([key, {
+  // Opaque keys (not the base64 candidate ids): the docs state no key-character limits, so stay plain.
+  const keyOf = new Map();
+  const questionFor = (prefix, candidate, kind) => {
+    const key = `${prefix}${keyOf.size}`;
+    keyOf.set(`${prefix}${candidate.id}`, key);
+    entries.push([key, {
     type: "score",
     instructions: `How well does the ${kind} "${candidate.name}" (rank ${candidate.rank}) fit this character's concept and tactics?`,
     criteria: [...JEV_SPELL_FIT_WORDS]
-  }]);
-  for (const pool of pools.values()) for (const candidate of pool) questionFor(`spell_${candidate.id}`, candidate, "spell");
+    }]);
+  };
+  for (const pool of pools.values()) for (const candidate of pool) questionFor("spell_", candidate, "spell");
   const focusPool = focusCandidates.filter((candidate) => candidate.id);
-  for (const candidate of focusPool) questionFor(`focus_${candidate.id}`, candidate, "focus spell");
+  for (const candidate of focusPool) questionFor("focus_", candidate, "focus spell");
 
   const batches = batchQuestions(entries, state);
   if (!batches) return none;
@@ -491,9 +497,10 @@ export async function jevPickSpells({
 
   // Readable, confident answers only; best raw score first, then confidence, then name for a stable order.
   const scored = (key, candidate) => {
-    const answer = answers[key];
+    const answer = answers[keyOf.get(key)];
     const index = jevScoreIndex(answer, JEV_SPELL_FIT_WORDS);
-    if (index == null || !(answer.confidence >= JEV_MIN_CONFIDENCE)) return null;
+    // "poor" never fills a slot; a rank that cannot be filled otherwise goes to the chat model.
+    if (index == null || index < 1 || !(answer.confidence >= JEV_MIN_CONFIDENCE)) return null;
     return { candidate, index, score: answer.score, confidence: answer.confidence };
   };
   const ranked = (list) => list.filter(Boolean)
