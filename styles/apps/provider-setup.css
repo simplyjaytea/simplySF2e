@@ -141,6 +141,8 @@
 }
 
 /* The local-server hint is only for Ollama, LM Studio and custom endpoints. */
-.simplysf2e .spf-provider-local-hint[hidden] {
+.simplysf2e .spf-provider-local-hint[hidden],
+.simplysf2e .spf-provider-clear-key[hidden],
+.simplysf2e .spf-jev-warning[hidden] {
   display: none;
 }

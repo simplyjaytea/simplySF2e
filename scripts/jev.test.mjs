@@ -1,11 +1,15 @@
 // Run: node scripts/jev.test.mjs
 import assert from "node:assert/strict";
 import {
-  JEV_ENDPOINT, JEV_MODEL, buildChoiceQuestion, parseJevAnswers, requestJevDecision, resolveJevConfig, jevKeySource
+  JEV_ENDPOINT, JEV_MODEL, TYPESAFE_JEV_ENDPOINT, TYPESAFE_JEV_MODEL, JEV_TEST_QUESTIONS,
+  buildChoiceQuestion, callJev, normalizeJevSource, parseJevAnswers, requestJevDecision, resolveJevConfig,
+  jevKeySource, testJevConnection
 } from "./jev.mjs";
 import { normalizeJevUsage } from "./tokens.mjs";
 
 const orState = (apiKey) => ({ apiKey, provider: { id: "openrouter" } });
+const orRoute = (apiKey) => ({ source: "openrouter", endpoint: JEV_ENDPOINT, model: JEV_MODEL, apiKey });
+const tsRoute = (apiKey) => ({ source: "typesafe", endpoint: TYPESAFE_JEV_ENDPOINT, model: TYPESAFE_JEV_MODEL, apiKey });
 
 // default `dedicated` reads the separate Jev key setting (J1b)
 {
@@ -13,7 +17,11 @@ const orState = (apiKey) => ({ apiKey, provider: { id: "openrouter" } });
   globalThis.game = { settings: { get: (_m, key) => store.get(key) } };
   assert.deepEqual(
     resolveJevConfig({ provider: () => ({ apiKey: "", provider: { id: "openai" } }) }),
-    { endpoint: JEV_ENDPOINT, apiKey: "stored-jev" }, "default dedicated source is the stored Jev key");
+    orRoute("stored-jev"), "default dedicated source is the stored Jev key");
+  store.set("jevSource", "typesafe");
+  assert.deepEqual(
+    resolveJevConfig({ provider: () => ({ apiKey: "", provider: { id: "openai" } }) }),
+    tsRoute("stored-jev"), "stored source picks the TypeSafe route");
   store.set("jevApiKey", "");
   assert.equal(resolveJevConfig({ provider: () => ({ apiKey: "", provider: { id: "openai" } }) }), null);
   delete globalThis.game;
@@ -21,6 +29,7 @@ const orState = (apiKey) => ({ apiKey, provider: { id: "openrouter" } });
 
 // status-bar source (J6)
 assert.equal(jevKeySource({ provider: () => orState("or-key"), dedicated: () => ({ apiKey: "k" }) }), "key");
+assert.equal(jevKeySource({ provider: () => orState("or-key"), dedicated: () => ({ apiKey: "k", source: "typesafe" }) }), "typesafe");
 assert.equal(jevKeySource({ provider: () => orState("or-key"), dedicated: () => null }), "connection");
 assert.equal(jevKeySource({ provider: () => ({ apiKey: "x", provider: { id: "openai" } }), dedicated: () => null }), null);
 assert.equal(jevKeySource({ provider: () => orState(""), dedicated: () => ({ apiKey: " " }) }), null);
@@ -30,10 +39,22 @@ assert.equal(JEV_ENDPOINT, "https://openrouter.ai/api/v1/systemone");
 assert.equal(JEV_MODEL, "typesafe/jev-1.13");
 assert.deepEqual(
   resolveJevConfig({ provider: () => orState("or-key"), dedicated: () => ({ apiKey: " dedicated " }) }),
-  { endpoint: JEV_ENDPOINT, apiKey: "dedicated" }, "dedicated key wins");
+  orRoute("dedicated"), "dedicated key wins");
+assert.deepEqual(
+  resolveJevConfig({ provider: () => orState("or-key"), dedicated: () => ({ apiKey: "ts", source: "typesafe" }) }),
+  tsRoute("ts"), "a TypeSafe key goes only to TypeSafe");
+assert.deepEqual(
+  resolveJevConfig({ provider: () => orState("or-key"), dedicated: () => ({ apiKey: "", source: "typesafe" }) }),
+  orRoute("or-key"), "no TypeSafe key: OpenRouter chat key stays on OpenRouter");
+assert.deepEqual(
+  resolveJevConfig({ provider: () => orState("or-key"), dedicated: () => ({ apiKey: "k", source: "bogus" }) }),
+  orRoute("k"), "unknown source falls back to OpenRouter");
 assert.deepEqual(
   resolveJevConfig({ provider: () => orState("or-key"), dedicated: () => null }),
-  { endpoint: JEV_ENDPOINT, apiKey: "or-key" }, "OpenRouter chat key reused");
+  orRoute("or-key"), "OpenRouter chat key reused");
+assert.equal(normalizeJevSource("typesafe"), "typesafe");
+assert.equal(normalizeJevSource("__proto__"), "openrouter");
+assert.equal(normalizeJevSource(undefined), "openrouter");
 assert.equal(resolveJevConfig({ provider: () => orState(""), dedicated: () => null }), null, "unbound OpenRouter key -> null");
 assert.equal(resolveJevConfig({ provider: () => ({ apiKey: "k", provider: { id: "openai" } }), dedicated: () => null }), null);
 assert.equal(resolveJevConfig({ provider: () => orState("k"), dedicated: () => ({ apiKey: "  " }) }).apiKey, "k");
@@ -123,6 +144,37 @@ try {
   assert.equal(await pending, null, "caller abort");
   const pre = new AbortController(); pre.abort();
   assert.equal(await requestJevDecision({ apiKey: "k", state: "s", questions, fetchImpl: ok, signal: pre.signal }), null);
+
+  // model follows the route
+  await requestJevDecision({ ...tsRoute("ts"), state: "s", questions, fetchImpl: ok });
+  assert.equal(seen.url, TYPESAFE_JEV_ENDPOINT);
+  assert.equal(JSON.parse(seen.init.body).model, "jev-1.13.0");
+
+  // callJev failure reasons (Test Jev button)
+  assert.equal((await callJev({ apiKey: "", questions, fetchImpl: ok })).reason, "nokey");
+  const http = await callJev({ apiKey: "k", state: "s", questions, fetchImpl: async () => ({ ok: false, status: 401 }) });
+  assert.deepEqual([http.ok, http.reason, http.status], [false, "http", 401]);
+  assert.equal((await callJev({ apiKey: "k", state: "s", questions, fetchImpl: async () => { throw new TypeError("Failed to fetch"); } })).reason, "network");
+  assert.equal((await callJev({ apiKey: "k", state: "s", questions, fetchImpl: hang, timeoutMs: 20 })).reason, "timeout");
+  const ac2 = new AbortController();
+  const pending2 = callJev({ apiKey: "k", state: "s", questions, fetchImpl: hang, signal: ac2.signal });
+  ac2.abort();
+  assert.equal((await pending2).reason, "cancelled");
+  assert.equal((await callJev({ apiKey: "k", state: "s", questions, fetchImpl: async () => ({ ok: true, json: async () => ({ answers: {} }) }) })).reason, "shape");
+
+  // testJevConnection
+  assert.deepEqual(await testJevConnection({ config: null }), { ok: false, source: null, reason: "unconfigured", ms: 0 });
+  const pong = async (url, init) => {
+    seen = { url, init };
+    return { ok: true, json: async () => ({ model: "jev-1.13.0", answers: { ping: { type: "choice", choice: "red", confidence: 0.99, probabilities: { red: 0.99, table: 0.01 } } } }) };
+  };
+  const passed = await testJevConnection({ config: tsRoute("ts"), fetchImpl: pong });
+  assert.equal(passed.ok, true);
+  assert.equal(passed.source, "typesafe");
+  assert.equal(seen.url, TYPESAFE_JEV_ENDPOINT);
+  assert.deepEqual(JSON.parse(seen.init.body).questions, JEV_TEST_QUESTIONS);
+  const blocked = await testJevConnection({ config: tsRoute("ts"), fetchImpl: async () => { throw new TypeError("Failed to fetch"); } });
+  assert.deepEqual([blocked.ok, blocked.source, blocked.reason], [false, "typesafe", "network"]);
 
   const logged = [];
   console.warn = (...a) => logged.push(a.join(" "));

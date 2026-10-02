@@ -5,6 +5,7 @@ export const SETTINGS = {
   apiKey: "apiKey",
   apiKeyBaseUrl: "apiKeyBaseUrl",
   jevApiKey: "jevApiKey",
+  jevSource: "jevSource",
   model: "model",
   providerBank: "providerBank",
   temperature: "temperature",
@@ -104,10 +105,11 @@ export function registerSettings(SourcesConfigApp, ProviderSetupApp) {
     onChange: clearApiKeyBindingForChangedKey
   });
 
-  // Jev key: a key-only field on OpenRouter's fixed /systemone endpoint, kept
-  // outside the connection bank because it is not a chat connection. There is
-  // exactly one endpoint it can ever be sent to (JEV_ENDPOINT in jev.mjs), so
-  // there is nothing to bind it against, unlike apiKey above.
+  // Jev key: a key-only field on a fixed System One endpoint, kept outside the
+  // connection bank because it is not a chat connection. jevSource picks which
+  // fixed endpoint (JEV_SOURCES in jev.mjs: OpenRouter or TypeSafe AI); Provider
+  // Setup clears the key when the source changes without a new key, so a key is
+  // never sent to the other service.
   game.settings.register(MODULE_ID, SETTINGS.jevApiKey, {
     name: "SIMPLYSF2E.Settings.JevApiKey.Name",
     hint: "SIMPLYSF2E.Settings.JevApiKey.Hint",
@@ -116,6 +118,16 @@ export function registerSettings(SourcesConfigApp, ProviderSetupApp) {
     restricted: true,
     type: String,
     default: ""
+  });
+
+  game.settings.register(MODULE_ID, SETTINGS.jevSource, {
+    name: "SIMPLYSF2E.Settings.JevSource.Name",
+    hint: "SIMPLYSF2E.Settings.JevSource.Hint",
+    scope: "client",
+    config: false,
+    restricted: true,
+    type: String,
+    default: "openrouter"
   });
 
   game.settings.register(MODULE_ID, SETTINGS.model, {
@@ -564,9 +576,15 @@ export function getProviderRequestConfig() {
   };
 }
 
-/** The separate Jev key (`{ apiKey }`, trimmed; "" when unset). */
+/**
+ * The separate Jev key and where it goes (`{ apiKey, source }`; key trimmed and
+ * "" when unset; source is the raw setting, normalized by jev.mjs).
+ */
 export function getJevRequestConfig() {
-  return { apiKey: String(getSetting(SETTINGS.jevApiKey) ?? "").trim() };
+  return {
+    apiKey: String(getSetting(SETTINGS.jevApiKey) ?? "").trim(),
+    source: String(getSetting(SETTINGS.jevSource) ?? "openrouter")
+  };
 }
 
 /** Localization key for a useful provider-auth warning, or null when ready. */

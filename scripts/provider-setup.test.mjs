@@ -55,7 +55,7 @@ globalThis.ui = { notifications: {
 } };
 
 registerSettings(class SourcesConfigApp {}, class ProviderSetupApp {});
-const { ProviderSetupApp, PROVIDER_PRESETS } = await import("./provider-setup-app.mjs");
+const { ProviderSetupApp, PROVIDER_PRESETS, jevTestNotice } = await import("./provider-setup-app.mjs");
 
 assert.deepEqual(
   PROVIDER_PRESETS.filter((provider) => !provider.preserve).map((provider) => provider.id),
@@ -140,7 +140,7 @@ const submit = async ({ baseUrl, model, apiKey = "", clearApiKey = false, connec
   assert.equal(saved, 1, "successful setup must refresh the calling generator");
 };
 
-const jevAction = async ({ jevApiKey = "", clearJevApiKey = false, chatKey = "" }) => {
+const jevAction = async ({ jevApiKey = "", clearJevApiKey = false, chatKey = "", jevSource, action = "saveJevKey" }) => {
   let rendered = 0;
   const app = new ProviderSetupApp();
   app.render = async () => { rendered += 1; };
@@ -149,7 +149,8 @@ const jevAction = async ({ jevApiKey = "", clearJevApiKey = false, chatKey = "" 
   const controls = new Map([
     ["[name='jevApiKey']", { value: jevApiKey, disabled: false }],
     ["[name='clearJevApiKey']", { checked: clearJevApiKey, disabled: false }],
-    ["[name='apiKey']", { value: chatKey, disabled: false }]
+    ["[name='apiKey']", { value: chatKey, disabled: false }],
+    ...(jevSource === undefined ? [] : [["[name='jevSource']", { value: jevSource, disabled: false }]])
   ]);
   app.element = {
     querySelector: (selector) => controls.get(selector) ?? null,
@@ -157,7 +158,7 @@ const jevAction = async ({ jevApiKey = "", clearJevApiKey = false, chatKey = "" 
     setAttribute: () => {},
     removeAttribute: () => {}
   };
-  await ProviderSetupApp.DEFAULT_OPTIONS.actions.saveJevKey.call(app, null, button);
+  await ProviderSetupApp.DEFAULT_OPTIONS.actions[action].call(app, null, button);
   assert.equal(rendered, 0, "Jev save must not re-render and discard unsaved chat fields");
   assert.equal(controls.get("[name='apiKey']").value, chatKey, "typed chat key survives a Jev save");
 };
@@ -408,5 +409,64 @@ assert.equal(values.get(SETTINGS.jevApiKey), "or-jev-2", "Jev key is saved befor
 // A chat-only save leaves the Jev key unchanged.
 await submit({ baseUrl: "https://api.openai.com/v1", model: "gpt-5.6-luna" });
 assert.equal(values.get(SETTINGS.jevApiKey), "or-jev-2", "chat-only save leaves the Jev key alone");
+
+// Jev source: a key belongs to its source.
+values.set(SETTINGS.jevApiKey, "or-jev-3");
+values.set(SETTINGS.jevSource, "openrouter");
+await jevAction({ jevSource: "openrouter" });
+assert.equal(values.get(SETTINGS.jevApiKey), "or-jev-3", "same source with blank input keeps the key");
+{
+  const order = [];
+  const realSet = game.settings.set;
+  game.settings.set = async (m, key, value) => { order.push([key, value]); return realSet(m, key, value); };
+  await jevAction({ jevSource: "typesafe" });
+  game.settings.set = realSet;
+  assert.deepEqual(order, [[SETTINGS.jevApiKey, ""], [SETTINGS.jevSource, "typesafe"]],
+    "old key is cleared before the source moves");
+}
+assert.equal(values.get(SETTINGS.jevSource), "typesafe", "source change is saved");
+assert.equal(values.get(SETTINGS.jevApiKey), "", "switching source without a new key clears the old key");
+await jevAction({ jevSource: "openrouter", jevApiKey: " or-jev-4 " });
+assert.deepEqual([values.get(SETTINGS.jevSource), values.get(SETTINGS.jevApiKey)], ["openrouter", "or-jev-4"],
+  "source change with a new key saves both");
+await jevAction({ jevSource: "__proto__" });
+assert.equal(values.get(SETTINGS.jevSource), "openrouter", "unknown source normalizes to OpenRouter");
+assert.equal(values.get(SETTINGS.jevApiKey), "or-jev-4");
+
+// Test Jev: saves first, calls the chosen route, toasts the result, keeps chat fields.
+{
+  const realFetch = globalThis.fetch;
+  const calls = [];
+  globalThis.fetch = async (url, init) => {
+    calls.push({ url, init });
+    return { ok: true, json: async () => ({ model: "jev-1.13.0", answers: { ping: { type: "choice", choice: "red", confidence: 0.98, probabilities: { red: 0.98, table: 0.02 } } } }) };
+  };
+  try {
+    const before = notices.info.length;
+    await jevAction({ action: "testJev", jevSource: "typesafe", jevApiKey: "ts-key", chatKey: "typed-chat" });
+    assert.equal(values.get(SETTINGS.jevApiKey), "ts-key", "Test Jev saves the typed key first");
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].url, "https://api.typesafe.ai/v1/systemone", "TypeSafe key goes to TypeSafe");
+    assert.equal(calls[0].init.headers.Authorization, "Bearer ts-key");
+    assert.ok(notices.info.slice(before).some((m) => m.startsWith("SIMPLYSF2E.ProviderSetup.JevTestSuccess")), "success toast");
+
+    globalThis.fetch = async () => { throw new TypeError("Failed to fetch"); };
+    const errBefore = notices.error.length;
+    await jevAction({ action: "testJev" });
+    assert.ok(notices.error.slice(errBefore).some((m) => m.startsWith("SIMPLYSF2E.ProviderSetup.JevTestTypeSafeCors")), "CORS toast");
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+}
+
+// Test Jev toast mapping.
+assert.equal(jevTestNotice({ ok: true, source: "openrouter", ms: 412 }).data.seconds, "0.4");
+assert.equal(jevTestNotice({ ok: false, reason: "unconfigured", source: null }).key, "SIMPLYSF2E.ProviderSetup.JevTestOff");
+assert.equal(jevTestNotice({ ok: false, reason: "http", status: 401, source: "openrouter" }).key, "SIMPLYSF2E.ProviderSetup.JevTestBadKey");
+assert.equal(jevTestNotice({ ok: false, reason: "http", status: 429, source: "openrouter" }).key, "SIMPLYSF2E.ProviderSetup.JevTestHttp");
+assert.equal(jevTestNotice({ ok: false, reason: "network", source: "typesafe" }).key, "SIMPLYSF2E.ProviderSetup.JevTestTypeSafeCors");
+assert.equal(jevTestNotice({ ok: false, reason: "network", source: "openrouter" }).key, "SIMPLYSF2E.ProviderSetup.JevTestNetwork");
+assert.equal(jevTestNotice({ ok: false, reason: "timeout", source: "typesafe" }).data.source, "TypeSafe AI");
+assert.equal(jevTestNotice({ ok: false, reason: "shape", source: "openrouter" }).level, "error");
 
 console.log("provider-setup.test.mjs: setup save assertions passed");

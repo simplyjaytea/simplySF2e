@@ -41,6 +41,12 @@ function providerSetup(selected, patch = {}) {
     availableModels: [],
     hasApiKey: true,
     hasJevKey: false,
+    jevSources: [
+      { id: "openrouter", label: "OpenRouter", selected: true },
+      { id: "typesafe", label: "TypeSafe AI", selected: false }
+    ],
+    jevOnTypeSafe: false,
+    jevKeyPlaceholder: localize("SIMPLYSF2E.ProviderSetup.JevKeyPlaceholder", { source: "OpenRouter" }),
     showLocalHint: ["ollama", "lmstudio", "custom"].includes(selected),
     localServerHint: localize("SIMPLYSF2E.ProviderSetup.LocalServerHint", { origin: "http://localhost:30000" }),
     ...patch
@@ -80,6 +86,19 @@ export default [
     context: providerSetup("ollama", {
       apiBaseUrl: "http://localhost:11434/v1", model: "llama3.1:70b-instruct-q4_K_M", hasApiKey: false,
       availableModels: ["llama3.1:70b-instruct-q4_K_M", "qwen2.5:32b", "mistral-nemo:12b"]
+    })
+  },
+  {
+    id: "provider-setup-jev-typesafe",
+    app: "provider-setup",
+    context: providerSetup("openai", {
+      apiBaseUrl: "https://api.openai.com/v1", model: "gpt-5.6-luna", hasJevKey: true,
+      jevSources: [
+        { id: "openrouter", label: "OpenRouter", selected: false },
+        { id: "typesafe", label: "TypeSafe AI", selected: true }
+      ],
+      jevOnTypeSafe: true,
+      jevKeyPlaceholder: localize("SIMPLYSF2E.ProviderSetup.JevKeySaved")
     })
   },
   { id: "sources-default", app: "sources", height: 640, context: sources() },
