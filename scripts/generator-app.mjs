@@ -1335,7 +1335,7 @@ export class GeneratorApp extends SpfApp {
    * counterpart of #refineEquipment(). Without it, a pre-Remaster name the
    * model recalls ("Bag of Holding") never fuzzy-matches its Remaster item
    * ("Spacious Pouch") and silently becomes a wrong-named custom treasure
-   * item. Coins stay module-built, while scrolls now select from a bounded
+   * item. Coins stay module-built, while spell gems now select from a bounded
    * exact spell slice in the same AI request. A haul of only coins skips the
    * request. The final creation resolver accepts only retained candidate
    * references for all non-coin loot.

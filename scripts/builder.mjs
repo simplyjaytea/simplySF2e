@@ -629,6 +629,10 @@ export function heightenedLevelFor(spellSystemData, assignedRank) {
   return assignedRank;
 }
 
+// v14-dev src/module/item/spell/values.ts:
+// const MAGIC_TRADITIONS = new Set(["arcane", "divine", "occult", "primal"] as const);
+const MAGIC_TRADITIONS = new Set(["arcane", "divine", "occult", "primal"]);
+
 const RANK_ORDINALS = ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th"];
 
 /**
@@ -668,12 +672,12 @@ export async function buildSpellGemItem(spellEntry, rank) {
 
   data.system.traits ??= { value: [] };
   const traits = [...new Set([...(data.system.traits.value ?? []), ...(spellDoc.system?.traits?.value ?? [])])];
-  if (traits.includes("magical") && traits.some((t) => IWR_TRADITIONS.includes(t))) traits.splice(traits.indexOf("magical"), 1);
+  if (traits.includes("magical") && traits.some((t) => MAGIC_TRADITIONS.has(t))) traits.splice(traits.indexOf("magical"), 1);
   data.system.traits.value = traits.sort();
   data.system.traits.rarity = spellDoc.system?.traits?.rarity ?? data.system.traits.rarity;
 
   const sourceId = spellDoc.uuid ?? spellEntry?.uuid;
-  const link = sourceId ? `@UUID[${sourceId}]{${spellDoc.name}}` : esc(spellDoc.name);
+  const link = sourceId ? `@UUID[${sourceId}]{${esc(spellDoc.name)}}` : esc(spellDoc.name);
   data.system.description ??= { value: "" };
   data.system.description.value = `<p>${link}</p><hr />${data.system.description.value ?? ""}`;
   return data;
@@ -883,7 +887,7 @@ export function dedupeLootAgainstEquipment(loot, equipment) {
  * free to ship far over the starting-wealth budget. Keeps named (non-coin)
  * entries in ascending resolved-value order for as long as the running total
  * still fits budgetGp, and drops the rest with one summarizing console.warn —
- * ascending order means cheap consumables (potions/scrolls) tend to survive
+ * ascending order means cheap consumables (potions/spell gems) tend to survive
  * while the priciest overflow items are what gets cut. Coin lines pass
  * through untouched; applyTreasureBudget() handles padding/trimming those
  * afterward against whatever value remains. Never throws: a non-array input
@@ -1231,7 +1235,7 @@ export function applySourceEquipState(data) {
 /**
  * Turn resolved loot into embeddable item data (unequipped, in inventory):
  * cited credstick/UPB clones (sheet currency via TreasurePF2e#isCurrency),
- * scrolls assembled from their rank template, everything else a real
+ * spell gems assembled from their rank template, everything else a real
  * compendium clone with quantities and runes, and unmatched non-currency
  * names a custom treasure item at the AI's estimated value so the haul
  * keeps its worth. Currency lines never use that custom fallback. Shared by
