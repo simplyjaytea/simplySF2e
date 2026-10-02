@@ -47,7 +47,7 @@ const wondrous = (kind = "wondrous") => ({
   traits: ["uncommon", "invested", "tech"],
   usage: "worn headband",
   bulk: "L",
-  price: "2,150 gp",
+  price: "21,500 credits",
   invested: true,
   effects: ["Item bonus +1 to Perception", "Resistance 3 mental"],
   hasEffects: true,

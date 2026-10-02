@@ -60,6 +60,7 @@ const mocks = {
   normalizeMagicItemConcept: () => ({ name: "QA charm", level: 4, rarity: "common", traits: [], effects: [], bulk: 0, activation }),
   priceForLevel: async () => { priceStarted?.resolve(); if (pricePending) await pricePending.promise; return 100; },
   describeActivation: () => "Activation",
+  gpToCredits: (gp) => gp * 10,
   buildMagicItemData: async () => ({ name: "QA charm" }),
   createActivationMacro: async () => { if (macroFailure) throw macroFailure; }
 };
