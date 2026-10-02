@@ -45,7 +45,7 @@ export function generatorContext(mode, patch = {}) {
     ...providerContext(),
     sourcesReady: true,
     sourcePackCount: 10,
-    sourceMissing: [],
+    sourceMissing: "",
     rarities: RARITIES,
     promptPlaceholder: `${localize("SIMPLYSF2E.Generator.PromptExample")} a cult of solar-bleached smugglers...`,
     nonePresetSelected: true,
@@ -129,7 +129,7 @@ export default [
   {
     id: "generator-empty-attention",
     app: "generator",
-    context: generatorContext("monster", { ...PROVIDER_ATTENTION, sourcesReady: false, sourceMissing: ["spells", "feats"] })
+    context: generatorContext("monster", { ...PROVIDER_ATTENTION, sourcesReady: false, sourceMissing: "Spells, Feats" })
   },
   {
     id: "generator-two-connections",

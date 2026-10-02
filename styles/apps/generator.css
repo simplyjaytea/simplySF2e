@@ -3,8 +3,10 @@
    Loaded after styles/simplysf2e.css; tokens and shared kit live there.
    ========================================================================== */
 
-.simplysf2e .simplysf2e-generator.spf-busy .spf-inputs {
-  opacity: 0.58;
+/* Busy: the controls inside are disabled and dim themselves; dimming the whole
+   fieldset dropped its labels under 4.5:1. */
+.simplysf2e .simplysf2e-generator.spf-busy .spf-inputs :is(input, select, textarea):disabled {
+  opacity: 0.6;
 }
 
 /* --------------------------------------------------------------------------
@@ -282,6 +284,7 @@
 
 .simplysf2e .spf-level-primary .form-group {
   flex: 0 1 12rem;
+  min-width: max-content;
 }
 
 .simplysf2e .spf-advanced {
@@ -376,7 +379,7 @@
 
 .simplysf2e .spf-found {
   font-size: var(--spf-text-sm);
-  color: var(--color-text-hyperlink);
+  color: var(--spf-brand-accent);
 }
 
 /* Positive per-item compendium-match indicator (issue #52) — the counterpart
@@ -384,7 +387,7 @@
    entry DID resolve to a real compendium document instead of only ever
    flagging the negative case. */
 .simplysf2e .spf-match {
-  color: var(--spf-success);
+  color: var(--spf-success-fg);
 }
 
 /* Grounding glyphs sit a hair off the name they annotate. */
@@ -398,7 +401,7 @@
 }
 
 .simplysf2e .spf-match-summary i {
-  color: var(--spf-success);
+  color: var(--spf-success-fg);
 }
 
 .simplysf2e .spf-custom {
@@ -415,12 +418,17 @@
    struck through and red to read as "won't appear", distinct from the
    .spf-custom pill (equipment/loot instead), which still gets created. */
 .simplysf2e .spf-dropped {
-  opacity: 0.65;
+  color: var(--spf-text-muted);
   text-decoration: line-through;
 }
 
-.simplysf2e .spf-dropped i {
-  color: var(--spf-danger);
+.simplysf2e .spf-dropped .spf-rank {
+  opacity: 1;
+}
+
+.simplysf2e .spf-dropped i,
+.simplysf2e i.spf-unmatched {
+  color: var(--spf-danger-fg);
   text-decoration: none;
 }
 
@@ -493,12 +501,29 @@
   font-weight: bold;
 }
 
+/* Skipped (x0) members stay readable: a muted dashed card plus a text tag,
+   not a whole-card fade that put the text under 4.5:1. */
 .simplysf2e .spf-member-skipped {
-  opacity: 0.45;
+  border-style: dashed;
+  color: var(--spf-text-muted);
+}
+
+.simplysf2e .spf-member-skipped strong,
+.simplysf2e .spf-member-skipped .spf-member-tag,
+.simplysf2e .spf-member-skipped .spf-member-stats {
+  color: var(--spf-text-muted);
+}
+
+.simplysf2e .spf-member-skipped-tag {
+  font-size: var(--spf-text-sm);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .simplysf2e .spf-over-budget {
-  color: var(--spf-danger);
+  color: var(--spf-danger-fg);
+  border-color: var(--spf-danger-fg);
 }
 
 /* --------------------------------------------------------------------------

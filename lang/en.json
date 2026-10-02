@@ -133,9 +133,14 @@
       "RerollLoot": "Reroll Loot",
       "RerollLootTooltip": "Generate different loot without changing the creature",
       "Discard": "Discard",
+      "EmptyHintReskin": "Nothing generated yet — drop an NPC above, then press Generate. The preview appears here before anything is created.",
+      "XPUnit": "XP",
+      "CreditsUnit": "credits",
+      "OverBudget": "(over budget)",
+      "MemberSkipped": "Skipped",
       "Created": "Created actor \"{name}\".",
       "CompleteTitle": "Generation complete",
-      "CompleteSummary": "Created {count} actor(s): {name}.",
+      "CompleteSummary": "Created {count} actors: {name}.",
       "CompletionGrounding": "Content grounding",
       "CompletionCompendium": "Compendium content: {count}",
       "CompletionNative": "Native SF2e selections: {count}",
@@ -289,6 +294,9 @@
     },
     "Progress": {
       "Label": "Generation progress",
+      "StepDone": "(done)",
+      "StepActive": "(in progress)",
+      "StepPending": "(waiting)",
       "Concept": "Creature concept",
       "SpellFocus": "Spell focus",
       "Spells": "Spell selection",
@@ -353,6 +361,7 @@
       "Unique": "Unique"
     },
     "Preview": {
+      "Average": "(avg {value})",
       "Signature": "Signature",
       "PCSignaturePlan": "Planned signature choices: {selected}/{total}. Choices are rechecked against real spells during creation; missing or rejected choices stay regular and need manual review.",
       "PCBaseSpellPlan": "Base spell plan only: prepared classes prepare each listed pick; spontaneous classes learn it at the listed rank. Review empty slots, signature spells, and restricted subclass or feat bonuses (such as curriculum or divine font) in Foundry.",

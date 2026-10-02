@@ -25,11 +25,17 @@
   --spf-brand-secondary: #40256f;
   --spf-brand-soft: color-mix(in srgb, var(--spf-brand-accent) 16%, transparent);
   --spf-success: #3a7b59;
+  /* Foreground variants of success/danger: the fills above are too dark to read as
+     text or icons on the navy surfaces (U5a: K4, G7, G8). */
+  --spf-success-fg: #62c493;
+  --spf-danger-fg: #ff8d89;
   --spf-warning: #98503d;
   --spf-danger: #b0413e;
   --spf-text: #e8f6fa;
   --spf-text-muted: color-mix(in srgb, var(--spf-brand-accent) 38%, #d5e0e6);
   --spf-border: color-mix(in srgb, var(--spf-brand-accent) 40%, #121c26);
+  /* Form-control edge: >= 3:1 against the card surface (WCAG 1.4.11). */
+  --spf-control-border: color-mix(in srgb, var(--spf-brand-accent) 62%, #121c26);
   --spf-focus: var(--spf-brand-accent);
   --spf-surface: color-mix(in srgb, var(--spf-brand-dark) 42%, rgba(8, 16, 26, 0.72));
   --spf-surface-raised: color-mix(in srgb, var(--spf-brand-mid) 38%, rgba(8, 16, 26, 0.78));
@@ -227,10 +233,17 @@
   border-color: var(--spf-brand-accent);
 }
 
-.simplysf2e :is(button, input, select, textarea):focus-visible {
+.simplysf2e :is(button, input, select, textarea, summary):focus-visible {
   outline: 2px solid var(--spf-focus);
   outline-offset: 1px;
   box-shadow: var(--spf-glow);
+}
+
+/* The notched clip-path would cut the outline off, so a focused primary
+   button squares its corner for the duration of the focus. */
+.simplysf2e button.spf-primary:focus-visible {
+  clip-path: none;
+  outline-offset: 2px;
 }
 
 .simplysf2e .spf-hint {
@@ -287,7 +300,7 @@
 .simplysf2e select,
 .simplysf2e textarea {
   background-color: var(--spf-console);
-  border: 1px solid var(--spf-border);
+  border: 1px solid var(--spf-control-border);
   border-radius: var(--spf-radius-sm);
   color: var(--spf-text);
   caret-color: var(--spf-brand-accent);
@@ -420,7 +433,7 @@
 }
 
 .simplysf2e .spf-provider-ready .spf-provider-state {
-  color: var(--spf-success);
+  color: var(--spf-success-fg);
 }
 
 .simplysf2e .spf-provider-attention {
@@ -642,7 +655,7 @@
 }
 
 .simplysf2e .spf-step-done i {
-  color: var(--spf-success);
+  color: var(--spf-success-fg);
 }
 
 .simplysf2e .spf-progress-bar {

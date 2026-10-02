@@ -4,8 +4,8 @@ const packs = new Map([
   ["sf2e.bestiary-ability-glossary-srd", {}], ["sf2e.equipment", {}], ["sf2e.spells", {}], ["sf2e.ancestries", {}],
   ["sf2e.backgrounds", {}], ["sf2e.classes", {}], ["sf2e.class-features", {}], ["sf2e.feats", {}], ["sf2e.alien-core-bestiary", {}]
 ]);
-globalThis.game = { packs: { get: (id) => packs.get(id) }, settings: { get: () => ({}) } };
-const { sourceReadiness } = await import("./compendium.mjs");
+globalThis.game = { i18n: { localize: (key) => `L:${key}` }, packs: { get: (id) => packs.get(id) }, settings: { get: () => ({}) } };
+const { sourceReadiness, describeMissingSources } = await import("./compendium.mjs");
 
 const creature = sourceReadiness("monster");
 assert.equal(creature.ready, true);
@@ -22,4 +22,6 @@ packs.set("sf2e.alien-core-bestiary", {});
 assert.equal(sourceReadiness("character").ready, true);
 packs.delete("sf2e.classes");
 assert.ok(sourceReadiness("character").missing.includes("classes"));
+assert.equal(describeMissingSources(["spells", "bestiaryActors", "mystery"]), "L:SIMPLYSF2E.Sources.Spells, L:SIMPLYSF2E.Sources.BestiaryActors, mystery");
+assert.equal(describeMissingSources(), "");
 console.log("compendium.readiness.test.mjs: required source preflight passed");
