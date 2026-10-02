@@ -114,6 +114,28 @@ assert.deepEqual(
 );
 assert.equal(LOOT_CANDIDATE_LIMIT, EQUIPMENT_CANDIDATE_LIMIT, "loot currently uses same bounded catalog size");
 
+/* "Rusted dagger" regression: sf2e has no dagger, so the draft keywords match
+ * nothing. The catalog must still offer a same-kind weapon (group `knife`,
+ * plainest member first) and must not collapse to alphabetically first items. */
+const weapons = [];
+const groupMembers = {
+  knife: [["Aucturnite Chakram", "martial"], ["Dogslicer", "martial"], ["Knife", "simple"], ["Tailblade", "martial"]],
+  sword: [["Dueling Sword", "martial"], ["Plasma Sword", "advanced"]],
+  laser: [["Aeon Rifle", "martial"], ["Laser Pistol", "simple"]]
+};
+for (const [group, members] of Object.entries(groupMembers)) {
+  for (const [name, category] of members) weapons.push({ name, type: "weapon", level: 0, traits: [], group, category });
+}
+for (let i = 0; i < 200; i++) {
+  weapons.push({ name: `${String.fromCharCode(65 + (i % 26))} Filler ${i}`, type: "equipment", level: 0, traits: [] });
+}
+const noHit = limitEquipmentCandidates(weapons, ["rusted dagger", "rusted", "dagger"], EQUIPMENT_CANDIDATE_LIMIT,
+  { weaponGroups: true });
+assert.ok(names(noHit).includes("Knife"), "a zero-hit dagger draft still sees the plainest knife-group weapon");
+assert.ok(names(noHit).includes("Laser Pistol") && names(noHit).includes("Dueling Sword"), "every weapon group is represented");
+assert.ok(new Set(noHit.filter((item) => item.type === "equipment").map((item) => item.name[0])).size > 13,
+  "a no-match tail is sampled across the alphabet, not only its first letters");
+
 /* Feats: every call is capped per slot, highest-level options survive, and
  * round-robin selection retains a spread of legal levels. */
 const feats = [];

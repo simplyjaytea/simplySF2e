@@ -196,7 +196,8 @@ async function getIndex(packId) {
     fields: [
       "name", "type", "system.slug", "system.level.value",
       "system.traits.value", "system.traits.traditions", "system.ritual",
-      "system.category", "system.spell", "system.traits.rarity", "system.traits.otherTags", "system.prerequisites.value"
+      "system.category", "system.spell", "system.traits.rarity", "system.traits.otherTags", "system.prerequisites.value",
+      "system.group"
     ]
   });
   const entries = index.map((e) => ({ ...e, packId, normalized: normalize(e.name) }));
@@ -384,7 +385,7 @@ function relevanceScore(candidate, keywords) {
   for (const keyword of keywords) {
     if (name === keyword) score += 10000;
     else if (name.includes(keyword)) score += 1000;
-    if (traits.has(keyword)) score += 800;
+    if (traits.has(keyword) || (candidate.group && normalize(candidate.group) === keyword)) score += 800;
     const tokens = keyword.split(" ").filter((token) => !STOPWORDS.has(token));
     if (tokens.length && tokens.every((token) => nameTokens.has(token))) score += 400;
   }
@@ -473,8 +474,56 @@ function equipmentLevelBand(level, maxLevel) {
   return "low";
 }
 
+/**
+ * Order entries so every prefix samples the whole list evenly (bit-reversed
+ * index order). A bucket's no-keyword-match tail used to stay alphabetical,
+ * so a draft name with no lexical hit ("rusted dagger") left the selector a
+ * catalog of A-named items only (Acid Dart Rifle, Aeon Rifle, Arc Pistol...).
+ */
+function spreadOrder(entries) {
+  const n = entries.length;
+  if (n <= 2) return entries;
+  const bits = Math.ceil(Math.log2(n));
+  const order = [];
+  for (let i = 0; i < 2 ** bits; i++) {
+    const reversed = parseInt(i.toString(2).padStart(bits, "0").split("").reverse().join(""), 2);
+    if (reversed < n) order.push(entries[reversed]);
+  }
+  return order;
+}
+
+/**
+ * One weapon per weapon group (`system.group`, e.g. sf2e `knife`, `sword`,
+ * `laser`), best keyword match first. A first-draft weapon whose name the
+ * catalog lacks ("dagger") then always has a real same-kind substitute
+ * ("Knife", group `knife`) on the list for the selector to pick.
+ */
+const WEAPON_CATEGORY_RANK = { simple: 0, martial: 1, advanced: 2 };
+
+function weaponGroupRepresentatives(list, kw) {
+  // Plainest member first: best keyword match, then simple before martial
+  // before advanced, lowest level, shortest name ("Knife" over "Dogslicer").
+  const rank = (candidate) => [
+    -relevanceScore(candidate, kw), WEAPON_CATEGORY_RANK[candidate.category] ?? 3,
+    Number(candidate.level) || 0, candidate.name.length
+  ];
+  const better = (a, b) => {
+    const [ra, rb] = [rank(a), rank(b)];
+    for (let i = 0; i < ra.length; i++) if (ra[i] !== rb[i]) return ra[i] < rb[i];
+    return a.name.localeCompare(b.name) < 0;
+  };
+  const byGroup = new Map();
+  for (const candidate of list) {
+    if (candidate.type !== "weapon" || !candidate.group) continue;
+    const best = byGroup.get(candidate.group);
+    if (!best || better(candidate, best)) byGroup.set(candidate.group, candidate);
+  }
+  return [...byGroup.keys()].sort().map((group) => byGroup.get(group));
+}
+
 /** Pure bounded selector used for both carried equipment and dropped loot. */
-export function limitEquipmentCandidates(candidates, keywords = [], limit = EQUIPMENT_CANDIDATE_LIMIT) {
+export function limitEquipmentCandidates(candidates, keywords = [], limit = EQUIPMENT_CANDIDATE_LIMIT,
+  { weaponGroups = false } = {}) {
   const list = Array.isArray(candidates) ? candidates : [];
   const kw = normalizedKeywords(keywords);
   const exactNames = new Set(kw);
@@ -497,8 +546,10 @@ export function limitEquipmentCandidates(candidates, keywords = [], limit = EQUI
     for (const type of types) {
       const entries = grouped.get(`${type}\u0000${band}`);
       if (!entries?.length) continue;
-      buckets.push(entries.sort((a, b) => relevanceScore(b, kw) - relevanceScore(a, kw)
-        || b.level - a.level || a.name.localeCompare(b.name)));
+      const sorted = entries.sort((a, b) => relevanceScore(b, kw) - relevanceScore(a, kw)
+        || b.level - a.level || a.name.localeCompare(b.name));
+      const matched = sorted.filter((candidate) => relevanceScore(candidate, kw) > 0);
+      buckets.push([...matched, ...spreadOrder(sorted.slice(matched.length))]);
     }
   }
   const exact = list
@@ -511,7 +562,8 @@ export function limitEquipmentCandidates(candidates, keywords = [], limit = EQUI
   const target = kw.length
     ? Math.min(limit, Math.max(EQUIPMENT_CANDIDATE_FLOOR, matchedCount))
     : limit;
-  return withPriority(buckets, exact, target)
+  const priority = weaponGroups ? [...new Set([...exact, ...weaponGroupRepresentatives(list, kw)])] : exact;
+  return withPriority(buckets, priority, Math.max(target, Math.min(limit, priority.length)))
     .sort((a, b) => a.level - b.level || a.name.localeCompare(b.name));
 }
 
@@ -675,13 +727,16 @@ export async function getEquipmentCandidates(
         name: entry.name,
         type: entry.type,
         level: itemLevel,
-        traits: entry.system?.traits?.value ?? []
+        traits: entry.system?.traits?.value ?? [],
+        ...(entry.type === "weapon" && entry.system?.group
+          ? { group: entry.system.group, category: entry.system?.category ?? null } : {})
       }));
     }
   }
   candidates.sort((a, b) => a.level - b.level || a.name.localeCompare(b.name));
   const strip = ({ id, ref, name, type, level: lv }) => ({ id, ref, name, type, level: lv });
-  return limitEquipmentCandidates(candidates, keywords, limit).map(strip);
+  // Carried gear must cover every weapon kind; loot (treasure: true) does not.
+  return limitEquipmentCandidates(candidates, keywords, limit, { weaponGroups: !treasure }).map(strip);
 }
 
 /**
