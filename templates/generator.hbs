@@ -127,6 +127,7 @@
               {{/if}}
               {{#if customPresets.length}}
               <optgroup label="{{localize 'SIMPLYSF2E.Presets.CustomGroup'}}">
+                {{#each customPresets}}
                   <option value="{{this.id}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
                 {{/each}}
               </optgroup>
@@ -171,6 +172,7 @@
         </select>
       </div>
       {{/unless}}
+      <div class="form-group">
         <label for="spf-generator-treasure-amount">{{localize "SIMPLYSF2E.Generator.TreasureAmount"}}</label>
         <select id="spf-generator-treasure-amount" name="treasureAmount">
           {{#each treasureAmounts}}
