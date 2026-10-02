@@ -301,6 +301,18 @@ Needs an OpenRouter connection, as 12b.
 | 12d.3 | Block `openrouter.ai/api/v1/systemone` in DevTools, then generate the 12d.1 PC. | "using the chat model" warning; all feat slots still filled. | Console | | |
 | 12d.4 | Generate a PC at level 15+ (many feat slots). | All slots filled; compare step time against a non-OpenRouter connection. | Preview | | |
 
+
+## 12e. Jev PC spell picks (J5)
+
+Needs an OpenRouter connection, as 12b.
+
+| # | Step | Expected | Where to look | Result | Evidence |
+|---|------|----------|---------------|--------|----------|
+| 12e.1 | OpenRouter connection, generate a level 5+ mystic or witchwarper PC. | Cantrips and each rank are filled to the planned count with real spells of the right tradition; signature spells are marked at signature ranks; no "Jev request" warning in the console. | Preview, console | | |
+| 12e.2 | Block `openrouter.ai/api/v1/systemone` in DevTools, then generate the 12e.1 PC. | "using the chat model" warning; spell list still filled. | Console | | |
+| 12e.3 | Generate the 12e.1 PC with Jev on, then with a non-OpenRouter connection. | Compare the Spells step time in the token report; record both. This decides whether J5 stays. | Preview | | |
+| 12e.4 | Generate a creature (NPC) with spellcasting. | Spells still chosen by the chat model (no Jev spell requests). | Preview, console | | |
+
 ## 13. Firefox (if available)
 
 | # | Step | Expected | Where to look | Result | Evidence |

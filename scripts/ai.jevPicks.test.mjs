@@ -30,7 +30,7 @@ globalThis.fetch = async (url, options) => {
   }), { headers: { "content-type": "application/json" } });
 };
 
-const { selectEquipment, selectLoot, selectCreatureFeats, selectCreatureAbilities, selectFeats, selectCharacterChoices } = await import("./ai.mjs");
+const { selectEquipment, selectLoot, selectCreatureFeats, selectCreatureAbilities, selectFeats, selectCharacterChoices, selectSpells } = await import("./ai.mjs");
 const jevConfig = { endpoint: "https://openrouter.ai/api/v1/systemone", apiKey: "k" };
 const ref = { packId: "sf2e.equipment", _id: "medkit" };
 const candidates = [{ id: "E0", name: "Medkit", type: "equipment", level: 1, ref }];
@@ -183,4 +183,37 @@ llmReplies.push({ picks: [{ choice: "choice-a", option: "a-ath" }] });
 out = await selectCharacterChoices({ concept: pcConcept, groups: choiceGroups, jevConfig });
 assert.deepEqual(out.picks, [{ choice: "choice-a", option: "a-ath" }]);
 assert.equal(out.timing.source, "llm");
+
+// Spells: PC slot plan goes through Jev; a miss runs the chat model, which keeps its own validation.
+const spellRef = (id) => ({ packId: "sf2e.spells", _id: id });
+const spellCandidates = [
+  { id: "S0", name: "Detect Magic", rank: 0, ref: spellRef("s0") }, { id: "S1", name: "Force Barrage", rank: 1, ref: spellRef("s1") }
+];
+const pcSpellArgs = {
+  concept: { ...pcConcept, traits: [], spellcasting: { tradition: "arcane", spells: [] } },
+  candidates: spellCandidates, maxRank: 1, plannedPicks: { 0: 1, 1: 1 }, preparationMode: "prepared", jevConfig
+};
+const spellScore = (score, confidence = 0.9) => ({
+  type: "score", score, confidence, probabilities: {}, legend: { 0: "poor", 1: "fair", 2: "good", 3: "excellent" }
+});
+jevReplies.push({ model: "typesafe/jev-1.13", answers: { spell_S0: spellScore(2), spell_S1: spellScore(3) }, usage: { input_tokens: 40, output_tokens: 2 } });
+const seenBefore = { ...seen };
+out = await selectSpells(pcSpellArgs);
+assert.equal(seen.llm, seenBefore.llm, "no chat-model request");
+assert.deepEqual(out.spells, [
+  { name: "Detect Magic", candidate: spellCandidates[0].ref, rank: 0 }, { name: "Force Barrage", candidate: spellCandidates[1].ref, rank: 1 }
+]);
+assert.equal(out.timing.source, "jev");
+jevReplies.push({ model: "typesafe/jev-1.13", answers: { spell_S0: spellScore(2, 0.2), spell_S1: spellScore(3) }, usage: null });
+llmReplies.push({ spells: [{ id: "S0", rank: "cantrip", signature: "regular" }, { id: "S1", rank: "rank-one", signature: "regular" }], focusSpellIds: [] });
+out = await selectSpells(pcSpellArgs);
+assert.deepEqual(out.spells.map((s) => s.name), ["Detect Magic", "Force Barrage"]);
+assert.equal(out.timing.source, "llm");
+assert.ok("jevMs" in out.timing);
+// Creature (no slot plan) never asks Jev.
+const spellJevBefore = seen.jev;
+llmReplies.push({ spells: [{ id: "S1", rank: 1 }], focusSpellIds: [] });
+out = await selectSpells({ concept: pcSpellArgs.concept, candidates: spellCandidates, maxRank: 1, jevConfig });
+assert.equal(seen.jev, spellJevBefore);
+assert.equal(out.timing, undefined);
 console.log("ai.jevPicks tests passed");

@@ -423,3 +423,95 @@ export async function jevPickCharacterChoices({ concept, catalog, jevConfig, sig
   }
   return { picks, ms, usage, attempted: true };
 }
+
+/** Scale words Jev scores each spell candidate against (docs/next-steps.md J5: 4 levels). */
+export const JEV_SPELL_FIT_WORDS = Object.freeze(["poor", "fair", "good", "excellent"]);
+/** A focus spell is taken only at the top fit level, because "otherwise return []" is valid for focus spells. */
+const FOCUS_FIT_INDEX = JEV_SPELL_FIT_WORDS.length - 1;
+const FOCUS_SPELL_CAP = 3;
+
+/**
+ * Pick a PC's spells through Jev: one Score question per candidate ("how well does
+ * this spell fit"), then the module takes the top `plannedPicks[rank]` per rank.
+ * Only the module-owned PC slot plan is handled; the creature path keeps the chat
+ * model because its counts are the model's own choice. Details, all fail-closed
+ * (any miss returns `spells: null`, so the whole step runs on the chat model,
+ * because an empty PC spell list is worse than an approximate one):
+ * - A slot's spell is a candidate whose base rank equals the slot rank (no
+ *   heightening); a rank with fewer eligible candidates than slots falls back.
+ *   Rank-ten spontaneous slots take common spells only, as the chat prompt requires.
+ * - Only readable answers at JEV_MIN_CONFIDENCE compete; picks are distinct per rank.
+ * - Signature spells (module-owned eligibility): the best-scored selected spell at
+ *   each signature rank. Module default, not guidance on which spell heightens well.
+ * - Focus spells: up to 3 candidates scored at the top level; none is valid.
+ * Returns `{ spells|null, focusSpells, ms, usage, attempted? }`.
+ */
+export async function jevPickSpells({
+  concept, candidates, focusCandidates = [], maxRank, plannedPicks, preparationMode,
+  signatureRanks = [], jevConfig, signal, request = requestJevDecision
+}) {
+  const none = { spells: null, focusSpells: [], ms: 0, usage: null };
+  if (!jevConfig || plannedPicks == null || !candidates?.length) return none;
+  const ranks = Object.entries(plannedPicks)
+    .map(([rank, count]) => [Number(rank), count])
+    .filter(([rank, count]) => count > 0 && rank <= maxRank)
+    .sort(([a], [b]) => a - b);
+  if (!ranks.length) return none;
+
+  const pools = new Map();
+  for (const [rank, count] of ranks) {
+    const pool = candidates.filter((candidate) => candidate.id && candidate.rank === rank
+      && (!(preparationMode === "spontaneous" && rank === 10) || candidate.rarity === "common"));
+    if (pool.length < count) return none;
+    pools.set(rank, pool);
+  }
+
+  const tradition = concept.spellcasting?.tradition;
+  const draft = (concept.spellcasting?.spells ?? []).map((spell) => spell.name).filter(Boolean);
+  const state = [
+    buildJevPcState(concept),
+    tradition ? `Spell tradition: ${tradition}` : null,
+    draft.length ? `First-draft spell ideas (inspiration only): ${draft.join(", ")}` : null
+  ].filter(Boolean).join("\n");
+
+  const entries = [];
+  const questionFor = (key, candidate, kind) => entries.push([key, {
+    type: "score",
+    instructions: `How well does the ${kind} "${candidate.name}" (rank ${candidate.rank}) fit this character's concept and tactics?`,
+    criteria: [...JEV_SPELL_FIT_WORDS]
+  }]);
+  for (const pool of pools.values()) for (const candidate of pool) questionFor(`spell_${candidate.id}`, candidate, "spell");
+  const focusPool = focusCandidates.filter((candidate) => candidate.id);
+  for (const candidate of focusPool) questionFor(`focus_${candidate.id}`, candidate, "focus spell");
+
+  const batches = batchQuestions(entries, state);
+  if (!batches) return none;
+  const { answers, ms, usage } = await askBatches({ jevConfig, state, batches, signal, request });
+  if (!answers) return { ...none, ms, usage, attempted: true };
+
+  // Readable, confident answers only; best raw score first, then confidence, then name for a stable order.
+  const scored = (key, candidate) => {
+    const answer = answers[key];
+    const index = jevScoreIndex(answer, JEV_SPELL_FIT_WORDS);
+    if (index == null || !(answer.confidence >= JEV_MIN_CONFIDENCE)) return null;
+    return { candidate, index, score: answer.score, confidence: answer.confidence };
+  };
+  const ranked = (list) => list.filter(Boolean)
+    .sort((a, b) => b.score - a.score || b.confidence - a.confidence || a.candidate.name.localeCompare(b.candidate.name));
+
+  const spells = [];
+  for (const [rank, count] of ranks) {
+    const top = ranked(pools.get(rank).map((candidate) => scored(`spell_${candidate.id}`, candidate))).slice(0, count);
+    if (top.length < count) return { ...none, ms, usage, attempted: true };
+    const rows = top.map(({ candidate }) => ({
+      name: candidate.name, ...(candidate.ref ? { candidate: candidate.ref } : {}), rank
+    }));
+    if (signatureRanks.includes(rank)) rows[0].signature = true;
+    spells.push(...rows);
+  }
+  const focusSpells = ranked(focusPool.map((candidate) => scored(`focus_${candidate.id}`, candidate)))
+    .filter(({ index }) => index >= FOCUS_FIT_INDEX)
+    .slice(0, FOCUS_SPELL_CAP)
+    .map(({ candidate }) => ({ name: candidate.name, ...(candidate.ref ? { candidate: candidate.ref } : {}) }));
+  return { spells, focusSpells, ms, usage, attempted: true };
+}

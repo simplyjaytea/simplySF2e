@@ -1220,7 +1220,7 @@ export class GeneratorApp extends SpfApp {
         console.warn(`${MODULE_ID} | no spell candidates found, dropping spellcasting (unconstrained first-draft spells discarded)`);
         spellcasting.spells = [];
       } else {
-        const { spells, focusSpells, usage } = await selectSpells({
+        const { spells, focusSpells, usage, timing } = await selectSpells({
           concept,
           candidates,
           focusCandidates,
@@ -1233,7 +1233,7 @@ export class GeneratorApp extends SpfApp {
             call: game.i18n.localize("SIMPLYSF2E.Progress.Spells")
           }), signal
         });
-        this._recordTokens(game.i18n.localize("SIMPLYSF2E.Progress.Spells"), usage);
+        this._recordTokens(game.i18n.localize("SIMPLYSF2E.Progress.Spells"), usage, timing);
         spellcasting.spells = spells;
         concept.focusSpells = focusSpells;
       }

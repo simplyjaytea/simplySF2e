@@ -9,7 +9,7 @@ import { taskResponseProblem } from "./ai-response-validation.mjs";
 import { validateChoicePicks } from "./choice-set.mjs";
 import { CORE_SKILLS } from "./pc-skills.mjs";
 import { resolveJevConfig } from "./jev.mjs";
-import { jevPickEquipment, jevPickLoot, jevPickCreatureFeats, jevPickCreatureAbilities, jevPickFeats, jevPickCharacterChoices, mergeUsage } from "./jev-picks.mjs";
+import { jevPickEquipment, jevPickLoot, jevPickCreatureFeats, jevPickCreatureAbilities, jevPickFeats, jevPickCharacterChoices, jevPickSpells, mergeUsage } from "./jev-picks.mjs";
 
 /**
  * Client for any OpenAI-compatible chat completions API (DeepSeek, OpenAI,
@@ -541,7 +541,7 @@ function physicalCandidateForPick(candidates, pick) {
  * @param {number[]} [args.signatureRanks] module-owned ordinary signature eligibility
  * @returns {Promise<{spells: {name: string, rank: number}[], usage: object}>}
  */
-export async function selectSpells({ concept, candidates, focusCandidates = [], maxRank, plannedPicks, preparationMode, signatureRanks = [], onProgress, signal }) {
+export async function selectSpells({ concept, candidates, focusCandidates = [], maxRank, plannedPicks, preparationMode, signatureRanks = [], onProgress, signal, jevConfig = resolveJevConfig() }) {
   const pcPlan = plannedPicks != null;
   if (pcPlan && (typeof plannedPicks !== "object" || Array.isArray(plannedPicks)
     || !Number.isInteger(maxRank) || maxRank < 0 || maxRank > 10
@@ -552,6 +552,17 @@ export async function selectSpells({ concept, candidates, focusCandidates = [], 
       && Number.isInteger(rank) && rank > 0 && rank <= maxRank && plannedPicks[rank] > 0))) {
     throw new TypeError("Invalid character spell slot plan");
   }
+  // PC slot plans: Jev scores every candidate and the module takes the top picks per rank; any doubt runs the chat model below.
+  const jev = pcPlan
+    ? await jevPickSpells({ concept, candidates, focusCandidates, maxRank, plannedPicks, preparationMode, signatureRanks, jevConfig, signal })
+    : null;
+  if (jev?.spells) {
+    return {
+      spells: jev.spells, focusSpells: jev.focusSpells, usage: jev.usage ?? NO_TOKENS,
+      timing: { source: "jev", ms: jev.ms }
+    };
+  }
+  const started = Date.now();
   const byRank = new Map();
   for (const c of candidates) {
     if (!byRank.has(c.rank)) byRank.set(c.rank, []);
@@ -639,7 +650,10 @@ ${focusCandidates.length ? "Choose up to three focusSpellIds only from the provi
       if (selections.length === 1) selections[0].signature = true;
       else console.warn(`simplysf2e | conflicting signature choices at rank ${rank}; keeping those spells regular`);
     }
-    return { spells, focusSpells, usage };
+    return {
+      spells, focusSpells, usage: mergeUsage(usage, jev?.usage),
+      ...(jev?.attempted ? { timing: { source: "llm", ms: Date.now() - started, jevMs: jev.ms } } : {})
+    };
   }
   // A ranked spell must never come back as rank 0 (createActor would file it
   // as a cantrip) — clamp the minimum to the candidate's own listed rank.
