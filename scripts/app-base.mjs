@@ -27,6 +27,50 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _lastRunCost = null;
   _generationAbort = null;
   _canCancel = false;
+  /** True once the window was closed, so a late pipeline `render()` cannot reopen it. */
+  _closed = false;
+  _closePromptOpen = false;
+  /** Window frame the shortcut is bound to; a reopened window gets a new frame. */
+  _keysElement = null;
+
+  /** Yes/No dialog; resolves false when declined or dismissed. */
+  async _confirm(titleKey, bodyKey) {
+    const { DialogV2 } = foundry.applications.api;
+    return Boolean(await DialogV2.confirm({
+      window: { title: titleKey },
+      content: `<p>${game.i18n.localize(bodyKey)}</p>`,
+      rejectClose: false
+    }));
+  }
+
+  /**
+   * Closing (X or Esc) while a provider run is cancellable asks first; Yes
+   * aborts the run so no more tokens are spent, No keeps the window open.
+   */
+  async close(options = {}) {
+    if (this._canCancel) {
+      if (this._closePromptOpen) return this;
+      this._closePromptOpen = true;
+      let stop;
+      try {
+        stop = await this._confirm("SIMPLYSF2E.Progress.CloseTitle", "SIMPLYSF2E.Progress.CloseConfirm");
+      } finally {
+        this._closePromptOpen = false;
+      }
+      if (!stop) return this;
+      this._cancelGeneration();
+    }
+    this._closed = true;
+    return super.close(options);
+  }
+
+  /** A forced render (re)opens the window; a plain render after close is dropped. */
+  async render(options = {}, _options = {}) {
+    const forced = options === true || options?.force === true;
+    if (this._closed && !forced) return this;
+    if (forced) this._closed = false;
+    return super.render(options, _options);
+  }
 
   /** Open the focused provider setup and refresh this app after it saves. */
   _openProviderSetup() {
@@ -53,6 +97,17 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.element?.querySelector?.("[name='activeConnection']")?.addEventListener("change", (event) =>
       this._switchActiveConnection(event.currentTarget.value)
     );
+    // The frame survives re-renders but not close and reopen, so bind once per frame.
+    if (this._keysElement !== this.element && this.element?.addEventListener) {
+      this._keysElement = this.element;
+      this.element.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter" || !(event.ctrlKey || event.metaKey) || event.isComposing) return;
+        const generate = this.element.querySelector("[data-action='generate']");
+        if (!generate || generate.disabled) return;
+        event.preventDefault();
+        generate.click();
+      });
+    }
   }
 
   /**
@@ -255,6 +310,14 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
     steps.forEach((step, i) => {
       const li = items[i];
       li.className = `spf-step-${step.state}`;
+      const state = li.querySelector(".spf-step-state");
+      if (state) {
+        state.textContent = game.i18n.localize(
+          step.state === "done" ? "SIMPLYSF2E.Progress.StepDone"
+            : step.state === "active" ? "SIMPLYSF2E.Progress.StepActive"
+              : "SIMPLYSF2E.Progress.StepPending"
+        );
+      }
       const icon = li.querySelector("i");
       if (!icon) return;
       icon.className = step.state === "done"
@@ -263,6 +326,10 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
           ? "fa-solid fa-spinner fa-spin"
           : "fa-regular fa-circle";
     });
+    // One polite announcement per step change (not per percent tick).
+    const active = steps.find((step) => step.state === "active");
+    const announce = this.element?.querySelector(".spf-progress-announce");
+    if (announce && active) announce.textContent = active.label;
     return true;
   }
 
@@ -290,5 +357,9 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (bar) bar.setAttribute("aria-valuenow", String(progress.percent));
     if (pct) pct.textContent = `${progress.percent}%`;
     if (detail) detail.textContent = progress.detail;
+    if (progress.phase === "cancelling") {
+      const announce = root.querySelector(".spf-progress-announce");
+      if (announce) announce.textContent = progress.detail;
+    }
   }
 }

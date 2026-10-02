@@ -13,6 +13,20 @@ export const CATEGORIES = [
   "abilities", "spells", "feats", "equipment", "ancestries", "backgrounds", "classes", "classFeatures", "heritages", "bestiaryActors"
 ];
 
+/** i18n keys naming each source category (shared by Sources and the Generator). */
+export const CATEGORY_LABELS = {
+  abilities: "SIMPLYSF2E.Sources.Abilities",
+  spells: "SIMPLYSF2E.Sources.Spells",
+  feats: "SIMPLYSF2E.Sources.Feats",
+  equipment: "SIMPLYSF2E.Sources.Equipment",
+  ancestries: "SIMPLYSF2E.Sources.Ancestries",
+  backgrounds: "SIMPLYSF2E.Sources.Backgrounds",
+  classes: "SIMPLYSF2E.Sources.Classes",
+  classFeatures: "SIMPLYSF2E.Sources.ClassFeatures",
+  heritages: "SIMPLYSF2E.Sources.Heritages",
+  bestiaryActors: "SIMPLYSF2E.Sources.BestiaryActors"
+};
+
 const BLANK_SPELL_CONSUMABLES = new Set(["spell-gem", "scroll"]);
 
 export const DEFAULT_PACKS = {
@@ -95,6 +109,13 @@ export function sourceReadiness(mode, { allowSpellcasting = true } = {}) {
   const categories = required.map((category) => ({ category, packs: getPacksFor(category) }));
   const missing = categories.filter(({ packs }) => !packs.length).map(({ category }) => category);
   return { categories, missing, packCount: categories.reduce((count, item) => count + item.packs.length, 0), ready: missing.length === 0 };
+}
+
+/** Human-readable, comma-joined names for missing source categories. */
+export function describeMissingSources(missing = []) {
+  return missing
+    .map((category) => (CATEGORY_LABELS[category] ? game.i18n.localize(CATEGORY_LABELS[category]) : category))
+    .join(", ");
 }
 
 /**

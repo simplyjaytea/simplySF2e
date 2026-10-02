@@ -27,6 +27,8 @@ let testProviderShouldThrow = null;
 let activeConnectionSelected = null;
 let currentConnection = "default-conn";
 const notifications = [];
+let confirmAnswer = true;
+let confirmCalls = 0;
 const context = vm.createContext({
   AbortController,
   console: { log() {}, warn() {}, error() {} },
@@ -49,7 +51,9 @@ const context = vm.createContext({
         ApplicationV2: class FakeApplicationV2 {
           constructor(options = {}) { this.options = options; }
           async render() { this.rendered = true; }
+          async close() { this.closedCalled = (this.closedCalled ?? 0) + 1; return this; }
         },
+        DialogV2: { async confirm() { confirmCalls += 1; return confirmAnswer; } },
         HandlebarsApplicationMixin: (Base) => class extends Base {}
       }
     }
@@ -249,5 +253,44 @@ await app._testProvider(testBtn);
 assert.equal(testBtn.disabled, false);
 assert.equal(testBtn.icon.className, "fa-solid fa-plug");
 assert.ok(notifications.some((n) => n.type === "error" && n.msg.includes("TestFailed")));
+
+// Close while a run is cancellable: confirm, then abort; No keeps the window open.
+{
+  const closing = new TestApp();
+  closing._armCancel();
+  confirmAnswer = false;
+  await closing.close();
+  assert.equal(confirmCalls, 1, "closing a busy window asks first");
+  assert.equal(closing.closedCalled, undefined, "No keeps the window open");
+  assert.equal(closing._generationAbort.signal.aborted, false, "No leaves the run alone");
+  confirmAnswer = true;
+  const signal = closing._generationAbort.signal;
+  await closing.close();
+  assert.equal(signal.aborted, true, "Yes aborts the run");
+  assert.equal(closing.closedCalled, 1, "Yes closes the window");
+  closing.rendered = false;
+  await closing.render();
+  assert.equal(closing.rendered, false, "a late plain render cannot reopen a closed window");
+  await closing.render(true);
+  assert.equal(closing.rendered, true, "a forced render reopens it");
+
+  // Shortcut binds once per window frame, and again for a reopened frame.
+  const listeners = [];
+  const frame = () => ({ addEventListener: (type, fn) => listeners.push({ type, fn }), querySelector: () => null });
+  const keyed = new TestApp();
+  keyed.element = frame();
+  keyed._onRender();
+  keyed._onRender();
+  assert.equal(listeners.filter((l) => l.type === "keydown").length, 1, "re-render does not stack keydown listeners");
+  keyed.element = frame();
+  keyed._onRender();
+  assert.equal(listeners.filter((l) => l.type === "keydown").length, 2, "a reopened frame gets its own listener");
+
+  const idle = new TestApp();
+  const before = confirmCalls;
+  await idle.close();
+  assert.equal(confirmCalls, before, "closing an idle window does not prompt");
+  assert.equal(idle.closedCalled, 1, "idle window closes");
+}
 
 console.log("app-base.test.mjs: cancellation, token reporting, progress, and provider assertions passed");

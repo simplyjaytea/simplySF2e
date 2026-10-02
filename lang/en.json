@@ -9,6 +9,10 @@
         "Name": "API Key",
         "Hint": "API key for the current API Base URL. It stays in this browser and is never synced to the world or other users. Manage it through AI Provider Setup, which masks the value and authorizes it only for the displayed endpoint. Leave blank for a keyless local server such as Ollama or LM Studio."
       },
+      "JevApiKey": {
+        "Name": "Jev API Key",
+        "Hint": "OpenRouter key used only for Jev fast picks. Stored in this browser; manage it through AI Provider Setup."
+      },
       "Model": {
         "Name": "Model",
         "Hint": "Model identifier, e.g. deepseek-v4-flash, deepseek-v4-pro, gpt-5.6-luna, or any model your provider offers."
@@ -63,9 +67,20 @@
       "ApiKeyHint": "Changing endpoints clears the old saved key unless you enter a replacement here.",
       "ClearApiKey": "Clear the saved API key",
       "Privacy": "Each connection's key stays in this browser and is sent only to the exact endpoint authorized when you save that connection.",
+      "JevLegend": "Fast picks (Jev)",
+      "JevHint": "Jev runs automatically on an OpenRouter connection. Add a key here only if your chat model is not on OpenRouter.",
+      "JevKeyLabel": "OpenRouter key for Jev (this browser only)",
+      "JevKeyPlaceholder": "Optional: OpenRouter key",
+      "JevKeySaved": "A Jev key is saved — leave blank to keep it",
+      "ClearJevKey": "Clear the saved Jev key",
+      "SaveJevKey": "Save Jev key",
+      "JevCorsWarning": "A TypeSafe-direct key will most likely not work from Foundry (browser CORS). Use an OpenRouter key. It is sent only to openrouter.ai.",
+      "JevSaved": "Jev key saved.",
+      "JevCleared": "Jev key cleared.",
+      "JevSaveFailed": "Could not save the Jev key: {message}",
       "SaveAuthorize": "Save & Authorize",
       "SaveTest": "Save & Test",
-      "Cancel": "Cancel",
+      "Cancel": "Close",
       "Configure": "Configure AI provider",
       "TestConnection": "Test provider connection",
       "InvalidBaseUrl": "Enter a complete HTTP or HTTPS API Base URL.",
@@ -73,7 +88,8 @@
       "SavedAuthorized": "Saved {provider} with model {model}; the key is authorized for this endpoint.",
       "SavedNeedsKey": "Saved {provider} with model {model}, but this remote provider still needs an API key.",
       "TestSuccess": "Connected to {provider} with model {model} ({total} tokens).",
-      "TestFailed": "Provider connection test failed: {message}"
+      "TestFailed": "Provider connection test failed: {message}",
+      "SaveFailed": "Could not save provider settings: {message}"
     },
     "Generator": {
       "Title": "SimplySF2e — Generator",
@@ -104,6 +120,7 @@
       "Character": "Character",
       "Creature": "Creature",
       "CreateAll": "Create All Actors",
+      "CreatedOneInFolder": "Created 1 actor in folder \"{name}\".",
       "CreatedAll": "Created {count} actors in folder \"{name}\".",
       "LevelUp": "Increase level",
       "LevelDown": "Decrease level",
@@ -132,9 +149,14 @@
       "RerollLoot": "Reroll Loot",
       "RerollLootTooltip": "Generate different loot without changing the creature",
       "Discard": "Discard",
+      "EmptyHintReskin": "Nothing generated yet — drop an NPC above, then press Generate. The preview appears here before anything is created.",
+      "XPUnit": "XP",
+      "CreditsUnit": "credits",
+      "OverBudget": "(over budget)",
+      "MemberSkipped": "Skipped",
       "Created": "Created actor \"{name}\".",
       "CompleteTitle": "Generation complete",
-      "CompleteSummary": "Created {count} actor(s): {name}.",
+      "CompleteSummary": "Created {count} actors: {name}.",
       "CompletionGrounding": "Content grounding",
       "CompletionCompendium": "Compendium content: {count}",
       "CompletionNative": "Native SF2e selections: {count}",
@@ -142,6 +164,8 @@
       "CompletionCustomNarrative": "Deliberate custom narrative abilities: {count}",
       "OpenSheet": "Open Sheet",
       "GenerateAnother": "Generate Another",
+      "DiscardTitle": "Discard preview?",
+      "DiscardConfirm": "This throws away the preview, including any changes you made to it. The tokens it cost are not refunded.",
       "NoSupportedClasses": "No supported complete-only player-character classes are available in the enabled compendium sources.",
       "ReviewTitle": "Character created — review",
       "ReviewHint": "These features had no recorded choice after creation. Some may be conditional or intentionally disabled; review them in Foundry. This snapshot does not refresh when you edit the character and is not a full character validation.",
@@ -292,6 +316,9 @@
     },
     "Progress": {
       "Label": "Generation progress",
+      "StepDone": "(done)",
+      "StepActive": "(in progress)",
+      "StepPending": "(waiting)",
       "Concept": "Creature concept",
       "SpellFocus": "Spell focus",
       "Spells": "Spell selection",
@@ -313,6 +340,8 @@
       "WritingExact": "{step}: receiving… ({tokens} tokens)",
       "Cancel": "Cancel generation",
       "Cancelling": "Cancelling…",
+      "CloseTitle": "Stop generation?",
+      "CloseConfirm": "A generation is still running. Close this window and stop it? Tokens already used are not refunded.",
       "Apply": "Applying character",
       "Reskin": "Writing new fiction"
     },
@@ -347,6 +376,8 @@
       "Save": "Save",
       "Reset": "Reset to defaults",
       "Saved": "Compendium sources saved.",
+      "ResetTitle": "Reset compendium sources",
+      "ResetConfirm": "Reset every category to the SF2e system pack defaults? Unsaved changes in this window are lost.",
       "ResetDone": "Compendium sources reset to the SF2e system pack defaults."
     },
     "Rarity": {
@@ -356,6 +387,7 @@
       "Unique": "Unique"
     },
     "Preview": {
+      "Average": "(avg {value})",
       "Signature": "Signature",
       "PCSignaturePlan": "Planned signature choices: {selected}/{total}. Choices are rechecked against real spells during creation; missing or rejected choices stay regular and need manual review.",
       "PCBaseSpellPlan": "Base spell plan only: prepared classes prepare each listed pick; spontaneous classes learn it at the listed rank. Review empty slots, signature spells, and restricted subclass or feat bonuses (such as curriculum or divine font) in Foundry.",

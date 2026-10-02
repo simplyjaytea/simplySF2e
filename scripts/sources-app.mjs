@@ -1,20 +1,7 @@
 import { MODULE_ID, SETTINGS, getSetting } from "./settings.mjs";
-import { CATEGORIES, DEFAULT_PACKS, detectAvailablePacks } from "./compendium.mjs";
+import { CATEGORIES, CATEGORY_LABELS, DEFAULT_PACKS, detectAvailablePacks } from "./compendium.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
-
-const CATEGORY_LABELS = {
-  abilities: "SIMPLYSF2E.Sources.Abilities",
-  spells: "SIMPLYSF2E.Sources.Spells",
-  feats: "SIMPLYSF2E.Sources.Feats",
-  equipment: "SIMPLYSF2E.Sources.Equipment",
-  ancestries: "SIMPLYSF2E.Sources.Ancestries",
-  backgrounds: "SIMPLYSF2E.Sources.Backgrounds",
-  classes: "SIMPLYSF2E.Sources.Classes",
-  classFeatures: "SIMPLYSF2E.Sources.ClassFeatures",
-  heritages: "SIMPLYSF2E.Sources.Heritages",
-  bestiaryActors: "SIMPLYSF2E.Sources.BestiaryActors"
-};
 
 /**
  * Settings menu: scan the world's Item compendiums and let the GM choose
@@ -63,7 +50,7 @@ export class SourcesConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
         }))
       };
     });
-    return { categories };
+    return { categories, noPacks: categories.every((category) => !category.packs.length) };
   }
 
   static async #onSubmit() {
@@ -78,6 +65,13 @@ export class SourcesConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
   }
 
   static async #onReset() {
+    const { DialogV2 } = foundry.applications.api;
+    const confirmed = await DialogV2.confirm({
+      window: { title: "SIMPLYSF2E.Sources.ResetTitle" },
+      content: `<p>${game.i18n.localize("SIMPLYSF2E.Sources.ResetConfirm")}</p>`,
+      rejectClose: false
+    });
+    if (!confirmed) return;
     await game.settings.set(MODULE_ID, SETTINGS.sourcePacks, {});
     ui.notifications.info(game.i18n.localize("SIMPLYSF2E.Sources.ResetDone"));
     await this.render();

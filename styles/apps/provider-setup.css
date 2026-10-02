@@ -14,10 +14,8 @@
   margin: 0;
 }
 
-.simplysf2e .simplysf2e-provider-setup .hint {
+.simplysf2e .simplysf2e-provider-setup .spf-hint {
   margin: 0.15rem 0 0;
-  font-size: var(--spf-text-sm);
-  color: var(--spf-text-muted);
 }
 
 /* Endpoint and API-key groups: notched cards with console-chip legends. */
@@ -128,7 +126,8 @@
   width: auto;
 }
 
-.simplysf2e .spf-provider-privacy {
+.simplysf2e .spf-provider-privacy,
+.simplysf2e .spf-jev-warning {
   margin: 0;
 }
 
@@ -139,4 +138,9 @@
   .simplysf2e .spf-provider-presets {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+}
+
+/* The local-server hint is only for Ollama, LM Studio and custom endpoints. */
+.simplysf2e .spf-provider-local-hint[hidden] {
+  display: none;
 }

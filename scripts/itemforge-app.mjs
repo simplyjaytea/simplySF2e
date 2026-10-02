@@ -423,6 +423,8 @@ export class ItemForgeApp extends SpfApp {
 
   static async #onDiscard() {
     if (this.#busy) return;
+    if (!await this._confirm("SIMPLYSF2E.Generator.DiscardTitle", "SIMPLYSF2E.Generator.DiscardConfirm")) return;
+    if (this.#busy) return;
     this.#readForm();
     this.#clearPreview();
     this.#error = null;

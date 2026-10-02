@@ -327,7 +327,7 @@ for (const rule of ["spf-card", "spf-icon-btn", "spf-empty"]) {
 assert.match(css, /\.simplysf2e button\.spf-primary\s*\{/, "the primary button treatment must be defined");
 assert.match(
   css,
-  /\.simplysf2e :is\(button, input, select, textarea\):focus-visible\s*\{[^}]*outline:/s,
+  /\.simplysf2e :is\(button, input, select, textarea, summary\):focus-visible\s*\{[^}]*outline:/s,
   "every control must have a visible focus state"
 );
 assert.match(css, /\.simplysf2e button:disabled\s*\{[^}]*opacity/s, "disabled controls must read as disabled");

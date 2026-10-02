@@ -4,7 +4,7 @@
 //   https://openrouter.ai/docs/api/api-reference/systemone/submit-a-system-one-request
 //   https://docs.typesafe.ai/introduction/quickstart
 // Call sites and UI arrive in later steps (J1b, J2-J5); nothing here calls the network on import.
-import { getProviderRequestConfig } from "./settings.mjs";
+import { getProviderRequestConfig, getJevRequestConfig } from "./settings.mjs";
 
 /**
  * One fixed endpoint. TypeSafe's own endpoint (api.typesafe.ai) fails the browser
@@ -40,7 +40,7 @@ const isUnit = (value) => typeof value === "number" && Number.isFinite(value) &&
  *
  * `provider` and `dedicated` are injected because Node ESM cannot stub named imports.
  */
-export function resolveJevConfig({ provider = getProviderRequestConfig, dedicated = () => null } = {}) {
+export function resolveJevConfig({ provider = getProviderRequestConfig, dedicated = getJevRequestConfig } = {}) {
   try {
     const dedicatedKey = String(dedicated()?.apiKey ?? "").trim();
     if (dedicatedKey) return { endpoint: JEV_ENDPOINT, apiKey: dedicatedKey };

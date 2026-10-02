@@ -22,8 +22,11 @@ Conventions: "Generator" = the **SimplySF2e — Generator** window. "Forge" = th
 | 0.8 | Open the Generator. Look at the provider row. | Green check, "Provider configuration is ready", and the model ID. The Forge shows the same row. | Generator header | | |
 | 0.9 | (Optional) In Provider Setup add a second connection, **Save & Authorize**, switch to it with the Active connection selector in the Generator, then switch back. | Switching loads that connection's URL/model; the key is not shown in plain text. | Generator connection switch | | |
 | 0.10 | Module Settings → SimplySF2e → **Compendium Sources** → **Configure Sources**. Before changing anything, read each category. | Every category (Bestiary Abilities, Spells, Feats, Equipment, Ancestries, Backgrounds, Classes, Class Features, Heritages, Bestiary Actors) lists packs, with the sf2e defaults marked "default" (`sf2e.classes`, `class-features`, `feats`, `spells`, `equipment`, `ancestries`, `heritages`, `backgrounds`, `bestiary-ability-glossary-srd`, `alien-core-bestiary`). | Sources window | | |
-| 0.11 | Click **Reset to defaults**, then **Save**. | "Compendium sources reset to the SF2e system pack defaults." then "Compendium sources saved." | Notifications | | |
+| 0.11 | Click **Reset to defaults**, confirm the dialog, then **Save**. | "Compendium sources reset to the SF2e system pack defaults." then "Compendium sources saved." | Notifications | | |
 | 0.12 | Reopen the Generator. | Compendium Content row reads "Ready — N enabled packs"; no "Required compendium content is unavailable" message. | Generator | | |
+| 0.13 | Provider Setup → **Fast picks (Jev)** card: type an OpenRouter key and click **Save Jev key**. | "Jev key saved." The field is empty with the placeholder "A Jev key is saved — leave blank to keep it"; the key is not shown in plain text. A TypeSafe-direct key warning is visible. | Provider Setup | | |
+| 0.14 | Reopen Provider Setup; click **Save Jev key** with the field empty, then tick **Clear the saved Jev key** and click it again. | Empty click changes nothing. Clear shows "Jev key cleared." and the placeholder returns to "Optional: OpenRouter key". | Provider Setup | | |
+| 0.15 | Type a Jev key, leave the Model field empty, press **Save & Authorize**. | The chat save errors (model required) but reopening Provider Setup shows the Jev key is saved. | Provider Setup | | |
 
 ## 1. Presets and Manage Presets
 
@@ -322,14 +325,64 @@ Needs an OpenRouter connection, as 12b.
 | 12f.2 | Open Compendium Sources with a long-id homebrew pack. | Source id wraps beside the title; title keeps readable width. | Sources | | |
 | 12f.3 | Open Manage Presets with no presets, then with some. | Empty text points to New Preset / Import; each row button reads aloud as "Edit preset <name>" etc. | Presets | | |
 | 12f.4 | Item Forge Level and Rarity row. | Labels share one line and the fields sit together. | Item Forge | | |
+| 12f.5 | Provider Setup: set Base URL to `ftp://x`, press Save & Authorize. | Error toast "Could not save provider settings: ..."; window stays open with your edits. A valid save still closes the window. | Provider Setup | | |
+| 12f.6 | With a screen reader (or the accessibility tree), tab through Provider Setup, Item Forge, Sources and Manage Presets. | Decorative icons are not announced; buttons read by their text. | All four | | |
 
-## 12h. U6 Item Forge consistency
+## 12g. Generator UI fixes (U5a)
+
+Things the preview harness cannot show: real Foundry fonts, tooltips and a screen reader.
+
+| # | Step | Expected | Where to look | Result | Evidence |
+|---|------|----------|---------------|--------|----------|
+| 12g.1 | Tab with the keyboard onto Generate (and onto "Advanced options"). | A cyan ring is drawn all the way around the button (its notched corner squares off while focused); the summary shows the same ring. | Generator | | |
+| 12g.2 | Start a generation with a screen reader on. | One announcement per step change (the new step name (for example "Spell selection")); no announcement on every percent tick; Cancel announces "Cancelling". | Progress card | | |
+| 12g.3 | Encounter preview: raise members until XP is over budget; set one member to x0. | The over-budget number is light red with a red border; the x0 card shows a "Skipped" tag and stays readable. | Encounter preview | | |
+| 12g.4 | Set a Sources category to an empty/uninstalled pack, reopen the Generator. | Compendium row says "...unavailable: Spells, Feats." with names, not ids. | Status strip | | |
+| 12g.5 | Reskin mode, nothing dropped. | Empty hint tells you to drop an NPC. | Generator | | |
+| 12g.6 | Hover a long connection or model name in the status strip. | Full name appears in a tooltip. | Status strip | | |
+| 12g.7 | Create one actor. | Completion card reads `Created actor "Name".` | Generator | | |
+| 12g.8 | A "found" check and the not-found glyph (character preview, a spell the pack lacks). | Check is clearly green, not-found glyph is red, in all rows. | Preview | | |
+
+## 12h. U6 Compendium Sources flow
 
 | # | Do | Expect | Where | Pass | Notes |
 | --- | --- | --- | --- | --- | --- |
-| 12h.1 | Forge a wondrous item, then a weapon. | Both previews show price in credits (no gp). | Forge preview | | |
-| 12h.2 | Open the Item Forge. | A "Compendium Content" row sits under the provider row with a gear that opens Compendium Sources; Generate stands alone in its row. | Item Forge | | |
-| 12h.3 | Generate an item, then look at the primary button. | It still reads **Generate**, not Regenerate; pressing it again makes a new version. | Item Forge | | |
+| 12h.1 | Tick a pack, then click **Reset to defaults** and choose **No**. | A confirm dialog appears; No changes nothing and keeps your ticks. Yes resets and shows the "reset" notice. | Sources | | |
+| 12h.2 | Shrink the Sources window so the list scrolls. | **Save** and **Reset to defaults** stay pinned at the bottom while the categories scroll under them. | Sources | | |
+| 12h.3 | With every compendium pack disabled in the world, open Sources. | One "No compendium packs…" message, not one per category, and **Save** is disabled. | Sources | | |
+
+## 12i. U6 Manage Presets delete cue
+
+| # | Do | Expect | Where | Pass | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 12i.1 | Open Manage Presets with several presets. | The trash button is red-tinted and spaced apart from Edit, Duplicate and Export; hover or Tab to it turns the fill red. Clicking still asks for confirmation. | Manage Presets | | |
+
+## 12j. U6 Provider Setup flow
+
+| # | Do | Expect | Where | Pass | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 12j.1 | Open Provider Setup, type in the Connection name or Model field and press Enter. | Runs **Save & Test** (the highlighted primary), not Save & Authorize. | Provider Setup | | |
+| 12j.2 | Click through DeepSeek, OpenAI, OpenRouter, then Ollama, LM Studio, Custom. | The Ollama / LM Studio CORS paragraph is hidden for the three hosted providers and shown for the other three. | Provider Setup | | |
+| 12j.3 | Look at the bottom button that used to say Cancel. | It reads **Close** and just closes the window; Load Models and connection changes have already saved. | Provider Setup | | |
+
+## 12k. U6 Run safety
+
+| # | Do | Expect | Where | Pass | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 12k.1 | Start a Generator run, then click the window X (or press Esc) mid-run and answer **No**. | "Stop generation?" dialog; No keeps the window open and the run continues. | Generator | | |
+| 12k.2 | Repeat and answer **Yes**. | The window closes, the run stops (provider dashboard or Network tab shows no further requests) and no actor is created. Reopening the Generator shows a clean form, not a stale progress card. | Generator, Network | | |
+| 12k.3 | Same as 12k.1 and 12k.2 in the Item Forge. | Same behavior. | Item Forge | | |
+| 12k.4 | Close an idle Generator or Forge window. | No prompt. | Both | | |
+| 12k.5 | With a preview showing, click **Discard**. | A confirm dialog; Cancel keeps the preview, Confirm clears it. Check monster, encounter, character and Forge previews. | Both | | |
+| 12k.6 | Type a prompt and press Ctrl+Enter (Cmd+Enter on Mac). | Starts Generate exactly as the button does; does nothing while busy. | Both | | |
+
+## 12l. U6 Item Forge consistency
+
+| # | Do | Expect | Where | Pass | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 12l.1 | Forge a wondrous item, then a weapon. | Both previews show price in credits (no gp). | Forge preview | | |
+| 12l.2 | Open the Item Forge. | A "Compendium Content" row sits under the provider row with a gear that opens Compendium Sources; Generate stands alone in its row. | Item Forge | | |
+| 12l.3 | Generate an item, then look at the primary button. | It still reads **Generate**, not Regenerate; pressing it again makes a new version. | Item Forge | | |
 
 ## 13. Firefox (if available)
 

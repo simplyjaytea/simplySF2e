@@ -40,6 +40,8 @@ function providerSetup(selected, patch = {}) {
     model: "anthropic/claude-sonnet-5",
     availableModels: [],
     hasApiKey: true,
+    hasJevKey: false,
+    showLocalHint: ["ollama", "lmstudio", "custom"].includes(selected),
     localServerHint: localize("SIMPLYSF2E.ProviderSetup.LocalServerHint", { origin: "http://localhost:30000" }),
     ...patch
   };
@@ -56,7 +58,8 @@ function sources(patch = {}) {
       pack(`homebrew.${key}`, `Homebrew ${key} with a deliberately long compendium title for wrapping`, "starfinder-homebrew-collection", false, false)
     ]
   }));
-  return { categories: patch.noPacks ? categories.map((c) => ({ ...c, packs: [] })) : categories };
+  const emptied = patch.noPacks ? categories.map((c) => ({ ...c, packs: [] })) : categories;
+  return { categories: emptied, noPacks: emptied.every((c) => !c.packs.length) };
 }
 
 const preset = (id, name) => ({ id, name });
