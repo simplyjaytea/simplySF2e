@@ -1,0 +1,34 @@
+/* Stand-in for the Foundry core CSS the module normally sits on top of.
+   Only what the module styles assume: a dark page, a windowed frame, and
+   neutral form controls. Fonts and base controls still differ from a live
+   world, so judge layout, wrapping and overflow here, not typography. */
+html, body { margin: 0; background: #1b1b22; }
+body { padding: 20px; font-family: "Signika", system-ui, sans-serif; font-size: 14px; color: #e8f6fa; }
+.application { height: auto !important; max-height: none !important; display: flex; flex-direction: column; box-sizing: border-box; background: #0c1620; }
+.application .window-header { display: flex; align-items: center; gap: 0.5rem; padding: 0 0.6rem; height: 2rem; flex: none; }
+.application .window-header h1 { margin: 0; border: 0; font-size: 1em; font-family: inherit; display: flex; gap: 0.4rem; align-items: center; }
+.application .window-content { padding: 8px; overflow: visible; box-sizing: border-box; }
+.application form, .application .window-content > * { box-sizing: border-box; }
+.application h2, .application h3 { font-family: inherit; border: 0; margin: 0.5em 0 0.25em; }
+.application button, .application input, .application select, .application textarea {
+  font: inherit; color: #e8e8ee; box-sizing: border-box;
+}
+.application button { background: rgba(255, 255, 255, 0.12); border: 1px solid #50606c; border-radius: 3px; padding: 4px 10px; cursor: pointer; }
+.application input[type="text"], .application input[type="url"], .application input[type="number"],
+.application input[type="password"], .application select, .application textarea {
+  background: rgba(0, 0, 0, 0.45); border: 1px solid #50606c; border-radius: 3px; padding: 3px 6px; max-width: 100%;
+}
+.application fieldset { margin: 0 0 8px; min-inline-size: 0; }
+.application .form-group { display: flex; gap: 0.5rem; align-items: center; margin: 0.25rem 0; }
+.application .form-group.stacked { flex-direction: column; align-items: stretch; }
+.application .notification { margin: 4px 0; padding: 6px 8px; border: 1px solid; border-radius: 3px; background: rgba(0, 0, 0, 0.35); }
+.application .notification.warning { border-color: #e0a030; }
+.application .notification.error { border-color: #e04a5a; }
+.application .notification.info { border-color: #5ab0e0; }
+.application .hint, .application .notes { font-size: 0.85em; opacity: 0.8; margin: 0; }
+.application .spf-sr-only, .application .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* The module caps the generator/forge body at 80vh and scrolls inside it. The
+   screenshots show the full content instead so nothing is hidden from review;
+   a tall result therefore looks taller here than in a window on a short screen. */
+.application .simplysf2e-generator { max-height: none !important; overflow-y: visible !important; }
