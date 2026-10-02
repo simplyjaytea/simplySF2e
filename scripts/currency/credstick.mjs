@@ -1,4 +1,7 @@
-{
+// Verbatim copy of foundryvtt/pf2e v14-dev bundled credstick.json (see ../currency.mjs).
+// Kept as a module export instead of a JSON import attribute so the module
+// loads in browsers without import-attribute support (e.g. Firefox ESR 128).
+export default {
     "_id": "penfpVFkOqZYpmkU",
     "img": "icons/sundries/gaming/playing-cards-grey.webp",
     "name": "Credstick",
@@ -46,4 +49,4 @@
         }
     },
     "type": "treasure"
-}
+};
