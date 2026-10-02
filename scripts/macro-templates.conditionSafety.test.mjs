@@ -40,7 +40,7 @@ assert.doesNotMatch(nameCommand, /<img src=x onerror=alert\(1\)>/, "a raw unesca
 
 // normalizeActivation (private, exercised through normalizeMagicItemConcept)
 // must esc() an AI-supplied condition duration the same way selfBuff already
-// escapes effectName/description, since durationText is concatenated
+// escapes description (effectName stays raw and is escaped by the macro), since durationText is concatenated
 // straight into ChatMessage content in CONDITION_BODY.
 const maliciousDuration = '1 minute<script>alert(1)</script>';
 const concept = normalizeMagicItemConcept({
