@@ -1,6 +1,6 @@
 // Jev equipment/loot pick logic with an injected request function (no network).
 import assert from "node:assert/strict";
-import { jevPickEquipment, jevPickLoot, jevScoreIndex, mergeUsage, JEV_NONE_KEY } from "./jev-picks.mjs";
+import { jevPickEquipment, jevPickLoot, jevPickCreatureFeats, jevPickCreatureAbilities, jevScoreIndex, mergeUsage, JEV_NONE_KEY } from "./jev-picks.mjs";
 
 const jevConfig = { endpoint: "https://openrouter.ai/api/v1/systemone", apiKey: "k" };
 const ref = (id) => ({ packId: "sf2e.equipment", _id: id });
@@ -113,5 +113,54 @@ assert.equal(mergeUsage({ prompt: 1, completion: 1, total: 2, cost: 0.1 }, { pro
   assert.equal(calls.length, 0);
   const lowReq = scripted(response({ loot0: choice("E0", 0.2) }));
   assert.equal((await jevPickLoot({ concept: concept({ loot: [{ name: "Medkit", quantity: 1 }] }), candidates, jevConfig, request: lowReq.request })).loot, null);
+}
+// Creature feats: one Choice per draft entry (cap 3) with a `none` key; none/low drops that entry.
+{
+  const feats = [{ id: "F0", name: "Reactive Shield", ref: ref("shield") }, { id: "F1", name: "Sudden Charge", ref: ref("charge") }];
+  const draft = ["Shield thing", "Charge thing", "Dup charge", "Fourth"];
+  const { request, calls } = scripted(response({ entry0: choice("F0"), entry1: choice("F1"), entry2: choice("F1") }));
+  const out = await jevPickCreatureFeats({ concept: concept({ feats: draft }), candidates: feats, jevConfig, request });
+  assert.deepEqual(out.feats.map((f) => f.name), ["Reactive Shield", "Sudden Charge"], "deduped");
+  assert.equal(out.feats[0].candidate, feats[0].ref);
+  assert.equal(out.omitted, false);
+  assert.deepEqual(Object.keys(calls[0].questions), ["entry0", "entry1", "entry2"], "capped at 3");
+  assert.deepEqual(Object.keys(calls[0].questions.entry0.criteria), ["F0", "F1", JEV_NONE_KEY]);
+
+  // none and low confidence drop single entries.
+  const mixed = scripted(response({ entry0: choice("F0"), entry1: choice(JEV_NONE_KEY), entry2: choice("F1", 0.2) }));
+  const m = await jevPickCreatureFeats({ concept: concept({ feats: draft }), candidates: feats, jevConfig, request: mixed.request });
+  assert.deepEqual(m.feats.map((f) => f.name), ["Reactive Shield"]);
+
+  // Every entry confidently `none` -> omitted true (wishlist declined).
+  const allNone = scripted(response({ entry0: choice(JEV_NONE_KEY), entry1: choice(JEV_NONE_KEY) }));
+  const n = await jevPickCreatureFeats({ concept: concept({ feats: ["a", { name: "b" }] }), candidates: feats, jevConfig, request: allNone.request });
+  assert.deepEqual([n.feats, n.omitted], [[], true]);
+
+  // All dropped but some doubt -> chat model decides.
+  const doubt = scripted(response({ entry0: choice(JEV_NONE_KEY), entry1: choice("F0", 0.2) }));
+  const d = await jevPickCreatureFeats({ concept: concept({ feats: ["a", "b"] }), candidates: feats, jevConfig, request: doubt.request });
+  assert.equal(d.feats, null);
+
+  // Transport failure, no config, >255 candidates -> null.
+  assert.equal((await jevPickCreatureFeats({ concept: concept({ feats: ["a"] }), candidates: feats, jevConfig, request: scripted(null).request })).feats, null);
+  assert.equal((await jevPickCreatureFeats({ concept: concept({ feats: ["a"] }), candidates: feats, jevConfig: null })).feats, null);
+  const many = Array.from({ length: 255 }, (_, i) => ({ id: `F${i}`, name: `Feat ${i}`, ref: ref(`f${i}`) }));
+  const big = scripted();
+  assert.equal((await jevPickCreatureFeats({ concept: concept({ feats: ["a"] }), candidates: many, jevConfig, request: big.request })).feats, null);
+  assert.equal(big.calls.length, 0, "255 ids + none exceeds the choice cap, so no request");
+}
+
+// Creature abilities: glossary name preferred; none drops to narrative-only (caller keeps it).
+{
+  const acts = [{ id: "A0", name: "Grab", ref: ref("grab") }, { id: "A1", name: "Knockdown", ref: ref("kd") }];
+  const specialAbilities = [{ name: "Tendrils", glossary: "Grab" }, { name: "Slam it" }, { name: "Flavor" }];
+  const { request, calls } = scripted(response({ entry0: choice("A0"), entry1: choice("A1"), entry2: choice(JEV_NONE_KEY) }));
+  const out = await jevPickCreatureAbilities({ concept: concept({ specialAbilities }), candidates: acts, jevConfig, request });
+  assert.deepEqual(out.abilities.map((a) => a.name), ["Grab", "Knockdown"]);
+  assert.match(calls[0].questions.entry0.instructions, /"Grab"/);
+  assert.equal(out.abilities[0].candidate, acts[0].ref);
+  const low = scripted(response({ entry0: choice("A0", 0.1), entry1: choice(JEV_NONE_KEY), entry2: choice(JEV_NONE_KEY) }));
+  assert.deepEqual((await jevPickCreatureAbilities({ concept: concept({ specialAbilities }), candidates: acts, jevConfig, request: low.request })).abilities, []);
+  assert.equal((await jevPickCreatureAbilities({ concept: concept({ specialAbilities }), candidates: acts, jevConfig, request: scripted(null).request })).abilities, null);
 }
 console.log("jev-picks tests passed");

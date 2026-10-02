@@ -30,7 +30,7 @@ globalThis.fetch = async (url, options) => {
   }), { headers: { "content-type": "application/json" } });
 };
 
-const { selectEquipment, selectLoot } = await import("./ai.mjs");
+const { selectEquipment, selectLoot, selectCreatureFeats, selectCreatureAbilities } = await import("./ai.mjs");
 const jevConfig = { endpoint: "https://openrouter.ai/api/v1/systemone", apiKey: "k" };
 const ref = { packId: "sf2e.equipment", _id: "medkit" };
 const candidates = [{ id: "E0", name: "Medkit", type: "equipment", level: 1, ref }];
@@ -90,5 +90,43 @@ out = await selectLoot({
   concept: { ...concept, loot: [{ name: "Spell Gem of Fireball (Rank 3)", quantity: 1 }] }, candidates, jevConfig
 });
 assert.equal(seen.jev, jevBefore);
+assert.equal(out.timing.source, "llm");
+// Creature feats/abilities: Jev answers, falls back to the chat model on failure.
+const featCandidates = [{ id: "F0", name: "Reactive Shield", ref: { packId: "sf2e.feats", _id: "shield" } }];
+const grounded = { ...concept, feats: ["shield"], specialAbilities: [{ name: "Grab", glossary: "Grab" }] };
+const entry = (choice, confidence = 0.9) => ({
+  model: "typesafe/jev-1.13",
+  answers: { entry0: { type: "choice", choice, confidence, probabilities: { [choice]: confidence } } },
+  usage: { input_tokens: 40, output_tokens: 2 }
+});
+const jevBeforeFeats = seen.jev;
+jevReplies.push(entry("F0"));
+out = await selectCreatureFeats({ concept: grounded, candidates: featCandidates, jevConfig });
+assert.deepEqual(out.feats, [{ name: "Reactive Shield", candidate: featCandidates[0].ref }]);
+assert.equal(out.timing.source, "jev");
+assert.equal(seen.jev, jevBeforeFeats + 1);
+
+jevReplies.push(entry("none"));
+out = await selectCreatureFeats({ concept: grounded, candidates: featCandidates, jevConfig });
+assert.deepEqual([out.feats, out.omitted, out.timing.source], [[], true, "jev"]);
+
+jevReplies.push(new Error("offline"));
+llmReplies.push({ featIds: ["F0"] });
+out = await selectCreatureFeats({ concept: grounded, candidates: featCandidates, jevConfig });
+assert.equal(out.feats[0].name, "Reactive Shield");
+assert.equal(out.timing.source, "llm");
+assert.ok("jevMs" in out.timing);
+
+const abilityCandidates = [{ id: "A0", name: "Grab", ref: { packId: "sf2e.glossary", _id: "grab" } }];
+jevReplies.push(entry("A0"));
+out = await selectCreatureAbilities({ concept: grounded, candidates: abilityCandidates, jevConfig });
+assert.equal(out.abilities[0].name, "Grab");
+assert.equal(out.timing.source, "jev");
+jevReplies.push(entry("none"));
+out = await selectCreatureAbilities({ concept: grounded, candidates: abilityCandidates, jevConfig });
+assert.deepEqual(out.abilities, []);
+jevReplies.push(new Error("offline"));
+llmReplies.push({ abilityIds: ["A0"] });
+out = await selectCreatureAbilities({ concept: grounded, candidates: abilityCandidates, jevConfig });
 assert.equal(out.timing.source, "llm");
 console.log("ai.jevPicks tests passed");

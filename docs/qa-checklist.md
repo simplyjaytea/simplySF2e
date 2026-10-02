@@ -280,6 +280,16 @@ Needs an OpenRouter connection (Jev reuses its key). With a non-OpenRouter conne
 | 12b.3 | OpenRouter connection, DevTools Network set to Offline for `openrouter.ai/api/v1/systemone` only (block that URL), then generate. | "using the chat model" warning, and gear and loot still resolve through the chat model. | Console | | |
 | 12b.4 | Generate a creature whose loot includes a spell gem and credits. | Spell gem and credits appear exactly as before; credits are not doubled. | Preview | | |
 
+## 12c. Jev creature feat and ability picks (J3)
+
+Needs an OpenRouter connection, as 12b.
+
+| # | Step | Expected | Where to look | Result | Evidence |
+|---|------|----------|---------------|--------|----------|
+| 12c.1 | OpenRouter connection, generate a creature with class feats and glossary abilities (for example a soldier-style guard that grabs). | Feats and abilities resolve to real compendium entries. No "Jev request" warning in the console. | Preview, console | | |
+| 12c.2 | Generate a creature with an odd ability no published action matches. | That ability stays labeled narrative-only; creation is not blocked. | Preview | | |
+| 12c.3 | Block `openrouter.ai/api/v1/systemone` in DevTools, then generate the 12c.1 creature. | "using the chat model" warning; feats and abilities still resolve. | Console | | |
+
 ## 13. Firefox (if available)
 
 | # | Step | Expected | Where to look | Result | Evidence |

@@ -9,7 +9,7 @@ import { taskResponseProblem } from "./ai-response-validation.mjs";
 import { validateChoicePicks } from "./choice-set.mjs";
 import { CORE_SKILLS } from "./pc-skills.mjs";
 import { resolveJevConfig } from "./jev.mjs";
-import { jevPickEquipment, jevPickLoot, mergeUsage } from "./jev-picks.mjs";
+import { jevPickEquipment, jevPickLoot, jevPickCreatureFeats, jevPickCreatureAbilities, mergeUsage } from "./jev-picks.mjs";
 
 /**
  * Client for any OpenAI-compatible chat completions API (DeepSeek, OpenAI,
@@ -903,9 +903,15 @@ Include exactly one entry per slot number (1 to ${slots.length}). Never use an I
 }
 
 /** Choose a small set of class-like creature feats from an issued catalog. */
-export async function selectCreatureFeats({ concept, candidates, onProgress, signal }) {
+export async function selectCreatureFeats({ concept, candidates, onProgress, signal, jevConfig = resolveJevConfig() }) {
   const maximum = Math.min(Math.max(concept?.feats?.length ?? 0, 0), 3);
   if (!maximum || !candidates.length) return { feats: [], omitted: false, usage: null };
+  // Jev first; transport/shape failure or any doubt falls through to the chat model below.
+  const jev = await jevPickCreatureFeats({ concept, candidates, jevConfig, signal });
+  if (jev.feats) {
+    return { feats: jev.feats, omitted: jev.omitted, usage: jev.usage ?? NO_TOKENS, timing: { source: "jev", ms: jev.ms } };
+  }
+  const started = Date.now();
   const catalog = candidates.map((candidate) => `${candidate.id} | ${candidate.name}`).join("\n");
   const system = `${GM_CONCEPT_PRIORITY}\n\nYou are selecting up to ${maximum} published Starfinder 2e class feats for a creature. Choose ONLY IDs from the provided catalog. Return a single JSON object and nothing else:
 { "featIds": string[] }
@@ -937,13 +943,21 @@ Choose feats that fit the creature's role and tactics. Do not choose a feat more
     .map((candidate) => ({ name: candidate.name, ...(candidate.ref ? { candidate: candidate.ref } : {}) }));
   // Only an explicitly empty, schema-validated reply declines the wishlist.
   // Nonempty replies that decode to no issued candidates remain failures.
-  return { feats, omitted: parsed.featIds.length === 0, usage };
+  return {
+    feats, omitted: parsed.featIds.length === 0, usage: mergeUsage(usage, jev.usage),
+    timing: { source: "llm", ms: Date.now() - started, ...(jev.attempted ? { jevMs: jev.ms } : {}) }
+  };
 }
 
 /** Select published bestiary actions only from the issued action catalog. */
-export async function selectCreatureAbilities({ concept, candidates, onProgress, signal }) {
+export async function selectCreatureAbilities({ concept, candidates, onProgress, signal, jevConfig = resolveJevConfig() }) {
   const maximum = Math.min(Math.max(concept?.specialAbilities?.length ?? 0, 0), 6);
   if (!maximum || !candidates.length) return { abilities: [], usage: null };
+  const jev = await jevPickCreatureAbilities({ concept, candidates, jevConfig, signal });
+  if (jev.abilities) {
+    return { abilities: jev.abilities, usage: jev.usage ?? NO_TOKENS, timing: { source: "jev", ms: jev.ms } };
+  }
+  const started = Date.now();
   const catalog = candidates.map((candidate) => `${candidate.id} | ${candidate.name}`).join("\n");
   const system = `${GM_CONCEPT_PRIORITY}\n\nYou are selecting up to ${maximum} published Starfinder 2e bestiary actions for a creature. Choose ONLY IDs from the catalog. Return a single JSON object and nothing else:
 { "abilityIds": string[] }
@@ -971,7 +985,10 @@ Choose the actions that fit the creature's role and tactics. Omit a proposed abi
     })
     .slice(0, maximum)
     .map((candidate) => ({ name: candidate.name, ...(candidate.ref ? { candidate: candidate.ref } : {}) }));
-  return { abilities, usage };
+  return {
+    abilities, usage: mergeUsage(usage, jev.usage),
+    timing: { source: "llm", ms: Date.now() - started, ...(jev.attempted ? { jevMs: jev.ms } : {}) }
+  };
 }
 
 /** Select only opaque IDs from the builder's bounded, static choice catalog.
