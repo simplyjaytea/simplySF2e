@@ -8,6 +8,8 @@ import { encodeFeatCandidateSlots, resolveEncodedFeatPicks } from "./ai-candidat
 import { taskResponseProblem } from "./ai-response-validation.mjs";
 import { validateChoicePicks } from "./choice-set.mjs";
 import { CORE_SKILLS } from "./pc-skills.mjs";
+import { resolveJevConfig } from "./jev.mjs";
+import { jevPickEquipment, jevPickLoot, mergeUsage } from "./jev-picks.mjs";
 
 /**
  * Client for any OpenAI-compatible chat completions API (DeepSeek, OpenAI,
@@ -663,7 +665,16 @@ ${focusCandidates.length ? "Choose up to three focusSpellIds only from the provi
  * @param {{name: string, type: string, level: number}[]} args.candidates
  * @returns {Promise<{equipment: {name: string, quantity: number, value: number}[], usage: object}>}
  */
-export async function selectEquipment({ concept, candidates, onProgress, signal }) {
+export async function selectEquipment({ concept, candidates, onProgress, signal, jevConfig = resolveJevConfig() }) {
+  // Jev first (fast typed picks over the same issued candidates); any doubt falls through to the chat model below.
+  const jev = await jevPickEquipment({ concept, candidates, jevConfig, signal });
+  if (jev.equipment) {
+    return {
+      equipment: jev.equipment, omitted: jev.equipment.length === 0, usage: jev.usage,
+      timing: { source: "jev", ms: jev.ms }
+    };
+  }
+  const started = Date.now();
   const byType = new Map();
   for (const c of candidates) {
     if (!byType.has(c.type)) byType.set(c.type, []);
@@ -708,7 +719,10 @@ Pick the logical items the creature would carry: the weapons it wields (match it
       // Picks come from the compendium, so no estimated fallback price is needed.
       value: 0
     }));
-  return { equipment, omitted: parsed.equipment.length === 0, usage };
+  return {
+    equipment, omitted: parsed.equipment.length === 0, usage: mergeUsage(usage, jev.usage),
+    timing: { source: "llm", ms: Date.now() - started, ...(jev.ms ? { jevMs: jev.ms } : {}) }
+  };
 }
 
 /**
@@ -724,7 +738,13 @@ Pick the logical items the creature would carry: the weapons it wields (match it
  * @param {{name: string, type: string, level: number}[]} args.candidates
  * @returns {Promise<{loot: {name: string, quantity: number, value: number}[], usage: object}>}
  */
-export async function selectLoot({ concept, candidates, scrollCandidates = [], onProgress, signal }) {
+export async function selectLoot({ concept, candidates, scrollCandidates = [], onProgress, signal, jevConfig = resolveJevConfig() }) {
+  // Jev handles plain-item hauls only; coins and spell gems keep the chat-model path (see jevPickLoot).
+  const jev = await jevPickLoot({ concept, candidates, jevConfig, signal });
+  if (jev.loot) {
+    return { loot: jev.loot, omitted: false, usage: jev.usage, timing: { source: "jev", ms: jev.ms } };
+  }
+  const started = Date.now();
   const byType = new Map();
   for (const c of candidates) {
     if (!byType.has(c.type)) byType.set(c.type, []);
@@ -777,7 +797,10 @@ Recreate the first-draft haul: replace each non-coin entry with the closest vali
       value: 0
     });
   }
-  return { loot, omitted: parsed.loot.length === 0, usage };
+  return {
+    loot, omitted: parsed.loot.length === 0, usage: mergeUsage(usage, jev.usage),
+    timing: { source: "llm", ms: Date.now() - started, ...(jev.ms ? { jevMs: jev.ms } : {}) }
+  };
 }
 
 /**

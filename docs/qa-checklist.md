@@ -269,6 +269,17 @@ As GM, in the chat box. The command word is case-insensitive.
 | 12.4 | Click Generate with an empty prompt (not Random). | "Describe the creature first." (Forge: "Describe the magic item first."). | Notification | | |
 | 12.5 | Use the dice (Random) button in each mode. | A random concept is generated. | Preview | | |
 
+## 12b. Jev equipment and loot picks (J2)
+
+Needs an OpenRouter connection (Jev reuses its key). With a non-OpenRouter connection the same steps run on the chat model only.
+
+| # | Step | Expected | Where to look | Result | Evidence |
+|---|------|----------|---------------|--------|----------|
+| 12b.1 | OpenRouter connection, generate a monster with gear and loot. Note the equipment and loot step times. | Equipment and loot picks are real compendium items. No `simplysf2e | Jev` warning in the console. | Console, preview | | |
+| 12b.2 | Repeat on a local or other non-OpenRouter connection. | Same kind of result; compare step time against 12b.1. | Console | | |
+| 12b.3 | OpenRouter connection, DevTools Network set to Offline for `openrouter.ai/api/v1/systemone` only (block that URL), then generate. | "using the chat model" warning, and gear and loot still resolve through the chat model. | Console | | |
+| 12b.4 | Generate a creature whose loot includes a spell gem and credits. | Spell gem and credits appear exactly as before; credits are not doubled. | Preview | | |
+
 ## 13. Firefox (if available)
 
 | # | Step | Expected | Where to look | Result | Evidence |
