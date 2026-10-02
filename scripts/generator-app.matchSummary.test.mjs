@@ -79,4 +79,3 @@ assert.equal(preview.display.spellAttack, "-1");
 assert.equal(preview.stats.perception, -1, "raw stats must stay numeric");
 assert.equal(preview.stats.strikes[0].bonus, -1);
 console.log("generator-app.matchSummary.test.mjs: production preview and summary assertions passed");
-
