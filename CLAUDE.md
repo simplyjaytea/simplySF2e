@@ -70,7 +70,7 @@ Encounter mode: `designEncounter()` picks a theme + per-role briefs once, then t
 | `text.mjs` | `slugify`, `capitalized`, `esc`, `toHtml`. Pure shared HTML escaping with no Foundry dependency; node-testable. |
 | `tables.mjs` | Building Creatures / Treasure by Level numbers, cited against *Starfinder GM Core* pp. 116–128. |
 | `pc-tables.mjs` | PC leveling cadence (boost/skill/feat-slot levels), source-qualified Remaster casting profiles, and base spell-slot counts. |
-| `rule-templates.mjs` | Harvests real RE exemplars from installed packs at runtime. Used by the forge and the PC focus-pool rule. |
+| `rule-templates.mjs` | Harvests real RE exemplars from installed packs at runtime. Used by the Item Forge. |
 | `item-builder.mjs` | Item forge: normalize, empirical pricing, item assembly (incl. augmentation and solarian crystal kinds). |
 | `macro-templates.mjs` | Pre-written activation macro bodies for forged 1/day items; AI supplies only enum slugs/prose. |
 | `generator-app.mjs` / `itemforge-app.mjs` / `manage-presets-app.mjs` / `sources-app.mjs` / `provider-setup-app.mjs` | UI apps over `app-base.mjs` (token tracking + progress). |
@@ -109,7 +109,7 @@ Inherited PF2e-era notes for the scaffolded builders. They are **not** SF2e sche
 - A PC spellcasting entry's `proficiency.value` is a **floor, not a cap** — `spellcasting-entry/document.ts` takes `Math.max` with the actor's `base-spellcasting` rank, which class features raise.
 - `details.languages.value` is **not** truncated to max, and the system already adds Int mod to `build.languages.max` itself.
 - Not writing `system.price`/`system.level` on a runed item is **correct** — `physical/document.ts` recomputes both via `computeLevelRarityPrice()` every prep.
-- A character's `resources.focus.max` is zeroed every prep and rebuilt only from ActiveEffectLike rules, so the PC focus pool needs a cloned RE; an NPC's can be plain actor data.
+- A character's `resources.focus.max` is reset to 0 every prep (`character/document.ts`), then each embedded non-cantrip focus spell adds 1 (`item/spell/document.ts` `prepareActorData`), clamped to 3. So the PC pool needs no rule; cloning one would double-count. An NPC's pool is plain actor data (`npc/document.ts`). Re-verified against v14-dev 2026-10-02.
 - v14-dev `ActorInventory.addCurrency` clones bundled `credstick.json` / `upb.json` for credits/UPB and still lists classic coin UUIDs on `pf2e.equipment-srd` (`src/module/actor/inventory/index.ts`). Credits quantity is stored on `system.price.value` (`sp` on create; prepared `.credits`). Do not invent sf2e gold-piece UUIDs. This module maps gold-piece loot language onto Credstick and assembles those cited templates.
 
 ## Current state (2026-10-01)
