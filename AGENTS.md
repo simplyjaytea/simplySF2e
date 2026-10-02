@@ -16,6 +16,7 @@ This file is the tool-neutral contract for every agent (Codex, Claude, or otherw
 - `node --check` on every touched `.mjs`.
 - Run all regression tests: `for f in scripts/*.test.mjs; do node "$f"; done` — all must pass.
 - Add a `*.test.mjs` for genuinely pure logic behind any bug-shaped change.
+- UI changes: run the screenshot harness (`cd tools/ui-preview && npm install && npm run shoot`, once per fresh checkout for the install) and look at the PNGs in `tools/ui-preview/out/` at 720 px and 460 px; it exits non-zero when a fixture is out of step with its template. See `tools/ui-preview/README.md` for its caveats (no Foundry core CSS).
 - Anything schema-dependent or balance-sensitive gets an **independent second-agent review** of the diff before the PR is called done — this has caught real bugs on 3+ separate occasions (see HISTORY.md process notes).
 - Live Foundry behavior (rendering, derived stats, grant chains) is **not** self-checkable from this machine — flag what needs live QA in the PR body and in HANDOFF.md.
 

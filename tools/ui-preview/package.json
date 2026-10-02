@@ -1,0 +1,13 @@
+{
+  "name": "simplysf2e-ui-preview",
+  "private": true,
+  "type": "module",
+  "description": "Static UI preview harness for simplySF2e. Dev tooling only; never shipped in the module zip.",
+  "scripts": {
+    "shoot": "node shoot.mjs"
+  },
+  "dependencies": {
+    "@fortawesome/fontawesome-free": "^6.7.2",
+    "handlebars": "^4.7.8"
+  }
+}
