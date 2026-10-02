@@ -1835,6 +1835,8 @@ export class GeneratorApp extends SpfApp {
 
   static async #onDiscard() {
     if (this.#busy) return;
+    if (!await this._confirm("SIMPLYSF2E.Generator.DiscardTitle", "SIMPLYSF2E.Generator.DiscardConfirm")) return;
+    if (this.#busy) return;
     this.#readForm();
     this.#concept = null;
     this.#resolved = null;

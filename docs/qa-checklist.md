@@ -365,6 +365,17 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 | 12j.2 | Click through DeepSeek, OpenAI, OpenRouter, then Ollama, LM Studio, Custom. | The Ollama / LM Studio CORS paragraph is hidden for the three hosted providers and shown for the other three. | Provider Setup | | |
 | 12j.3 | Look at the bottom button that used to say Cancel. | It reads **Close** and just closes the window; Load Models and connection changes have already saved. | Provider Setup | | |
 
+## 12k. U6 Run safety
+
+| # | Do | Expect | Where | Pass | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 12k.1 | Start a Generator run, then click the window X (or press Esc) mid-run and answer **No**. | "Stop generation?" dialog; No keeps the window open and the run continues. | Generator | | |
+| 12k.2 | Repeat and answer **Yes**. | The window closes, the run stops (provider dashboard or Network tab shows no further requests) and no actor is created. Reopening the Generator shows a clean form, not a stale progress card. | Generator, Network | | |
+| 12k.3 | Same as 12k.1 and 12k.2 in the Item Forge. | Same behavior. | Item Forge | | |
+| 12k.4 | Close an idle Generator or Forge window. | No prompt. | Both | | |
+| 12k.5 | With a preview showing, click **Discard**. | A confirm dialog; Cancel keeps the preview, Confirm clears it. Check monster, encounter, character and Forge previews. | Both | | |
+| 12k.6 | Type a prompt and press Ctrl+Enter (Cmd+Enter on Mac). | Starts Generate exactly as the button does; does nothing while busy. | Both | | |
+
 ## 13. Firefox (if available)
 
 | # | Step | Expected | Where to look | Result | Evidence |
