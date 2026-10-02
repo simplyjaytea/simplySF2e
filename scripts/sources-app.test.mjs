@@ -73,8 +73,13 @@ const context = vm.createContext({
   }
 });
 
+let detectNothing = false;
 const mockDetectAvailablePacks = async () => {
   const detected = {};
+  if (detectNothing) {
+    for (const cat of CATEGORIES) detected[cat] = [];
+    return detected;
+  }
   for (const cat of CATEGORIES) {
     detected[cat] = (DEFAULT_PACKS[cat] || []).map((id) => ({
       id,
@@ -149,6 +154,11 @@ assert.equal(customPackChecked.checked, true, "Custom pack is checked when in st
 assert.equal(defaultPackUnchecked.checked, false, "Default pack is unchecked when omitted from stored settings");
 
 assert.equal(ctxCustom.noPacks, false, "noPacks false when packs exist");
+
+detectNothing = true;
+const ctxEmpty = await app._prepareContext();
+assert.equal(ctxEmpty.noPacks, true, "noPacks true when no category has packs");
+detectNothing = false;
 
 // 3. Form submission (#onSubmit)
 const submitHandler = SourcesConfigApp.DEFAULT_OPTIONS.form.handler;
