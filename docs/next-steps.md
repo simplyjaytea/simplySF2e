@@ -36,7 +36,7 @@ Dev-workflow option (D-J1 b): Jev also ships as a Claude Code skill/plugin that 
 
 ### Wave U-1 (parallel, ready now)
 
-- [x] **U1 · Static UI preview harness.** *(PR pending)* Lets threads *see* the UI without Foundry. Create `tools/ui-preview/` (outside `scripts/`, so CI's test loop and the release zip, which ships `lang scripts styles templates`, never pick it up) with its own `package.json` (`handlebars` only; Playwright is preinstalled globally in cloud sessions, `PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers`). It must:
+- [x] **U1 · Static UI preview harness.** *([PR #27](https://github.com/simplyjaytea/simplySF2e/pull/27))* Lets threads *see* the UI without Foundry. Create `tools/ui-preview/` (outside `scripts/`, so CI's test loop and the release zip, which ships `lang scripts styles templates`, never pick it up) with its own `package.json` (`handlebars` only; Playwright is preinstalled globally in cloud sessions, `PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers`). It must:
   - render every template in `templates/` with Handlebars, a `localize` helper reading `lang/en.json` (supporting `{name}` hash interpolation, rendering a missing key visibly as `⟦KEY⟧`), the `eq`-style helpers the templates use, and the `_progress.hbs` partial;
   - use fixture contexts in `tools/ui-preview/fixtures/*.mjs` whose shapes are copied from the real `_prepareContext()` and `#build*PreviewContext()` in `generator-app.mjs` / `itemforge-app.mjs` and the other apps (read the code; a fixture whose keys don't match renders blanks, which is how the first prototype went wrong);
   - wrap each page in `.application.simplysf2e > .window-content` with `container-type: inline-size; container-name: spf-window` and link every file in `module.json` `styles`;
