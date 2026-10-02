@@ -126,7 +126,6 @@
       "GenerateEncounter": "Generate Encounter",
       "GenerateCharacter": "Generate Character",
       "PreviewPlan": "Preview Plan",
-      "Regenerate": "Regenerate",
       "Busy": "Consulting the forge...",
       "ChoicesNeedInput": "Some character choices could not be selected automatically. Complete any SF2e choice dialogs to continue.",
       "CreateActor": "Create Actor",
@@ -404,6 +403,7 @@
     },
     "ItemForge": {
       "Title": "SimplySF2e — Item Forge",
+      "SourcesDetail": "Draws from the packs chosen in Compendium Sources.",
       "OpenButton": "Item Forge",
       "ConceptLegend": "Magic Item Concept",
       "Prompt": "Describe the magic item",

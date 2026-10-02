@@ -323,6 +323,14 @@ Needs an OpenRouter connection, as 12b.
 | 12f.3 | Open Manage Presets with no presets, then with some. | Empty text points to New Preset / Import; each row button reads aloud as "Edit preset <name>" etc. | Presets | | |
 | 12f.4 | Item Forge Level and Rarity row. | Labels share one line and the fields sit together. | Item Forge | | |
 
+## 12h. U6 Item Forge consistency
+
+| # | Do | Expect | Where | Pass | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 12h.1 | Forge a wondrous item, then a weapon. | Both previews show price in credits (no gp). | Forge preview | | |
+| 12h.2 | Open the Item Forge. | A "Compendium Content" row sits under the provider row with a gear that opens Compendium Sources; Generate stands alone in its row. | Item Forge | | |
+| 12h.3 | Generate an item, then look at the primary button. | It still reads **Generate**, not Regenerate; pressing it again makes a new version. | Item Forge | | |
+
 ## 13. Firefox (if available)
 
 | # | Step | Expected | Where to look | Result | Evidence |

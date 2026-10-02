@@ -410,14 +410,16 @@ assert.match(
   "character generation must honor the selected preset"
 );
 
-// 3. Source configuration stays visible: a labeled content readiness row in
-//    the generator and the forge's compact action beside Generate.
-for (const [name, template] of [["item forge", itemForge]]) {
-  const rowAt = template.indexOf('class="spf-generate-row"');
-  const gearAt = template.indexOf('data-action="configureSources"');
-  const fieldsetEnd = template.indexOf("</fieldset>");
-  assert.ok(rowAt >= 0 && gearAt >= 0 && fieldsetEnd >= 0, `${name} must have a generate row and a sources gear`);
-  assert.ok(rowAt < gearAt && gearAt < fieldsetEnd, `${name} sources gear must sit in the generate row`);
+// 3. Source configuration stays visible: both windows carry a labeled
+//    Compendium Content row in the status strip; the forge's Generate row has
+//    no second gear beside it.
+{
+  const rowAt = itemForge.indexOf('class="spf-generate-row"');
+  const gearAt = itemForge.indexOf('data-action="configureSources"');
+  const labelAt = itemForge.indexOf("SIMPLYSF2E.Generator.CompendiumContent");
+  const fieldsetAt = itemForge.indexOf("<fieldset");
+  assert.ok(labelAt >= 0 && gearAt > labelAt && gearAt < fieldsetAt, "item forge sources gear must sit in the labeled Compendium Content row");
+  assert.ok(rowAt > fieldsetAt && itemForge.indexOf('data-action="configureSources"', gearAt + 1) < 0, "item forge generate row must not repeat the sources gear");
 }
 assert.match(generator, /SIMPLYSF2E\.Generator\.CompendiumContent/);
 assert.match(generator, /SIMPLYSF2E\.Generator\.SourcesReady/);

@@ -13,6 +13,7 @@ import {
 } from "./item-builder.mjs";
 import { createActivationMacro } from "./macro-templates.mjs";
 import { SourcesConfigApp } from "./sources-app.mjs";
+import { gpToCredits } from "./currency.mjs";
 import { SpfApp } from "./app-base.mjs";
 
 /**
@@ -125,7 +126,7 @@ export class ItemForgeApp extends SpfApp {
       traits: [concept.rarity !== "common" ? concept.rarity : null, ...concept.traits].filter(Boolean),
       usage: concept.usage,
       bulk: concept.bulk === 0.1 ? "L" : concept.bulk === 0 ? "—" : String(concept.bulk),
-      price: `${this.#price.toLocaleString()} gp`,
+      price: `${gpToCredits(this.#price).toLocaleString()} credits`,
       invested: concept.invested,
       effects: concept.effects.map((e) => describeEffect(e)),
       hasEffects: concept.effects.length > 0,
@@ -158,9 +159,8 @@ export class ItemForgeApp extends SpfApp {
     if (!this.#itemData || !this.#runedPreview) return null;
     const data = this.#itemData;
     const preview = this.#runedPreview;
-    const priceText = preview.priceCredits != null
-      ? `${preview.priceCredits.toLocaleString()} credits`
-      : `${preview.priceGp.toLocaleString()} gp`;
+    const priceCredits = preview.priceCredits ?? gpToCredits(preview.priceGp);
+    const priceText = `${priceCredits.toLocaleString()} credits`;
     return {
       concept: { name: data.name, level: preview.level, description: this.#concept?.description ?? "" },
       traits: [data.system.traits?.rarity !== "common" ? data.system.traits?.rarity : null, ...(data.system.traits?.value ?? [])].filter(Boolean),
