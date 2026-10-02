@@ -38,6 +38,23 @@ const RARITIES = new Set(["common", "uncommon", "rare", "unique"]);
 
 /* Item levels the forge accepts (items start at 1; creature MAX_LEVEL caps it). */
 export const MIN_ITEM_LEVEL = 1;
+
+/** Item Forge kinds built from an AI concept (not from a real base item). */
+export const CONCEPT_ITEM_KINDS = new Set(["wondrous", "augmentation", "crystal"]);
+
+/*
+ * Real sf2e shapes, from foundryvtt/pf2e v14-dev packs/sf2e/equipment:
+ * - augmentations/{tech,biotech,magitech,necrograft,apex}/*.json are type
+ *   "equipment" with system.usage.value "implanted" and exactly one category
+ *   trait (magitech items also carry "magical"). There is no "augmentation"
+ *   or "cybernetic" trait (src/scripts/config/traits.ts equipmentTraits).
+ *   Apex augmentations are level-17 attribute items, so the forge leaves them out.
+ * - solarian-crystals/*.json are type "equipment", usage "other", traits ["magical"].
+ *   There is no "solarian" equipment trait and no "crystal" trait.
+ */
+export const AUGMENTATION_CATEGORIES = Object.freeze(["tech", "biotech", "magitech", "necrograft"]);
+const KIND_USAGE = Object.freeze({ augmentation: "implanted", crystal: "other" });
+const UNSUPPORTED_KIND_TRAITS = new Set(["augmentation", "cybernetic", "apex", "solarian", "crystal"]);
 export const MAX_ITEM_LEVEL = MAX_LEVEL;
 
 /* -------------------- activation (Phase 2) -------------------- */
@@ -375,8 +392,7 @@ let usageOptionsPromise = null;
  * @returns {Promise<string[]>} up to 14 usage strings, most common first
  */
 export async function getUsageOptions(kind = "wondrous") {
-  if (kind === "augmentation") return ["installed-in-body"];
-  if (kind === "crystal") return ["other"];
+  if (KIND_USAGE[kind]) return [KIND_USAGE[kind]];
   usageOptionsPromise ??= (async () => {
     const counts = new Map();
     for (const packId of getPacksFor("equipment")) {
@@ -430,7 +446,8 @@ const clampInt = (value, min, max, fallback) => {
 export function normalizeMagicItemConcept(raw, { level, rarity, availableKinds, usageOptions, effectCatalog = [], kind = "wondrous" }) {
   const c = typeof raw === "object" && raw !== null ? raw : {};
   const clampedLevel = clampInt(level, MIN_ITEM_LEVEL, MAX_ITEM_LEVEL, 1);
-  const usage = normalizeUsage(c.usage, usageOptions ?? [DEFAULT_USAGE]);
+  if (!CONCEPT_ITEM_KINDS.has(kind)) kind = "wondrous";
+  const usage = KIND_USAGE[kind] ?? normalizeUsage(c.usage, usageOptions ?? [DEFAULT_USAGE]);
   const resolvedRarity = RARITIES.has(rarity) ? rarity : RARITIES.has(c.rarity) ? c.rarity : "common";
   // Only worn items are invested in PF2e; held/affixed gear never is.
   let invested = Boolean(c.invested) && usage.startsWith("worn");
@@ -449,12 +466,16 @@ export function normalizeMagicItemConcept(raw, { level, rarity, availableKinds, 
   const appliedEffects = [...effects, ...(activation?.params?.ruleEffectKinds ?? [])];
   invested ||= appliedEffects.some((effect) => effect.exemplar.requiresInvestment);
   const traits = new Set((Array.isArray(c.traits) ? c.traits : []).map(slugify).filter(Boolean));
+  for (const trait of UNSUPPORTED_KIND_TRAITS) traits.delete(trait);
   if (kind === "augmentation") {
-    traits.add("augmentation");
-    if (!traits.has("biotech") && !traits.has("magitech")) traits.add("cybernetic");
-  } else if (kind === "crystal") {
-    traits.add("solarian");
-    traits.add("crystal");
+    // Exactly one augmentation category, as on every published augmentation.
+    const category = AUGMENTATION_CATEGORIES.find((cat) => cat === slugify(c.category ?? ""))
+      ?? AUGMENTATION_CATEGORIES.find((cat) => traits.has(cat))
+      ?? "tech";
+    for (const cat of AUGMENTATION_CATEGORIES) traits.delete(cat);
+    traits.add(category);
+    if (category === "magitech") traits.add("magical");
+    else traits.delete("magical");
   } else {
     traits.add("magical");
   }
@@ -750,15 +771,8 @@ export async function buildMagicItemData(concept) {
    * and diverge from the runed-item preview path, which likewise reports gp. */
   const traits = new Set(concept.traits ?? []);
   let defaultImg = "icons/svg/item-bag.svg";
-  if (concept.kind === "augmentation") {
-    traits.add("augmentation");
-    if (!traits.has("biotech") && !traits.has("magitech")) traits.add("cybernetic");
-    defaultImg = "icons/commodities/tech/sensor-red.webp";
-  } else if (concept.kind === "crystal") {
-    traits.add("solarian");
-    traits.add("crystal");
-    defaultImg = "icons/commodities/gems/gem-faceted-round-purple.webp";
-  }
+  if (concept.kind === "augmentation") defaultImg = "icons/commodities/tech/sensor-red.webp";
+  else if (concept.kind === "crystal") defaultImg = "icons/commodities/gems/gem-faceted-round-purple.webp";
 
   const system = {
     level: { value: concept.level },

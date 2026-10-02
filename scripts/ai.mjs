@@ -1017,7 +1017,26 @@ function itemActivationDoc() {
  * equipment compendium (item-builder.getUsageOptions()).
  * @returns {Promise<{concept: object, usage: object}>} raw concept JSON + token usage
  */
-export async function generateMagicItemConcept({ prompt, level, rarity, availableKinds, usageOptions, effectCatalog = [], onProgress, signal }) {
+const ITEM_KIND_GUIDES = {
+  wondrous: {
+    noun: "wondrous item",
+    traits: `lowercase Starfinder 2e item traits; always include "magical", plus fitting descriptors (e.g. "fire", "air", "healing", "detection"); "invested" is handled separately`,
+    extraKeys: ""
+  },
+  augmentation: {
+    noun: "augmentation (a device or graft implanted in the body)",
+    traits: `lowercase Starfinder 2e item descriptors (e.g. "fire", "healing", "detection"); do NOT include the category, "magical", "invested", "augmentation", or "cybernetic"`,
+    extraKeys: `\n  "category": "tech"|"biotech"|"magitech"|"necrograft", // tech = cybernetic hardware, biotech = grown organs, magitech = magic-infused tech, necrograft = undead tissue`
+  },
+  crystal: {
+    noun: "solarian crystal (a magic crystal a solarian attunes to their solar manifestation)",
+    traits: `lowercase Starfinder 2e item traits; always include "magical", plus fitting descriptors; do NOT include "solarian" or "crystal"`,
+    extraKeys: ""
+  }
+};
+
+export async function generateMagicItemConcept({ prompt, level, rarity, availableKinds, usageOptions, effectCatalog = [], kind = "wondrous", onProgress, signal }) {
+  const guide = ITEM_KIND_GUIDES[kind] ?? ITEM_KIND_GUIDES.wondrous;
   const kinds = (availableKinds ?? []).filter((k) => ITEM_EFFECT_DOCS[k]);
   const effectDocs = kinds.map((k) => `    ${ITEM_EFFECT_DOCS[k]}`).join("\n");
   const activationDoc = itemActivationDoc();
@@ -1029,7 +1048,7 @@ export async function generateMagicItemConcept({ prompt, level, rarity, availabl
     ...(effect.exemplar?.requiresInvestment ? { requiresInvestment: true } : {})
   })))].join("; ") || "(none; use an activation without a self-buff if appropriate)";
 
-  const system = `You are an expert Starfinder 2e magic item designer. You design wondrous item CONCEPTS; the final price is computed elsewhere from real compendium benchmarks.
+  const system = `You are an expert Starfinder 2e magic item designer. You design ${guide.noun} CONCEPTS; the final price is computed elsewhere from real compendium benchmarks.
 
 Respond with a SINGLE JSON object only. No markdown fences, no commentary. Never emit numeric values, dice formulas, or code: choose only the enum slugs and scale words below. The module supplies all mechanical values.
 
@@ -1039,7 +1058,7 @@ JSON schema (all keys required unless marked OPTIONAL):
   "description": string, // 2-4 sentences of evocative flavor: appearance, history, feel. Plain text. Do NOT restate the mechanical effects — a mechanical summary is appended automatically.
   "rarity": "common"|"uncommon"|"rare"|"unique", // echo the requested rarity
   "usage": string, // EXACTLY one of: ${usageOptions.join(", ")}
-  "traits": string[], // lowercase Starfinder 2e item traits; always include "magical", plus fitting descriptors (e.g. "fire", "air", "healing", "detection"); "invested" is handled separately
+  "traits": string[], // ${guide.traits}${guide.extraKeys}
   "bulk": "negligible"|"light"|"one"|"two",
   "invested": boolean, // true for most worn magic items (they must be invested to function); false for held items
   "effects": [ // 0-3 ALWAYS-ON PASSIVE effects, each one of these shapes ("kind" MUST be from this list):
