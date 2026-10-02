@@ -1,19 +1,45 @@
-// Jev client: TypeSafe's "System One" decision model, reached through OpenRouter.
+// Jev client: TypeSafe's "System One" decision model, reached through OpenRouter
+// or TypeSafe's own API (the GM picks the source for the separate Jev key).
 // Jev answers typed questions with calibrated probabilities; it never writes text.
 // Request/response shapes are cited from:
 //   https://openrouter.ai/docs/api/api-reference/systemone/submit-a-system-one-request
 //   https://docs.typesafe.ai/introduction/quickstart
+//   https://docs.typesafe.ai/models (versioned model ids)
 // Call sites and UI arrive in later steps (J1b, J2-J5); nothing here calls the network on import.
 import { getProviderRequestConfig, getJevRequestConfig } from "./settings.mjs";
 
 /**
- * One fixed endpoint. TypeSafe's own endpoint (api.typesafe.ai) fails the browser
- * CORS preflight, and the pinned model id below is OpenRouter's naming.
+ * OpenRouter's route. Its pinned model id below is OpenRouter's naming. OpenRouter
+ * answers the browser CORS preflight with `access-control-allow-origin: *`.
  */
 export const JEV_ENDPOINT = "https://openrouter.ai/api/v1/systemone";
 
 /** Pinned (not `latest`) so behavior does not drift between Jev releases. */
 export const JEV_MODEL = "typesafe/jev-1.13";
+
+/**
+ * TypeSafe's own route, from the quickstart (`POST https://api.typesafe.ai/v1/systemone`).
+ * The models page: "Versioned IDs such as jev-1.13.0 are accepted by the model field",
+ * the same release as JEV_MODEL. Probed 2026-10-02, its CORS preflight answers
+ * 400 "Disallowed CORS origin", so from Foundry this route fails until TypeSafe
+ * allows browser origins; the Test Jev button reports that.
+ */
+export const TYPESAFE_JEV_ENDPOINT = "https://api.typesafe.ai/v1/systemone";
+export const TYPESAFE_JEV_MODEL = "jev-1.13.0";
+
+/** Where a separate Jev key is sent. Each key goes only to its own source's endpoint. */
+export const JEV_SOURCES = Object.freeze({
+  openrouter: Object.freeze({ id: "openrouter", label: "OpenRouter", endpoint: JEV_ENDPOINT, model: JEV_MODEL }),
+  typesafe: Object.freeze({ id: "typesafe", label: "TypeSafe AI", endpoint: TYPESAFE_JEV_ENDPOINT, model: TYPESAFE_JEV_MODEL })
+});
+
+export const DEFAULT_JEV_SOURCE = "openrouter";
+
+/** A known source id, else the default. */
+export function normalizeJevSource(value) {
+  const id = String(value ?? "").trim();
+  return Object.hasOwn(JEV_SOURCES, id) ? id : DEFAULT_JEV_SOURCE;
+}
 
 /** Module default, not a rules number: minimum answer confidence to trust a pick (same value the jev-gateway project defaults to, per docs/next-steps.md). */
 export const JEV_MIN_CONFIDENCE = 0.7;
@@ -30,9 +56,10 @@ const isRecord = (value) => value !== null && typeof value === "object" && !Arra
 const isUnit = (value) => typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 1;
 
 /**
- * The only gate J2-J5 use. Returns `{ endpoint, apiKey }` or `null` (use the chat LLM).
- * Order: a dedicated Jev key, else the active connection's key when that connection
- * is OpenRouter. Never returns an empty key.
+ * The only gate J2-J5 use. Returns `{ source, endpoint, model, apiKey }` or `null`
+ * (use the chat LLM). Order: a dedicated Jev key, sent to its chosen source
+ * (OpenRouter or TypeSafe); else the active connection's key when that connection
+ * is OpenRouter, always on OpenRouter's route. Never returns an empty key.
  *
  * Reusing a key bound to `https://openrouter.ai/api/v1` for the sibling `/systemone`
  * path stays inside the binding's intent: same host, same account. The binding exists
@@ -42,12 +69,18 @@ const isUnit = (value) => typeof value === "number" && Number.isFinite(value) &&
  */
 export function resolveJevConfig({ provider = getProviderRequestConfig, dedicated = getJevRequestConfig } = {}) {
   try {
-    const dedicatedKey = String(dedicated()?.apiKey ?? "").trim();
-    if (dedicatedKey) return { endpoint: JEV_ENDPOINT, apiKey: dedicatedKey };
+    const own = dedicated();
+    const dedicatedKey = String(own?.apiKey ?? "").trim();
+    if (dedicatedKey) {
+      const source = JEV_SOURCES[normalizeJevSource(own?.source)];
+      return { source: source.id, endpoint: source.endpoint, model: source.model, apiKey: dedicatedKey };
+    }
     const state = provider();
     // `apiKey` is already "" unless bound to the exact base URL (settings.mjs); never read raw settings.
     const apiKey = String(state?.apiKey ?? "").trim();
-    if (state?.provider?.id === "openrouter" && apiKey) return { endpoint: JEV_ENDPOINT, apiKey };
+    if (state?.provider?.id === "openrouter" && apiKey) {
+      return { source: "openrouter", endpoint: JEV_ENDPOINT, model: JEV_MODEL, apiKey };
+    }
   } catch {
     // A broken settings read means "Jev unavailable", never an error for the caller.
   }
@@ -55,8 +88,9 @@ export function resolveJevConfig({ provider = getProviderRequestConfig, dedicate
 }
 
 /**
- * Where Jev would get its key from, for the status-bar row: `"key"` (the separate Jev
- * key), `"connection"` (the active OpenRouter chat connection) or `null` (off).
+ * Where Jev would get its key from, for the status-bar row: `"key"` (the separate
+ * Jev key on OpenRouter), `"typesafe"` (the separate Jev key on TypeSafe AI),
+ * `"connection"` (the active OpenRouter chat connection) or `null` (off).
  * Mirrors `resolveJevConfig`'s order and never exposes the key.
  */
 export function jevKeySource(options = {}) {
@@ -64,7 +98,8 @@ export function jevKeySource(options = {}) {
   if (!config) return null;
   const { dedicated = getJevRequestConfig } = options;
   try {
-    return String(dedicated()?.apiKey ?? "").trim() ? "key" : "connection";
+    if (!String(dedicated()?.apiKey ?? "").trim()) return "connection";
+    return config.source === "typesafe" ? "typesafe" : "key";
   } catch {
     return null;
   }
@@ -141,11 +176,15 @@ export function parseJevAnswers(json, questions) {
 }
 
 /**
- * POST one System One request. Resolves `{ answers, usage, model, ms }` or `null`;
- * never throws and never logs the key. Aborts after JEV_TIMEOUT_MS or when `signal` aborts.
+ * POST one System One request and say why it failed. Resolves
+ * `{ ok: true, answers, usage, model, ms }` or `{ ok: false, reason, status?, ms }`,
+ * where `reason` is "nokey", "http", "shape", "timeout", "cancelled" or "network"
+ * (a browser reports a CORS refusal as a plain network error). Never throws and
+ * never logs the key. Aborts after `timeoutMs` or when `signal` aborts.
  */
-export async function requestJevDecision({
+export async function callJev({
   endpoint = JEV_ENDPOINT,
+  model = JEV_MODEL,
   apiKey,
   state,
   questions,
@@ -153,42 +192,83 @@ export async function requestJevDecision({
   timeoutMs = JEV_TIMEOUT_MS,
   fetchImpl = globalThis.fetch
 } = {}) {
-  const key = String(apiKey ?? "").trim();
-  if (!key || typeof fetchImpl !== "function" || !isRecord(questions) || !Object.keys(questions).length) return null;
   const started = Date.now();
+  const fail = (reason, extra = {}) => ({ ok: false, reason, ms: Date.now() - started, ...extra });
+  const key = String(apiKey ?? "").trim();
+  if (!key) return fail("nokey");
+  if (typeof fetchImpl !== "function" || !isRecord(questions) || !Object.keys(questions).length) return fail("shape");
+  if (signal?.aborted) return fail("cancelled");
   const controller = new AbortController();
+  let timedOut = false;
   const onAbort = () => controller.abort();
-  if (signal?.aborted) return null;
   signal?.addEventListener?.("abort", onAbort, { once: true });
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const timer = setTimeout(() => { timedOut = true; controller.abort(); }, timeoutMs);
   try {
     const response = await fetchImpl(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-      body: JSON.stringify({ model: JEV_MODEL, state, questions }),
+      body: JSON.stringify({ model, state, questions }),
       signal: controller.signal
     });
-    if (!response?.ok) {
-      console.warn(`simplysf2e | Jev request failed (HTTP ${response?.status ?? "?"}); using the chat model.`);
-      return null;
-    }
+    if (!response?.ok) return fail("http", { status: response?.status ?? 0 });
     const json = await response.json();
     const answers = parseJevAnswers(json, questions);
-    if (!answers) {
-      console.warn("simplysf2e | Jev response had an unexpected shape; using the chat model.");
-      return null;
-    }
+    if (!answers) return fail("shape");
     return {
+      ok: true,
       answers,
       usage: isRecord(json.usage) ? json.usage : null,
-      model: typeof json.model === "string" ? json.model : JEV_MODEL,
+      model: typeof json.model === "string" ? json.model : model,
       ms: Date.now() - started
     };
   } catch {
-    console.warn(`simplysf2e | Jev request ${controller.signal.aborted ? "timed out or was cancelled" : "errored"}; using the chat model.`);
-    return null;
+    if (controller.signal.aborted) return fail(timedOut ? "timeout" : "cancelled");
+    return fail("network");
   } finally {
     clearTimeout(timer);
     signal?.removeEventListener?.("abort", onAbort);
   }
+}
+
+/**
+ * POST one System One request. Resolves `{ answers, usage, model, ms }` or `null`;
+ * never throws and never logs the key. Aborts after JEV_TIMEOUT_MS or when `signal` aborts.
+ */
+export async function requestJevDecision(options = {}) {
+  const result = await callJev(options);
+  if (result.ok) {
+    const { ok: _ok, ...rest } = result;
+    return rest;
+  }
+  if (result.reason === "http") {
+    console.warn(`simplysf2e | Jev request failed (HTTP ${result.status || "?"}); using the chat model.`);
+  } else if (result.reason === "shape" && String(options.apiKey ?? "").trim() && options.questions) {
+    console.warn("simplysf2e | Jev response had an unexpected shape; using the chat model.");
+  } else if (result.reason === "timeout" || result.reason === "cancelled" || result.reason === "network") {
+    console.warn(`simplysf2e | Jev request ${result.reason === "network" ? "errored" : "timed out or was cancelled"}; using the chat model.`);
+  }
+  return null;
+}
+
+/** The fixed one-question probe the Test Jev button sends. */
+export const JEV_TEST_STATE = "Connection test from the simplySF2e Foundry module.";
+export const JEV_TEST_QUESTIONS = Object.freeze({
+  ping: Object.freeze({
+    type: "choice",
+    instructions: "Which word names a color?",
+    criteria: Object.freeze({ red: "red", table: "table" })
+  })
+});
+
+/**
+ * Test the Jev route that generation would use right now. Resolves
+ * `{ ok, source, reason?, status?, ms, model? }`; `reason` "unconfigured" means no
+ * key at all. Uses the longer `timeoutMs` because a first call can be slow.
+ */
+export async function testJevConnection({ config = resolveJevConfig(), fetchImpl = globalThis.fetch, timeoutMs = 15000, signal } = {}) {
+  if (!config) return { ok: false, source: null, reason: "unconfigured", ms: 0 };
+  const result = await callJev({
+    ...config, state: JEV_TEST_STATE, questions: JEV_TEST_QUESTIONS, fetchImpl, timeoutMs, signal
+  });
+  return { ...result, source: config.source ?? "openrouter" };
 }

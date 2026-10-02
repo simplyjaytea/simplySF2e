@@ -5,6 +5,7 @@ import {
   normalizeApiBaseUrl, selectProviderConnection, upsertActiveProviderConnection
 } from "./settings.mjs";
 import { listProviderModels, testProviderConnection } from "./ai.mjs";
+import { JEV_SOURCES, normalizeJevSource, testJevConnection } from "./jev.mjs";
 import { esc } from "./text.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -20,6 +21,26 @@ export const PROVIDER_PRESETS = Object.freeze([
 
 /** Presets that talk to a server the GM runs, so the CORS / OLLAMA_ORIGINS hint applies. */
 const LOCAL_PRESET_IDS = new Set(["ollama", "lmstudio", "custom"]);
+
+/**
+ * Toast for a Test Jev result: `{ level, key, data }`. Pure so it is node-testable.
+ * A browser reports a CORS refusal as a plain network error, so on TypeSafe a
+ * network failure names the known CORS block instead of "check your network".
+ */
+export function jevTestNotice(result) {
+  const source = JEV_SOURCES[normalizeJevSource(result?.source)]?.label ?? "OpenRouter";
+  const seconds = (Math.max(0, Number(result?.ms) || 0) / 1000).toFixed(1);
+  if (result?.ok) return { level: "info", key: "SIMPLYSF2E.ProviderSetup.JevTestSuccess", data: { source, seconds } };
+  const fail = (suffix, data = {}) => ({ level: "error", key: `SIMPLYSF2E.ProviderSetup.JevTest${suffix}`, data: { source, ...data } });
+  switch (result?.reason) {
+    case "unconfigured": return fail("Off");
+    case "http": return [401, 403].includes(result.status) ? fail("BadKey", { status: result.status }) : fail("Http", { status: result.status || "?" });
+    case "network": return result.source === "typesafe" ? fail("TypeSafeCors") : fail("Network");
+    case "timeout": return fail("Timeout");
+    case "shape": return fail("Shape");
+    default: return fail("Network");
+  }
+}
 
 /** Focused provider setup, reachable both from module settings and the generator. */
 export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) {
@@ -59,6 +80,7 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
       loadModels: ProviderSetupApp.#onLoadModels,
       saveAndTest: ProviderSetupApp.#onSaveAndTest,
       saveJevKey: ProviderSetupApp.#onSaveJevKey,
+      testJev: ProviderSetupApp.#onTestJev,
       createConnection: ProviderSetupApp.#onCreateConnection,
       deleteConnection: ProviderSetupApp.#onDeleteConnection,
       cancel: ProviderSetupApp.#onCancel
@@ -92,7 +114,7 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
       model: state.model,
       availableModels: this.#availableModels,
       hasApiKey: state.hasConfiguredApiKey,
-      hasJevKey: Boolean(getJevRequestConfig().apiKey),
+      ...ProviderSetupApp.#jevContext(),
       showLocalHint: LOCAL_PRESET_IDS.has(selected),
       localServerHint: game.i18n.format("SIMPLYSF2E.ProviderSetup.LocalServerHint", {
         origin: globalThis.location?.origin ?? "Foundry"
@@ -100,8 +122,35 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
     };
   }
 
+  static #jevContext() {
+    const jev = getJevRequestConfig();
+    const source = normalizeJevSource(jev.source);
+    return {
+      hasJevKey: Boolean(jev.apiKey),
+      jevSources: Object.values(JEV_SOURCES).map(({ id, label }) => ({ id, label, selected: id === source })),
+      jevOnTypeSafe: source === "typesafe",
+      jevKeyPlaceholder: ProviderSetupApp.#jevPlaceholder(Boolean(jev.apiKey), source)
+    };
+  }
+
+  static #jevPlaceholder(hasKey, source) {
+    return hasKey
+      ? game.i18n.localize("SIMPLYSF2E.ProviderSetup.JevKeySaved")
+      : game.i18n.format("SIMPLYSF2E.ProviderSetup.JevKeyPlaceholder", { source: JEV_SOURCES[source].label });
+  }
+
   _onRender(context, options) {
     super._onRender?.(context, options);
+    this.element.querySelector("[name='jevSource']")?.addEventListener("change", (event) => {
+      const source = normalizeJevSource(event.currentTarget.value);
+      const warning = this.element.querySelector(".spf-jev-warning");
+      if (warning) warning.hidden = source !== "typesafe";
+      const input = this.element.querySelector("[name='jevApiKey']");
+      const stored = normalizeJevSource(getJevRequestConfig().source);
+      // A saved key belongs to its source; picking the other one asks for a new key.
+      const hasKey = Boolean(getJevRequestConfig().apiKey) && source === stored;
+      if (input) input.placeholder = ProviderSetupApp.#jevPlaceholder(hasKey, source);
+    });
     this.element.querySelector("[name='apiBaseUrl']")?.addEventListener("input", (event) => {
       if (normalizeApiBaseUrl(event.currentTarget.value) !== this.#modelsBaseUrl) {
         this.#clearModelSuggestions();
@@ -283,25 +332,52 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
   }
 
   /**
-   * Save or clear the separate Jev key. Independent of #saveSettings so a GM
-   * with no chat model can still save it. Empty input keeps the stored key.
-   * Returns "saved", "cleared" or null (unchanged).
+   * Save or clear the separate Jev key and its source. Independent of #saveSettings
+   * so a GM with no chat model can still save it. Empty input keeps the stored key,
+   * unless the source changed: a key belongs to its service, so switching source
+   * without a new key clears the old one (as a chat key is cleared when its base
+   * URL changes). Returns "saved", "cleared", "source" (source only) or null.
    */
   static async #saveJevKey() {
     const entered = String(this.element.querySelector("[name='jevApiKey']")?.value ?? "").trim();
     const clear = Boolean(this.element.querySelector("[name='clearJevApiKey']")?.checked);
-    if (!clear && !entered) return null;
-    await game.settings.set(MODULE_ID, SETTINGS.jevApiKey, clear ? "" : entered);
-    return clear ? "cleared" : "saved";
+    const stored = getJevRequestConfig();
+    const storedSource = normalizeJevSource(stored.source);
+    const picker = this.element.querySelector("[name='jevSource']");
+    const source = picker ? normalizeJevSource(picker.value) : storedSource;
+    const sourceChanged = source !== storedSource;
+    if (sourceChanged) await game.settings.set(MODULE_ID, SETTINGS.jevSource, source);
+    if (clear) {
+      await game.settings.set(MODULE_ID, SETTINGS.jevApiKey, "");
+      return "cleared";
+    }
+    if (entered) {
+      await game.settings.set(MODULE_ID, SETTINGS.jevApiKey, entered);
+      return "saved";
+    }
+    if (!sourceChanged) return null;
+    if (stored.apiKey) {
+      await game.settings.set(MODULE_ID, SETTINGS.jevApiKey, "");
+      return "cleared";
+    }
+    return "source";
+  }
+
+  /** Toast for a #saveJevKey result; null shows nothing. */
+  static #notifyJevSaved(result) {
+    const key = {
+      saved: "SIMPLYSF2E.ProviderSetup.JevSaved",
+      cleared: "SIMPLYSF2E.ProviderSetup.JevCleared",
+      source: "SIMPLYSF2E.ProviderSetup.JevSourceSaved"
+    }[result];
+    if (key) ui.notifications.info(game.i18n.localize(key));
   }
 
   #syncJevControls(hasKey) {
     const input = this.element.querySelector("[name='jevApiKey']");
     if (input) {
       input.value = "";
-      input.placeholder = game.i18n.localize(hasKey
-        ? "SIMPLYSF2E.ProviderSetup.JevKeySaved"
-        : "SIMPLYSF2E.ProviderSetup.JevKeyPlaceholder");
+      input.placeholder = ProviderSetupApp.#jevPlaceholder(hasKey, normalizeJevSource(getJevRequestConfig().source));
     }
     const clear = this.element.querySelector("[name='clearJevApiKey']");
     if (clear) clear.checked = false;
@@ -315,16 +391,35 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
     try {
       const result = await ProviderSetupApp.#saveJevKey.call(this);
       if (result) {
-        ui.notifications.info(game.i18n.localize(
-          result === "cleared"
-            ? "SIMPLYSF2E.ProviderSetup.JevCleared"
-            : "SIMPLYSF2E.ProviderSetup.JevSaved"
-        ));
+        ProviderSetupApp.#notifyJevSaved(result);
         // Update in place: a re-render would discard unsaved chat fields.
-        this.#syncJevControls(result === "saved");
+        this.#syncJevControls(Boolean(getJevRequestConfig().apiKey));
       }
     } catch (err) {
       console.error("simplysf2e | Jev key save failed", err);
+      ui.notifications.error(game.i18n.format("SIMPLYSF2E.ProviderSetup.JevSaveFailed", {
+        message: err?.message ?? String(err)
+      }));
+    } finally {
+      this.#endBusy(busy);
+    }
+  }
+
+  /**
+   * Save the Jev key/source, then send one tiny question over the exact route
+   * generation would use (separate key, else the saved OpenRouter connection).
+   * Leaves the window open and unsaved chat fields untouched.
+   */
+  static async #onTestJev(_event, target) {
+    const busy = this.#beginBusy(target);
+    if (!busy) return;
+    try {
+      const saved = await ProviderSetupApp.#saveJevKey.call(this);
+      if (saved) this.#syncJevControls(Boolean(getJevRequestConfig().apiKey));
+      const notice = jevTestNotice(await testJevConnection());
+      ui.notifications[notice.level](game.i18n.format(notice.key, notice.data));
+    } catch (err) {
+      console.error("simplysf2e | Jev test failed", err);
       ui.notifications.error(game.i18n.format("SIMPLYSF2E.ProviderSetup.JevSaveFailed", {
         message: err?.message ?? String(err)
       }));
@@ -338,12 +433,7 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
     if (!state) return;
     try {
       // First, so a Jev key typed before Save is kept even if the chat save throws.
-      const jev = await ProviderSetupApp.#saveJevKey.call(this);
-      if (jev) {
-        ui.notifications.info(game.i18n.localize(
-          jev === "cleared" ? "SIMPLYSF2E.ProviderSetup.JevCleared" : "SIMPLYSF2E.ProviderSetup.JevSaved"
-        ));
-      }
+      ProviderSetupApp.#notifyJevSaved(await ProviderSetupApp.#saveJevKey.call(this));
       await ProviderSetupApp.#saveSettings.call(this);
       await this.close();
     } catch (err) {

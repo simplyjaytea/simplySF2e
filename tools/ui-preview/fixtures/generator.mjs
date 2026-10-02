@@ -134,6 +134,7 @@ export default [
   },
   { id: "generator-jev-off", app: "generator", context: generatorContext("monster", { jevSource: null }) },
   { id: "generator-jev-key", app: "generator", context: generatorContext("monster", { jevSource: "key" }) },
+  { id: "generator-jev-typesafe", app: "generator", context: generatorContext("monster", { jevSource: "typesafe" }) },
   {
     id: "generator-two-connections",
     app: "generator",

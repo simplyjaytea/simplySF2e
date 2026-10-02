@@ -258,6 +258,10 @@ const jevConfig = registrations.get(SETTINGS.jevApiKey);
 assert.equal(jevConfig?.scope, "client", "the Jev key must remain local to the GM client");
 assert.equal(jevConfig?.config, false, "the Jev key must not appear as plaintext in Foundry's settings form");
 assert.equal(jevConfig?.restricted, true, "the Jev key must be GM-restricted");
+const jevSourceConfig = registrations.get(SETTINGS.jevSource);
+assert.equal(jevSourceConfig?.scope, "client", "the Jev source stays with its client-scoped key");
+assert.equal(jevSourceConfig?.config, false, "the Jev source is managed in Provider Setup");
+assert.equal(jevSourceConfig?.default, "openrouter");
 const bankConfig = registrations.get(SETTINGS.providerBank);
 assert.equal(bankConfig?.scope, "client", "connection profiles must remain local to the GM client");
 assert.equal(

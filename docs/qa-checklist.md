@@ -404,6 +404,20 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 | 12n.5 | Block `openrouter.ai/api/v1/systemone` in DevTools and generate. | Affected steps read "chat model after Jev fell back, N.N s"; console shows "using the chat model". | Preview | | |
 | 12n.6 | Narrow the window to about 360 px. | The Jev row wraps cleanly; no horizontal scroll. | Generator | | |
 
+## 12o. Jev source and Test Jev
+
+| # | Do | Expect | Where | Pass | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 12o.1 | Open AI Provider Setup. | Fast picks (Jev) shows a "Jev source" dropdown (OpenRouter, TypeSafe AI), the key field with "Save Jev key" and "Test Jev", and no CORS warning while OpenRouter is chosen. "Clear the saved Jev key" shows only when a key is saved. | Provider Setup | | |
+| 12o.2 | On an OpenRouter chat connection with its key saved and no Jev key, press Test Jev. | Green toast "Jev is working: OpenRouter answered in N.N s." Window stays open. | Toast | | |
+| 12o.3 | Choose TypeSafe AI. | The CORS warning appears; the key placeholder reads "Optional: TypeSafe AI key". | Provider Setup | | |
+| 12o.4 | With TypeSafe AI chosen, type a TypeSafe key and press Test Jev. | Today: error toast "TypeSafe AI blocks calls from a browser (CORS)…"; console shows a CORS error for api.typesafe.ai. If it passes instead, record that TypeSafe now allows browsers. | Toast, Console | | |
+| 12o.5 | Reopen the Generator after 12o.4. | Fast picks row reads "on (TypeSafe AI key)". | Generator | | |
+| 12o.6 | In Provider Setup switch the source back to OpenRouter, leave the key blank, press Save Jev key. | Toast "Jev key cleared."; the TypeSafe key is gone (a key never goes to the other service). | Toast | | |
+| 12o.7 | Save a wrong OpenRouter Jev key and press Test Jev. | Error toast "OpenRouter rejected the Jev key (HTTP 401)." | Toast | | |
+| 12o.8 | On a non-OpenRouter chat connection with no Jev key, press Test Jev. | Error toast "Jev is off: save a Jev key, or save an OpenRouter chat connection with its key." | Toast | | |
+| 12o.9 | Narrow the window to about 360 px. | The key field, Save Jev key and Test Jev wrap cleanly; no horizontal scroll. | Provider Setup | | |
+
 ## 13. Firefox (if available)
 
 | # | Step | Expected | Where to look | Result | Evidence |
