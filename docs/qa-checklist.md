@@ -400,8 +400,8 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 | 12n.1 | Open the Generator on an OpenRouter connection. | Third status-bar row "Fast picks: Jev" reads "on (OpenRouter connection)" with a green edge. | Generator | | |
 | 12n.2 | Switch to a non-OpenRouter connection with no Jev key. | Row reads "off (needs an OpenRouter connection or a Jev key)" with a neutral edge, not a warning. Its gear opens AI Provider Setup. | Generator | | |
 | 12n.3 | On that connection, save a Jev key in Provider Setup, reopen. | Row reads "on (separate Jev key)". | Generator | | |
-| 12n.4 | Generate a monster with Jev on, then the same prompt with Jev off (12n.2). | Token report lines end with "Jev, N.N s" for fast steps and "chat model, N.N s" otherwise; record both Equipment and Loot step times. | Preview | | |
-| 12n.5 | Block `openrouter.ai/api/v1/systemone` in DevTools and generate. | Affected steps read "chat model after Jev fell back, N.N s". | Preview | | |
+| 12n.4 | Generate a monster with Jev on, then the same prompt with Jev off (12n.2). | Equipment, Loot and feat step lines end with "Jev, N.N s" (Jev on) or "chat model, N.N s" (Jev off). Concept, Design, ABC and Reskin lines carry no timing. Record the Equipment and Loot times for both runs. | Preview | | |
+| 12n.5 | Block `openrouter.ai/api/v1/systemone` in DevTools and generate. | Affected steps read "chat model after Jev fell back, N.N s"; console shows "using the chat model". | Preview | | |
 | 12n.6 | Narrow the window to about 360 px. | The Jev row wraps cleanly; no horizontal scroll. | Generator | | |
 
 ## 13. Firefox (if available)

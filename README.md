@@ -69,8 +69,8 @@ Jev is TypeSafe's fast decision model. It never writes text: it only picks from 
 
 - **It is always on when it can run.** No toggle. The generator header has a **Fast picks: Jev** line that reads "on" or "off" and why.
 - **What it needs.** Either your active connection is **OpenRouter** (its key is reused), or you save a separate OpenRouter key in **AI Provider Setup → Fast picks (Jev)**. A TypeSafe-direct key will not work from Foundry. Any other connection works as before, without Jev.
-- **Fallback.** If Jev is slow (4 s limit), offline, unsure, or answers badly, that step runs on your chat model instead. Nothing is guessed and the result looks the same either way. The console notes "using the chat model".
-- **Cost.** Jev requests are billed on your OpenRouter account (see OpenRouter's pricing for `typesafe/jev-1.13`). The token report after each run lists each step's tokens and which model did it, with seconds, for example "Jev, 0.8 s" or "chat model after Jev fell back, 7.0 s".
+- **Fallback.** If a Jev request fails, times out (4 s per request), or Jev is unsure or finds no fitting entry, that step runs on your chat model instead. Nothing is guessed and the result looks the same either way. The token report marks such a step "chat model after Jev fell back"; a failed request also logs "using the chat model" in the browser console.
+- **Cost.** Jev requests are billed on your OpenRouter account (see OpenRouter's pricing for `typesafe/jev-1.13`). The token report after each run lists each step's tokens. Steps Jev can answer also show their seconds and which model answered, for example "Jev, 0.8 s" or "chat model after Jev fell back, 7.0 s".
 - **Privacy.** Jev sees your concept summary and the names of candidate compendium entries, and nothing else. They go to openrouter.ai, which passes them to TypeSafe. Your Jev key is stored in your browser only and sent only to openrouter.ai.
 
 ### 3. Other settings
@@ -113,7 +113,7 @@ Every mode except Reskin has three ways to start:
 - **Preview Plan** generates the same thing but only shows a preview. Nothing is written to the world until you press **Create Actor** (or **Create All Actors** for an encounter). **Discard** throws the preview away.
 - The **dice button** ignores your description and rolls a surprise concept at the chosen level. It always stops at the preview.
 
-While a generation runs, a progress bar names each step and has a **Cancel generation** button. After each run the window shows token usage per step, with how long each step took and whether Jev or the chat model did it.
+While a generation runs, a progress bar names each step and has a **Cancel generation** button. After each run the window shows token usage per step. Steps Jev can answer also show how long they took and which model answered.
 
 **Advanced options** (a fold-out under the description) holds:
 
