@@ -13,11 +13,15 @@
  * - `TreasurePF2e#isCurrency` is coinage OR slug `upb` OR category `credstick`
  *   (`src/module/item/treasure/document.ts`).
  *
- * Templates below are verbatim copies of those bundled JSON files.
+ * Templates below are verbatim copies of those bundled JSON files
+ * (scripts/currency/*.mjs export them unchanged).
  */
 
-import credstickJSON from "./currency/credstick.json" with { type: "json" };
-import upbJSON from "./currency/upb.json" with { type: "json" };
+// Plain module exports, not JSON import attributes: Foundry supports
+// Firefox, and Firefox ESR 128 cannot parse `import ... with { type: "json" }`
+// (support landed in Firefox 138). One failed import would stop the whole module loading.
+import credstickJSON from "./currency/credstick.mjs";
+import upbJSON from "./currency/upb.mjs";
 
 /** v14-dev `DENOMINATION_RATES` in `src/module/item/physical/values.ts`. */
 export const DENOMINATION_RATES = Object.freeze({
