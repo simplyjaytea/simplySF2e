@@ -55,7 +55,7 @@ Dev-workflow option (D-J1 b, **not chosen**): Jev also ships as a Claude Code sk
 
 - [x] **U5a · Fix U3 `bug` findings in the Generator** (done: PR #35) (`generator.hbs`, `styles/apps/generator.css`, shared kit only where the bug is shared). Before/after harness screenshots in the PR. **Review:** independent.
 - [x] **U5b · Fix U3 `bug` findings in Item Forge, Provider Setup, Sources, Manage Presets.** Disjoint files from U5a, so it runs in parallel. If both need `styles/simplysf2e.css`, U5a owns it and U5b sends its change to U5a's thread through the coordinator. **Review:** independent.
-- [ ] **U6 · Build the U3 `design` findings JT approved.** D-U1 = polish, so only small look/flow changes; **blocked on the per-audit cards.** One PR per approved cluster.
+- [x] **U6 · Build the U3 `design` findings JT approved.** *(done: all six clusters approved by JT and shipped as PRs #36, #38, #39, #40, #41, #42; QA rows 12h to 12m. G13 needed no code: the repeated review text was a preview-fixture artifact.)* D-U1 = polish, so only small look/flow changes. One PR per approved cluster.
 - [x] **U7 · Reskin accent and icon.** JT kept mint + masks on 2026-10-02; no code change.
 
 ## Track J — Jev fast picks in the module
