@@ -1,10 +1,10 @@
 # AGENTS.md — operating rules for any AI agent in this repo
 
-This file is the tool-neutral contract for every agent (Codex, Claude, or otherwise) working on simplySF2e. The deep project brief lives in [CLAUDE.md](CLAUDE.md) — read it first; it holds the glossary, invariants, architecture, and current state. [HISTORY.md](HISTORY.md) holds the session-by-session narrative and the bug log — check it before re-investigating anything. [HANDOFF.md](HANDOFF.md) is the live baton between sessions — read it at session start, update it at session end. The current plan is the **GM-ready checklist (G1–G13)** in HANDOFF.md; tick items with a PR link instead of deleting them.
+This file is the tool-neutral contract for every agent (Codex, Claude, or otherwise) working on simplySF2e. The deep project brief lives in [CLAUDE.md](CLAUDE.md) — read it first; it holds the glossary, invariants, architecture, and current state. [HISTORY.md](HISTORY.md) holds the session-by-session narrative and the bug log — check it before re-investigating anything. [HANDOFF.md](HANDOFF.md) is the live baton between sessions — read it at session start, update it at session end. The current plan is [docs/next-steps.md](docs/next-steps.md) (tracks U and J); the GM-ready checklist (G1–G13) in HANDOFF.md still owns live QA and release. Tick items with a PR link instead of deleting them.
 
 ## Non-negotiable rules (summarized from CLAUDE.md — that file wins on conflict)
 
-1. **Never push or merge to `main` directly.** A merge to `main` auto-publishes a public release to every install. Branch + PR always.
+1. **Never push or merge to `main` directly.** A merge to `main` auto-publishes a public release to every install. Branch + PR always. Merge policy (JT, 2026-10-02): an agent may merge its own PR once an independent fresh-context reviewer found no open blockers **and** `verify` is green on the current head. Design choices still go to JT first.
 2. **Clone real Rule Elements, never hand-author them.** No hand-written RE fallback exists, by design.
 3. **When a system field name or shape matters, fetch the real installed `sf2e` source** — never recall it from PF2e memory. Source: `https://raw.githubusercontent.com/foundryvtt/pf2e/v14-dev/<path>` (e.g. `system.sf2e.json`, `src/scripts/config/index.ts`).
 4. **The AI (in-module) never emits numbers or code** — scale words and enum slugs only; the module supplies values.

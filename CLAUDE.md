@@ -96,7 +96,7 @@ Claude-side orchestration (when running as Fable/Opus with subagent tools):
 
 ## How to work here
 
-- **Branch + PR, never direct to main.** A merge to `main` auto-publishes a public release to every install's "latest" manifest — treat it like a manual `gh release create`. `.github/workflows/*.yml` changes need a real test merge; syntax validity doesn't catch trigger-chain bugs (two were found that way).
+- **Branch + PR, never direct to main.** A merge to `main` auto-publishes a public release to every install's "latest" manifest — treat it like a manual `gh release create`. Merge policy (JT, 2026-10-02): merge once an independent reviewer has no open blockers and `verify` is green; see AGENTS.md rule 1. `.github/workflows/*.yml` changes need a real test merge; syntax validity doesn't catch trigger-chain bugs (two were found that way).
 - **Verify:** `node --check` on everything touched; run the `*.test.mjs` checks; add one for genuinely pure logic behind a bug-shaped change. Most behavior (does the actor render/compute correctly in a live world) is **not** self-checkable.
 - Local git identity for this repo: `user.name "jt"`, `user.email "jt_f@ymail.com"`.
 - The user sometimes merges a PR while a requested review is still running. If an audit is in flight, say so; fixes for a mid-audit merge ship as a new PR, not folded into the merged one.
@@ -114,7 +114,7 @@ Inherited PF2e-era notes for the scaffolded builders. They are **not** SF2e sche
 
 ## Current state (2026-10-01)
 
-**Active plan: the GM-ready checklist (G1–G13) in [HANDOFF.md](HANDOFF.md).** Work it in the waves listed there.
+**Active plan: [docs/next-steps.md](docs/next-steps.md)** (UI polish U1–U7, Jev fast picks J1–J6). G11–G13 of the GM-ready checklist in [HANDOFF.md](HANDOFF.md) remain JT's live QA and release steps.
 
 **Starfinder 2e "Neon Drift" UI overhaul.** simplySF2e identity is `simplysf2e` / SimplySF2e, targeting system **`sf2e` 1.5.0 or later** (cited against 1.5.1). Status is **Alpha**. Every merge to `main` publishes the next tag; check GitHub Releases for the current version rather than pinning it here. Git is authoritative for branch state; [HANDOFF.md](HANDOFF.md) is the live baton.
 

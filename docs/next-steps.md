@@ -1,0 +1,132 @@
+# Next-steps plan — UI polish (U) and Jev fast picks (J)
+
+Written 2026-10-02 after every Claude-doable GM-ready item (G1–G10, G14) merged. The GM-ready checklist in [HANDOFF.md](../HANDOFF.md) still owns G11–G13 (JT's live QA, live fixes, Beta). This file owns the next two tracks. Tick items (`[x]` + PR link) rather than deleting them. IDs are stable; use them in branch names and PR titles.
+
+Each step below is sized for **one Sonnet 5.5 thread** that starts cold. Read "How a step thread works" at the bottom before starting any step.
+
+## Open decisions (JT)
+
+A step marked **Blocked on D-…** is not ready to build until JT answers. Record the answer here (date + choice) when it comes in.
+
+- **D-U1 · UI direction.** Polish the current "Neon Drift" look and fix what the audit finds (recommended), or redesign the generator layout (for example a two-pane form + sticky preview). *Open.*
+- **D-U2 · Reskin tab accent and icon.** Claude picked mint `--spf-mode-reskin: #6ef2c2` and the masks icon in G6; JT never confirmed. Keep (recommended) or change. *Open.*
+- **D-J1 · Where Jev runs.** (a) Inside the module, making the generator's grounded catalog picks fast (recommended); (b) in the Claude Code dev workflow only (a plugin for the agents that edit this repo); (c) both. *Open.*
+- **D-J2 · What "always on" means in the module.** (a) Jev runs automatically whenever the active connection is OpenRouter, reusing that key, with no toggle (recommended); (b) also add a separate Jev connection so non-OpenRouter users can turn it on. *Open; only matters if D-J1 is (a) or (c).*
+- **Per-audit design picks.** U3 lists findings it tags `design`. The coordinator posts those to JT as decision cards; U6 builds only the approved ones.
+
+## What Jev is (research, 2026-10-02)
+
+Jev is **TypeSafe AI's "System One" decision model** (launched September 2026). It does not write text. You send a `state` plus typed `questions`; it returns calibrated probabilities. That makes it a fit for this module's grounded **pick-from-a-real-catalog** calls (equipment, loot, creature feats/abilities, PC feats, ChoiceSets), and useless for concept, description or reskin prose, which stay on the chat LLM.
+
+Cited facts (quote these; do not recall others):
+
+- Endpoint and body, from the official quickstart (`https://docs.typesafe.ai/introduction/quickstart`): `POST https://api.typesafe.ai/v1/systemone`, Bearer auth, body `{ "state": …, "model": "jev-latest", "questions": { "<id>": { "type": "choice", "instructions": "…", "criteria": { "<key>": "<description>", … } } } }`. `score` takes `"criteria": [ "level 0 text", "level 1 text", … ]`; `noul` takes only `instructions`.
+- Response, same page: `{ "model": "jev-1.13.0", "answers": { "<id>": { "type": "choice", "choice": "technical", "confidence": 0.78, "probabilities": { … } }, "<id>": { "type": "score", "score": 1.0, "confidence": 1.0, "legend": { … }, "probabilities": { … } }, "<id>": { "type": "noul", "noul": 1.0 } }, "usage": { "input_tokens": 392, "output_tokens": 65 } }`.
+- OpenRouter (`https://openrouter.ai/docs/api/api-reference/systemone/submit-a-system-one-request`): `POST https://openrouter.ai/api/v1/systemone`, same `{ model, state, questions }` body "forwarded unchanged"; model id `typesafe/jev-1.13` (alias `~typesafe/jev-latest`); response adds `id`, `provider`, `usage.cost`. **Re-verify this page before J1 ships.**
+- Limits (flaviocopes.com/jev, summarizing TypeSafe docs): Choice up to 255 options; Score 2–10 levels; state + all questions ~64,000 tokens; ~100 ms typical, 70–500 ms quoted; $0.042 per million input tokens, output free; 1,200 requests/minute. Weak at arithmetic, counting and indirect references; reads instructions literally.
+- Measured pitfall (pedramamini jev CLI gist): "positional indexes into long arrays are unreliable" (86/320 wrong at 150 items); keyed objects scored 0/320. **Always key candidates by id, never by array position.**
+- **Browser reachability, probed from this environment 2026-10-02** with a CORS preflight (`OPTIONS`, `Origin: https://foundry.example.com`): `openrouter.ai/api/v1/systemone` answered `204` with `access-control-allow-origin: *`; `api.typesafe.ai/v1/systemone` answered `400` with no `access-control-allow-origin`. Foundry modules run in the browser, so **only the OpenRouter route is usable from the module** unless TypeSafe changes its CORS. The TypeSafe JS SDK also refuses to run in a browser by default.
+- The module already supports OpenRouter as a connection (`settings.mjs` `describeProvider`, host `openrouter.ai`), so a GM on OpenRouter can get Jev with no new key.
+
+Why it should speed things up: a monster run makes up to ~6 sequential chat calls (concept, spell focus, spell pick, equipment pick, feat pick, ability pick, plus loot). The pick calls are the ones Jev can answer in ~100 ms instead of a multi-second streamed completion. Concept generation does not change. **Nothing here is measured yet**; J2 adds timing so the gain is shown, not assumed.
+
+Dev-workflow option (D-J1 b): Jev also ships as a Claude Code skill/plugin that lets coding agents screen large files without reading them into context (for example `github.com/BorisLeMeec/jev`, a third-party plugin with a Read hook). Cloud sessions would need a TypeSafe key in the environment's secrets and `api.typesafe.ai` allowed in its network policy, which only JT can set.
+
+## Track U — UI looks and works well
+
+### Wave U-1 (parallel, ready now)
+
+- [ ] **U1 · Static UI preview harness.** Lets threads *see* the UI without Foundry. Create `tools/ui-preview/` (outside `scripts/`, so CI's test loop and the release zip, which ships `lang scripts styles templates`, never pick it up) with its own `package.json` (`handlebars` only; Playwright is preinstalled globally in cloud sessions, `PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers`). It must:
+  - render every template in `templates/` with Handlebars, a `localize` helper reading `lang/en.json` (supporting `{name}` hash interpolation, rendering a missing key visibly as `⟦KEY⟧`), the `eq`-style helpers the templates use, and the `_progress.hbs` partial;
+  - use fixture contexts in `tools/ui-preview/fixtures/*.mjs` whose shapes are copied from the real `_prepareContext()` and `#build*PreviewContext()` in `generator-app.mjs` / `itemforge-app.mjs` and the other apps (read the code; a fixture whose keys don't match renders blanks, which is how the first prototype went wrong);
+  - wrap each page in `.application.simplysf2e > .window-content` with `container-type: inline-size; container-name: spf-window` and link every file in `module.json` `styles`;
+  - include an NPC/encounter fixture with negative Perception, saves and strike bonus, so U2's fix shows in the harness;
+  - screenshot each fixture at 720 px and 460 px into `tools/ui-preview/out/` (gitignored);
+  - cover at least: generator empty (each of the five modes), busy with progress, error, monster preview, NPC preview with negative modifiers, encounter preview, character review, reskin with and without a dropped actor; Item Forge each kind; provider setup; sources; manage presets.
+  `npm install` in `tools/ui-preview/` needs network access to the npm registry (it worked in cloud sessions on 2026-10-02). Document the one command in AGENTS.md "Verification bar". Caveat to state in the README of the tool: Foundry core CSS is not loaded, so fonts and base controls differ from a live world. Note: in the prototype, Font Awesome from a CDN did not render under `file://`; serve the pages over a local `http` server or accept missing icons. **Review:** independent (fresh agent runs the harness and checks fixtures against the real context code).
+- [ ] **U2 · Signed modifiers and the hardcoded "DC".** Bug: the templates prefix a literal `+`, so a negative value renders `+-1` (level −1 creatures, Weak adjustment, low saves). Lines: `generator.hbs` 306 (Perception), 310 (skills), 318–320 (saves), 336 (strike bonus), 366 (spell attack); `itemforge.hbs` 124; and the encounter statline built in JS at `generator-app.mjs` ~391–392 (`+${stats.saves.*}`, `Per +${stats.perception}`, `${strike.name} +${strike.bonus}`, with hardcoded `AC`, `HP`, `Per`). Also `generator.hbs:366` hardcodes `DC`. Fix: add a pure `signed(n)` to `text.mjs` (`+3`, `+0`, `-2`, ASCII hyphen-minus) and add **new display fields** in the context builders (for example `perceptionText`). **Never rewrite `preview.stats` or concept numbers in place**: they also feed actor creation and tests (`builder.adjustment.test.mjs:47` does arithmetic on `strikes[0].bonus`). No global Handlebars helper. Localize `DC`, `AC`, `HP`, `Per` with new `SIMPLYSF2E.Preview.*` keys. `preview.potency` is dead (set from `runes.potency ?? 0` at `itemforge-app.mjs:174`, and `item-builder.mjs:304` always sets `potency: 0`): remove the line and its key if nothing else reads it. The secondary rune line is dead for the same reason (`secondaryTier` reads the zeroed `striking`/`resilient`, `itemforge-app.mjs` ~162–175); remove it too if nothing else reads it. Add `text.signed` cases to `text.test.mjs`. **Review:** independent.
+- [ ] **U4 · Missing-translation-key test.** New `scripts/i18n-keys.test.mjs`: every `localize "KEY"` / `localize 'KEY'` in `templates/*.hbs` and every literal `game.i18n.localize("KEY")` / `format("KEY"` in `scripts/*.mjs` must exist in `lang/en.json`; also report en.json keys used nowhere (warn, do not fail, since some keys are built dynamically, e.g. `SIMPLYSF2E.Threat.${…}`). Scripts also localize through local wrappers (e.g. `const localize = (t) => game.i18n.localize(...)` in `ai.mjs` ~957) and `format(` with built keys, so the regex will miss some; that is fine, the test only fails on literal keys it does find. Fix any real missing key it finds. **Review:** independent.
+
+### Wave U-2 (after U1 merges)
+
+- [ ] **U3 · UI audit.** Run the U1 harness on every fixture and read the code paths for "works well". Write `docs/ui-audit.md`: one table per app with `id | screen/state | finding | evidence (screenshot name or file:line) | severity (blocker/major/minor) | kind (bug/design)`. Check at least: overflow and wrapping at 460 px (the prototype showed the five-mode toggle wrapping 3 + 2 and "Player Character" breaking onto two lines); visible keyboard focus on every control; icon-only buttons have `aria-label` (`sources.hbs` has none of `aria-label`/`data-tooltip`); text contrast against the navy tokens meets WCAG AA (compute, don't eyeball); disabled/busy states; error and empty states; long creature names; raw `⟦KEY⟧` output; button order and labels consistent across Generator and Item Forge; what Enter, Escape and Cancel do while busy. **kind = design** for anything that changes look, layout, wording or flow; those go to JT. This step changes no code. **Review:** a fresh agent spot-checks five findings against the screenshots and code.
+
+### Wave U-3 (after U3 merges)
+
+- [ ] **U5a · Fix U3 `bug` findings in the Generator** (`generator.hbs`, `styles/apps/generator.css`, shared kit only where the bug is shared). Before/after harness screenshots in the PR. **Review:** independent.
+- [ ] **U5b · Fix U3 `bug` findings in Item Forge, Provider Setup, Sources, Manage Presets.** Disjoint files from U5a, so it runs in parallel. If both need `styles/simplysf2e.css`, U5a owns it and U5b sends its change to U5a's thread through the coordinator. **Review:** independent.
+- [ ] **U6 · Build the U3 `design` findings JT approved.** **Blocked on D-U1 and the per-audit cards.** One PR per approved cluster.
+- [ ] **U7 · Reskin accent and icon.** **Blocked on D-U2.** If JT keeps mint + masks, tick this with the decision date and no code. Otherwise change `--spf-mode-reskin` and the icon in `generator.hbs`, check contrast, update the `ui.layout.test.mjs` expectation if it pins either.
+
+## Track J — Jev fast picks in the module
+
+Everything in this track is **Blocked on D-J1 = (a) or (c)**. J1 is also **Blocked on D-J2**. The design below assumes the recommended answers; the coordinator adjusts J1 if JT picks otherwise.
+
+Ground rules for every J step (they extend CLAUDE.md's invariants):
+
+- Jev only **picks among real catalog candidates the module already issued**. It never names content, writes prose or emits a number. Counts come from existing module rules (slot counts, `plannedPicks`, the concept's draft list length, the existing caps of 3 feats / 6 abilities).
+- **Fallback, not failure.** Any Jev problem (no OpenRouter connection, network error, timeout, bad shape, low confidence) silently falls back to the existing chat-LLM selection call for that step, which keeps its own fail-closed behavior. A step must never produce a different *kind* of result because Jev was used.
+- Candidates are **keyed by their existing short ids** (`ai-candidate-format.mjs`), never by position.
+- Escape nothing differently: Jev answers are ids, mapped back through the existing `candidateForPick` / `physicalCandidateForPick` resolvers.
+- Pin the model id (`typesafe/jev-1.13`, cited above), not `latest`, so behavior doesn't drift between releases. One named constant.
+- The confidence threshold is a **module default, not a rules number**: one named constant, starting at 0.7 (the jev-gateway project's default `JEV_MIN_CONFIDENCE`), labeled as such in a comment.
+
+### Wave J-1
+
+- [ ] **J1 · Jev client.** New `scripts/jev.mjs`, pure parts node-testable:
+  - `jevEndpointFor(baseUrl)` → `https://openrouter.ai/api/v1/systemone` when `describeProvider(baseUrl).id === "openrouter"`, else `null` (D-J2 a). If JT picks D-J2 b, add a Jev connection to `settings.mjs` / `provider-setup-app.mjs` using the same exact-endpoint key binding as provider keys, and note the TypeSafe CORS result above (direct TypeSafe will likely fail from the browser).
+  - The key is `getProviderRequestConfig().apiKey` (`settings.mjs` ~525), which is empty unless the key is bound to that exact base URL; never read the raw setting. Reusing a key bound to `https://openrouter.ai/api/v1` for its sibling `/systemone` path is the same host and account, so it stays inside the binding's intent (the binding prevents sending a key to a *different* endpoint); say so in a code comment.
+  - `buildChoiceQuestion({ instructions, candidates })` → `{ type: "choice", instructions, criteria: { [id]: name } }`, rejecting more than 255 options (caller falls back).
+  - `parseJevAnswers(json, questionIds)` → validates the cited response shape; returns `null` on any mismatch.
+  - `requestJevDecision({ baseUrl, apiKey, state, questions, signal })`: `fetch` with an `AbortSignal` combined with a timeout constant (4 s), returns `{ answers, usage, model, ms }` or `null`. Never throws to the caller. Never logs the key.
+  - `tokens.mjs` gets a separate "Jev" usage line (input tokens; cost from `usage.cost` when OpenRouter returns it).
+  - Tests: `scripts/jev.test.mjs` for endpoint selection, question building (keyed criteria, 255 cap), response parsing (cited example passes; missing `answers`, wrong `type`, unknown id all return `null`).
+  No call sites yet. **Review:** independent; reviewer re-fetches the two cited doc pages and checks every field name.
+
+### Wave J-2 (sequential: each edits `ai.mjs` / `builder.mjs`)
+
+- [ ] **J2 · Equipment and loot picks via Jev.** In `selectEquipment` / `selectLoot` (`ai.mjs` ~L666 / ~L727): when `jevEndpointFor` is non-null, ask one Choice question per first-draft item over the same candidates (keyed ids, grouped by matching type when the draft gives one), with the concept summary as `state`. Accept a pick when `confidence >= JEV_MIN_CONFIDENCE`; dedupe. Scope limits, so the result does not change kind:
+  - **Loot:** Jev handles only plain-item entries. `selectLoot` receives coin entries, so the Jev path must skip `parseCoins(entry.name)` entries itself (the caller re-adds the draft's coins after selection, `generator-app.mjs` ~1368; picking a Credstick for a coin entry would double the currency). **Any spell-gem entry (`parseScroll(entry.name)`, the same test the caller uses at ~1350) sends the whole loot step to the LLM**, because gems pick a spell and rank from `scrollCandidates`. Quantity is the **draft's own quantity**, unchanged, exactly as the LLM prompt does today ("Keep the draft's quantities").
+  - **Equipment:** the LLM path also adds strike-matched weapons beyond the draft list ("match its strikes"). To keep that, add one Choice per strike without a matching draft weapon, over the weapon candidates plus a `none` key. Quantity: 1, except ammunition/stackable consumables, which take a Score question over the scale words `["one", "a few", "several"]`; round `score` to the nearest level index, read it through `legend`, and map to 1 / 3 / 5 in the module (module default, labeled).
+  - If any draft item gets no confident pick, run the existing LLM call for the whole step instead (simple, predictable).
+  - Return `omitted: equipment.length === 0` like today; the caller (`generator-app.mjs` ~1325) gates on `equipment.length || omitted === true`. Equipment quantity stays within the existing cap of 10 (`ai.mjs` ~707). Record `ms` for the Jev call and for the fallback so the token report can show it. Keep the exact return shape. Tests: a stubbed `fetch` drives confident, low-confidence and error paths; the error path calls the LLM stub. **Review:** independent.
+- [ ] **J3 · Creature feats and abilities via Jev.** Same pattern for `selectCreatureFeats` (cap 3) and `selectCreatureAbilities` (cap 6): one Choice per draft entry, criteria = catalog ids plus a `none` key ("no published option fits"). `none` or low confidence drops that entry (abilities then stay narrative-only, as today). No whole-step LLM fallback is needed here because "fewer picks" is already valid; fall back to the LLM only on transport/shape failure. **`omitted` (feats only; `selectCreatureAbilities` has no `omitted` and its caller always replaces `specialAbilities`) must match today's semantics:** when every draft entry answers `none`, return `omitted: true` (the caller at `generator-app.mjs` ~1293 only replaces the wishlist when `feats.length || omitted === true`; leaving it `false` keeps unresolved required picks that block one-click creation). **Review:** independent.
+- [ ] **J4 · PC feat slots and character choices via Jev.** `selectFeats`: one Choice per slot over that slot's allowed ids (`encodeFeatCandidateSlots`); a slot with more than 255 ids or a low-confidence answer sends the whole call to the LLM (feat slots must not end up empty, CLAUDE.md invariant 5). **Cross-slot dedupe:** slots with the same allowed list and the same `state` will get the same top answer, and `resolveEncodedFeatPicks` does not dedupe (downstream `pc-builder.mjs` `resolveFeatPicks` would then silently swap in an approximate fallback feat). Walk slots in order and give each slot the highest-probability id not already used, still requiring `JEV_MIN_CONFIDENCE` on that id's probability; if no unused id qualifies, send the whole call to the LLM. `selectCharacterChoices` (`choice-set.mjs` groups): one Choice per group over its validated options; any miss falls back for the whole batch. **Review:** independent, plus a check that `pc-prerequisites.mjs` still runs on Jev picks.
+- [ ] **J5 · Spell picks via Jev (optional, last).** Spells need N picks per rank from long lists. Use one Score question per candidate ("how well does this spell fit the concept", 4 levels) batched so each request's state + questions stays under ~32,000 tokens (half the ~64k limit, leaving headroom; estimate with `tokens.mjs`), with one request per rank at most, then the module takes the top `plannedPicks` per rank. Only if J2–J4 show a real time gain; otherwise mark this skipped with the reason. **Review:** independent.
+
+### Wave J-3
+
+- [ ] **J6 · Show it and document it.** A small "Fast picks: Jev" indicator in the generator status bar when active, and Jev time/tokens in the token report. **Look and wording are a design choice: the coordinator posts a card before this step starts.** README GM-guide section (what Jev is, that it needs an OpenRouter connection, cost, privacy: the concept summary and candidate names go to OpenRouter/TypeSafe). New rows in `docs/qa-checklist.md` (Jev on vs. off timing, fallback when offline). Touches `generator.hbs`, so it runs after U5a merges.
+
+### Dev-workflow Jev (only if D-J1 = b or c)
+
+- [ ] **JD1 · Jev for the agents that work on this repo.** JT adds a TypeSafe key as an environment secret and allows `api.typesafe.ai` in the environment's network policy. Then a thread adds the chosen plugin to `.claude/settings.json` (`enabledPlugins` + marketplace) so every session has it. The thread reads the plugin's hook code in full before enabling it (third-party code runs on every Read) and says what it does in the PR. Not shipped to users.
+
+## Order and dependencies
+
+```
+Now (parallel):        U1   U2   U4            (J1 once D-J1/D-J2 answered)
+After U1:              U3
+After U3:              U5a  U5b  (parallel)    U6 after JT's audit picks
+After J1:              J2 → J3 → J4 → J5 (sequential, shared files)
+After U5a and J2:      J6
+Any time after D-U2:   U7
+```
+
+U2 and U4 both touch `lang/en.json`; whichever merges second merges `main` in and resolves (additive keys, no logic conflict). U2 and U5a both touch `generator.hbs`; U5a starts after U2 merges. Every step ticks its own box in this file, so parallel PRs conflict here trivially: merge `main` in and keep both ticks.
+
+Every step that changes behavior adds its rows to `docs/qa-checklist.md`, because nothing here is live-tested until JT runs G11.
+
+## How a step thread works
+
+Sonnet 5.5 thread, one step ID, starting cold.
+
+1. Read `AGENTS.md`, `CLAUDE.md` (Invariants, Files, How to work here), this file's entry for your step, and the ground rules for your track. `git log --oneline -10`. If a step you depend on is not merged, stop and say so.
+2. You are a full thread, not a worktree worker: you push your own branch and open your own PR (the CLAUDE.md "Sonnet worker recipe" still applies to any subagents *you* start). Work on your session's designated branch; name the PR `<ID>: <title>`. Git identity `jt` / `jt_f@ymail.com`.
+3. Build exactly the step. No extra features. If you hit a choice that changes look, layout, wording or flow and this file doesn't settle it, ask JT with a decision card, recommend an option, and keep building the rest.
+4. Verify: `node --check` every touched `.mjs`; `for f in scripts/*.test.mjs; do node "$f" || echo FAIL $f; done` shows no FAIL; for UI steps, run the U1 harness and attach before/after screenshots to the PR or thread.
+5. Tick your item in this file (`[x]` + PR link) inside the same PR. Open the PR (ready for review) and subscribe to its activity.
+6. **Fresh-perspective review.** Start an `Agent` (general-purpose, a different model from the builder when available, otherwise a fresh context) with no history from your session. Give it: the PR number, this step's entry pasted verbatim, the track's ground rules, CLAUDE.md's Invariants, and "Report blockers and majors with file:line and a failure scenario; quote a source line for any claim about sf2e schema or Jev's API; do not edit files." It reads the diff and the code around it itself.
+7. Fix every blocker and major it reports (or reply in the PR why not), rerun step 4, and send the changed diff back to a fresh reviewer if the fix touched logic.
+8. Merge when the reviewer has no open blockers and `verify` is green on the current head. JT set this policy in the project chat on 2026-10-02 ("going forward, feel free to merge upon review") and repeated it for these steps ("After it's reviewed and fixed (if necessary) go ahead and merge"); see AGENTS.md rule 1. A merge publishes a public release, so never merge without both conditions.
+9. Reply in your thread with one short summary, the PR link, and what JT should check live.
