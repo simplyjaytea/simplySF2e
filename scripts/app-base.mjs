@@ -84,9 +84,12 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
   }
 
-  /** Record one AI call's token usage under a step label. */
-  _recordTokens(label, usage) {
-    if (usage) this._tokenUsage.push({ label, usage });
+  /**
+   * Record one AI call's token usage under a step label. `timing` (optional,
+   * `{ source: "jev"|"llm", ms }`) rides along for the token report (J6 shows it).
+   */
+  _recordTokens(label, usage, timing = null) {
+    if (usage) this._tokenUsage.push({ label, usage, ...(timing ? { timing } : {}) });
   }
 
   /** Per-step token usage lines plus a total, ready for the template. */
