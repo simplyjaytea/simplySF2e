@@ -1027,7 +1027,7 @@ export async function createCharacterActor(concept, resolved, { img = null, sele
       attributes: { hp: { temp: 0 } },
       // Focus pool starts full. Source `value` survives data prep (verified in
       // character/document.ts prepareBaseData — it keeps value, zeroes max);
-      // `max` comes from the cloned rule on the focus spellcasting entry.
+      // `max` is derived by the system: +1 per embedded non-cantrip focus spell.
       resources: { focus: { value: focusPoolSize } },
       build: {
         attributes: {
