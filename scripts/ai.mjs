@@ -8,6 +8,8 @@ import { encodeFeatCandidateSlots, resolveEncodedFeatPicks } from "./ai-candidat
 import { taskResponseProblem } from "./ai-response-validation.mjs";
 import { validateChoicePicks } from "./choice-set.mjs";
 import { CORE_SKILLS } from "./pc-skills.mjs";
+import { resolveJevConfig } from "./jev.mjs";
+import { jevPickEquipment, jevPickLoot, jevPickCreatureFeats, jevPickCreatureAbilities, mergeUsage } from "./jev-picks.mjs";
 
 /**
  * Client for any OpenAI-compatible chat completions API (DeepSeek, OpenAI,
@@ -18,6 +20,9 @@ import { CORE_SKILLS } from "./pc-skills.mjs";
 /* Shared reminder everywhere the AI names a published item — models default
    to Pathfinder memory unless told to use the installed Starfinder 2e names. */
 const REMASTER_NOTE = `using CURRENT Starfinder 2e published names from the installed sf2e compendium, never Pathfinder or invented names`;
+
+// Jev may omit `usage`; a zero entry keeps the step (and its timing) in the token report.
+const NO_TOKENS = Object.freeze({ prompt: 0, completion: 0, total: 0, estimated: false });
 
 let warnedLegacyDeepSeekModel = false;
 
@@ -663,7 +668,16 @@ ${focusCandidates.length ? "Choose up to three focusSpellIds only from the provi
  * @param {{name: string, type: string, level: number}[]} args.candidates
  * @returns {Promise<{equipment: {name: string, quantity: number, value: number}[], usage: object}>}
  */
-export async function selectEquipment({ concept, candidates, onProgress, signal }) {
+export async function selectEquipment({ concept, candidates, onProgress, signal, jevConfig = resolveJevConfig() }) {
+  // Jev first (fast typed picks over the same issued candidates); any doubt falls through to the chat model below.
+  const jev = await jevPickEquipment({ concept, candidates, jevConfig, signal });
+  if (jev.equipment) {
+    return {
+      equipment: jev.equipment, omitted: jev.equipment.length === 0, usage: jev.usage ?? NO_TOKENS,
+      timing: { source: "jev", ms: jev.ms }
+    };
+  }
+  const started = Date.now();
   const byType = new Map();
   for (const c of candidates) {
     if (!byType.has(c.type)) byType.set(c.type, []);
@@ -708,7 +722,10 @@ Pick the logical items the creature would carry: the weapons it wields (match it
       // Picks come from the compendium, so no estimated fallback price is needed.
       value: 0
     }));
-  return { equipment, omitted: parsed.equipment.length === 0, usage };
+  return {
+    equipment, omitted: parsed.equipment.length === 0, usage: mergeUsage(usage, jev.usage),
+    timing: { source: "llm", ms: Date.now() - started, ...(jev.attempted ? { jevMs: jev.ms } : {}) }
+  };
 }
 
 /**
@@ -724,7 +741,13 @@ Pick the logical items the creature would carry: the weapons it wields (match it
  * @param {{name: string, type: string, level: number}[]} args.candidates
  * @returns {Promise<{loot: {name: string, quantity: number, value: number}[], usage: object}>}
  */
-export async function selectLoot({ concept, candidates, scrollCandidates = [], onProgress, signal }) {
+export async function selectLoot({ concept, candidates, scrollCandidates = [], onProgress, signal, jevConfig = resolveJevConfig() }) {
+  // Jev handles plain-item hauls only; coins and spell gems keep the chat-model path (see jevPickLoot).
+  const jev = await jevPickLoot({ concept, candidates, jevConfig, signal });
+  if (jev.loot) {
+    return { loot: jev.loot, omitted: false, usage: jev.usage ?? NO_TOKENS, timing: { source: "jev", ms: jev.ms } };
+  }
+  const started = Date.now();
   const byType = new Map();
   for (const c of candidates) {
     if (!byType.has(c.type)) byType.set(c.type, []);
@@ -777,7 +800,10 @@ Recreate the first-draft haul: replace each non-coin entry with the closest vali
       value: 0
     });
   }
-  return { loot, omitted: parsed.loot.length === 0, usage };
+  return {
+    loot, omitted: parsed.loot.length === 0, usage: mergeUsage(usage, jev.usage),
+    timing: { source: "llm", ms: Date.now() - started, ...(jev.attempted ? { jevMs: jev.ms } : {}) }
+  };
 }
 
 /**
@@ -877,9 +903,15 @@ Include exactly one entry per slot number (1 to ${slots.length}). Never use an I
 }
 
 /** Choose a small set of class-like creature feats from an issued catalog. */
-export async function selectCreatureFeats({ concept, candidates, onProgress, signal }) {
+export async function selectCreatureFeats({ concept, candidates, onProgress, signal, jevConfig = resolveJevConfig() }) {
   const maximum = Math.min(Math.max(concept?.feats?.length ?? 0, 0), 3);
   if (!maximum || !candidates.length) return { feats: [], omitted: false, usage: null };
+  // Jev first; transport/shape failure or any doubt falls through to the chat model below.
+  const jev = await jevPickCreatureFeats({ concept, candidates, jevConfig, signal });
+  if (jev.feats) {
+    return { feats: jev.feats, omitted: jev.omitted, usage: jev.usage ?? NO_TOKENS, timing: { source: "jev", ms: jev.ms } };
+  }
+  const started = Date.now();
   const catalog = candidates.map((candidate) => `${candidate.id} | ${candidate.name}`).join("\n");
   const system = `${GM_CONCEPT_PRIORITY}\n\nYou are selecting up to ${maximum} published Starfinder 2e class feats for a creature. Choose ONLY IDs from the provided catalog. Return a single JSON object and nothing else:
 { "featIds": string[] }
@@ -911,13 +943,21 @@ Choose feats that fit the creature's role and tactics. Do not choose a feat more
     .map((candidate) => ({ name: candidate.name, ...(candidate.ref ? { candidate: candidate.ref } : {}) }));
   // Only an explicitly empty, schema-validated reply declines the wishlist.
   // Nonempty replies that decode to no issued candidates remain failures.
-  return { feats, omitted: parsed.featIds.length === 0, usage };
+  return {
+    feats, omitted: parsed.featIds.length === 0, usage: mergeUsage(usage, jev.usage),
+    timing: { source: "llm", ms: Date.now() - started, ...(jev.attempted ? { jevMs: jev.ms } : {}) }
+  };
 }
 
 /** Select published bestiary actions only from the issued action catalog. */
-export async function selectCreatureAbilities({ concept, candidates, onProgress, signal }) {
+export async function selectCreatureAbilities({ concept, candidates, onProgress, signal, jevConfig = resolveJevConfig() }) {
   const maximum = Math.min(Math.max(concept?.specialAbilities?.length ?? 0, 0), 6);
   if (!maximum || !candidates.length) return { abilities: [], usage: null };
+  const jev = await jevPickCreatureAbilities({ concept, candidates, jevConfig, signal });
+  if (jev.abilities) {
+    return { abilities: jev.abilities, usage: jev.usage ?? NO_TOKENS, timing: { source: "jev", ms: jev.ms } };
+  }
+  const started = Date.now();
   const catalog = candidates.map((candidate) => `${candidate.id} | ${candidate.name}`).join("\n");
   const system = `${GM_CONCEPT_PRIORITY}\n\nYou are selecting up to ${maximum} published Starfinder 2e bestiary actions for a creature. Choose ONLY IDs from the catalog. Return a single JSON object and nothing else:
 { "abilityIds": string[] }
@@ -945,7 +985,10 @@ Choose the actions that fit the creature's role and tactics. Omit a proposed abi
     })
     .slice(0, maximum)
     .map((candidate) => ({ name: candidate.name, ...(candidate.ref ? { candidate: candidate.ref } : {}) }));
-  return { abilities, usage };
+  return {
+    abilities, usage: mergeUsage(usage, jev.usage),
+    timing: { source: "llm", ms: Date.now() - started, ...(jev.attempted ? { jevMs: jev.ms } : {}) }
+  };
 }
 
 /** Select only opaque IDs from the builder's bounded, static choice catalog.
