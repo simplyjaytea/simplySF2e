@@ -5,7 +5,6 @@ import {
   buildEquipmentItems, buildLootItems, filterItemTypes, heightenedLevelFor, systemIcon
 } from "./builder.mjs";
 import { slugify, capitalized, toHtml } from "./text.mjs";
-import { findRuleExemplar } from "./rule-templates.mjs";
 import { preselectChoiceSets } from "./choice-set.mjs";
 import { ABILITY_BOOST_LEVELS, PC_WEALTH_BY_LEVEL, buildFeatSlots, featSlotLocation, pcSpellcastingProfile, pcSpellPlan } from "./pc-tables.mjs";
 import { SETTINGS, getSetting } from "./settings.mjs";
@@ -906,24 +905,17 @@ export async function createCharacterActor(concept, resolved, { img = null, sele
   // Focus spells: a separate `prepared.value: "focus"` entry — how the real
   // system identifies a focus pool (spellcasting-entry/document.ts
   // isFocusPool) — with NO slots object (focus spells spend pool points, not
-  // slots). Independent of the block above: a Champion has focus spells but
-  // no spontaneous casting. The pool MAX cannot be plain actor data —
-  // character/document.ts zeroes system.resources.focus.max every data-prep
-  // pass and rebuilds it ONLY from ActiveEffectLike rules on embedded items —
-  // so a real published rule exemplar is cloned onto the entry (never
-  // hand-authored, see rule-templates.mjs).
+  // slots). Independent of the block above. The pool MAX is derived by the
+  // system itself: character/document.ts resets focus.max to 0 each prep, and
+  // every embedded non-cantrip focus spell adds 1 (v14-dev
+  // item/spell/document.ts prepareActorData: `if (traits.has("focus") &&
+  // !traits.has("cantrip")) { this.actor.system.resources.focus.max += 1; }`),
+  // clamped to cap 3 in creature/document.ts. No rule is cloned: sf2e packs
+  // carry no focus-max ActiveEffectLike, and one would double-count.
   let focusPoolSize = 0;
   if (resolved.focusSpells?.some((s) => s.entry)) {
     const focusEntryId = foundry.utils.randomID();
     focusPoolSize = Math.min(resolved.focusSpells.filter((s) => s.entry).length, 3);
-    const exemplar = await findRuleExemplar("focusPool");
-    if (!exemplar) {
-      // Fail closed but don't abort: the spells still embed, the pool just
-      // stays at 0 until a GM adds the rule by hand.
-      console.warn("simplysf2e | no real focus-pool rule exemplar found in any installed compendium — focus spells embed but the focus pool stays at 0");
-    }
-    const poolRule = exemplar ? structuredClone(exemplar.rule) : null;
-    if (poolRule) poolRule.value = focusPoolSize;
     items.push({
       _id: focusEntryId,
       name: "Focus Spells",
@@ -937,8 +929,7 @@ export async function createCharacterActor(concept, resolved, { img = null, sele
         ability: { value: keyAbility },
         proficiency: { value: 1 },
         spelldc: { value: 0, dc: 0, mod: 0 },
-        showSlotlessLevels: { value: false },
-        rules: poolRule ? [poolRule] : []
+        showSlotlessLevels: { value: false }
       }
     });
     for (const { entry } of resolved.focusSpells) {
@@ -1036,7 +1027,7 @@ export async function createCharacterActor(concept, resolved, { img = null, sele
       attributes: { hp: { temp: 0 } },
       // Focus pool starts full. Source `value` survives data prep (verified in
       // character/document.ts prepareBaseData — it keeps value, zeroes max);
-      // `max` comes from the cloned rule on the focus spellcasting entry.
+      // `max` is derived by the system: +1 per embedded non-cantrip focus spell.
       resources: { focus: { value: focusPoolSize } },
       build: {
         attributes: {
