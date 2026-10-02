@@ -552,10 +552,11 @@ function normalizeActivation(raw, { level, rarity, usage, available, effectCatal
         console.warn("simplysf2e | itemforge: dropped self-buff without a supported published effect");
         return null;
       }
-      // These two are AI free text concatenated into the macro's chat/effect
-      // HTML — escaped here at build time, same as every other AI string.
+      // effectName stays raw (it is also the Effect item's name); every HTML
+      // sink escapes it itself (description below, macro chat lines).
+      // description is concatenated into macro HTML, so it is escaped here.
       params = {
-        effectName: esc(String(p.effectName || "Magic Effect").slice(0, 80)),
+        effectName: String(p.effectName || "Magic Effect").slice(0, 80),
         description: esc(String(p.description ?? "").slice(0, 600)),
         durationRounds: duration.rounds ?? null,
         durationMinutes: duration.minutes ?? null,
@@ -658,6 +659,7 @@ const ACTION_COST_LABEL = {
 };
 
 /**
+ * Plain text (not HTML): callers that insert it into HTML must esc() it.
  * One readable "Activate (2 actions) — deal 4d6 fire damage, DC 22 basic
  * Reflex save (1/day)" line, for the preview and the item description.
  * @param {object} activation  normalized activation
@@ -790,7 +792,7 @@ export async function buildMagicItemData(concept) {
   // after the macro is created (see macro-templates.createActivationMacro).
   if (concept.activation) {
     descriptionParts.push(
-      `<hr /><p><strong>${game.i18n.localize("SIMPLYSF2E.ItemForge.ActivationHeading")}</strong> ${describeActivation(concept.activation)}.</p>`
+      `<hr /><p><strong>${game.i18n.localize("SIMPLYSF2E.ItemForge.ActivationHeading")}</strong> ${esc(describeActivation(concept.activation))}.</p>`
     );
     system.description.value = descriptionParts.join("\n");
     // Best-effort native frequency (for the sheet's own display); the

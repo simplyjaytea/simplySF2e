@@ -271,10 +271,10 @@ const effectData = {
 };
 try {
   await acting.createEmbeddedDocuments("Item", [effectData]);
-  ChatMessage.create({ speaker: ChatMessage.getSpeaker({ actor: acting }), content: "<strong>" + escHtml(acting.name) + "</strong> activates <strong>" + META.itemName + "</strong>: " + P.effectName + "." });
+  ChatMessage.create({ speaker: ChatMessage.getSpeaker({ actor: acting }), content: "<strong>" + escHtml(acting.name) + "</strong> activates <strong>" + META.itemName + "</strong>: " + escHtml(P.effectName) + "." });
 } catch (e) {
   console.error(MODULE_ID + " | itemforge: selfBuff effect creation failed", e);
-  ChatMessage.create({ speaker: ChatMessage.getSpeaker({ actor: acting }), content: "<strong>" + META.itemName + "</strong>: apply <em>" + P.effectName + "</em> to " + escHtml(acting.name) + " manually. " + (P.description || "") });
+  ChatMessage.create({ speaker: ChatMessage.getSpeaker({ actor: acting }), content: "<strong>" + META.itemName + "</strong>: apply <em>" + escHtml(P.effectName) + "</em> to " + escHtml(acting.name) + " manually. " + (P.description || "") });
 }
 `;
 
