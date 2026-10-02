@@ -562,8 +562,13 @@ export function limitEquipmentCandidates(candidates, keywords = [], limit = EQUI
   const target = kw.length
     ? Math.min(limit, Math.max(EQUIPMENT_CANDIDATE_FLOOR, matchedCount))
     : limit;
-  const priority = weaponGroups ? [...new Set([...exact, ...weaponGroupRepresentatives(list, kw)])] : exact;
-  return withPriority(buckets, priority, Math.max(target, Math.min(limit, priority.length)))
+  const exactSet = new Set(exact);
+  const reps = weaponGroups ? weaponGroupRepresentatives(list, kw) : [];
+  const priority = [...new Set([...exact, ...reps])];
+  // Group representatives get their own room on top of the keyword target,
+  // so they never push a keyword-matched item out of the catalog.
+  const extra = reps.filter((candidate) => !exactSet.has(candidate) && relevanceScore(candidate, kw) === 0).length;
+  return withPriority(buckets, priority, Math.min(limit, Math.max(target + extra, priority.length)))
     .sort((a, b) => a.level - b.level || a.name.localeCompare(b.name));
 }
 
