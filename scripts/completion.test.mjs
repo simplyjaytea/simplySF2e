@@ -21,6 +21,13 @@ const incomplete = completionManifest({ mode: "npc", concept: {}, resolved: {
 assert.equal(incomplete.complete, false);
 assert.throws(() => assertComplete(incomplete), /Imaginary Sword/);
 
+const skippedGear = completionManifest({ mode: "npc", concept: {}, resolved: {
+  equipment: [], loot: [], spells: [], focusSpells: [], feats: [],
+  skippedGear: [{ category: "equipment", name: "rusted dagger", quantity: 1 }]
+} });
+assert.equal(skippedGear.complete, true, "gear the exact resolver skipped never blocks creation");
+assert.deepEqual(skippedGear.records, [{ category: "equipment", name: "rusted dagger", status: "skipped", required: false }]);
+
 const pc = completionManifest({ mode: "character", concept: { heritage: "Versatile Heritage" }, resolved: {
   ancestryDoc: { name: "Human" }, backgroundDoc: { name: "Warrior" }, classDoc: { name: "Fighter" }, heritageDoc: null,
   spells: [], focusSpells: [], feats: [], equipment: [], loot: []
@@ -50,13 +57,14 @@ const focusOnly = completionManifest({ mode: "character", concept: {}, resolved:
 assert.equal(focusOnly.records.filter((record) => record.category === "spellcasting-entry").length, 1,
   "a focus-only character still records its module-built casting entry");
 
-const summary = completionSummary([creature, pc]);
+const summary = completionSummary([creature, pc, skippedGear]);
 assert.deepEqual(summary, {
-  total: creature.records.length + pc.records.length,
+  total: creature.records.length + pc.records.length + skippedGear.records.length,
   compendium: 2,
   native: 3,
   moduleBuilt: 3,
   customNarrative: 1,
+  skipped: 1,
   unresolved: 1
 }, "completion presentation must report every manifest status without exposing mutable documents");
 console.log("completion.test.mjs: manifest statuses and complete-only boundary passed");

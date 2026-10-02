@@ -263,8 +263,8 @@ export class GeneratorApp extends SpfApp {
     const signatureRanks = concept.spellcasting?.signatureRanks ?? [];
     const plannedSignatures = new Set(spells.filter((spell) => spell.found && spell.signature
       && signatureRanks.includes(spell.rank)).map((spell) => spell.rank));
-    const equipment = GeneratorApp.#mapGear(resolved.equipment);
-    const loot = GeneratorApp.#mapGear(resolved.loot);
+    const equipment = GeneratorApp.#mapGear(resolved.equipment, resolved.skippedGear, "equipment");
+    const loot = GeneratorApp.#mapGear(resolved.loot, resolved.skippedGear, "loot");
     return {
       concept,
       ancestry,
@@ -325,7 +325,8 @@ export class GeneratorApp extends SpfApp {
       ["compendium", "SIMPLYSF2E.Generator.CompletionCompendium"],
       ["native", "SIMPLYSF2E.Generator.CompletionNative"],
       ["moduleBuilt", "SIMPLYSF2E.Generator.CompletionModuleBuilt"],
-      ["customNarrative", "SIMPLYSF2E.Generator.CompletionCustomNarrative"]
+      ["customNarrative", "SIMPLYSF2E.Generator.CompletionCustomNarrative"],
+      ["skipped", "SIMPLYSF2E.Generator.CompletionSkipped"]
     ].filter(([key]) => summary[key] > 0).map(([key, label]) => ({
       text: game.i18n.format(label, { count: summary[key] })
     }));
@@ -355,15 +356,22 @@ export class GeneratorApp extends SpfApp {
   /**
    * Rows for equipment or loot. A runed name is shown as the AI wrote it (the
    * entry is only the base item), a spell gem as the item it will be built into,
-   * and a stack gets its ×N suffix.
+   * and a stack gets its ×N suffix. Skipped gear of this category (no
+   * published match, so it will not be created) follows as unfound rows.
    */
-  static #mapGear(list) {
-    return (list ?? []).map(({ name, quantity, runes, entry, scroll }) => ({
-      name: (scroll && entry?.name
-        ? `Spell Gem of ${entry.name} (Rank ${scroll.rank})`
-        : (runes?.potency ? name : entry?.name ?? name)) + (quantity > 1 ? ` ×${quantity}` : ""),
-      found: Boolean(entry)
-    }));
+  static #mapGear(list, skipped = [], category = null) {
+    return [
+      ...(list ?? []).map(({ name, quantity, runes, entry, scroll }) => ({
+        name: (scroll && entry?.name
+          ? `Spell Gem of ${entry.name} (Rank ${scroll.rank})`
+          : (runes?.potency ? name : entry?.name ?? name)) + (quantity > 1 ? ` ×${quantity}` : ""),
+        found: Boolean(entry)
+      })),
+      ...(skipped ?? []).filter((item) => item.category === category).map(({ name, quantity }) => ({
+        name: name + (quantity > 1 ? ` ×${quantity}` : ""),
+        found: false
+      }))
+    ];
   }
 
   #buildEncounterPreviewContext() {
@@ -414,8 +422,8 @@ export class GeneratorApp extends SpfApp {
     }));
     const spells = GeneratorApp.#mapSpells(this.#resolved?.spells);
     const feats = GeneratorApp.#mapNamed(this.#resolved?.feats);
-    const equipment = GeneratorApp.#mapGear(this.#resolved?.equipment);
-    const loot = GeneratorApp.#mapGear(this.#resolved?.loot);
+    const equipment = GeneratorApp.#mapGear(this.#resolved?.equipment, this.#resolved?.skippedGear, "equipment");
+    const loot = GeneratorApp.#mapGear(this.#resolved?.loot, this.#resolved?.skippedGear, "loot");
     // Signed display strings live beside `stats`, never in it: stats also feeds
     // actor creation and arithmetic elsewhere.
     const display = {
@@ -803,10 +811,10 @@ export class GeneratorApp extends SpfApp {
       assertComplete(manifest);
       this.#manifest = manifest;
       const eq = this.#resolved.equipment;
-      if (eq.length) {
-        const misses = eq.filter((e) => !e.entry).map((e) => e.name);
-        console.log(`${MODULE_ID} | equipment matches: ${eq.length - misses.length}/${eq.length}`,
-          misses.length ? { missing: misses } : "");
+      const misses = (this.#resolved.skippedGear ?? []).filter((g) => g.category === "equipment").map((g) => g.name);
+      if (eq.length || misses.length) {
+        console.log(`${MODULE_ID} | equipment matches: ${eq.length}/${eq.length + misses.length}`,
+          misses.length ? { skipped: misses } : "");
       }
       console.log(`${MODULE_ID} | token usage`, this._tokenUsage);
     } catch (err) {
@@ -911,10 +919,11 @@ export class GeneratorApp extends SpfApp {
         member.treasureEach = lootValueGp(member.resolved.loot);
       }
       const allEq = members.flatMap((m) => m.resolved.equipment);
-      if (allEq.length) {
-        const misses = allEq.filter((e) => !e.entry).map((e) => e.name);
-        console.log(`${MODULE_ID} | equipment matches: ${allEq.length - misses.length}/${allEq.length}`,
-          misses.length ? { missing: misses } : "");
+      const misses = members.flatMap((m) => m.resolved.skippedGear ?? [])
+        .filter((g) => g.category === "equipment").map((g) => g.name);
+      if (allEq.length || misses.length) {
+        console.log(`${MODULE_ID} | equipment matches: ${allEq.length}/${allEq.length + misses.length}`,
+          misses.length ? { skipped: misses } : "");
       }
       this._throwIfCancelled();
       this.#encounter = {
@@ -1343,7 +1352,7 @@ export class GeneratorApp extends SpfApp {
       if (equipment.length || omitted === true) concept.equipment = equipment;
     } catch (err) {
       if (err?.cancelled) throw err;
-      console.warn(`${MODULE_ID} | grounded equipment selection failed; unresolved draft equipment will block creation`, err);
+      console.warn(`${MODULE_ID} | grounded equipment selection failed; draft equipment with no published match will be skipped`, err);
     }
   }
 
@@ -1388,7 +1397,7 @@ export class GeneratorApp extends SpfApp {
       }
     } catch (err) {
       if (err?.cancelled) throw err;
-      console.warn(`${MODULE_ID} | grounded loot selection failed; unresolved draft loot will block creation`, err);
+      console.warn(`${MODULE_ID} | grounded loot selection failed; draft loot with no published match will be skipped`, err);
     }
   }
 
@@ -1816,10 +1825,14 @@ export class GeneratorApp extends SpfApp {
       // Ground the fresh draft too — same Remaster-name protection as the
       // main pipeline (a reroll is a new ungrounded draft).
       await this.#refineLoot(concept, signal);
+      const skippedLoot = [];
       const resolved = { ...this.#resolved, loot: await applyTreasureBudget(
-        await resolveLoot(concept, { exactContent: true }),
+        await resolveLoot(concept, { exactContent: true, skipped: skippedLoot }),
         concept.loot.length ? treasureBudget(concept.level, concept.rarity, this.#input.treasureAmount) : 0
       ) };
+      resolved.skippedGear = [
+        ...(this.#resolved.skippedGear ?? []).filter((item) => item.category !== "loot"), ...skippedLoot
+      ];
       const manifest = completionManifest({ mode: this.#manifest?.mode ?? "monster", concept, resolved });
       this._throwIfCancelled();
       assertComplete(manifest);

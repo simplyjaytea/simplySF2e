@@ -55,9 +55,12 @@ const mocks = {
   resolveLoot: async (concept, options) => {
     resolveOptions = options;
     if (abortDuringResolve) abortController.abort();
-    return concept.loot.map((item) => ({ ...item,
-      entry: item.candidate === ref || !options?.exactContent ? ref : null
-    }));
+    // Mirrors resolveLoot: exact mode skips (and reports) an ungrounded name.
+    return concept.loot.flatMap((item) => {
+      if (item.candidate === ref || !options?.exactContent) return [{ ...item, entry: ref }];
+      options.skipped?.push({ category: "loot", name: item.name, quantity: item.quantity });
+      return [];
+    });
   },
   applyTreasureBudget: async (loot, target) => { budgetTarget = target; return loot; },
   treasureBudget: () => 10,
@@ -108,8 +111,12 @@ providerFailure = null;
   selectedLoot = [];
   await App.DEFAULT_OPTIONS.actions.rerollLoot.call(app);
   assert.equal(resolveOptions?.exactContent, true, "rerolls cannot fuzzy-match ungrounded draft loot");
-  assertRetained(app, before);
-  assert.match(app._test_error, /Generation is incomplete/);
+  assert.notEqual(app._test_resolved, before.resolved, "ungrounded draft loot no longer blocks the reroll");
+  assert.equal(app._test_resolved.loot.length, 0, "ungrounded draft loot is never created");
+  assert.ok(app._test_resolved.skippedGear.length > 0, "ungrounded draft loot is reported as skipped");
+  assert.ok(app._test_resolved.skippedGear.every((item) => item.category === "loot"));
+  assert.equal(app._test_manifest.complete, true);
+  assert.equal(app._test_error, null);
 }
 {
   const app = preview();

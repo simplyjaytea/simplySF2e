@@ -415,9 +415,8 @@
   padding: 0 0.3rem;
 }
 
-/* Spells/feats that failed to resolve are dropped from the actor entirely —
-   struck through and red to read as "won't appear", distinct from the
-   .spf-custom pill (equipment/loot instead), which still gets created. */
+/* Spells, feats and gear that failed to resolve are left off the actor —
+   struck through and red to read as "won't appear". */
 .simplysf2e .spf-dropped {
   color: var(--spf-text-muted);
   text-decoration: line-through;

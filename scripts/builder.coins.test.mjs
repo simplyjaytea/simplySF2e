@@ -94,34 +94,37 @@ assert.equal(isCurrencyDocument({ type: "treasure", system: { price: { value: { 
  * ---------------------------------------------------------------------- */
 
 {
+  const skipped = [];
   const resolved = await resolveLoot({
     level: 1,
     loot: normalizeLoot([
       { name: "Gold Coins", quantity: 35, value: 1 },
       { name: "Mysterious Relic", quantity: 1, value: 12 }
     ])
-  }, { exactContent: true });
-  assert.equal(resolved.length, 2);
+  }, { exactContent: true, skipped });
+  assert.equal(resolved.length, 1, "unmatched named loot is skipped, not kept as a blocking pick");
   assert.equal(resolved[0].name, "Credstick");
   assert.equal(resolved[0].quantity, 350);
   assert.equal(resolved[0].entry?.currency, "credits");
   assert.equal(resolved[0].resolvedValue, 0.1);
-  assert.equal(resolved[1].entry, null, "named loot still cannot fuzzy-match under exactContent");
+  assert.deepEqual(skipped, [{ category: "loot", name: "Mysterious Relic", quantity: 1 }],
+    "named loot still cannot fuzzy-match under exactContent");
 }
 
 {
   const warnings = [];
   const original = console.warn;
   console.warn = (...args) => warnings.push(args.join(" "));
+  const skipped = [];
   const resolved = await resolveLoot({
     level: 1,
     loot: [{ name: "Electrum Coins", quantity: 4, value: 2 }]
-  }, { exactContent: true });
+  }, { exactContent: true, skipped });
   console.warn = original;
-  assert.equal(resolved.length, 1, "unknown denomination stays on the generic loot path");
-  assert.equal(resolved[0].name, "Electrum Coins");
-  assert.equal(resolved[0].entry, null);
-  assert.equal(warnings.length, 0, "unknown denomination is not a coin drop; parseCoins already rejected it");
+  assert.equal(resolved.length, 0, "unknown denomination stays on the generic loot path, which skips an unmatched name");
+  assert.deepEqual(skipped, [{ category: "loot", name: "Electrum Coins", quantity: 4 }]);
+  assert.equal(warnings.some((warning) => /currency/.test(warning)), false,
+    "unknown denomination is not a coin drop; parseCoins already rejected it");
 }
 
 /* ---------------------------------------------------------------------- *
