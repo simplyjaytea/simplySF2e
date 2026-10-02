@@ -16,6 +16,8 @@ import { CATEGORIES, DEFAULT_PACKS } from "./compendium.mjs";
 
 let settingsStore = {};
 const notifications = [];
+let confirmAnswer = true;
+let confirmCalls = 0;
 
 const fakeElement = {
   querySelectorAll(selector) {
@@ -64,6 +66,7 @@ const context = vm.createContext({
           constructor(options = {}) { this.options = options; }
           async render() { this.rendered = true; }
         },
+        DialogV2: { async confirm() { confirmCalls += 1; return confirmAnswer; } },
         HandlebarsApplicationMixin: (Base) => class extends Base {}
       }
     }
@@ -145,6 +148,8 @@ const defaultPackUnchecked = equipCustomCat.packs.find((p) => p.id === DEFAULT_P
 assert.equal(customPackChecked.checked, true, "Custom pack is checked when in stored settings");
 assert.equal(defaultPackUnchecked.checked, false, "Default pack is unchecked when omitted from stored settings");
 
+assert.equal(ctxCustom.noPacks, false, "noPacks false when packs exist");
+
 // 3. Form submission (#onSubmit)
 const submitHandler = SourcesConfigApp.DEFAULT_OPTIONS.form.handler;
 await submitHandler.call({ element: fakeElement });
@@ -173,6 +178,13 @@ assert.ok(
 // 4. Reset (#onReset)
 const resetHandler = SourcesConfigApp.DEFAULT_OPTIONS.actions.reset;
 let renderCalled = false;
+const beforeReset = { ...settingsStore[SETTINGS.sourcePacks] };
+confirmAnswer = false;
+await resetHandler.call({ async render() { renderCalled = true; } });
+assert.equal(confirmCalls, 1, "Reset asks for confirmation");
+assert.equal(renderCalled, false, "Declined reset does not re-render");
+assert.deepEqual({ ...settingsStore[SETTINGS.sourcePacks] }, beforeReset, "Declined reset leaves settings untouched");
+confirmAnswer = true;
 await resetHandler.call({
   async render() { renderCalled = true; }
 });

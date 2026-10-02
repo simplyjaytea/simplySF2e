@@ -92,3 +92,22 @@
 .simplysf2e .spf-hud-frame {
   box-shadow: var(--spf-inset-glow), 0 0 10px color-mix(in srgb, var(--spf-brand-accent) 14%, transparent);
 }
+
+/* One state message when nothing was detected; Save is disabled with it. */
+.simplysf2e .spf-source-empty {
+  margin: 0;
+  padding: var(--spf-space-md);
+  border: 1px dashed var(--spf-border);
+  border-radius: var(--spf-radius-sm);
+  color: var(--spf-text-muted);
+}
+
+/* Save and Reset stay in view while the category list scrolls (audit S2). */
+.simplysf2e .simplysf2e-sources > .spf-actions {
+  position: sticky;
+  bottom: calc(var(--spf-space-xs) * -1);
+  margin-top: 0;
+  padding: var(--spf-space-sm) 0 var(--spf-space-xs);
+  background: color-mix(in srgb, var(--spf-brand-dark) 40%, #0a121b);
+  z-index: 1;
+}

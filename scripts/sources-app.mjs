@@ -63,7 +63,7 @@ export class SourcesConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
         }))
       };
     });
-    return { categories };
+    return { categories, noPacks: categories.every((category) => !category.packs.length) };
   }
 
   static async #onSubmit() {
@@ -78,6 +78,13 @@ export class SourcesConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
   }
 
   static async #onReset() {
+    const { DialogV2 } = foundry.applications.api;
+    const confirmed = await DialogV2.confirm({
+      window: { title: "SIMPLYSF2E.Sources.ResetTitle" },
+      content: `<p>${game.i18n.localize("SIMPLYSF2E.Sources.ResetConfirm")}</p>`,
+      rejectClose: false
+    });
+    if (!confirmed) return;
     await game.settings.set(MODULE_ID, SETTINGS.sourcePacks, {});
     ui.notifications.info(game.i18n.localize("SIMPLYSF2E.Sources.ResetDone"));
     await this.render();
