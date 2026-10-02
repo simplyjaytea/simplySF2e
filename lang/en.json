@@ -9,6 +9,10 @@
         "Name": "API Key",
         "Hint": "API key for the current API Base URL. It stays in this browser and is never synced to the world or other users. Manage it through AI Provider Setup, which masks the value and authorizes it only for the displayed endpoint. Leave blank for a keyless local server such as Ollama or LM Studio."
       },
+      "JevApiKey": {
+        "Name": "Jev API Key",
+        "Hint": "OpenRouter key used only for Jev fast picks. Stored in this browser; manage it through AI Provider Setup."
+      },
       "Model": {
         "Name": "Model",
         "Hint": "Model identifier, e.g. deepseek-v4-flash, deepseek-v4-pro, gpt-5.6-luna, or any model your provider offers."
@@ -63,6 +67,17 @@
       "ApiKeyHint": "Changing endpoints clears the old saved key unless you enter a replacement here.",
       "ClearApiKey": "Clear the saved API key",
       "Privacy": "Each connection's key stays in this browser and is sent only to the exact endpoint authorized when you save that connection.",
+      "JevLegend": "Fast picks (Jev)",
+      "JevHint": "Jev runs automatically on an OpenRouter connection. Add a key here only if your chat model is not on OpenRouter.",
+      "JevKeyLabel": "OpenRouter key for Jev (this browser only)",
+      "JevKeyPlaceholder": "Optional: OpenRouter key",
+      "JevKeySaved": "A Jev key is saved — leave blank to keep it",
+      "ClearJevKey": "Clear the saved Jev key",
+      "SaveJevKey": "Save Jev key",
+      "JevCorsWarning": "A TypeSafe-direct key will most likely not work from Foundry (browser CORS). Use an OpenRouter key. It is sent only to openrouter.ai.",
+      "JevSaved": "Jev key saved.",
+      "JevCleared": "Jev key cleared.",
+      "JevSaveFailed": "Could not save the Jev key: {message}",
       "SaveAuthorize": "Save & Authorize",
       "SaveTest": "Save & Test",
       "Cancel": "Cancel",

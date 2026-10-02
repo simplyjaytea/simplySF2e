@@ -7,6 +7,18 @@ import { normalizeJevUsage } from "./tokens.mjs";
 
 const orState = (apiKey) => ({ apiKey, provider: { id: "openrouter" } });
 
+// default `dedicated` reads the separate Jev key setting (J1b)
+{
+  const store = new Map([["jevApiKey", "  stored-jev  "]]);
+  globalThis.game = { settings: { get: (_m, key) => store.get(key) } };
+  assert.deepEqual(
+    resolveJevConfig({ provider: () => ({ apiKey: "", provider: { id: "openai" } }) }),
+    { endpoint: JEV_ENDPOINT, apiKey: "stored-jev" }, "default dedicated source is the stored Jev key");
+  store.set("jevApiKey", "");
+  assert.equal(resolveJevConfig({ provider: () => ({ apiKey: "", provider: { id: "openai" } }) }), null);
+  delete globalThis.game;
+}
+
 // resolver order
 assert.equal(JEV_ENDPOINT, "https://openrouter.ai/api/v1/systemone");
 assert.equal(JEV_MODEL, "typesafe/jev-1.13");
@@ -14,14 +26,14 @@ assert.deepEqual(
   resolveJevConfig({ provider: () => orState("or-key"), dedicated: () => ({ apiKey: " dedicated " }) }),
   { endpoint: JEV_ENDPOINT, apiKey: "dedicated" }, "dedicated key wins");
 assert.deepEqual(
-  resolveJevConfig({ provider: () => orState("or-key") }),
+  resolveJevConfig({ provider: () => orState("or-key"), dedicated: () => null }),
   { endpoint: JEV_ENDPOINT, apiKey: "or-key" }, "OpenRouter chat key reused");
-assert.equal(resolveJevConfig({ provider: () => orState("") }), null, "unbound OpenRouter key -> null");
-assert.equal(resolveJevConfig({ provider: () => ({ apiKey: "k", provider: { id: "openai" } }) }), null);
+assert.equal(resolveJevConfig({ provider: () => orState(""), dedicated: () => null }), null, "unbound OpenRouter key -> null");
+assert.equal(resolveJevConfig({ provider: () => ({ apiKey: "k", provider: { id: "openai" } }), dedicated: () => null }), null);
 assert.equal(resolveJevConfig({ provider: () => orState("k"), dedicated: () => ({ apiKey: "  " }) }).apiKey, "k");
-assert.equal(resolveJevConfig({ provider: () => { throw new Error("x"); } }), null);
+assert.equal(resolveJevConfig({ provider: () => { throw new Error("x"); }, dedicated: () => null }), null);
 let calls = 0;
-resolveJevConfig({ provider: () => { calls += 1; return orState("k"); } });
+resolveJevConfig({ provider: () => { calls += 1; return orState("k"); }, dedicated: () => null });
 assert.equal(calls, 1, "provider read once");
 
 // question building

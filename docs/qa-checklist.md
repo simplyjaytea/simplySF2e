@@ -24,6 +24,9 @@ Conventions: "Generator" = the **SimplySF2e — Generator** window. "Forge" = th
 | 0.10 | Module Settings → SimplySF2e → **Compendium Sources** → **Configure Sources**. Before changing anything, read each category. | Every category (Bestiary Abilities, Spells, Feats, Equipment, Ancestries, Backgrounds, Classes, Class Features, Heritages, Bestiary Actors) lists packs, with the sf2e defaults marked "default" (`sf2e.classes`, `class-features`, `feats`, `spells`, `equipment`, `ancestries`, `heritages`, `backgrounds`, `bestiary-ability-glossary-srd`, `alien-core-bestiary`). | Sources window | | |
 | 0.11 | Click **Reset to defaults**, then **Save**. | "Compendium sources reset to the SF2e system pack defaults." then "Compendium sources saved." | Notifications | | |
 | 0.12 | Reopen the Generator. | Compendium Content row reads "Ready — N enabled packs"; no "Required compendium content is unavailable" message. | Generator | | |
+| 0.13 | Provider Setup → **Fast picks (Jev)** card: type an OpenRouter key and click **Save Jev key**. | "Jev key saved." The field is empty with the placeholder "A Jev key is saved — leave blank to keep it"; the key is not shown in plain text. A TypeSafe-direct key warning is visible. | Provider Setup | | |
+| 0.14 | Reopen Provider Setup; click **Save Jev key** with the field empty, then tick **Clear the saved Jev key** and click it again. | Empty click changes nothing. Clear shows "Jev key cleared." and the placeholder returns to "Optional: OpenRouter key". | Provider Setup | | |
+| 0.15 | Type a Jev key, leave the Model field empty, press **Save & Authorize**. | The chat save errors (model required) but reopening Provider Setup shows the Jev key is saved. | Provider Setup | | |
 
 ## 1. Presets and Manage Presets
 
