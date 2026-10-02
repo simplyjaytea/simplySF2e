@@ -30,7 +30,7 @@ export class SourcesConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
   };
 
   static PARTS = {
-    body: { template: `modules/${MODULE_ID}/templates/sources.hbs` }
+    body: { template: `modules/${MODULE_ID}/templates/sources.hbs`, scrollable: [""] }
   };
 
   async _prepareContext() {

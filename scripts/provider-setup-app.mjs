@@ -88,7 +88,7 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
   };
 
   static PARTS = {
-    body: { template: `modules/${MODULE_ID}/templates/provider-setup.hbs` }
+    body: { template: `modules/${MODULE_ID}/templates/provider-setup.hbs`, scrollable: [""] }
   };
 
   async _prepareContext() {

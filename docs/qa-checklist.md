@@ -433,6 +433,14 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 | --- | --- | --- | --- | --- | --- |
 | 12q.1 | Generate an arcane caster NPC at level 10 with a prompt that names no spells (e.g. "a corporate techno-mage"). Repeat once. | Picked spells span the alphabet within each rank (late names such as Wall of Plasma or Summon Robot can appear), not only names starting A to M. Exact picks vary with the AI's spell keywords. | Preview | | |
 
+## 12r. Window scrolling
+
+| # | Do | Expect | Where | Pass | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 12r.1 | Generate a monster, then drag the Generator window's bottom edge up to about a third of the screen. | The window body scrolls with the mouse wheel down to the stat block's end. Create Actor, Reroll Loot (when the preview has loot) and Discard stay visible at the bottom edge while the preview scrolls. | Generator | | |
+| 12r.2 | Do the same with an Item Forge preview, AI Provider Setup, Manage Presets (with several presets) and Compendium Sources. | Each window scrolls to its last field; its button row stays at the bottom edge. Nothing is cut off. | Each window | | |
+| 12r.3 | Shrink the Foundry browser window to a short height (about 600 px) and open each window fresh. | No window runs past the screen with unreachable content; each scrolls inside. Tabbing through a long form never leaves the focused field hidden under the button row, and Load Models in Provider Setup keeps your scroll place. | Each window | | |
+
 ## 13. Firefox (if available)
 
 | # | Step | Expected | Where to look | Result | Evidence |

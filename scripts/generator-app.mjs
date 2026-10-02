@@ -90,7 +90,7 @@ export class GeneratorApp extends SpfApp {
   };
 
   static PARTS = {
-    body: { template: `modules/${MODULE_ID}/templates/generator.hbs` }
+    body: { template: `modules/${MODULE_ID}/templates/generator.hbs`, scrollable: [""] }
   };
 
   /** Form values, kept across re-renders. */

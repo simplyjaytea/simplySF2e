@@ -146,3 +146,9 @@
 .simplysf2e .spf-jev-warning[hidden] {
   display: none;
 }
+
+/* This body pads by --spf-space-sm, so the pinned action row offsets by the
+   same amount to sit flush with the window's lower edge. */
+.simplysf2e .simplysf2e-provider-setup > footer.spf-actions {
+  bottom: calc(var(--spf-space-sm) * -1);
+}

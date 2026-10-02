@@ -42,7 +42,8 @@ Fixture context shapes are copied from the real code: `GeneratorApp._prepareCont
 ## Caveats
 
 - **Foundry core CSS is not loaded.** Fonts (the real world uses Signika), base buttons, inputs and scrollbars differ from a live world. Judge layout, wrapping, overflow and colour tokens here, not typography.
-- **Full content is shown.** The module caps `.simplysf2e-generator` at `80vh` and scrolls inside it; the harness lifts that so nothing is hidden from review.
+- **Full content is shown.** The module caps each window body (`.spf-window-body`) at `80vh` and scrolls inside it; the harness lifts that so nothing is hidden from review.
+- **Short-window check.** Each fixture is also rendered in a 360 px tall window with `.window-content` clipped the way Foundry clips it (`out/<id>@<width>-short.png`). The run fails if any visible control cannot be scrolled into view, so content that a short screen or a resized window would cut off shows up here.
 - **Font Awesome comes from npm** (`@fortawesome/fontawesome-free`, v6 like Foundry's). A CDN link does not load: the cloud sandbox's TLS proxy is not trusted by the headless browser, and `file://` pages cannot fetch it either.
 - **No JavaScript from the module runs**: no hover tooltips (`data-tooltip`), no `_onRender` listeners, no focus management. Open the saved `.html` files in a browser for focus and hover checks.
 - **Strike traits** are set directly on the fixture concept, because `normalizeConcept` validates them against the live system's trait list, which does not exist under Node.

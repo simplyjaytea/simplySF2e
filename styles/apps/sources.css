@@ -8,7 +8,6 @@
   flex-direction: column;
   gap: var(--spf-space-md);
   padding: var(--spf-space-xs);
-  overflow-y: auto;
 }
 
 /* HUD readout legends: console chips with a neon edge. */
@@ -102,12 +101,7 @@
   color: var(--spf-text-muted);
 }
 
-/* Save and Reset stay in view while the category list scrolls (audit S2). */
+/* The body's flex gap already spaces the pinned Save/Reset bar. */
 .simplysf2e .simplysf2e-sources > .spf-actions {
-  position: sticky;
-  bottom: calc(var(--spf-space-xs) * -1);
   margin-top: 0;
-  padding: var(--spf-space-sm) 0 var(--spf-space-xs);
-  background: color-mix(in srgb, var(--spf-brand-dark) 40%, #0a121b);
-  z-index: 1;
 }

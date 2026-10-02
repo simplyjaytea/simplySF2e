@@ -318,6 +318,53 @@
 }
 
 /* --------------------------------------------------------------------------
+   Window body scrolling. Every module window's root part carries
+   .spf-window-body. Foundry clips .window-content, so the body fills it and
+   scrolls on its own; a window that is resized, or clamped on a short
+   screen, never hides its lower fields or buttons.
+   -------------------------------------------------------------------------- */
+.application.simplysf2e .window-content {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.application.simplysf2e .window-content > .spf-window-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  /* Auto-height windows grow to at most this, then the body scrolls, even
+     if Foundry does not clamp the window to the screen itself. */
+  max-height: 80vh;
+  overscroll-behavior: contain;
+  /* Keyboard focus scrolls a control clear of the pinned action row. */
+  scroll-padding-block-end: 3.5rem;
+  scrollbar-color: var(--spf-brand-dark) #0c1620;
+}
+
+/* Action rows stay pinned to the bottom edge while the body scrolls
+   (first shipped for Sources, audit S2). The negative offset matches the
+   body's padding so the bar sits flush with the window's lower edge. */
+.simplysf2e .spf-window-body footer.spf-actions {
+  position: sticky;
+  bottom: calc(var(--spf-space-xs) * -1);
+  z-index: 1;
+  padding-bottom: var(--spf-space-xs);
+  background: color-mix(in srgb, var(--spf-brand-dark) 40%, #0a121b);
+}
+
+/* .spf-hud-actions rows keep their own md top padding and rule. */
+.simplysf2e .spf-window-body footer.spf-actions:not(.spf-hud-actions) {
+  padding-top: var(--spf-space-sm);
+}
+
+/* Inside a preview card the pinned row matches the card surface. */
+.simplysf2e .spf-window-body .spf-card > footer.spf-actions {
+  background: var(--spf-surface-raised);
+}
+
+/* --------------------------------------------------------------------------
    Generator + item forge body (both roots carry .simplysf2e-generator)
    -------------------------------------------------------------------------- */
 .simplysf2e .simplysf2e-generator {
@@ -325,9 +372,6 @@
   flex-direction: column;
   gap: var(--spf-space-md);
   padding: var(--spf-space-xs);
-  max-height: 80vh;
-  overflow-y: auto;
-  scrollbar-color: var(--spf-brand-dark) #0c1620;
 }
 
 /* --------------------------------------------------------------------------

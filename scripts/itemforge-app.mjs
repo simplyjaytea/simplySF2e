@@ -49,7 +49,7 @@ export class ItemForgeApp extends SpfApp {
   };
 
   static PARTS = {
-    body: { template: `modules/${MODULE_ID}/templates/itemforge.hbs` }
+    body: { template: `modules/${MODULE_ID}/templates/itemforge.hbs`, scrollable: [""] }
   };
 
   /** Form values, kept across re-renders. "kind": "wondrous"|"augmentation"|"crystal"|"weapon"|"armor". */
