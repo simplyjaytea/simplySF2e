@@ -31,8 +31,8 @@ Read this first, then CLAUDE.md. HISTORY.md is the PF2e-era scaffold narrative; 
 
 ### Gate B — GM-facing usability
 
-- [ ] **G6 · Reskin has no entry point.** `reskinActor()` (`builder.mjs`) is tested but unreachable. **Needs a user design decision first**: where it lives (actor-sheet header button, generator mode, or Actor directory context menu) and what the GM types. Then wire it. **Worker: Sonnet** once designed.
-- [ ] **G7 · Multiclass scope.** `SF2E_MULTICLASS_DEDICATIONS` (`pc-support.mjs`) is unwired. **User decision:** defer past GM-ready (recommended; needs a PC feat-slot design plus prerequisite checks), or wire it into the PC pipeline now (Opus design, then Sonnet build).
+- [x] **G6 · Reskin has no entry point.** JT decided (2026-10-02): a fifth generator mode; the GM drags an NPC from the Actors sidebar or a compendium onto a drop zone; the AI writes flavor and also renames strikes/abilities (rules, damage, traits unchanged). Built in the G6 PR. Needs a live check (G10/G11): compendium drop, world-actor drop, a renamed strike with attack effects still applying.
+- [x] **G7 · Multiclass scope.** JT decided (2026-10-02): deferred until after GM-ready. `SF2E_MULTICLASS_DEDICATIONS` (`pc-support.mjs`) is unwired. **User decision:** defer past GM-ready (recommended; needs a PC feat-slot design plus prerequisite checks), or wire it into the PC pipeline now (Opus design, then Sonnet build).
 - [ ] **G8 · README GM guide.** Today's README is a status page. Add:
   - quick start: install, enable, provider setup including local/keyless, and where the launchers are (the Actors directory header button, Item Forge entry, and `/sf2e`; confirm each placement in `simplysf2e.mjs`)
   - a walkthrough of each mode (Monster/NPC/Encounter/Character/Item Forge)

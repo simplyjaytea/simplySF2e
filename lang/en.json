@@ -165,7 +165,23 @@
       "ConfigureSources": "Configure compendium sources",
       "ModeLabel": "Generation mode",
       "NoModelShort": "No model",
-      "EmptyHint": "Nothing generated yet — describe a concept above and press Generate. The preview appears here before anything is created."
+      "EmptyHint": "Nothing generated yet — describe a concept above and press Generate. The preview appears here before anything is created.",
+      "ReskinLegend": "Reskin an existing creature",
+      "ReskinPrompt": "Reskin theme",
+      "ReskinPromptPlaceholder": "e.g. make it a void-touched pirate enforcer who boards ships through airlocks...",
+      "ReskinDropHint": "Drag an NPC here from the Actors sidebar or a bestiary compendium.",
+      "ReskinDropReplace": "Drop another NPC to replace it.",
+      "ReskinSourceLevel": "Creature {level}",
+      "ReskinNoSource": "Drop an NPC onto the Reskin panel first.",
+      "ReskinNotNpc": "Only NPC creatures can be reskinned.",
+      "ReskinSourceGone": "The creature you dropped can no longer be found. Drop it again.",
+      "GenerateReskin": "Reskin Creature",
+      "ReskinUnchanged": "Statistics, rules, traits, and items are copied unchanged. The original creature is not modified.",
+      "ReskinRenames": "Renamed strikes and abilities",
+      "ReskinNoRenames": "No strikes or abilities were renamed.",
+      "ReskinReadAloud": "Read aloud",
+      "ReskinRecall": "Recall Knowledge",
+      "CreateReskin": "Create Reskinned Copy"
     },
     "Presets": {
       "None": "— No preset —",
@@ -220,7 +236,9 @@
       "Encounter": "Encounters",
       "EncounterHint": "Tactical ops engagement",
       "Character": "Player Character",
-      "CharacterHint": "Spacefarer operative"
+      "CharacterHint": "Spacefarer operative",
+      "Reskin": "Reskin",
+      "ReskinHint": "New fiction, same stat block"
     },
     "Threat": {
       "Trivial": "Trivial",
@@ -292,7 +310,8 @@
       "WritingExact": "{step}: receiving… ({tokens} tokens)",
       "Cancel": "Cancel generation",
       "Cancelling": "Cancelling…",
-      "Apply": "Applying character"
+      "Apply": "Applying character",
+      "Reskin": "Writing new fiction"
     },
     "Tokens": {
       "Heading": "Token usage",

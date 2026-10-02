@@ -27,14 +27,18 @@
   --spf-mode-accent: var(--spf-mode-character);
 }
 
+.simplysf2e .simplysf2e-generator.spf-mode-reskin {
+  --spf-mode-accent: var(--spf-mode-reskin);
+}
+
 /* --------------------------------------------------------------------------
    Segmented mode switch
    -------------------------------------------------------------------------- */
-/* Four equal segments in wide windows; a 2x2 grid when the window is too
-   narrow for all four labels (auto-fit, no breakpoint needed). */
+/* Equal segments in wide windows; wraps into a grid when the window is too
+   narrow for every label (auto-fit, no breakpoint needed). */
 .simplysf2e .spf-mode-toggle {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(8.5rem, 100%), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(7rem, 100%), 1fr));
   gap: 2px;
   margin-bottom: var(--spf-space-md);
   padding: 2px;
@@ -144,6 +148,77 @@
 
 .simplysf2e .spf-mode-toggle label.spf-mode-character.spf-mode-active > i {
   color: var(--spf-mode-character);
+}
+
+.simplysf2e .spf-mode-toggle label.spf-mode-reskin.spf-mode-active {
+  border-color: var(--spf-mode-reskin);
+  background: color-mix(in srgb, var(--spf-mode-reskin) 26%, #0c1620);
+  box-shadow: inset 0 0 0 1px var(--spf-mode-reskin), 0 0 12px color-mix(in srgb, var(--spf-mode-reskin) 45%, transparent);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--spf-mode-reskin) 65%, transparent);
+}
+
+.simplysf2e .spf-mode-toggle label.spf-mode-reskin.spf-mode-active > i {
+  color: var(--spf-mode-reskin);
+}
+
+/* --------------------------------------------------------------------------
+   Reskin drop zone: one target that accepts an NPC from the Actors sidebar
+   or a bestiary compendium.
+   -------------------------------------------------------------------------- */
+.simplysf2e .spf-reskin-drop {
+  display: flex;
+  align-items: center;
+  gap: var(--spf-space-md);
+  min-height: 4.5rem;
+  margin-bottom: var(--spf-space-md);
+  padding: var(--spf-space-md);
+  border: 1px dashed var(--spf-border);
+  border-radius: var(--spf-radius);
+  background: var(--spf-surface);
+  color: var(--spf-text-muted);
+}
+
+.simplysf2e .spf-reskin-drop.spf-drag-over,
+.simplysf2e .spf-reskin-drop.spf-reskin-has-source {
+  border-style: solid;
+  border-color: var(--spf-mode-reskin);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--spf-mode-reskin) 40%, transparent);
+}
+
+.simplysf2e .spf-reskin-drop.spf-drag-over {
+  background: color-mix(in srgb, var(--spf-mode-reskin) 12%, var(--spf-surface));
+}
+
+.simplysf2e .spf-reskin-drop img {
+  flex: none;
+  width: 3rem;
+  height: 3rem;
+  object-fit: cover;
+  border: 1px solid var(--spf-border);
+  border-radius: var(--spf-radius-sm);
+}
+
+.simplysf2e .spf-reskin-drop > i {
+  flex: none;
+  font-size: 1.6rem;
+  color: var(--spf-mode-reskin);
+}
+
+.simplysf2e .spf-reskin-source {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.simplysf2e .spf-reskin-source strong {
+  color: var(--spf-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.simplysf2e .spf-rename-list li {
+  overflow-wrap: anywhere;
 }
 
 /* --------------------------------------------------------------------------

@@ -54,7 +54,8 @@ Encounter mode: `designEncounter()` picks a theme + per-role briefs once, then t
 | `ai-response-validation.mjs` | Per-task required-key shape checks on parsed AI responses (`taskResponseProblem`). |
 | `ai-task-profiles.mjs` / `ai-candidate-format.mjs` | Pure per-operation token/sampling caps (`taskMaxTokens`) and compact grounded-candidate encoding. |
 | `settings.mjs` | Foundry settings, exact-endpoint API-key binding, local/keyless provider readiness, and the client-side named connection bank. |
-| `builder.mjs` | NPC pipeline + shared resolve/build helpers used by both actor pipelines (`resolveEquipment`, `resolveLoot`, `resolveFocusSpells`, `buildEquipmentItems`, `buildLootItems`, `filterItemTypes`, `applyTreasureBudget`, `enrichDescription`). Also exports `reskinActor()` — a helper with no UI/pipeline caller yet. |
+| `builder.mjs` | NPC pipeline + shared resolve/build helpers used by both actor pipelines (`resolveEquipment`, `resolveLoot`, `resolveFocusSpells`, `buildEquipmentItems`, `buildLootItems`, `filterItemTypes`, `applyTreasureBudget`, `enrichDescription`). `reskinActorData()` builds a Reskin copy via `reskin.mjs`. |
+| `reskin.mjs` | Pure Reskin validation/copy: `normalizeReskin` drops unknown/duplicate renames, `applyReskin` changes only prose and strike/ability display names, pinning each renamed item's original slug (`pf2eSluggify`, a port of v14-dev `sluggify`). |
 | `art.mjs` | Borrows token art/structure from the closest-matching bestiary creature (`findBestiaryScaffold`, `findBestiaryArt`). |
 | `currency.mjs` | Cited SF2e Credstick/UPB templates and gold-to-credit mapping. |
 | `pc-builder.mjs` | PC pipeline. First file to check when PC generation misbehaves. |
@@ -125,7 +126,7 @@ Inherited PF2e-era notes for the scaffolded builders. They are **not** SF2e sche
 - **Complete-only registry:** all six published SF2e classes: envoy, mystic, operative, solarian, soldier, witchwarper. Cited `item:tag:` L1 bridges staged by `stageClassPaths`, including Operative specialization skill-feat and Sniper bonus-feat preselection. Solarian has no L1 item:tag path.
 - **Equipment grades & Item Forge:** Item Forge weapon/armor generation targets the native SF2e equipment grade (commercial, tactical, advanced, superior, elite, ultimate, paragon) and installed upgrade modules model (`system.subitems`). Legacy system runes are zeroed per Migration942EquipmentGrade, base analog/tech classification is preserved, and prices preview in credits.
 - **Rest hook residual:** v14-dev still fires `Hooks.callAll("pf2e.restForTheNight", actor)`. No `sf2e.restForTheNight` is cited. The module keeps that exact string.
-- **Generator extras:** Elite/Weak adjustment selector (Alien Core pp. 204/207) and the `/sf2e` chat command are wired end to end. `reskinActor()` and the multiclass dedication map are tested helpers only — no UI or pipeline calls them.
+- **Generator extras:** Elite/Weak adjustment selector (Alien Core pp. 204/207) and the `/sf2e` chat command are wired end to end. The **Reskin** generator mode (G6) is wired: the GM drops an NPC from the Actors sidebar or a compendium, the AI writes new fiction and may rename strikes/abilities by id, and the module creates a copy (stats, rules, traits, items unchanged). The multiclass dedication map is still a tested helper only.
 - **Upstream drift:** v14-dev `system.sf2e.json` now reads 1.5.1; the module still cites 1.5.0 (checklist G2).
 - **Still later:** see the GM-ready checklist. Deferred past GM-ready: full Free Archetype graphs, upgrade prerequisite validation, shields/ammo.
 - **Inherited code:** NPC/PC/forge pipelines, fail-closed grounding, cloned Rule Elements. Treat [HISTORY.md](HISTORY.md) as parent-project history, not simplySF2e releases.
@@ -144,4 +145,4 @@ Inherited from the PF2e scaffold and **not re-evaluated for SF2e** (checklist G9
 - **Focus spells, v1 scope:** a focus-only NPC (no casting tradition, so no DC) is unsupported, and the pool-size convention (spell count, capped at 3) is a module default, not GM Core guidance. Both are signed-off decisions.
 - **Rarity cap covers ancestry/background/heritage only** — feats/spells/equipment were explicitly excluded. `getFullCandidates()`'s `maxRarity` + `RARITY_RANK` are already in place if extending is wanted.
 - **Item forge Phase 3:** no rune prerequisite/exclusivity validation, shield/ammunition runes out of scope. Armor property runes ARE now gated to the base armor's category (`propertyRuneFitsBase` in `runes.mjs`), but the three MATERIAL-constrained usages (`etched-onto-metal-armor`, `etched-onto-lm-nonmetal-armor`, `etched-onto-medium-heavy-metal-armor`) are excluded from candidates entirely — an armor's metal-ness isn't in the index data, so they fail closed.
-- **Unbuilt roadmap:** reskin UI/flow (helper exists), multiclass in the PC pipeline (dedication map exists).
+- **Unbuilt roadmap:** multiclass in the PC pipeline (dedication map exists; deferred past GM-ready).

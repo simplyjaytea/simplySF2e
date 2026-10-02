@@ -57,6 +57,11 @@ const RULES = Object.freeze({
     required: ["name", "briefs"],
     arrays: ["briefs"],
     nonEmptyStrings: ["name"]
+  },
+  [AI_TASK.RESKIN_FLAVOR]: {
+    required: ["name", "blurb", "description", "readAloud", "recallKnowledge", "renames"],
+    arrays: ["renames"],
+    nonEmptyStrings: ["name", "description"]
   }
 });
 

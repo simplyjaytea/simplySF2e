@@ -1,6 +1,7 @@
 import * as T from "./tables.mjs";
 import { getPacksFor, findEntry, getDocument, toItemData, priceToGp, isIssuedCandidate } from "./compendium.mjs";
 import { slugify, capitalized, esc, toHtml } from "./text.mjs";
+import { applyReskin } from "./reskin.mjs";
 import { parseRunes, applyRunes, dropUncitedRunePrefix, runeGp, hasRunes } from "./runes.mjs";
 import {
   parseCoins, currencyQuantity, isCurrencyDocument, gpToCredits,
@@ -1559,32 +1560,13 @@ export async function createActor(concept, resolved, { img = null, scaffold = nu
  */
 export async function reskinActor(baseActorDoc, newFlavor = {}) {
   const rawData = baseActorDoc.toObject ? baseActorDoc.toObject() : structuredClone(baseActorDoc);
-  delete rawData._id;
+  return Actor.create(reskinActorData(rawData, newFlavor));
+}
 
-  if (newFlavor.name) rawData.name = capitalized(newFlavor.name);
-
-  const notesParts = [];
-  if (newFlavor.readAloud) {
-    notesParts.push(`<blockquote class="spf-read-aloud"><em>${esc(newFlavor.readAloud)}</em></blockquote>`);
-  }
-  if (newFlavor.description) {
-    notesParts.push(toHtml(newFlavor.description));
-  }
-  if (newFlavor.recallKnowledge) {
-    const traits = rawData.system?.traits?.value ?? [];
-    const skill = recallKnowledgeSkill(traits);
-    const level = rawData.system?.details?.level?.value ?? 1;
-    const rarity = rawData.system?.traits?.rarity ?? "common";
-    const dc = T.identificationDC(level, rarity);
-    notesParts.push(
-      `<h3>Recall Knowledge</h3><p><strong>${capitalized(skill)}</strong> @Check[type:${skill}|dc:${dc}]: ${esc(newFlavor.recallKnowledge)}</p>`
-    );
-  }
-
-  rawData.system ??= {};
-  rawData.system.details ??= {};
-  if (newFlavor.blurb) rawData.system.details.blurb = esc(newFlavor.blurb);
-  if (notesParts.length) rawData.system.details.publicNotes = notesParts.join("\n");
-
-  return Actor.create(rawData);
+/** Creation data for a reskinned copy; see reskin.mjs applyReskin. */
+export function reskinActorData(rawData, flavor = {}) {
+  return applyReskin(rawData, flavor, {
+    recallSkill: recallKnowledgeSkill,
+    recallDC: (level, rarity) => T.identificationDC(level, rarity)
+  });
 }
