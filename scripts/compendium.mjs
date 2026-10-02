@@ -433,10 +433,14 @@ export function limitSpellCandidates(candidates, keywords = [], limit = SPELL_CA
     // Start each round at the highest rank so top-rank options survive even
     // when an unusual caller supplies a very small override limit.
     .sort(([a], [b]) => b - a)
-    .map(([, entries]) => entries
-      .sort((a, b) => relevanceScore(b, kw) - relevanceScore(a, kw)
-        || a.name.localeCompare(b.name))
-      .slice(0, SPELL_CANDIDATES_PER_RANK));
+    .map(([, entries]) => {
+      const sorted = entries.sort((a, b) => relevanceScore(b, kw) - relevanceScore(a, kw)
+        || a.name.localeCompare(b.name));
+      const matched = sorted.filter((candidate) => relevanceScore(candidate, kw) > 0);
+      // Same alphabetical-tail fix as equipment: sample no-match spells
+      // across the whole rank, not only its A-to-M names.
+      return [...matched, ...spreadOrder(sorted.slice(matched.length))].slice(0, SPELL_CANDIDATES_PER_RANK);
+    });
   const exact = list
     .filter((candidate) => exactNames.has(normalize(candidate.name)))
     .sort((a, b) => b.rank - a.rank || a.name.localeCompare(b.name));
