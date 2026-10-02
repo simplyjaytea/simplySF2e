@@ -128,8 +128,13 @@
   width: auto;
 }
 
-.simplysf2e .spf-provider-privacy {
+.simplysf2e .spf-provider-privacy,
+.simplysf2e .spf-jev-warning {
   margin: 0;
+}
+
+.simplysf2e .spf-jev-section .spf-model-picker input {
+  flex: 1 1 14rem;
 }
 
 /* --------------------------------------------------------------------------
