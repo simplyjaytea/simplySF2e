@@ -372,6 +372,8 @@
       "Save": "Save",
       "Reset": "Reset to defaults",
       "Saved": "Compendium sources saved.",
+      "ResetTitle": "Reset compendium sources",
+      "ResetConfirm": "Reset every category to the SF2e system pack defaults? Unsaved changes in this window are lost.",
       "ResetDone": "Compendium sources reset to the SF2e system pack defaults."
     },
     "Rarity": {
