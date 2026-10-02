@@ -5,6 +5,7 @@ import {
   RARITIES, providerContext, PROVIDER_ATTENTION, TOKEN_REPORT, progressAt, MONSTER_STEPS,
   concept, computeStats, adjustedStats, localize
 } from "./_shared.mjs";
+import { signed } from "../../../scripts/text.mjs";
 import { THREATS } from "../../../scripts/encounter.mjs";
 import { TREASURE_AMOUNT_MULTIPLIER } from "../../../scripts/tables.mjs";
 
@@ -81,9 +82,18 @@ function creaturePreview(c, { abilities = [], spells = [], feats = [], equipment
   const all = [...spells, ...feats, ...equipment, ...loot];
   const total = all.length + abilities.filter((a) => !a.narrative).length;
   const matched = all.filter((i) => i.found).length + abilities.filter((a) => a.fromGlossary).length;
+  // Same display object the real #buildPreviewContext() builds.
+  const display = {
+    perception: signed(stats.perception),
+    skills: (stats.skills ?? []).map((skill) => ({ name: skill.name, mod: signed(skill.mod) })),
+    saves: { fortitude: signed(stats.saves?.fortitude), reflex: signed(stats.saves?.reflex), will: signed(stats.saves?.will) },
+    strikes: (stats.strikes ?? []).map((strike) => ({ ...strike, bonusText: signed(strike.bonus) })),
+    spellAttack: signed(stats.spellAttack)
+  };
   return {
     concept: c,
     stats,
+    display,
     traits: [c.rarity !== "common" ? c.rarity : null, c.size, ...c.traits].filter(Boolean),
     speeds: c.speeds.map((s) => `${s.type} ${s.value} ft.`).join(", "),
     senses: c.senses.map((s) => [s.type, s.acuity, s.range ? `${s.range} ft.` : null].filter(Boolean).join(" ")).join(", "),
@@ -196,14 +206,15 @@ export default [
     const rows = members.map((member, index) => {
       const stats = adjustedStats(computeStats(member.concept), member.concept);
       const strike = stats.strikes[0];
+      const t = (key) => localize(`SIMPLYSF2E.Preview.${key}`);
       return {
         index, count: member.count, skipped: member.count === 0,
         role: `SIMPLYSF2E.Role.${cap(member.role)}`,
         name: member.concept.name, level: stats.level, blurb: member.blurb,
         // Same string the real #buildEncounterPreviewContext() assembles.
-        statline: `AC ${stats.ac}, ${localize("SIMPLYSF2E.Preview.Fort")} +${stats.saves.fortitude}, ${localize("SIMPLYSF2E.Preview.Ref")} +${stats.saves.reflex}, ${localize("SIMPLYSF2E.Preview.Will")} +${stats.saves.will}, HP ${stats.hp}, Per +${stats.perception}`
-          + (strike ? `, ${strike.name} +${strike.bonus} (${strike.damage})` : "")
-          + (stats.spellDC ? `, ${localize("SIMPLYSF2E.Preview.Spells")} DC ${stats.spellDC}` : "")
+        statline: `${t("AC")} ${stats.ac}, ${t("Fort")} ${signed(stats.saves.fortitude)}, ${t("Ref")} ${signed(stats.saves.reflex)}, ${t("Will")} ${signed(stats.saves.will)}, ${t("HP")} ${stats.hp}, ${t("PerceptionShort")} ${signed(stats.perception)}`
+          + (strike ? `, ${strike.name} ${signed(strike.bonus)} (${strike.damage})` : "")
+          + (stats.spellDC ? `, ${t("Spells")} ${t("DC")} ${stats.spellDC}` : "")
       };
     });
     return {
