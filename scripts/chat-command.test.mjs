@@ -80,4 +80,12 @@ game.system.id = "pf2e";
 assert.equal(handleChat("/sf2e"), false, "Wrong system command is intercepted and blocked");
 game.system.id = "sf2e";
 
+// 6. Whole command word only, any case
+assert.equal(handleChat("/SF2E"), false, "/SF2E is intercepted");
+assert.equal(handleChat("/sf2efoo bar"), true, "/sf2efoo is not this command");
+
+// 7. Mode/level/prompt on first open: render(true) is async, so the form
+// does not exist yet; setInput must not read it.
+assert.doesNotThrow(() => handleChat("/sf2e npc 30 cyberdoc with stolen cyberware"));
+
 console.log("chat-command.test.mjs: all chat command triggers and permissions verified");

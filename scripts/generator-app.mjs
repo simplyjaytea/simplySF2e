@@ -12,7 +12,7 @@ import {
   getAncestryCandidates, getBackgroundCandidates, getClassCandidates, getHeritageCandidates, getFocusSpellCandidates, getFeatCandidates, getAbilityCandidates, sourceReadiness
 } from "./compendium.mjs";
 import {
-  normalizeConcept, normalizeLoot, resolveConcept, resolveLoot, computeStats, createActor,
+  normalizeConcept, normalizeLoot, resolveConcept, resolveLoot, computeStats, adjustedStats, createActor,
   applyTreasureBudget, equipmentValueGp, lootValueGp, parseCoins, parseScroll, slugify,
   dedupeLootAgainstEquipment, enforceNamedLootBudget, reskinActorData
 } from "./builder.mjs";
@@ -121,8 +121,14 @@ export class GeneratorApp extends SpfApp {
   #exampleTick = Math.floor(Math.random() * 5);
   /** External programmatic input update (e.g. from chat command). */
   setInput(updates = {}) {
-    this.#readForm();
-    this.#input = { ...this.#input, ...updates };
+    // The chat command calls this right after render(true), which is async:
+    // on first open there is no form to read yet.
+    if (this.element) this.#readForm();
+    const input = { ...this.#input, ...updates };
+    const [levelMin, levelMax] = ["monster", "npc"].includes(input.mode) ? [-1, 24] : [1, 20];
+    const level = Math.round(Number(input.level));
+    input.level = Number.isFinite(level) ? Math.min(levelMax, Math.max(levelMin, level)) : this.#input.level;
+    this.#input = input;
     this.render();
   }
 
@@ -372,7 +378,7 @@ export class GeneratorApp extends SpfApp {
       treasureSpent: gpToCredits(this.#encounter.treasureSpent ?? 0).toLocaleString("en-US"),
       treasureOverBudget: (this.#encounter.treasureSpent ?? 0) > (this.#encounter.treasureBudget ?? 0),
       members: this.#encounter.members.map((member, index) => {
-        const stats = computeStats(member.concept);
+        const stats = adjustedStats(computeStats(member.concept), member.concept);
         const strike = stats.strikes[0];
         return {
           index,
@@ -380,7 +386,7 @@ export class GeneratorApp extends SpfApp {
           skipped: member.count === 0,
           role: `SIMPLYSF2E.Role.${member.role.charAt(0).toUpperCase()}${member.role.slice(1)}`,
           name: member.concept.name,
-          level: member.concept.level,
+          level: stats.level,
           blurb: member.concept.blurb,
           statline: `AC ${stats.ac}, ${game.i18n.localize("SIMPLYSF2E.Preview.Fort")} +${stats.saves.fortitude}, ${game.i18n.localize("SIMPLYSF2E.Preview.Ref")} +${stats.saves.reflex}, ${game.i18n.localize("SIMPLYSF2E.Preview.Will")} +${stats.saves.will}, HP ${stats.hp}, Per +${stats.perception}`
             + (strike ? `, ${strike.name} +${strike.bonus} (${strike.damage})` : "")
@@ -393,7 +399,8 @@ export class GeneratorApp extends SpfApp {
   #buildPreviewContext() {
     if (!this.#concept) return null;
     const concept = this.#concept;
-    const stats = computeStats(concept);
+    // Show what the sheet will display once pf2e applies Elite/Weak.
+    const stats = adjustedStats(computeStats(concept), concept);
     const abilities = (this.#resolved?.abilities ?? []).map(({ ability, entry }) => ({
       name: ability.name,
       fromGlossary: Boolean(entry),
