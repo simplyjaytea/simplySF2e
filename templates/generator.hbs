@@ -1,4 +1,4 @@
-<div class="simplysf2e-generator{{#if monsterMode}} spf-mode-monster{{else if npcMode}} spf-mode-npc{{else if encounterMode}} spf-mode-encounter{{else if characterMode}} spf-mode-character{{/if}}{{#if busy}} spf-busy{{/if}}">
+<div class="simplysf2e-generator{{#if monsterMode}} spf-mode-monster{{else if npcMode}} spf-mode-npc{{else if encounterMode}} spf-mode-encounter{{else if characterMode}} spf-mode-character{{else if reskinMode}} spf-mode-reskin{{/if}}{{#if busy}} spf-busy{{/if}}">
   <div class="spf-statusbar">
   <div class="spf-provider-summary {{#if providerReady}}spf-provider-ready{{else}}spf-provider-attention{{/if}}" data-tooltip="{{providerBaseUrl}}">
     <span class="spf-provider-name">
@@ -52,6 +52,8 @@
         {{localize "SIMPLYSF2E.Generator.CharacterLegend"}}
       {{else if npcMode}}
         {{localize "SIMPLYSF2E.Generator.NpcLegend"}}
+      {{else if reskinMode}}
+        {{localize "SIMPLYSF2E.Generator.ReskinLegend"}}
       {{else}}
         {{localize "SIMPLYSF2E.Generator.ConceptLegend"}}
       {{/if}}
@@ -73,7 +75,26 @@
         <input type="radio" name="mode" value="character" {{#if characterMode}}checked{{/if}}>
         <i class="fa-solid fa-user-astronaut"></i> {{localize "SIMPLYSF2E.Mode.Character"}}
       </label>
+      <label class="spf-mode-reskin{{#if reskinMode}} spf-mode-active{{/if}}" data-tooltip="{{localize 'SIMPLYSF2E.Mode.ReskinHint'}}">
+        <input type="radio" name="mode" value="reskin" {{#if reskinMode}}checked{{/if}}>
+        <i class="fa-solid fa-masks-theater"></i> {{localize "SIMPLYSF2E.Mode.Reskin"}}
+      </label>
     </div>
+    {{#if reskinMode}}
+    <div class="spf-reskin-drop{{#if reskinSource}} spf-reskin-has-source{{/if}}" data-reskin-drop aria-describedby="spf-reskin-drop-hint">
+      {{#if reskinSource}}
+        {{#if reskinSource.img}}<img src="{{reskinSource.img}}" alt="">{{else}}<i class="fa-solid fa-masks-theater" aria-hidden="true"></i>{{/if}}
+        <span class="spf-reskin-source">
+          <strong>{{reskinSource.name}}</strong>
+          <span>{{localize "SIMPLYSF2E.Generator.ReskinSourceLevel" level=reskinSource.level}}</span>
+          <span id="spf-reskin-drop-hint" class="spf-hint">{{localize "SIMPLYSF2E.Generator.ReskinDropReplace"}}</span>
+        </span>
+      {{else}}
+        <i class="fa-solid fa-masks-theater" aria-hidden="true"></i>
+        <span id="spf-reskin-drop-hint">{{localize "SIMPLYSF2E.Generator.ReskinDropHint"}}</span>
+      {{/if}}
+    </div>
+    {{/if}}
     <div class="form-group stacked">
       {{#if encounterMode}}
         <label for="spf-generator-prompt">{{localize "SIMPLYSF2E.Generator.EncounterTheme"}}</label>
@@ -81,6 +102,9 @@
       {{else if characterMode}}
         <label for="spf-generator-prompt">{{localize "SIMPLYSF2E.Generator.CharacterPrompt"}}</label>
         <textarea id="spf-generator-prompt" name="prompt" rows="3" placeholder="{{localize 'SIMPLYSF2E.Generator.CharacterPromptPlaceholder'}}">{{input.prompt}}</textarea>
+      {{else if reskinMode}}
+        <label for="spf-generator-prompt">{{localize "SIMPLYSF2E.Generator.ReskinPrompt"}}</label>
+        <textarea id="spf-generator-prompt" name="prompt" rows="3" placeholder="{{localize 'SIMPLYSF2E.Generator.ReskinPromptPlaceholder'}}">{{input.prompt}}</textarea>
       {{else if npcMode}}
         <label for="spf-generator-prompt">{{localize "SIMPLYSF2E.Generator.NpcPrompt"}}</label>
         <textarea id="spf-generator-prompt" name="prompt" rows="3" placeholder="{{localize 'SIMPLYSF2E.Generator.NpcPromptPlaceholder'}}">{{input.prompt}}</textarea>
@@ -89,6 +113,7 @@
         <textarea id="spf-generator-prompt" name="prompt" rows="3" placeholder="{{promptPlaceholder}}">{{input.prompt}}</textarea>
       {{/if}}
     </div>
+    {{#unless reskinMode}}
     <div class="spf-level-primary">
       <div class="form-group">
         <label for="spf-generator-level">{{#if encounterMode}}{{localize "SIMPLYSF2E.Generator.PartyLevel"}}{{else}}{{localize "SIMPLYSF2E.Generator.Level"}}{{/if}}</label>
@@ -211,15 +236,18 @@
         </div>
       </div>
     </details>
+    {{/unless}}
     <div class="spf-generate-row">
       <button type="button" class="spf-primary" data-action="generate" {{#if busy}}disabled{{/if}}>
         <i class="fa-solid fa-wand-sparkles"></i>
-        {{#if monsterMode}}{{localize "SIMPLYSF2E.Generator.GenerateMonster"}}{{else if npcMode}}{{localize "SIMPLYSF2E.Generator.GenerateNpc"}}{{else if encounterMode}}{{localize "SIMPLYSF2E.Generator.GenerateEncounter"}}{{else}}{{localize "SIMPLYSF2E.Generator.GenerateCharacter"}}{{/if}}
+        {{#if monsterMode}}{{localize "SIMPLYSF2E.Generator.GenerateMonster"}}{{else if npcMode}}{{localize "SIMPLYSF2E.Generator.GenerateNpc"}}{{else if encounterMode}}{{localize "SIMPLYSF2E.Generator.GenerateEncounter"}}{{else if reskinMode}}{{localize "SIMPLYSF2E.Generator.GenerateReskin"}}{{else}}{{localize "SIMPLYSF2E.Generator.GenerateCharacter"}}{{/if}}
       </button>
       <button type="button" class="spf-secondary" data-action="previewPlan" {{#if busy}}disabled{{/if}}>{{localize "SIMPLYSF2E.Generator.PreviewPlan"}}</button>
+      {{#unless reskinMode}}
       <button type="button" class="spf-random-button" data-action="generateRandom" data-tooltip="{{localize randomTooltipKey}}" aria-label="{{localize randomTooltipKey}}" {{#if busy}}disabled{{/if}}>
         <i class="fa-solid fa-dice-d20"></i>
       </button>
+      {{/unless}}
     </div>
   </fieldset>
 
@@ -572,6 +600,51 @@
     <footer class="spf-actions">
       <button type="button" class="spf-primary" data-action="createActor" {{#if busy}}disabled{{/if}}>
         <i class="fa-solid fa-user-plus"></i> {{localize "SIMPLYSF2E.Generator.CreateActor"}}
+      </button>
+      <button type="button" data-action="discard" {{#if busy}}disabled{{/if}}>
+        <i class="fa-solid fa-trash"></i> {{localize "SIMPLYSF2E.Generator.Discard"}}
+      </button>
+    </footer>
+  </section>
+  {{/if}}
+  {{#if reskinPreview}}
+  <section class="spf-preview spf-card" aria-label="{{reskinPreview.name}}">
+    <header class="spf-statblock-header">
+      <h2>{{reskinPreview.name}}</h2>
+      <span class="spf-level">{{localize "SIMPLYSF2E.Generator.Creature"}} {{reskinPreview.level}}</span>
+    </header>
+    <p class="spf-subtitle">{{reskinPreview.sourceName}}</p>
+    {{#if reskinPreview.blurb}}<p class="spf-blurb"><em>{{reskinPreview.blurb}}</em></p>{{/if}}
+    <p class="notification info" role="note">{{localize "SIMPLYSF2E.Generator.ReskinUnchanged"}}</p>
+    {{#if reskinPreview.readAloud}}
+      <h3>{{localize "SIMPLYSF2E.Generator.ReskinReadAloud"}}</h3>
+      <blockquote class="spf-read-aloud"><em>{{reskinPreview.readAloud}}</em></blockquote>
+    {{/if}}
+    {{#each reskinPreview.paragraphs}}<p>{{this}}</p>{{/each}}
+    {{#if reskinPreview.recallKnowledge}}
+      <h3>{{localize "SIMPLYSF2E.Generator.ReskinRecall"}}</h3>
+      <p>{{reskinPreview.recallKnowledge}}</p>
+    {{/if}}
+    <h3>{{localize "SIMPLYSF2E.Generator.ReskinRenames"}}</h3>
+    {{#if reskinPreview.renames.length}}
+      <ul class="spf-list spf-rename-list">
+        {{#each reskinPreview.renames}}<li>{{this.from}} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i><span class="spf-sr-only">→</span> <strong>{{this.name}}</strong></li>{{/each}}
+      </ul>
+    {{else}}
+      <p class="spf-hint">{{localize "SIMPLYSF2E.Generator.ReskinNoRenames"}}</p>
+    {{/if}}
+    {{#if tokenReport}}
+      <div class="spf-token-report">
+        <h3>{{localize "SIMPLYSF2E.Tokens.Heading"}}</h3>
+        <ul>
+          {{#each tokenReport.steps}}<li><strong>{{this.label}}</strong> — {{this.text}}</li>{{/each}}
+        </ul>
+        <p class="spf-token-total">{{tokenReport.totalText}}</p>
+      </div>
+    {{/if}}
+    <footer class="spf-actions">
+      <button type="button" class="spf-primary" data-action="createActor" {{#if busy}}disabled{{/if}}>
+        <i class="fa-solid fa-user-plus"></i> {{localize "SIMPLYSF2E.Generator.CreateReskin"}}
       </button>
       <button type="button" data-action="discard" {{#if busy}}disabled{{/if}}>
         <i class="fa-solid fa-trash"></i> {{localize "SIMPLYSF2E.Generator.Discard"}}

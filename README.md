@@ -34,7 +34,7 @@ Limitations (honest residuals):
 
 - Equipment grades: match published `sf2e.equipment` names (including a grade word when the catalog name has one). Do not invent `+1 striking` prefixes; v14-dev `Migration942EquipmentGrade` maps potency/striking onto `system.grade` and zeros runes. Item Forge grade/upgrade assembly is unverified live.
 - Free Archetype prerequisite graphs and custom art are out of scope.
-- Reskinning an existing creature and multiclass dedications exist as helpers only; there is no UI for them yet.
+- Reskin mode copies an NPC you drag in and rewrites only its fiction and strike/ability names. Multiclass dedications exist as a helper only; there is no UI for them yet.
 - Rest hook remains the cited `pf2e.restForTheNight` string.
 
 ## Links

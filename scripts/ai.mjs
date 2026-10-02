@@ -1176,6 +1176,48 @@ Respond with a single JSON object and nothing else:
 }
 
 /**
+ * Reskin: new fiction for an existing NPC. The statistics, rules, and traits
+ * are fixed; the model writes prose and may rename the listed strikes and
+ * abilities by id. reskin.mjs normalizeReskin validates every field.
+ * @param {object} args
+ * @param {string} args.theme  the GM's reskin request
+ * @param {{name: string, level: number, rarity: string, traits: string[], blurb: string}} args.creature
+ * @param {{id: string, name: string, type: string}[]} args.targets  renameable items
+ * @returns {Promise<{flavor: object, usage: object}>}
+ */
+export async function generateReskin({ theme, creature, targets, onProgress, signal }) {
+  const system = `You reskin existing Starfinder 2e creatures. The creature's statistics, rules, traits, and level are FIXED and will not change; you only give it new fiction that fits the GM's request. Never write numbers, DCs, damage, or new mechanics.
+
+Respond with a SINGLE JSON object and nothing else. No markdown fences, no commentary.
+
+JSON schema (all keys required):
+{
+  "name": string, // the reskinned creature's name
+  "blurb": string, // one short line, e.g. "Void-touched corsair enforcer"
+  "description": string, // 1-3 short paragraphs of appearance, behavior, and tactics
+  "readAloud": string, // 1-3 sentences a GM reads when the creature appears
+  "recallKnowledge": string, // one fact a character could learn with Recall Knowledge
+  "renames": [ { "id": string, "name": string } ] // new display names for listed strikes/abilities, by id
+}
+
+Rename a strike or ability only when its current name clashes with the new fiction, and keep each new name short and describing the same kind of attack or effect (a "Jaws" bite may become "Shredder Mandibles", not a ranged weapon). Use only ids from the list. Omit an entry to keep its name.`;
+
+  const user = [
+    `GM request: ${theme}`,
+    `Creature: ${creature.name} (level ${creature.level}, ${creature.rarity} rarity)`,
+    creature.traits?.length ? `Traits: ${creature.traits.join(", ")}` : null,
+    creature.blurb ? `Current blurb: ${creature.blurb}` : null,
+    targets.length ? "Strikes and abilities (id: current name):" : "This creature has no strikes or abilities to rename; return an empty renames array.",
+    ...targets.map((target) => `- ${target.id}: ${target.name} (${target.type === "melee" ? "strike" : "ability"})`)
+  ].filter((line) => line !== null).join("\n");
+
+  const { data, usage } = await requestJSON({
+    task: AI_TASK.RESKIN_FLAVOR, system, user, onProgress, signal
+  });
+  return { flavor: data, usage };
+}
+
+/**
  * Send one chat completion request and return the assistant's text content.
  *
  * Requests are streamed so slow (especially reasoning) models show progress

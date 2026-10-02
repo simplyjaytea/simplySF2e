@@ -88,7 +88,7 @@ assert.match(
   /spf-mode-toggle" role="radiogroup" aria-label=/,
   "generation modes must expose a named native radio group"
 );
-for (const legendKey of ["ConceptLegend", "NpcLegend", "EncounterLegend", "CharacterLegend"]) {
+for (const legendKey of ["ConceptLegend", "NpcLegend", "EncounterLegend", "CharacterLegend", "ReskinLegend"]) {
   assert.match(
     generator,
     new RegExp(`SIMPLYSF2E\\.Generator\\.${legendKey}`),
@@ -99,7 +99,8 @@ for (const [mode, preview] of [
   ["monster", "preview"],
   ["npc", "preview"],
   ["encounter", "encounterPreview"],
-  ["character", "pcPreview"]
+  ["character", "pcPreview"],
+  ["reskin", "reskinPreview"]
 ]) {
   assert.match(
     generatorApp,
@@ -111,7 +112,7 @@ for (const [mode, preview] of [
 }
 assert.match(
   generatorApp,
-  /#modePrompts = \{ monster: "", npc: "", encounter: "", character: "" \}/,
+  /#modePrompts = \{ monster: "", npc: "", encounter: "", character: "", reskin: "" \}/,
   "each generator mode must keep an independent prompt draft"
 );
 assert.match(
@@ -298,7 +299,7 @@ assert.match(css, /--spf-brand-secondary:\s*#40256f/, "brand secondary is cited 
 assert.match(css, /--spf-warning:\s*#98503d/, "warning token is cited SF2e legendary orange");
 assert.match(css, /\.simplysf2e button\.spf-secondary\s*\{/, "quiet companion actions share HUD chrome");
 assert.match(css, /\.application\.simplysf2e \.window-header\s*\{/, "module windows restyle the Foundry header toward SF2e navy");
-assert.match(generator, /simplysf2e-generator\{\{#if monsterMode\}\} spf-mode-monster\{\{else if npcMode\}\} spf-mode-npc\{\{else if encounterMode\}\} spf-mode-encounter\{\{else if characterMode\}\} spf-mode-character\{\{\/if\}\}\{\{#if busy\}\} spf-busy\{\{\/if\}\}/,
+assert.match(generator, /simplysf2e-generator\{\{#if monsterMode\}\} spf-mode-monster\{\{else if npcMode\}\} spf-mode-npc\{\{else if encounterMode\}\} spf-mode-encounter\{\{else if characterMode\}\} spf-mode-character\{\{else if reskinMode\}\} spf-mode-reskin\{\{\/if\}\}\{\{#if busy\}\} spf-busy\{\{\/if\}\}/,
   "generator root must carry exactly one Neon Drift mode class and flag busy for HUD chrome without inventing progress copy");
 assert.match(generatorApp, /classList\?\.toggle\("spf-busy"/, "generator window must toggle busy chrome from context");
 assert.doesNotMatch(css, /#58180d|#a3512c|#d8c384/, "PF2e maroon/gold tokens must not remain");

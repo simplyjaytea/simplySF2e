@@ -4,7 +4,8 @@ import {
 } from "./settings.mjs";
 import {
   generateConcept, generateLoot, selectSpells, chooseSpellFocus, selectEquipment, selectLoot, designEncounter,
-  generatePCConcept, generatePCLoot, selectAncestryBackgroundClass, selectFeats, selectCreatureFeats, selectCreatureAbilities, selectCharacterChoices
+  generatePCConcept, generatePCLoot, selectAncestryBackgroundClass, selectFeats, selectCreatureFeats, selectCreatureAbilities, selectCharacterChoices,
+  generateReskin
 } from "./ai.mjs";
 import {
   getSpellCandidates, getEquipmentCandidates, getLootCandidates, getScrollSpellCandidates,
@@ -13,8 +14,9 @@ import {
 import {
   normalizeConcept, normalizeLoot, resolveConcept, resolveLoot, computeStats, createActor,
   applyTreasureBudget, equipmentValueGp, lootValueGp, parseCoins, parseScroll, slugify,
-  dedupeLootAgainstEquipment, enforceNamedLootBudget
+  dedupeLootAgainstEquipment, enforceNamedLootBudget, reskinActorData
 } from "./builder.mjs";
+import { normalizeReskin, reskinRenameTargets } from "./reskin.mjs";
 import {
   normalizePCConcept, resolvePCConcept, resolveFeatPicks, createCharacterActor, pcStartingWealthGp
 } from "./pc-builder.mjs";
@@ -95,7 +97,10 @@ export class GeneratorApp extends SpfApp {
     allowSpellcasting: true, preset: "", partySize: 4, threat: "moderate",
     treasureAmount: "standard", rarityCap: "unique"
   };
-  #modePrompts = { monster: "", npc: "", encounter: "", character: "" };
+  #modePrompts = { monster: "", npc: "", encounter: "", character: "", reskin: "" };
+  /** Reskin mode: the dropped NPC ({uuid, name, img, level}) and the validated flavor. */
+  #reskinSource = null;
+  #reskinFlavor = null;
   #busy = false;
   #busyMessage = null;
   #error = null;
@@ -125,7 +130,8 @@ export class GeneratorApp extends SpfApp {
   async _prepareContext() {
     const authState = getProviderRequestConfig();
     const authWarningKey = getProviderAuthWarningKey(authState);
-    const sources = globalThis.game?.packs ? sourceReadiness(this.#input.mode, {
+    // Reskin copies an existing creature and grounds nothing against packs.
+    const sources = globalThis.game?.packs && this.#input.mode !== "reskin" ? sourceReadiness(this.#input.mode, {
       allowSpellcasting: this.#input.allowSpellcasting
     }) : null;
     const presetGroups = presetPickerGroups(this.#input.preset, getCustomPresets());
@@ -179,6 +185,9 @@ export class GeneratorApp extends SpfApp {
       characterMode: this.#input.mode === "character",
       monsterMode: this.#input.mode === "monster",
       npcMode: this.#input.mode === "npc",
+      reskinMode: this.#input.mode === "reskin",
+      reskinSource: this.#reskinSource,
+      reskinPreview: this.#input.mode === "reskin" ? this.#buildReskinPreviewContext() : null,
       randomTooltipKey: {
         monster: "SIMPLYSF2E.Generator.RandomTooltip",
         npc: "SIMPLYSF2E.Generator.RandomNpcTooltip",
@@ -211,6 +220,22 @@ export class GeneratorApp extends SpfApp {
         && !(["monster", "npc"].includes(this.#input.mode) && this.#concept)
         && !(this.#input.mode === "encounter" && this.#encounter)
         && !(this.#input.mode === "character" && this.#pcConcept)
+        && !(this.#input.mode === "reskin" && this.#reskinFlavor)
+    };
+  }
+
+  #buildReskinPreviewContext() {
+    const flavor = this.#reskinFlavor;
+    if (!flavor || !this.#reskinSource) return null;
+    return {
+      name: flavor.name ?? this.#reskinSource.name,
+      level: this.#reskinSource.level,
+      sourceName: this.#reskinSource.name,
+      blurb: flavor.blurb,
+      readAloud: flavor.readAloud,
+      paragraphs: (flavor.description ?? "").split(/\n{2,}/).map((p) => p.trim()).filter(Boolean),
+      recallKnowledge: flavor.recallKnowledge,
+      renames: flavor.renames
     };
   }
 
@@ -439,10 +464,14 @@ export class GeneratorApp extends SpfApp {
     // from a previous mode would otherwise be sent verbatim to the AI prompt
     // (the concept is clamped later; the prompt text was not).
     const [levelMin, levelMax] = ["monster", "npc"].includes(mode) ? [-1, 24] : [1, 20];
-    const rawLevel = Number(form.querySelector('[name="level"]')?.value ?? 1);
-    const level = Math.min(levelMax, Math.max(levelMin, Number.isNaN(rawLevel) ? 1 : Math.round(rawLevel)));
+    // Reskin mode renders no level control; keep the GM's level for the
+    // other modes instead of resetting it.
+    const levelEl = form.querySelector('[name="level"]');
+    const rawLevel = Number(levelEl?.value);
+    const level = !levelEl ? this.#input.level
+      : Math.min(levelMax, Math.max(levelMin, Number.isNaN(rawLevel) ? 1 : Math.round(rawLevel)));
     const rarity = form.querySelector('[name="rarity"]')?.value ?? this.#input.rarity;
-    const allowSpellcasting = form.querySelector('[name="allowSpellcasting"]')?.checked ?? true;
+    const allowSpellcasting = form.querySelector('[name="allowSpellcasting"]')?.checked ?? this.#input.allowSpellcasting;
     const preset = form.querySelector('[name="preset"]')?.value ?? this.#input.preset;
     // partySize is only rendered in Encounter mode ({{#if encounterMode}} in
     // generator.hbs) — outside that mode the selector is null, so fall back
@@ -486,6 +515,19 @@ export class GeneratorApp extends SpfApp {
       this.#exampleTick++;
       this.render();
     });
+    const dropZone = this.element.querySelector("[data-reskin-drop]");
+    if (dropZone) {
+      dropZone.addEventListener("dragover", (event) => {
+        event.preventDefault();
+        dropZone.classList.add("spf-drag-over");
+      });
+      dropZone.addEventListener("dragleave", () => dropZone.classList.remove("spf-drag-over"));
+      dropZone.addEventListener("drop", (event) => {
+        event.preventDefault();
+        dropZone.classList.remove("spf-drag-over");
+        this.#onReskinDrop(event);
+      });
+    }
     for (const radio of this.element.querySelectorAll('input[name="mode"]')) {
       radio.addEventListener("change", async () => {
         this.#readForm();
@@ -629,7 +671,7 @@ export class GeneratorApp extends SpfApp {
     // closed into the completion manifest instead of a pre-provider stop.
     // Isolated production-path tests intentionally do not construct Foundry's
     // pack collection; a live world always has it and receives this preflight.
-    if (!globalThis.game?.packs) return true;
+    if (!globalThis.game?.packs || this.#input.mode === "reskin") return true;
     const sources = sourceReadiness(this.#input.mode, { allowSpellcasting: this.#input.allowSpellcasting });
     if (!sources.ready) {
       ui.notifications.warn(game.i18n.format("SIMPLYSF2E.Generator.SourcesMissing", {
@@ -644,6 +686,11 @@ export class GeneratorApp extends SpfApp {
     if (this.#busy) return;
     this.#readForm();
     if (!this.#assertGenerationReady()) return;
+    if (this.#input.mode === "reskin") {
+      await this.#generateReskin();
+      if (create && this.#reskinFlavor && !this.#error) await this.#createReskinActor();
+      return;
+    }
     if (this.#input.mode === "character") {
       await this.#generatePC(isRandom);
       if (create && this.#pcConcept && !this.#error) await this.#createCharacterActor();
@@ -1354,6 +1401,7 @@ export class GeneratorApp extends SpfApp {
    */
   static async #onCreateActor() {
     if (this.#busy) return;
+    if (this.#input.mode === "reskin") return this.#createReskinActor();
     if (this.#encounter) return this.#createEncounterActors();
     if (this.#pcConcept) return this.#createCharacterActor();
     if (!this.#concept) return;
@@ -1624,6 +1672,106 @@ export class GeneratorApp extends SpfApp {
     }
   }
 
+  /** Accept an NPC dragged from the Actors sidebar or a compendium. */
+  async #onReskinDrop(event) {
+    if (this.#busy) return;
+    let data = null;
+    try { data = JSON.parse(event.dataTransfer?.getData("text/plain") || "null"); } catch { data = null; }
+    const actor = data?.type === "Actor" && data.uuid ? await fromUuid(data.uuid) : null;
+    if (actor?.documentName !== "Actor" || actor.type !== "npc") {
+      ui.notifications.warn(game.i18n.localize("SIMPLYSF2E.Generator.ReskinNotNpc"));
+      return;
+    }
+    this.#readForm();
+    this.#reskinSource = {
+      uuid: actor.uuid,
+      name: actor.name,
+      img: actor.img ?? null,
+      level: actor.system?.details?.level?.value ?? actor.level ?? 0
+    };
+    this.#reskinFlavor = null;
+    this.#created = null;
+    this.#error = null;
+    await this.render();
+  }
+
+  /** Source data for the dropped NPC: a compendium creature is imported the
+   * same way Foundry does (fromCompendium keeps embedded ids, which NPC
+   * strikes use to link weapons); a world actor is copied. */
+  async #reskinSourceData() {
+    const actor = this.#reskinSource ? await fromUuid(this.#reskinSource.uuid) : null;
+    if (!actor) throw new Error(game.i18n.localize("SIMPLYSF2E.Generator.ReskinSourceGone"));
+    return actor.pack ? game.actors.fromCompendium(actor) : actor.toObject();
+  }
+
+  async #generateReskin() {
+    if (!this.#reskinSource) {
+      ui.notifications.warn(game.i18n.localize("SIMPLYSF2E.Generator.ReskinNoSource"));
+      return;
+    }
+    if (!this.#input.prompt.trim()) {
+      ui.notifications.warn(game.i18n.localize("SIMPLYSF2E.Errors.NoPrompt"));
+      return;
+    }
+    this.#busy = true;
+    this.#error = null;
+    this.#created = null;
+    this.#reskinFlavor = null;
+    this._tokenUsage = [];
+    const signal = this._beginProgress([["reskin", game.i18n.localize("SIMPLYSF2E.Progress.Reskin")]]);
+    try {
+      await this._setStep("reskin");
+      const source = await this.#reskinSourceData();
+      const { flavor, usage } = await generateReskin({
+        theme: this.#input.prompt,
+        creature: {
+          name: source.name,
+          level: source.system?.details?.level?.value ?? 0,
+          rarity: source.system?.traits?.rarity ?? "common",
+          traits: source.system?.traits?.value ?? [],
+          blurb: source.system?.details?.blurb ?? ""
+        },
+        targets: reskinRenameTargets(source),
+        onProgress: (p) => this._onAIProgress(p), signal
+      });
+      this._recordTokens(game.i18n.localize("SIMPLYSF2E.Progress.Reskin"), usage);
+      this._throwIfCancelled();
+      this.#reskinFlavor = normalizeReskin(flavor, source);
+    } catch (err) {
+      this.#noteGenerationFailure(err, "reskin");
+      this.#reskinFlavor = null;
+    } finally {
+      this.#busy = false;
+      this._finishRun();
+      await this.render();
+    }
+  }
+
+  async #createReskinActor() {
+    if (this.#busy || !this.#reskinFlavor) return;
+    this.#busy = true;
+    this.#error = null;
+    await this.render();
+    try {
+      const data = reskinActorData(await this.#reskinSourceData(), this.#reskinFlavor);
+      const actor = await Actor.create(data);
+      this.#reskinFlavor = null;
+      this.#created = { name: actor.name, actorId: actor.id, count: 1, grounding: { total: 0, rows: [] } };
+      try {
+        ui.notifications.info(game.i18n.format("SIMPLYSF2E.Generator.Created", { name: actor.name }));
+        await actor.sheet.render(true);
+      } catch (err) {
+        console.warn(`${MODULE_ID} | reskinned actor created, but its sheet could not be displayed`, err);
+      }
+    } catch (err) {
+      console.error(`${MODULE_ID} | reskin creation failed`, err);
+      this.#error = err?.message ?? String(err);
+    } finally {
+      this.#busy = false;
+      await this.render();
+    }
+  }
+
   static async #onRerollLoot() {
     if (this.#busy || !this.#concept) return;
     this.#busy = true;
@@ -1671,6 +1819,7 @@ export class GeneratorApp extends SpfApp {
     this.#pcConcept = null;
     this.#pcResolved = null;
     this.#manifest = null;
+    this.#reskinFlavor = null;
     this.#error = null;
     this._tokenUsage = [];
     await this.render();
