@@ -27,6 +27,49 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _lastRunCost = null;
   _generationAbort = null;
   _canCancel = false;
+  /** True once the window was closed, so a late pipeline `render()` cannot reopen it. */
+  _closed = false;
+  _closePromptOpen = false;
+  _keysBound = false;
+
+  /** Yes/No dialog; resolves false when declined or dismissed. */
+  async _confirm(titleKey, bodyKey) {
+    const { DialogV2 } = foundry.applications.api;
+    return Boolean(await DialogV2.confirm({
+      window: { title: titleKey },
+      content: `<p>${game.i18n.localize(bodyKey)}</p>`,
+      rejectClose: false
+    }));
+  }
+
+  /**
+   * Closing (X or Esc) while a provider run is cancellable asks first; Yes
+   * aborts the run so no more tokens are spent, No keeps the window open.
+   */
+  async close(options = {}) {
+    if (this._canCancel) {
+      if (this._closePromptOpen) return this;
+      this._closePromptOpen = true;
+      let stop;
+      try {
+        stop = await this._confirm("SIMPLYSF2E.Progress.CloseTitle", "SIMPLYSF2E.Progress.CloseConfirm");
+      } finally {
+        this._closePromptOpen = false;
+      }
+      if (!stop) return this;
+      this._cancelGeneration();
+    }
+    this._closed = true;
+    return super.close(options);
+  }
+
+  /** A forced render (re)opens the window; a plain render after close is dropped. */
+  async render(options = {}, _options = {}) {
+    const forced = options === true || options?.force === true;
+    if (this._closed && !forced) return this;
+    if (forced) this._closed = false;
+    return super.render(options, _options);
+  }
 
   /** Open the focused provider setup and refresh this app after it saves. */
   _openProviderSetup() {
@@ -53,6 +96,17 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.element?.querySelector?.("[name='activeConnection']")?.addEventListener("change", (event) =>
       this._switchActiveConnection(event.currentTarget.value)
     );
+    // The window frame survives re-renders, so bind the shortcut once.
+    if (!this._keysBound && this.element?.addEventListener) {
+      this._keysBound = true;
+      this.element.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter" || !(event.ctrlKey || event.metaKey) || event.isComposing) return;
+        const generate = this.element.querySelector("[data-action='generate']");
+        if (!generate || generate.disabled) return;
+        event.preventDefault();
+        generate.click();
+      });
+    }
   }
 
   /**
