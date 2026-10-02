@@ -86,7 +86,7 @@ All launchers are GM-only and only appear in an `sf2e` world.
 | **Item Forge** button on its own row just below the **Items** sidebar header | The Item Forge |
 | Chat: `/sf2e` or `/simplysf2e` | The generator |
 | Chat: `/sf2e itemforge` | The Item Forge |
-| Chat: `/sf2e [monster\|npc\|character\|encounter] [level] [description]` | The generator, pre-filled. Every part is optional, but they must come in that order. Example: `/sf2e npc 4 street doc who patches up gang runners`. |
+| Chat: `/sf2e [monster\|npc\|character\|encounter] [level] [description]` | The generator, pre-filled. Every part is optional, but they must come in that order, so a description that starts with a number is read as the level. Example: `/sf2e npc 4 street doc who patches up gang runners`. |
 | Macro: `game.modules.get("simplysf2e").api.open()` / `.openItemForge()` | The generator / the Item Forge |
 
 The chat command is not case-sensitive. It only pre-fills the form; nothing is generated until you press a button. A level outside the mode's range is clamped (−1 to 24 for Monster and NPC, 1 to 20 for Encounters and Player Character). Reskin has no chat shortcut.
@@ -222,11 +222,11 @@ SimplySF2e builds from real content and **fails closed**: when it cannot match s
 
 **Alpha.** Identity `simplysf2e`, targeting system `sf2e` 1.5.0 or later, checked against 1.5.1 (Foundry 14.361+, verified 14.367). Live Foundry QA is still outstanding.
 
-- Building Creatures and Treasure-by-Level numbers in `tables.mjs` are cited against *Starfinder GM Core* pp. 116–128.
+- Building Creatures and Treasure-by-Level numbers are cited against *Starfinder GM Core* pp. 116–128.
 - Character generation covers all six published classes. Level 1 class paths (including Operative's specialization skill feat and Sniper's bonus feat) are settled before creation. Solarian has no level 1 path choice.
 - Mystic and Witchwarper use cited SF2e spell-slot tables (3 base slots per rank, 5 cantrips, 10th-rank spell at level 19).
 - Item Forge weapons and armor use SF2e equipment grades and installed upgrades. Grade names follow published `sf2e.equipment` names. Grade and upgrade assembly is unverified live.
-- Forged items' daily uses refill on the `pf2e.restForTheNight` hook, which is the name the sf2e system still uses.
+- Forged items' daily uses refill when the owner uses Rest for the Night.
 
 ## Links
 
