@@ -330,10 +330,8 @@ export async function getBaseItemCandidates(kind, maxLevel) {
     }));
 }
 
-/* Fundamental rune items share the same "etched onto a weapon/armor" usage
- * string as property runes, so they're excluded by name — otherwise they'd
- * leak into the property-rune candidate list and get double-picked alongside
- * the dedicated potency/secondary-tier fields. */
+/* PF2e fundamental rune names, excluded by name as a guard in case a
+ * configured pack lists one under an installed usage. */
 function fundamentalRuneNames(kind) {
   const names = new Set([1, 2, 3].map((t) => slugify(POTENCY_CATALOG_NAME[kind](t))));
   for (const t of [1, 2, 3]) names.add(slugify(SECONDARY_CATALOG_NAME[kind][t]));
@@ -341,10 +339,9 @@ function fundamentalRuneNames(kind) {
 }
 
 /**
- * Real property rune items (identified by their "etched onto a weapon/armor"
- * usage string) at or below a target level. `usage` is the rune's real
- * system.usage.value, kept so callers can check category-restricted armor
- * runes against the chosen base (see propertyRuneFitsBase).
+ * Real upgrade items a graded base of this kind accepts (see
+ * WEAPON_UPGRADE_USAGES / ARMOR_UPGRADE_USAGES) at or below a target level.
+ * `usage` is the item's real system.usage.value.
  * @returns {Promise<{name: string, level: number, usage: string}[]>}
  */
 export async function getPropertyRuneCandidates(kind, maxLevel) {

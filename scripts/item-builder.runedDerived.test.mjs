@@ -22,7 +22,7 @@ const potency = makeDoc("potency1", "Weapon Potency (+1)", "equipment", {
   price: { value: { gp: 35 } }, level: { value: 2 }
 });
 const striking = makeDoc("striking", "Striking", "equipment", {
-  price: { value: { gp: 65 } }, level: { value: 4 }
+  price: { value: { gp: 65 } }, level: { value: 4 }, usage: { value: "installed-in-a-weapon" }
 });
 for (const doc of [base, potency, striking]) docs.set(doc.uuid.split(".").at(-1), doc);
 
@@ -66,4 +66,12 @@ assert.equal(itemData.name, "Longsword (Tactical: Striking)");
 assert.equal(itemData.system.subitems.length, 1, "Subitems array contains installed upgrade");
 assert.ok(itemData.system.subitems[0]._id, "Subitem retains a valid unique _id");
 assert.ok(!itemData.system.traits.value.includes("tech") || itemData.system.traits.value.includes("tech"), "Classification preserved");
+// A fuzzy match that resolves to an item the graded base won't accept
+// (here the potency rune, which has no installed usage) is not installed.
+const mismatched = await buildRunedItem({
+  kind: "weapon", baseItemName: "Longsword", grade: "tactical",
+  upgrades: ["Weapon Potency (+1)"], rarity: "common", description: ""
+});
+assert.equal(mismatched.itemData.system.subitems.length, 0, "an item without an accepted usage is not installed");
+
 console.log("runed derived-source/preview split assertions passed");

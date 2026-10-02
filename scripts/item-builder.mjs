@@ -219,7 +219,10 @@ export function normalizeRunedItemConcept(raw, {
   if (availableGrades.includes(gradeChoice)) {
     grade = gradeChoice;
   } else {
-    if (c.grade) console.warn(`simplysf2e | itemforge: unknown grade "${c.grade}", using ${availableGrades[0] ?? "commercial"}`);
+    if (c.grade) {
+      const why = EQUIPMENT_GRADES.includes(gradeChoice) ? "not offered at this level" : "unknown";
+      console.warn(`simplysf2e | itemforge: grade "${c.grade}" ${why}, using ${availableGrades[0] ?? "commercial"}`);
+    }
     grade = availableGrades[0] ?? "commercial";
   }
 
@@ -260,11 +263,11 @@ export function normalizeRunedItemConcept(raw, {
 
 /**
  * Assemble the Foundry item data for a normalized runed-item concept: the
- * REAL base item document, with system.runes set from the chosen tiers, a
- * transient preview price from its real components, a transient preview
- * level that is the max of base and grade level, and
- * a name built from the standard PF2e
- * "+N [secondary] [property runes] [base name]" convention.
+ * REAL base item document with the chosen system.grade, legacy runes zeroed,
+ * the chosen upgrades installed as system.subitems, a transient preview
+ * price (base + grade credits + upgrades, like the system's assetValue), a
+ * transient preview level (max of base and grade level), and a
+ * "Base (Grade: upgrades)" name.
  * @returns {Promise<{itemData: object, preview: {priceGp: number, level: number}}>}
  * source data for Item.create() plus derived preview metadata
  */
@@ -283,6 +286,12 @@ export async function buildRunedItem(concept) {
   for (const name of upgradeNames) {
     const entry = await findEntry(packs, name, (e) => e.type === "equipment");
     const doc = await getDocument(entry);
+    // The fuzzy match may land on a different item; install it only if the
+    // graded base would accept it.
+    if (doc && !propertyRuneFitsBase(concept.kind, doc.system?.usage?.value)) {
+      console.warn(`simplysf2e | itemforge: upgrade "${doc.name}" (${doc.system?.usage?.value}) cannot be installed in a ${concept.kind} — dropped`);
+      continue;
+    }
     if (doc) upgradeDocs.push(doc);
     else console.warn(`simplysf2e | itemforge: upgrade/rune "${name}" could not be resolved — dropped`);
   }
