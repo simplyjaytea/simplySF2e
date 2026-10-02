@@ -30,7 +30,8 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
   /** True once the window was closed, so a late pipeline `render()` cannot reopen it. */
   _closed = false;
   _closePromptOpen = false;
-  _keysBound = false;
+  /** Window frame the shortcut is bound to; a reopened window gets a new frame. */
+  _keysElement = null;
 
   /** Yes/No dialog; resolves false when declined or dismissed. */
   async _confirm(titleKey, bodyKey) {
@@ -96,9 +97,9 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.element?.querySelector?.("[name='activeConnection']")?.addEventListener("change", (event) =>
       this._switchActiveConnection(event.currentTarget.value)
     );
-    // The window frame survives re-renders, so bind the shortcut once.
-    if (!this._keysBound && this.element?.addEventListener) {
-      this._keysBound = true;
+    // The frame survives re-renders but not close and reopen, so bind once per frame.
+    if (this._keysElement !== this.element && this.element?.addEventListener) {
+      this._keysElement = this.element;
       this.element.addEventListener("keydown", (event) => {
         if (event.key !== "Enter" || !(event.ctrlKey || event.metaKey) || event.isComposing) return;
         const generate = this.element.querySelector("[data-action='generate']");

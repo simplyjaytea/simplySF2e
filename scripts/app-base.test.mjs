@@ -274,6 +274,18 @@ assert.ok(notifications.some((n) => n.type === "error" && n.msg.includes("TestFa
   await closing.render(true);
   assert.equal(closing.rendered, true, "a forced render reopens it");
 
+  // Shortcut binds once per window frame, and again for a reopened frame.
+  const listeners = [];
+  const frame = () => ({ addEventListener: (type, fn) => listeners.push({ type, fn }), querySelector: () => null });
+  const keyed = new TestApp();
+  keyed.element = frame();
+  keyed._onRender();
+  keyed._onRender();
+  assert.equal(listeners.filter((l) => l.type === "keydown").length, 1, "re-render does not stack keydown listeners");
+  keyed.element = frame();
+  keyed._onRender();
+  assert.equal(listeners.filter((l) => l.type === "keydown").length, 2, "a reopened frame gets its own listener");
+
   const idle = new TestApp();
   const before = confirmCalls;
   await idle.close();
