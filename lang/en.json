@@ -162,6 +162,7 @@
       "CompletionNative": "Native SF2e selections: {count}",
       "CompletionModuleBuilt": "Module-built currency or spell gems: {count}",
       "CompletionCustomNarrative": "Deliberate custom narrative abilities: {count}",
+      "CompletionSkipped": "Skipped gear with no published match: {count}",
       "OpenSheet": "Open Sheet",
       "GenerateAnother": "Generate Another",
       "DiscardTitle": "Discard preview?",
@@ -436,8 +437,6 @@
       "FromCompendium": "Pulled from a bestiary ability glossary pack",
       "Custom": "Custom",
       "NotFound": "No compendium match found — this entry will be skipped",
-      "EquipmentCustom": "No compendium match found — this item blocks creation until it matches real content",
-      "LootCustom": "No compendium match found — this item blocks creation until it matches real content",
       "Found": "Matched a real compendium item",
       "MatchSummary": "{matched}/{total} compendium matches"
     },

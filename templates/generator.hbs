@@ -396,9 +396,9 @@
       <h3>{{localize "SIMPLYSF2E.Preview.Equipment"}}</h3>
       <ul class="spf-list spf-inline">
         {{#each preview.equipment}}
-          <li>
+          <li class="{{#unless this.found}}spf-dropped{{/unless}}">
             {{this.name}}
-            {{#if this.found}}<i class="fa-solid fa-circle-check spf-match" role="img" aria-label="{{localize 'SIMPLYSF2E.Preview.Found'}}" title="{{localize 'SIMPLYSF2E.Preview.Found'}}"></i>{{else}}<span class="spf-custom" title="{{localize 'SIMPLYSF2E.Preview.EquipmentCustom'}}">{{localize "SIMPLYSF2E.Preview.Custom"}}</span>{{/if}}
+            {{#if this.found}}<i class="fa-solid fa-circle-check spf-match" role="img" aria-label="{{localize 'SIMPLYSF2E.Preview.Found'}}" title="{{localize 'SIMPLYSF2E.Preview.Found'}}"></i>{{else}}<i class="fa-solid fa-circle-exclamation spf-unmatched" role="img" aria-label="{{localize 'SIMPLYSF2E.Preview.NotFound'}}" title="{{localize 'SIMPLYSF2E.Preview.NotFound'}}"></i>{{/if}}
           </li>
         {{/each}}
       </ul>
@@ -408,9 +408,9 @@
       <h3>{{localize "SIMPLYSF2E.Preview.Loot"}}</h3>
       <ul class="spf-list spf-inline">
         {{#each preview.loot}}
-          <li>
+          <li class="{{#unless this.found}}spf-dropped{{/unless}}">
             {{this.name}}
-            {{#if this.found}}<i class="fa-solid fa-circle-check spf-match" role="img" aria-label="{{localize 'SIMPLYSF2E.Preview.Found'}}" title="{{localize 'SIMPLYSF2E.Preview.Found'}}"></i>{{else}}<span class="spf-custom" title="{{localize 'SIMPLYSF2E.Preview.LootCustom'}}">{{localize "SIMPLYSF2E.Preview.Custom"}}</span>{{/if}}
+            {{#if this.found}}<i class="fa-solid fa-circle-check spf-match" role="img" aria-label="{{localize 'SIMPLYSF2E.Preview.Found'}}" title="{{localize 'SIMPLYSF2E.Preview.Found'}}"></i>{{else}}<i class="fa-solid fa-circle-exclamation spf-unmatched" role="img" aria-label="{{localize 'SIMPLYSF2E.Preview.NotFound'}}" title="{{localize 'SIMPLYSF2E.Preview.NotFound'}}"></i>{{/if}}
           </li>
         {{/each}}
       </ul>
@@ -566,9 +566,9 @@
       <h3>{{localize "SIMPLYSF2E.Preview.Equipment"}}</h3>
       <ul class="spf-list spf-inline">
         {{#each pcPreview.equipment}}
-          <li>
+          <li class="{{#unless this.found}}spf-dropped{{/unless}}">
             {{this.name}}
-            {{#if this.found}}<i class="fa-solid fa-circle-check spf-match" role="img" aria-label="{{localize 'SIMPLYSF2E.Preview.Found'}}" title="{{localize 'SIMPLYSF2E.Preview.Found'}}"></i>{{else}}<span class="spf-custom" title="{{localize 'SIMPLYSF2E.Preview.EquipmentCustom'}}">{{localize "SIMPLYSF2E.Preview.Custom"}}</span>{{/if}}
+            {{#if this.found}}<i class="fa-solid fa-circle-check spf-match" role="img" aria-label="{{localize 'SIMPLYSF2E.Preview.Found'}}" title="{{localize 'SIMPLYSF2E.Preview.Found'}}"></i>{{else}}<i class="fa-solid fa-circle-exclamation spf-unmatched" role="img" aria-label="{{localize 'SIMPLYSF2E.Preview.NotFound'}}" title="{{localize 'SIMPLYSF2E.Preview.NotFound'}}"></i>{{/if}}
           </li>
         {{/each}}
       </ul>
@@ -578,9 +578,9 @@
       <h3>{{localize "SIMPLYSF2E.Preview.Loot"}}</h3>
       <ul class="spf-list spf-inline">
         {{#each pcPreview.loot}}
-          <li>
+          <li class="{{#unless this.found}}spf-dropped{{/unless}}">
             {{this.name}}
-            {{#if this.found}}<i class="fa-solid fa-circle-check spf-match" role="img" aria-label="{{localize 'SIMPLYSF2E.Preview.Found'}}" title="{{localize 'SIMPLYSF2E.Preview.Found'}}"></i>{{else}}<span class="spf-custom" title="{{localize 'SIMPLYSF2E.Preview.LootCustom'}}">{{localize "SIMPLYSF2E.Preview.Custom"}}</span>{{/if}}
+            {{#if this.found}}<i class="fa-solid fa-circle-check spf-match" role="img" aria-label="{{localize 'SIMPLYSF2E.Preview.Found'}}" title="{{localize 'SIMPLYSF2E.Preview.Found'}}"></i>{{else}}<i class="fa-solid fa-circle-exclamation spf-unmatched" role="img" aria-label="{{localize 'SIMPLYSF2E.Preview.NotFound'}}" title="{{localize 'SIMPLYSF2E.Preview.NotFound'}}"></i>{{/if}}
           </li>
         {{/each}}
       </ul>

@@ -461,7 +461,7 @@ export function parseScroll(name) {
  * otherwise a "+1 striking longsword" budgets as a 1 gp longsword while the
  * sheet renders a ~1,000 gp item, and the coin padding overshoots wildly.
  */
-export async function resolveLoot(concept, { exactContent = false } = {}) {
+export async function resolveLoot(concept, { exactContent = false, skipped = null } = {}) {
   const loot = [];
   for (const { name, quantity, value, candidate, scrollCandidate } of concept.loot) {
     // Currency is module-built from cited credstick/UPB templates, not
@@ -492,6 +492,7 @@ export async function resolveLoot(concept, { exactContent = false } = {}) {
           e.type === "spell" && !(e.system?.traits?.value ?? []).includes("cantrip") && !e.system?.ritual
         );
       }
+      if (!entry && skipUnmatched(exactContent, skipped, "loot", name, quantity)) continue;
       const baseRank = entry?.system?.level?.value ?? 1;
       const rank = Math.min(Math.max(scroll.rank ?? baseRank, baseRank), 10);
       // A spell gem's real price lives on the rank template it will be built
@@ -526,6 +527,7 @@ export async function resolveLoot(concept, { exactContent = false } = {}) {
       if (gp > 0) resolvedValue = gp + await runeGp(runes, entry.type);
       else if (hasRunes(runes)) resolvedValue = creditsToGp(value) + await runeGp(runes, entry.type);
     }
+    if (!entry && skipUnmatched(exactContent, skipped, "loot", stripped.dropped ? stripped.name : name, quantity)) continue;
     loot.push({ name: stripped.dropped ? stripped.name : name, quantity, value, runes, entry, resolvedValue });
   }
   return loot;
@@ -773,10 +775,26 @@ export async function resolveConcept(concept, { exactContent = false } = {}) {
   const focusSpells = concept.spellcasting
     ? await resolveFocusSpells(concept.focusSpells ?? [], { exactContent }) : [];
 
-  const equipment = await resolveEquipment(concept, { exactContent });
-  const loot = await resolveLoot(concept, { exactContent });
+  const skippedGear = [];
+  const equipment = await resolveEquipment(concept, { exactContent, skipped: skippedGear });
+  const loot = await resolveLoot(concept, { exactContent, skipped: skippedGear });
 
-  return { abilities, spells, feats, focusSpells, equipment, loot };
+  return { abilities, spells, feats, focusSpells, equipment, loot, skippedGear };
+}
+
+/**
+ * Exact-content gear with no issued compendium pick is optional, so it is
+ * dropped with a warning instead of blocking the whole creature or PC
+ * (Invariant 5). The name goes to `skipped` so the preview and completion
+ * manifest can still show it as skipped. Legacy non-exact callers keep the
+ * entry, which buildEquipmentItems/buildLootItems turn into custom gear.
+ * @returns {boolean} true when the caller should drop the entry
+ */
+function skipUnmatched(exactContent, skipped, category, name, quantity) {
+  if (!exactContent) return false;
+  console.warn(`simplysf2e | skipped ${category} "${name}": no published compendium match`);
+  if (Array.isArray(skipped)) skipped.push({ category, name, quantity });
+  return true;
 }
 
 /**
@@ -784,7 +802,7 @@ export async function resolveConcept(concept, { exactContent = false } = {}) {
  * by NPC resolveConcept() and the PC pipeline (pc-builder.mjs), which both
  * carry the same {name, quantity, value} equipment shape and level cap.
  */
-export async function resolveEquipment(concept, { exactContent = false } = {}) {
+export async function resolveEquipment(concept, { exactContent = false, skipped = null } = {}) {
   const equipment = [];
   const maxLevel = Math.max(concept.level, 0);
   for (const { name, quantity, value, candidate } of concept.equipment) {
@@ -801,6 +819,7 @@ export async function resolveEquipment(concept, { exactContent = false } = {}) {
         stripped.name,
         (e) => (e.system?.level?.value ?? 0) <= maxLevel
       ));
+    if (!entry && skipUnmatched(exactContent, skipped, "equipment", stripped.dropped ? stripped.name : name, quantity)) continue;
     equipment.push({ name: stripped.dropped ? stripped.name : name, quantity, value, runes: stripped.runes, entry });
   }
   return equipment;

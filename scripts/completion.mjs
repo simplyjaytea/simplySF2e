@@ -76,6 +76,9 @@ export function completionManifest({ mode, concept, resolved }) {
       ? "module-built" : (item.scroll && item.entry ? "module-built" : null);
     records.push(line("loot", item.name, built ?? (item.entry ? "compendium" : "unresolved")));
   }
+  // Optional gear with no published match was already dropped by the
+  // exact-content resolvers; list it so the GM sees what was skipped.
+  for (const item of resolved?.skippedGear ?? []) records.push(line(item.category, item.name, "skipped", false));
   const unresolved = records.filter((record) => record.required && record.status === "unresolved");
   return { mode, records, unresolved, complete: unresolved.length === 0 };
 }
@@ -92,7 +95,7 @@ export function assertComplete(manifest) {
  * stays in the ephemeral build manifest and is never persisted to an actor.
  */
 export function completionSummary(manifests) {
-  const summary = { total: 0, compendium: 0, native: 0, moduleBuilt: 0, customNarrative: 0, unresolved: 0 };
+  const summary = { total: 0, compendium: 0, native: 0, moduleBuilt: 0, customNarrative: 0, skipped: 0, unresolved: 0 };
   for (const manifest of Array.isArray(manifests) ? manifests : [manifests]) {
     for (const record of manifest?.records ?? []) {
       summary.total++;
@@ -100,6 +103,7 @@ export function completionSummary(manifests) {
       else if (record.status === "native") summary.native++;
       else if (record.status === "module-built") summary.moduleBuilt++;
       else if (record.status === "custom-narrative") summary.customNarrative++;
+      else if (record.status === "skipped") summary.skipped++;
       else if (record.status === "unresolved") summary.unresolved++;
     }
   }
