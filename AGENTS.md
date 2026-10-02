@@ -4,7 +4,7 @@ This file is the tool-neutral contract for every agent (Codex, Claude, or otherw
 
 ## Non-negotiable rules (summarized from CLAUDE.md — that file wins on conflict)
 
-1. **Never push or merge to `main` directly.** A merge to `main` auto-publishes a public release to every install. Branch + PR always.
+1. **Never push or merge to `main` directly.** A merge to `main` auto-publishes a public release to every install. Branch + PR always. Merge policy (JT, 2026-10-02): an agent may merge its own PR once an independent fresh-context reviewer found no open blockers **and** `verify` is green on the current head. Design choices still go to JT first.
 2. **Clone real Rule Elements, never hand-author them.** No hand-written RE fallback exists, by design.
 3. **When a system field name or shape matters, fetch the real installed `sf2e` source** — never recall it from PF2e memory. Source: `https://raw.githubusercontent.com/foundryvtt/pf2e/v14-dev/<path>` (e.g. `system.sf2e.json`, `src/scripts/config/index.ts`).
 4. **The AI (in-module) never emits numbers or code** — scale words and enum slugs only; the module supplies values.
