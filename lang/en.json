@@ -447,7 +447,7 @@
       "Price": "Price",
       "Invested": "invested",
       "EffectsHeading": "Effects",
-      "NoEffects": "No usable passive effects survived validation — the item will be created as flavor-only. Regenerate for a mechanical version.",
+      "NoEffects": "No usable passive effects survived validation — the item will be created as flavor-only. Press Generate again for a mechanical version.",
       "CreateItem": "Create Item",
       "Created": "Created item \"{name}\". Drag it from the Items directory onto a character sheet.",
       "CreateFailed": "Foundry did not return a created item. The preview is still available to retry.",
