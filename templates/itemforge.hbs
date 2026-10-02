@@ -28,6 +28,11 @@
       <i class="fa-solid {{#if providerReady}}fa-circle-check{{else}}fa-triangle-exclamation{{/if}} spf-provider-state" role="img" aria-label="{{#if providerReady}}{{localize 'SIMPLYSF2E.Generator.ProviderReady'}}{{else}}{{apiKeyWarning}}{{/if}}" data-tooltip="{{#if providerReady}}{{localize 'SIMPLYSF2E.Generator.ProviderReady'}}{{else}}{{apiKeyWarning}}{{/if}}"></i>
     </span>
   </div>
+  <div class="spf-provider-summary spf-provider-ready">
+    <span class="spf-provider-name"><i class="fa-solid fa-book-atlas" aria-hidden="true"></i> <strong>{{localize "SIMPLYSF2E.Generator.CompendiumContent"}}</strong></span>
+    <span class="spf-provider-detail">{{localize "SIMPLYSF2E.ItemForge.SourcesDetail"}}</span>
+    <span class="spf-provider-actions"><button type="button" data-action="configureSources" data-tooltip="{{localize 'SIMPLYSF2E.Generator.ConfigureSources'}}" aria-label="{{localize 'SIMPLYSF2E.Generator.ConfigureSources'}}" {{#if busy}}disabled{{/if}}><i aria-hidden="true" class="fa-solid fa-gear"></i></button></span>
+  </div>
   </div>
   {{#if apiKeyWarning}}
     <p class="notification warning spf-provider-warning" role="status">
@@ -81,10 +86,7 @@
     <div class="spf-generate-row">
       <button type="button" class="spf-primary" data-action="generate" {{#if busy}}disabled{{/if}}>
         <i aria-hidden="true" class="fa-solid fa-wand-sparkles"></i>
-        {{#if preview}}{{localize "SIMPLYSF2E.Generator.Regenerate"}}{{else}}{{localize "SIMPLYSF2E.Generator.Generate"}}{{/if}}
-      </button>
-      <button type="button" class="spf-random-button" data-action="configureSources" data-tooltip="{{localize 'SIMPLYSF2E.Generator.ConfigureSources'}}" aria-label="{{localize 'SIMPLYSF2E.Generator.ConfigureSources'}}" {{#if busy}}disabled{{/if}}>
-        <i aria-hidden="true" class="fa-solid fa-gear"></i>
+        {{localize "SIMPLYSF2E.Generator.Generate"}}
       </button>
     </div>
   </fieldset>

@@ -158,7 +158,7 @@ The AI writes a new name, a read-aloud description and Recall Knowledge text, an
 
 ## Using the Item Forge
 
-Pick an **Item type**, fill **Describe the magic item**, and set **Item level** (1–24) and **Rarity**. Press **Generate** (it becomes **Regenerate** once a preview exists). Then press **Create Item**. The item lands in the Items directory, and you drag it onto a character sheet from there. The gear button next to Generate opens Compendium Sources.
+Pick an **Item type**, fill **Describe the magic item**, and set **Item level** (1–24) and **Rarity**. Press **Generate** (press it again for a new version). Then press **Create Item**. The item lands in the Items directory, and you drag it onto a character sheet from there. The gear in the Compendium Content row at the top opens Compendium Sources.
 
 | Item type | What you get |
 | --- | --- |

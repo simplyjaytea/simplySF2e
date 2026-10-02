@@ -376,6 +376,14 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 | 12k.5 | With a preview showing, click **Discard**. | A confirm dialog; Cancel keeps the preview, Confirm clears it. Check monster, encounter, character and Forge previews. | Both | | |
 | 12k.6 | Type a prompt and press Ctrl+Enter (Cmd+Enter on Mac). | Starts Generate exactly as the button does; does nothing while busy. | Both | | |
 
+## 12l. U6 Item Forge consistency
+
+| # | Do | Expect | Where | Pass | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 12l.1 | Forge a wondrous item, then a weapon. | Both previews show price in credits (no gp). | Forge preview | | |
+| 12l.2 | Open the Item Forge. | A "Compendium Content" row sits under the provider row with a gear that opens Compendium Sources; Generate stands alone in its row. | Item Forge | | |
+| 12l.3 | Generate an item, then look at the primary button. | It still reads **Generate**, not Regenerate; pressing it again makes a new version. | Item Forge | | |
+
 ## 12m. U6 Narrow windows
 
 | # | Do | Expect | Where | Pass | Notes |
