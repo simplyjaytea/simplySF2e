@@ -5,6 +5,7 @@
 
 /* Busy: the controls inside are disabled and dim themselves; dimming the whole
    fieldset dropped its labels under 4.5:1. */
+.simplysf2e .simplysf2e-generator.spf-busy .spf-mode-toggle,
 .simplysf2e .simplysf2e-generator.spf-busy .spf-inputs :is(input, select, textarea):disabled {
   opacity: 0.6;
 }

@@ -321,7 +321,7 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 | # | Step | Expected | Where to look | Result | Evidence |
 |---|------|----------|---------------|--------|----------|
 | 12f.1 | Tab with the keyboard onto Generate (and onto "Advanced options"). | A cyan ring is drawn all the way around the button (its notched corner squares off while focused); the summary shows the same ring. | Generator | | |
-| 12f.2 | Start a generation with a screen reader on. | One announcement per step change ("Concept (in progress)" style); no announcement on every percent tick; Cancel announces "Cancelling". | Progress card | | |
+| 12f.2 | Start a generation with a screen reader on. | One announcement per step change (the new step name (for example "Spell selection")); no announcement on every percent tick; Cancel announces "Cancelling". | Progress card | | |
 | 12f.3 | Encounter preview: raise members until XP is over budget; set one member to x0. | The over-budget number is light red with a red border; the x0 card shows a "Skipped" tag and stays readable. | Encounter preview | | |
 | 12f.4 | Set a Sources category to an empty/uninstalled pack, reopen the Generator. | Compendium row says "...unavailable: Spells, Feats." with names, not ids. | Status strip | | |
 | 12f.5 | Reskin mode, nothing dropped. | Empty hint tells you to drop an NPC. | Generator | | |

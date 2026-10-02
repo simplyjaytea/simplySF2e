@@ -1655,7 +1655,7 @@ export class GeneratorApp extends SpfApp {
         Array.from({ length: member.count }, () => member.manifest)
       ));
       this.#encounter = null;
-      this.#created = { name: folder.name, actorId: actors[0]?.id ?? null, count: created, grounding };
+      this.#created = { name: folder.name, actorId: actors[0]?.id ?? null, count: created, inFolder: true, grounding };
       committed = true;
       try {
         ui.notifications.info(game.i18n.format("SIMPLYSF2E.Generator.CreatedAll", {

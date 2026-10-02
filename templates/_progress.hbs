@@ -1,6 +1,6 @@
 {{#if progress}}
   <div class="spf-progress spf-card spf-progress-{{progress.phase}}" data-phase="{{progress.phase}}">
-    <p class="spf-sr-only spf-progress-announce" role="status" aria-live="polite">{{#each progress.steps}}{{#if (eq this.state "active")}}{{this.label}}{{/if}}{{/each}}</p>
+    <p class="spf-sr-only spf-progress-announce" role="status" aria-live="polite"></p>
     <ol class="spf-progress-steps">
       {{#each progress.steps}}
         <li class="spf-step-{{this.state}}">
@@ -27,6 +27,7 @@
   </div>
 {{else}}
   <div class="spf-progress spf-card" role="status" aria-live="polite">
+    <i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i>
     <p class="spf-progress-detail">{{#if busyMessage}}{{busyMessage}}{{else}}{{localize "SIMPLYSF2E.Generator.Busy"}}{{/if}}</p>
     <p class="spf-model">{{model}}</p>
   </div>

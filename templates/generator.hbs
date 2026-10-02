@@ -11,10 +11,10 @@
           {{/each}}
         </select>
       {{else}}
-        <strong data-tooltip="{{#if connectionName}}{{connectionName}}{{else}}{{provider.name}}{{/if}}">{{#if connectionName}}{{connectionName}}{{else}}{{provider.name}}{{/if}}</strong>
+        <strong data-tooltip-text="{{#if connectionName}}{{connectionName}}{{else}}{{provider.name}}{{/if}}">{{#if connectionName}}{{connectionName}}{{else}}{{provider.name}}{{/if}}</strong>
       {{/if}}
     </span>
-    <code class="spf-provider-model" data-tooltip="{{provider.model}}">{{#if provider.model}}{{provider.model}}{{else}}{{localize "SIMPLYSF2E.Generator.NoModelShort"}}{{/if}}</code>
+    <code class="spf-provider-model"{{#if provider.model}} data-tooltip-text="{{provider.model}}"{{/if}}>{{#if provider.model}}{{provider.model}}{{else}}{{localize "SIMPLYSF2E.Generator.NoModelShort"}}{{/if}}</code>
     {{#if lastRunCost}}<span class="spf-last-run">{{lastRunCost}}</span>{{/if}}
     <span class="spf-provider-actions">
       {{#if providerReady}}
@@ -85,7 +85,7 @@
       {{#if reskinSource}}
         {{#if reskinSource.img}}<img src="{{reskinSource.img}}" alt="">{{else}}<i class="fa-solid fa-masks-theater" aria-hidden="true"></i>{{/if}}
         <span class="spf-reskin-source">
-          <strong data-tooltip="{{reskinSource.name}}">{{reskinSource.name}}</strong>
+          <strong data-tooltip-text="{{reskinSource.name}}">{{reskinSource.name}}</strong>
           <span>{{localize "SIMPLYSF2E.Generator.ReskinSourceLevel" level=reskinSource.level}}</span>
           <span id="spf-reskin-drop-hint" class="spf-hint">{{localize "SIMPLYSF2E.Generator.ReskinDropReplace"}}</span>
         </span>
@@ -263,7 +263,7 @@
     <header class="spf-statblock-header">
       <h2>{{localize "SIMPLYSF2E.Generator.CompleteTitle"}}</h2>
     </header>
-    <p>{{#if (eq created.count 1)}}{{localize "SIMPLYSF2E.Generator.Created" name=created.name}}{{else}}{{localize "SIMPLYSF2E.Generator.CompleteSummary" name=created.name count=created.count}}{{/if}}</p>
+    <p>{{#if created.inFolder}}{{#if (eq created.count 1)}}{{localize "SIMPLYSF2E.Generator.CreatedOneInFolder" name=created.name}}{{else}}{{localize "SIMPLYSF2E.Generator.CreatedAll" name=created.name count=created.count}}{{/if}}{{else if (eq created.count 1)}}{{localize "SIMPLYSF2E.Generator.Created" name=created.name}}{{else}}{{localize "SIMPLYSF2E.Generator.CompleteSummary" name=created.name count=created.count}}{{/if}}</p>
     {{#if created.grounding.total}}
       <h3>{{localize "SIMPLYSF2E.Generator.CompletionGrounding"}}</h3>
       <ul class="spf-list">
@@ -456,7 +456,6 @@
         <li class="spf-encounter-member spf-card {{#if this.skipped}}spf-member-skipped{{/if}}">
           <div class="spf-member-head">
             <strong>{{this.name}}</strong>
-            {{#if this.skipped}}<span class="spf-member-skipped-tag">{{localize "SIMPLYSF2E.Generator.MemberSkipped"}}</span>{{/if}}
             <span class="spf-member-count">
               <button type="button" class="spf-icon-btn" data-action="memberDown" data-index="{{this.index}}" data-tooltip="{{localize 'SIMPLYSF2E.Generator.MemberDown'}}" aria-label="{{localize 'SIMPLYSF2E.Generator.MemberDown'}}" {{#if @root.busy}}disabled{{/if}}>
                 <i aria-hidden="true" class="fa-solid fa-minus"></i>
@@ -466,7 +465,7 @@
                 <i aria-hidden="true" class="fa-solid fa-plus"></i>
               </button>
             </span>
-            <span class="spf-member-tag">{{localize "SIMPLYSF2E.Generator.Creature"}} {{this.level}} · {{localize this.role}}</span>
+            <span class="spf-member-tag">{{localize "SIMPLYSF2E.Generator.Creature"}} {{this.level}} · {{localize this.role}}{{#if this.skipped}} · <span class="spf-member-skipped-tag">{{localize "SIMPLYSF2E.Generator.MemberSkipped"}}</span>{{/if}}</span>
           </div>
           {{#if this.blurb}}<em>{{this.blurb}}</em>{{/if}}
           <div class="spf-member-stats">{{this.statline}}</div>

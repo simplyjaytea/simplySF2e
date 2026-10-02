@@ -275,6 +275,7 @@ export default [
     context: generatorContext("monster", {
       showEmptyState: false, tokenReport: TOKEN_REPORT,
       created: {
+        inFolder: false,
         name: "Rift-Scarred Vanguard", actorId: "x1", count: 1,
         grounding: { total: 9, rows: [{ text: "6 from the compendium" }, { text: "2 built by the module" }, { text: "1 narrative only" }] }
       }
