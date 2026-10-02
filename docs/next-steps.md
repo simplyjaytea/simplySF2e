@@ -8,10 +8,10 @@ Each step below is sized for **one Sonnet 5.5 thread** that starts cold. Read "H
 
 A step marked **Blocked on D-…** is not ready to build until JT answers. Record the answer here (date + choice) when it comes in.
 
-- **D-U1 · UI direction.** Polish the current "Neon Drift" look and fix what the audit finds (recommended), or redesign the generator layout (for example a two-pane form + sticky preview). *Open.*
-- **D-U2 · Reskin tab accent and icon.** Claude picked mint `--spf-mode-reskin: #6ef2c2` and the masks icon in G6; JT never confirmed. Keep (recommended) or change. *Open.*
-- **D-J1 · Where Jev runs.** (a) Inside the module, making the generator's grounded catalog picks fast (recommended); (b) in the Claude Code dev workflow only (a plugin for the agents that edit this repo); (c) both. *Open.*
-- **D-J2 · What "always on" means in the module.** (a) Jev runs automatically whenever the active connection is OpenRouter, reusing that key, with no toggle (recommended); (b) also add a separate Jev connection so non-OpenRouter users can turn it on. *Open; only matters if D-J1 is (a) or (c).*
+- **D-U1 · UI direction.** Polish the current "Neon Drift" look and fix what the audit finds (recommended), or redesign the generator layout (for example a two-pane form + sticky preview). **Decided 2026-10-02 (JT): polish the current look.**
+- **D-U2 · Reskin tab accent and icon.** Claude picked mint `--spf-mode-reskin: #6ef2c2` and the masks icon in G6; JT never confirmed. Keep (recommended) or change. **Decided 2026-10-02 (JT): keep.**
+- **D-J1 · Where Jev runs.** (a) Inside the module, making the generator's grounded catalog picks fast (recommended); (b) in the Claude Code dev workflow only (a plugin for the agents that edit this repo); (c) both. **Decided 2026-10-02 (JT): (a) inside the module.** JD1 is not planned.
+- **D-J2 · What "always on" means in the module.** (a) Jev runs automatically whenever the active connection is OpenRouter, reusing that key, with no toggle (recommended); (b) also add a separate Jev connection so non-OpenRouter users can turn it on. **Decided 2026-10-02 (JT): (b).** Jev runs automatically on an OpenRouter connection, and Provider Setup also gets a separate Jev connection. Because the TypeSafe endpoint fails the browser CORS check (see below), the separate connection must default to OpenRouter's endpoint, and the setup screen must say a TypeSafe-direct key will likely not work from Foundry.
 - **Per-audit design picks.** U3 lists findings it tags `design`. The coordinator posts those to JT as decision cards; U6 builds only the approved ones.
 
 ## What Jev is (research, 2026-10-02)
@@ -55,12 +55,12 @@ Dev-workflow option (D-J1 b): Jev also ships as a Claude Code skill/plugin that 
 
 - [ ] **U5a · Fix U3 `bug` findings in the Generator** (`generator.hbs`, `styles/apps/generator.css`, shared kit only where the bug is shared). Before/after harness screenshots in the PR. **Review:** independent.
 - [ ] **U5b · Fix U3 `bug` findings in Item Forge, Provider Setup, Sources, Manage Presets.** Disjoint files from U5a, so it runs in parallel. If both need `styles/simplysf2e.css`, U5a owns it and U5b sends its change to U5a's thread through the coordinator. **Review:** independent.
-- [ ] **U6 · Build the U3 `design` findings JT approved.** **Blocked on D-U1 and the per-audit cards.** One PR per approved cluster.
-- [ ] **U7 · Reskin accent and icon.** **Blocked on D-U2.** If JT keeps mint + masks, tick this with the decision date and no code. Otherwise change `--spf-mode-reskin` and the icon in `generator.hbs`, check contrast, update the `ui.layout.test.mjs` expectation if it pins either.
+- [ ] **U6 · Build the U3 `design` findings JT approved.** D-U1 = polish, so only small look/flow changes; **blocked on the per-audit cards.** One PR per approved cluster.
+- [x] **U7 · Reskin accent and icon.** JT kept mint + masks on 2026-10-02; no code change. Otherwise change `--spf-mode-reskin` and the icon in `generator.hbs`, check contrast, update the `ui.layout.test.mjs` expectation if it pins either.
 
 ## Track J — Jev fast picks in the module
 
-Everything in this track is **Blocked on D-J1 = (a) or (c)**. J1 is also **Blocked on D-J2**. The design below assumes the recommended answers; the coordinator adjusts J1 if JT picks otherwise.
+D-J1 and D-J2 are decided (module; automatic on OpenRouter plus a separate Jev connection), so this track is ready.
 
 Ground rules for every J step (they extend CLAUDE.md's invariants):
 
@@ -74,7 +74,8 @@ Ground rules for every J step (they extend CLAUDE.md's invariants):
 ### Wave J-1
 
 - [ ] **J1 · Jev client.** New `scripts/jev.mjs`, pure parts node-testable:
-  - `jevEndpointFor(baseUrl)` → `https://openrouter.ai/api/v1/systemone` when `describeProvider(baseUrl).id === "openrouter"`, else `null` (D-J2 a). If JT picks D-J2 b, add a Jev connection to `settings.mjs` / `provider-setup-app.mjs` using the same exact-endpoint key binding as provider keys, and note the TypeSafe CORS result above (direct TypeSafe will likely fail from the browser).
+  - `jevEndpointFor(baseUrl)` → `https://openrouter.ai/api/v1/systemone` when `describeProvider(baseUrl).id === "openrouter"`, else `null`.
+  - **Separate Jev connection (D-J2 b):** add a Jev base URL + key to `settings.mjs` / `provider-setup-app.mjs` using the same exact-endpoint key binding as provider keys, defaulting the base URL to `https://openrouter.ai/api/v1`. Resolution order: the dedicated Jev connection when it has a bound key, else the active OpenRouter connection, else off. Provider Setup states that a TypeSafe-direct key will likely be blocked by the browser. **The look and wording of this Provider Setup section is a design choice: post JT a decision card (with a harness screenshot if U1 has merged) before building it**, and build the rest of J1 meanwhile.
   - The key is `getProviderRequestConfig().apiKey` (`settings.mjs` ~525), which is empty unless the key is bound to that exact base URL; never read the raw setting. Reusing a key bound to `https://openrouter.ai/api/v1` for its sibling `/systemone` path is the same host and account, so it stays inside the binding's intent (the binding prevents sending a key to a *different* endpoint); say so in a code comment.
   - `buildChoiceQuestion({ instructions, candidates })` → `{ type: "choice", instructions, criteria: { [id]: name } }`, rejecting more than 255 options (caller falls back).
   - `parseJevAnswers(json, questionIds)` → validates the cited response shape; returns `null` on any mismatch.
@@ -98,22 +99,21 @@ Ground rules for every J step (they extend CLAUDE.md's invariants):
 
 - [ ] **J6 · Show it and document it.** A small "Fast picks: Jev" indicator in the generator status bar when active, and Jev time/tokens in the token report. **Look and wording are a design choice: the coordinator posts a card before this step starts.** README GM-guide section (what Jev is, that it needs an OpenRouter connection, cost, privacy: the concept summary and candidate names go to OpenRouter/TypeSafe). New rows in `docs/qa-checklist.md` (Jev on vs. off timing, fallback when offline). Touches `generator.hbs`, so it runs after U5a merges.
 
-### Dev-workflow Jev (only if D-J1 = b or c)
+### Dev-workflow Jev (not planned: D-J1 = a)
 
 - [ ] **JD1 · Jev for the agents that work on this repo.** JT adds a TypeSafe key as an environment secret and allows `api.typesafe.ai` in the environment's network policy. Then a thread adds the chosen plugin to `.claude/settings.json` (`enabledPlugins` + marketplace) so every session has it. The thread reads the plugin's hook code in full before enabling it (third-party code runs on every Read) and says what it does in the PR. Not shipped to users.
 
 ## Order and dependencies
 
 ```
-Now (parallel):        U1   U2   U4            (J1 once D-J1/D-J2 answered)
+Now (parallel):        U1   U2   U4   J1
 After U1:              U3
 After U3:              U5a  U5b  (parallel)    U6 after JT's audit picks
 After J1:              J2 → J3 → J4 → J5 (sequential, shared files)
 After U5a and J2:      J6
-Any time after D-U2:   U7
 ```
 
-U2 and U4 both touch `lang/en.json`; whichever merges second merges `main` in and resolves (additive keys, no logic conflict). U2 and U5a both touch `generator.hbs`; U5a starts after U2 merges. Every step ticks its own box in this file, so parallel PRs conflict here trivially: merge `main` in and keep both ticks.
+U2 and U4 both touch `lang/en.json`; whichever merges second merges `main` in and resolves (additive keys, no logic conflict). U2 and U5a both touch `generator.hbs`; U5a starts after U2 merges. J1 adds a section to Provider Setup, so U5b (which also edits `provider-setup.hbs`) starts after J1 merges. Every step ticks its own box in this file, so parallel PRs conflict here trivially: merge `main` in and keep both ticks.
 
 Every step that changes behavior adds its rows to `docs/qa-checklist.md`, because nothing here is live-tested until JT runs G11.
 
