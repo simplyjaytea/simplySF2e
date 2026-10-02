@@ -183,6 +183,11 @@
       "ApiKeyAuthorizationFailed": "The API endpoint changed before authorization completed. Review it and try again.",
       "ProviderReady": "Provider configuration is ready",
       "CompendiumContent": "Compendium Content",
+      "JevRow": "Fast picks: Jev",
+      "JevOnConnection": "on (OpenRouter connection)",
+      "JevOnKey": "on (separate Jev key)",
+      "JevOff": "off (needs an OpenRouter connection or a Jev key)",
+      "JevConfigure": "Set up Jev",
       "SourcesReady": "Ready — {packCount} enabled packs",
       "SourcesMissing": "Required compendium content is unavailable: {categories}. Configure Compendium Sources before generating.",
       "ConfigureSources": "Configure compendium sources",
@@ -353,7 +358,10 @@
       "Total": "Total: {total} tokens",
       "TotalEstimated": "Total: ≈ {total} tokens",
       "LastRun": "last: {total} tokens",
-      "LastRunEstimated": "last: ≈ {total} tokens"
+      "LastRunEstimated": "last: ≈ {total} tokens",
+      "ViaJev": "Jev, {seconds} s",
+      "ViaChat": "chat model, {seconds} s",
+      "ViaChatFallback": "chat model after Jev fell back, {seconds} s"
     },
     "Sources": {
       "MenuName": "Compendium Sources",

@@ -279,7 +279,7 @@ Needs an OpenRouter connection (Jev reuses its key). With a non-OpenRouter conne
 
 | # | Step | Expected | Where to look | Result | Evidence |
 |---|------|----------|---------------|--------|----------|
-| 12b.1 | OpenRouter connection, generate a monster with gear and loot. Note how long the equipment and loot steps take (the token report does not show timings until J6; use the DevTools Network timings). | Equipment and loot picks are real compendium items. No "Jev request" warning in the console. | Console, preview | | |
+| 12b.1 | OpenRouter connection, generate a monster with gear and loot. Note how long the equipment and loot steps take (the token report shows each step's seconds and whether Jev or the chat model did it). | Equipment and loot picks are real compendium items. No "Jev request" warning in the console. | Console, preview | | |
 | 12b.2 | Repeat on a local or other non-OpenRouter connection. | Same kind of result; compare step time against 12b.1. | Console | | |
 | 12b.3 | OpenRouter connection, DevTools Network set to Offline for `openrouter.ai/api/v1/systemone` only (block that URL), then generate. | "using the chat model" warning, and gear and loot still resolve through the chat model. | Console | | |
 | 12b.4 | Generate a creature whose loot includes a spell gem and credits. | Spell gem and credits appear exactly as before; credits are not doubled. | Preview | | |
@@ -392,6 +392,17 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 | 12m.2 | Encounter and Character modes at the same width. | The Generate button label stays on one line; Preview Plan drops to a second line if there is no room. | Generator | | |
 | 12m.3 | Item Forge at about 460 px. | Kind tiles sit two per row, so Generate and the preview are higher up. | Item Forge | | |
 | 12m.4 | Shrink the Generator under about 400 px. | Modes wrap into a grid again without overflow. | Generator | | |
+
+## 12n. Jev indicator and token report (J6)
+
+| # | Do | Expect | Where | Pass | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 12n.1 | Open the Generator on an OpenRouter connection. | Third status-bar row "Fast picks: Jev" reads "on (OpenRouter connection)" with a green edge. | Generator | | |
+| 12n.2 | Switch to a non-OpenRouter connection with no Jev key. | Row reads "off (needs an OpenRouter connection or a Jev key)" with a neutral edge, not a warning. Its gear opens AI Provider Setup. | Generator | | |
+| 12n.3 | On that connection, save a Jev key in Provider Setup, reopen. | Row reads "on (separate Jev key)". | Generator | | |
+| 12n.4 | Generate a monster with Jev on, then the same prompt with Jev off (12n.2). | Equipment, Loot and feat step lines end with "Jev, N.N s" (Jev on) or "chat model, N.N s" (Jev off). Concept, Design, ABC and Reskin lines carry no timing. Record the Equipment and Loot times for both runs. | Preview | | |
+| 12n.5 | Block `openrouter.ai/api/v1/systemone` in DevTools and generate. | Affected steps read "chat model after Jev fell back, N.N s"; console shows "using the chat model". | Preview | | |
+| 12n.6 | Narrow the window to about 360 px. | The Jev row wraps cleanly; no horizontal scroll. | Generator | | |
 
 ## 13. Firefox (if available)
 

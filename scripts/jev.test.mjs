@@ -1,7 +1,7 @@
 // Run: node scripts/jev.test.mjs
 import assert from "node:assert/strict";
 import {
-  JEV_ENDPOINT, JEV_MODEL, buildChoiceQuestion, parseJevAnswers, requestJevDecision, resolveJevConfig
+  JEV_ENDPOINT, JEV_MODEL, buildChoiceQuestion, parseJevAnswers, requestJevDecision, resolveJevConfig, jevKeySource
 } from "./jev.mjs";
 import { normalizeJevUsage } from "./tokens.mjs";
 
@@ -18,6 +18,12 @@ const orState = (apiKey) => ({ apiKey, provider: { id: "openrouter" } });
   assert.equal(resolveJevConfig({ provider: () => ({ apiKey: "", provider: { id: "openai" } }) }), null);
   delete globalThis.game;
 }
+
+// status-bar source (J6)
+assert.equal(jevKeySource({ provider: () => orState("or-key"), dedicated: () => ({ apiKey: "k" }) }), "key");
+assert.equal(jevKeySource({ provider: () => orState("or-key"), dedicated: () => null }), "connection");
+assert.equal(jevKeySource({ provider: () => ({ apiKey: "x", provider: { id: "openai" } }), dedicated: () => null }), null);
+assert.equal(jevKeySource({ provider: () => orState(""), dedicated: () => ({ apiKey: " " }) }), null);
 
 // resolver order
 assert.equal(JEV_ENDPOINT, "https://openrouter.ai/api/v1/systemone");

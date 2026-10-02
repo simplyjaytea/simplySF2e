@@ -52,7 +52,7 @@ const mocks = {
   SpfApp: App, MODULE_ID: "simplysf2e", SETTINGS: { freeArchetype: "freeArchetype" }, reviewUnresolvedChoices, normalizeSkillPriorities, skillPriorityOrder,
   assertComplete, completionManifest, completionSummary,
   verifyCreatedActor: () => { if (verifyFailure) throw verifyFailure; },
-  freeArchetypeNeedsPrerequisiteValidation, validateArchetypeSlotPlacement,
+  freeArchetypeNeedsPrerequisiteValidation, validateArchetypeSlotPlacement, jevKeySource: () => "connection",
   supportedClassCandidates: (candidates) => candidates,
   getProviderRequestConfig: () => ({}), getProviderAuthWarningKey: () => null,
   BUILT_IN_PRESETS: [], getCustomPresets: () => [], findPreset: () => null, examplePrompt: () => "",

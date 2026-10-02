@@ -125,6 +125,19 @@ assert.ok(report, "Token report constructed");
 assert.equal(report.steps.length, 2, "Report has two steps");
 assert.ok(report.totalText.includes("SIMPLYSF2E.Tokens.TotalEstimated"), "Any estimated step uses TotalEstimated label");
 
+// Per-step timing suffix (J6)
+app._recordTokens("Equipment", { prompt: 10, completion: 0, total: 10, estimated: false }, { source: "jev", ms: 820 });
+app._recordTokens("Loot", { prompt: 10, completion: 5, total: 15, estimated: false }, { source: "llm", ms: 6140, jevMs: 900 });
+app._recordTokens("Spells", { prompt: 10, completion: 5, total: 15, estimated: false }, { source: "llm", ms: 3000 });
+const timed = app._buildTokenReport().steps;
+assert.ok(timed[2].text.endsWith('SIMPLYSF2E.Tokens.ViaJev:{"seconds":"0.8"}'), "Jev step shows Jev timing");
+assert.ok(timed[3].text.includes("ViaChatFallback") && timed[3].text.includes('"6.1"'), "fallback step names the fallback");
+assert.ok(timed[4].text.includes("ViaChat:"), "plain chat step shows chat timing");
+assert.ok(!timed[0].text.includes("Via"), "steps without timing get no suffix");
+assert.equal(app._formatStepTiming({ source: "jev", ms: NaN }), null);
+assert.equal(app._formatStepTiming({ source: "x", ms: 5 }), null);
+app._tokenUsage.splice(2);
+
 app._finishRun();
 assert.ok(app._lastRunCost, "Last run cost snapshotted after _finishRun");
 assert.ok(app._formatLastRunCost().includes("SIMPLYSF2E.Tokens.LastRunEstimated"));

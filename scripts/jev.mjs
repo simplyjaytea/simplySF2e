@@ -55,6 +55,22 @@ export function resolveJevConfig({ provider = getProviderRequestConfig, dedicate
 }
 
 /**
+ * Where Jev would get its key from, for the status-bar row: `"key"` (the separate Jev
+ * key), `"connection"` (the active OpenRouter chat connection) or `null` (off).
+ * Mirrors `resolveJevConfig`'s order and never exposes the key.
+ */
+export function jevKeySource(options = {}) {
+  const config = resolveJevConfig(options);
+  if (!config) return null;
+  const { dedicated = getJevRequestConfig } = options;
+  try {
+    return String(dedicated()?.apiKey ?? "").trim() ? "key" : "connection";
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Build a Choice question keyed by candidate id (never by array position: positional
  * indexes into long lists are unreliable). `candidates` is `[{ id, name }]`.
  * Returns `null` when it cannot be built (empty, over 255, duplicate or blank ids,
