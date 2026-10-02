@@ -15,13 +15,13 @@ export const JEV_ENDPOINT = "https://openrouter.ai/api/v1/systemone";
 /** Pinned (not `latest`) so behavior does not drift between Jev releases. */
 export const JEV_MODEL = "typesafe/jev-1.13";
 
-/** Module default, not a rules number: minimum answer confidence to trust a pick (jev-gateway's default JEV_MIN_CONFIDENCE). */
+/** Module default, not a rules number: minimum answer confidence to trust a pick (same value the jev-gateway project defaults to, per docs/next-steps.md). */
 export const JEV_MIN_CONFIDENCE = 0.7;
 
 /** Module default: give up on Jev and let the caller fall back to the chat LLM. */
 export const JEV_TIMEOUT_MS = 4000;
 
-/** TypeSafe limit: a Choice question takes up to 255 options. */
+/** Choice question option cap: 255, per the flaviocopes.com summary of TypeSafe docs (docs/next-steps.md). */
 export const JEV_MAX_CHOICES = 255;
 
 const ANSWER_TYPES = new Set(["choice", "score", "noul"]);
