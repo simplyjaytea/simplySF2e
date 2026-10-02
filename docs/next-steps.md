@@ -53,7 +53,7 @@ Dev-workflow option (D-J1 b, **not chosen**): Jev also ships as a Claude Code sk
 
 ### Wave U-3 (after U3 merges)
 
-- [ ] **U5a · Fix U3 `bug` findings in the Generator** (`generator.hbs`, `styles/apps/generator.css`, shared kit only where the bug is shared). Before/after harness screenshots in the PR. **Review:** independent.
+- [x] **U5a · Fix U3 `bug` findings in the Generator** (done: PR #35) (`generator.hbs`, `styles/apps/generator.css`, shared kit only where the bug is shared). Before/after harness screenshots in the PR. **Review:** independent.
 - [x] **U5b (Item Forge, Sources, Presets part; Provider Setup P1/P5 follow after J1b) · Fix U3 `bug` findings in Item Forge, Provider Setup, Sources, Manage Presets.** Disjoint files from U5a, so it runs in parallel. If both need `styles/simplysf2e.css`, U5a owns it and U5b sends its change to U5a's thread through the coordinator. **Review:** independent.
 - [ ] **U6 · Build the U3 `design` findings JT approved.** D-U1 = polish, so only small look/flow changes; **blocked on the per-audit cards.** One PR per approved cluster.
 - [x] **U7 · Reskin accent and icon.** JT kept mint + masks on 2026-10-02; no code change.
@@ -82,7 +82,7 @@ Ground rules for every J step (they extend CLAUDE.md's invariants):
   - A pure `normalizeJevUsage(usage)` in `tokens.mjs` (input tokens; cost from `usage.cost` when OpenRouter returns it). Nothing calls it yet; the report line itself (`app-base.mjs` `_tokenUsage`) is added in J2 and shown in J6.
   - Tests: `scripts/jev.test.mjs` for resolver order (inject fake `provider`/`dedicated`; an unbound OpenRouter key returns `null`), question building (keyed criteria, 255 cap), response parsing (cited example passes; missing `answers`, wrong `type`, unknown id all return `null`).
   No call sites and no UI. **Review:** independent; reviewer re-fetches the two cited doc pages and checks every field name.
-- [ ] **J1b · Separate Jev key in Provider Setup (D-J2 b).** Needs J1a merged. **Before building, post JT a decision card on the section's look and wording** (attach a U1 harness screenshot if U1 has merged; the card does not wait for U1); **do not merge J1b until JT answers.** Mechanism, settled here (not part of the card):
+- [x] **J1b · Separate Jev key in Provider Setup (D-J2 b).** (done: PR #28) Needs J1a merged. **Before building, post JT a decision card on the section's look and wording** (attach a U1 harness screenshot if U1 has merged; the card does not wait for U1); **do not merge J1b until JT answers.** Mechanism, settled here (not part of the card):
   - A key-only field on the fixed OpenRouter endpoint, kept **outside** `providerBank` (it is not a chat connection). **No base-URL binding:** there is exactly one endpoint the key can ever go to, so there is nothing to bind against; say so in a comment.
   - One client setting `jevApiKey`: `scope: "client"`, `config: false`, `restricted: true`, mirroring the provider key's registration (`settings.mjs` 92–104); add `jevApiKey` to the `SETTINGS` constant (`settings.mjs` ~3).
   - `getJevRequestConfig()` → `{ apiKey }` (trimmed, `""` when unset). J1a's `resolveJevConfig` gets `dedicated = getJevRequestConfig` as its default.

@@ -1,7 +1,7 @@
 import {
   MODULE_ID, SETTINGS, authorizeApiKeyForCurrentBaseUrl,
   createProviderConnection, deleteProviderConnection, describeProvider,
-  ensureProviderBank, getProviderAuthWarningKey, getProviderRequestConfig,
+  ensureProviderBank, getJevRequestConfig, getProviderAuthWarningKey, getProviderRequestConfig,
   normalizeApiBaseUrl, selectProviderConnection, upsertActiveProviderConnection
 } from "./settings.mjs";
 import { listProviderModels, testProviderConnection } from "./ai.mjs";
@@ -54,6 +54,7 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
       chooseProvider: ProviderSetupApp.#onChooseProvider,
       loadModels: ProviderSetupApp.#onLoadModels,
       saveAndTest: ProviderSetupApp.#onSaveAndTest,
+      saveJevKey: ProviderSetupApp.#onSaveJevKey,
       createConnection: ProviderSetupApp.#onCreateConnection,
       deleteConnection: ProviderSetupApp.#onDeleteConnection,
       cancel: ProviderSetupApp.#onCancel
@@ -87,6 +88,7 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
       model: state.model,
       availableModels: this.#availableModels,
       hasApiKey: state.hasConfiguredApiKey,
+      hasJevKey: Boolean(getJevRequestConfig().apiKey),
       localServerHint: game.i18n.format("SIMPLYSF2E.ProviderSetup.LocalServerHint", {
         origin: globalThis.location?.origin ?? "Foundry"
       })
@@ -263,10 +265,68 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
     return { provider, model, state };
   }
 
+  /**
+   * Save or clear the separate Jev key. Independent of #saveSettings so a GM
+   * with no chat model can still save it. Empty input keeps the stored key.
+   * Returns "saved", "cleared" or null (unchanged).
+   */
+  static async #saveJevKey() {
+    const entered = String(this.element.querySelector("[name='jevApiKey']")?.value ?? "").trim();
+    const clear = Boolean(this.element.querySelector("[name='clearJevApiKey']")?.checked);
+    if (!clear && !entered) return null;
+    await game.settings.set(MODULE_ID, SETTINGS.jevApiKey, clear ? "" : entered);
+    return clear ? "cleared" : "saved";
+  }
+
+  #syncJevControls(hasKey) {
+    const input = this.element.querySelector("[name='jevApiKey']");
+    if (input) {
+      input.value = "";
+      input.placeholder = game.i18n.localize(hasKey
+        ? "SIMPLYSF2E.ProviderSetup.JevKeySaved"
+        : "SIMPLYSF2E.ProviderSetup.JevKeyPlaceholder");
+    }
+    const clear = this.element.querySelector("[name='clearJevApiKey']");
+    if (clear) clear.checked = false;
+    const label = this.element.querySelector(".spf-jev-clear");
+    if (label) label.hidden = !hasKey;
+  }
+
+  static async #onSaveJevKey(_event, target) {
+    const busy = this.#beginBusy(target);
+    if (!busy) return;
+    try {
+      const result = await ProviderSetupApp.#saveJevKey.call(this);
+      if (result) {
+        ui.notifications.info(game.i18n.localize(
+          result === "cleared"
+            ? "SIMPLYSF2E.ProviderSetup.JevCleared"
+            : "SIMPLYSF2E.ProviderSetup.JevSaved"
+        ));
+        // Update in place: a re-render would discard unsaved chat fields.
+        this.#syncJevControls(result === "saved");
+      }
+    } catch (err) {
+      console.error("simplysf2e | Jev key save failed", err);
+      ui.notifications.error(game.i18n.format("SIMPLYSF2E.ProviderSetup.JevSaveFailed", {
+        message: err?.message ?? String(err)
+      }));
+    } finally {
+      this.#endBusy(busy);
+    }
+  }
+
   static async #onSubmit(_event, _form, _formData) {
     const state = this.#beginBusy(this.element.querySelector("button[type='submit']"));
     if (!state) return;
     try {
+      // First, so a Jev key typed before Save is kept even if the chat save throws.
+      const jev = await ProviderSetupApp.#saveJevKey.call(this);
+      if (jev) {
+        ui.notifications.info(game.i18n.localize(
+          jev === "cleared" ? "SIMPLYSF2E.ProviderSetup.JevCleared" : "SIMPLYSF2E.ProviderSetup.JevSaved"
+        ));
+      }
       await ProviderSetupApp.#saveSettings.call(this);
     } finally {
       this.#endBusy(state);
@@ -307,6 +367,7 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
     const busy = this.#beginBusy(target);
     if (!busy) return;
     try {
+      await ProviderSetupApp.#saveJevKey.call(this);
       const { provider, model, state } = await ProviderSetupApp.#saveSettings.call(this, { notify: false });
       const warningKey = getProviderAuthWarningKey(state);
       if (warningKey) throw new Error(game.i18n.localize(warningKey));

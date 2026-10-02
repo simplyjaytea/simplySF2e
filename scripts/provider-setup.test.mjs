@@ -90,7 +90,7 @@ const setCurrent = ({ baseUrl, model = "old-model", apiKey = "old-secret", bound
   values.set(SETTINGS.apiKeyBaseUrl, bound);
 };
 
-const submit = async ({ baseUrl, model, apiKey = "", clearApiKey = false, connectionName = "" }) => {
+const submit = async ({ baseUrl, model, apiKey = "", clearApiKey = false, connectionName = "", jevApiKey = "", clearJevApiKey = false, expectFail = false }) => {
   let saved = 0;
   const app = new ProviderSetupApp(() => { saved += 1; });
   const submitButton = makeButton("submit");
@@ -102,6 +102,8 @@ const submit = async ({ baseUrl, model, apiKey = "", clearApiKey = false, connec
     ["[name='apiKey']", { value: apiKey, disabled: false }],
     ["[name='clearApiKey']", { checked: clearApiKey, disabled: false }],
     ["[name='connectionName']", { value: connectionName, disabled: false }],
+    ["[name='jevApiKey']", { value: jevApiKey, disabled: false }],
+    ["[name='clearJevApiKey']", { checked: clearJevApiKey, disabled: false }],
     ["button[type='submit']", submitButton]
   ]);
   app.element = {
@@ -110,8 +112,34 @@ const submit = async ({ baseUrl, model, apiKey = "", clearApiKey = false, connec
     setAttribute: () => {},
     removeAttribute: () => {}
   };
+  if (expectFail) {
+    await assert.rejects(ProviderSetupApp.DEFAULT_OPTIONS.form.handler.call(app));
+    return;
+  }
   await ProviderSetupApp.DEFAULT_OPTIONS.form.handler.call(app);
   assert.equal(saved, 1, "successful setup must refresh the calling generator");
+};
+
+const jevAction = async ({ jevApiKey = "", clearJevApiKey = false, chatKey = "" }) => {
+  let rendered = 0;
+  const app = new ProviderSetupApp();
+  app.render = async () => { rendered += 1; };
+  const button = makeButton("jev");
+  button.querySelector = () => null;
+  const controls = new Map([
+    ["[name='jevApiKey']", { value: jevApiKey, disabled: false }],
+    ["[name='clearJevApiKey']", { checked: clearJevApiKey, disabled: false }],
+    ["[name='apiKey']", { value: chatKey, disabled: false }]
+  ]);
+  app.element = {
+    querySelector: (selector) => controls.get(selector) ?? null,
+    querySelectorAll: () => [button],
+    setAttribute: () => {},
+    removeAttribute: () => {}
+  };
+  await ProviderSetupApp.DEFAULT_OPTIONS.actions.saveJevKey.call(app, null, button);
+  assert.equal(rendered, 0, "Jev save must not re-render and discard unsaved chat fields");
+  assert.equal(controls.get("[name='apiKey']").value, chatKey, "typed chat key survives a Jev save");
 };
 
 setCurrent({ baseUrl: "https://old-provider.example/v1" });
@@ -341,5 +369,24 @@ await ProviderSetupApp.DEFAULT_OPTIONS.actions.deleteConnection.call(deleteApp);
 assert.equal(values.get(SETTINGS.providerBank).connections.length, 1, "delete keeps the remaining connection");
 assert.equal(getProviderRequestConfig().connectionName, "Home DeepSeek");
 assert.equal(getProviderRequestConfig().apiKey, "deepseek-secret");
+
+// Jev key: saveJevKey action (empty keeps, typed saves, clear removes).
+values.set(SETTINGS.jevApiKey, "");
+await jevAction({ jevApiKey: "  or-jev-1  ", chatKey: "typed-chat-key" });
+assert.equal(values.get(SETTINGS.jevApiKey), "or-jev-1", "typed Jev key is trimmed and saved");
+await jevAction({});
+assert.equal(values.get(SETTINGS.jevApiKey), "or-jev-1", "empty input keeps the stored Jev key");
+await jevAction({ clearJevApiKey: true });
+assert.equal(values.get(SETTINGS.jevApiKey), "", "clear box removes the Jev key");
+
+// A chat save that fails (no model) still keeps a Jev key typed before Save.
+setCurrent({ baseUrl: "https://api.openai.com/v1", model: "gpt-5.6-luna" });
+values.set(SETTINGS.jevApiKey, "");
+await submit({ baseUrl: "https://api.openai.com/v1", model: "", jevApiKey: "or-jev-2", expectFail: true });
+assert.equal(values.get(SETTINGS.jevApiKey), "or-jev-2", "Jev key is saved before the chat save can throw NoModel");
+
+// A chat-only save leaves the Jev key unchanged.
+await submit({ baseUrl: "https://api.openai.com/v1", model: "gpt-5.6-luna" });
+assert.equal(values.get(SETTINGS.jevApiKey), "or-jev-2", "chat-only save leaves the Jev key alone");
 
 console.log("provider-setup.test.mjs: setup save assertions passed");

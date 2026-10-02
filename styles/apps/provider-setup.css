@@ -128,7 +128,8 @@
   width: auto;
 }
 
-.simplysf2e .spf-provider-privacy {
+.simplysf2e .spf-provider-privacy,
+.simplysf2e .spf-jev-warning {
   margin: 0;
 }
 

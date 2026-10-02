@@ -73,6 +73,25 @@
     <p class="notification info spf-provider-privacy"><i class="fa-solid fa-shield-halved"></i> {{localize "SIMPLYSF2E.ProviderSetup.Privacy"}}</p>
   </fieldset>
 
+  <fieldset class="spf-card spf-provider-section spf-jev-section">
+    <legend>{{localize "SIMPLYSF2E.ProviderSetup.JevLegend"}}</legend>
+    <p class="hint">{{localize "SIMPLYSF2E.ProviderSetup.JevHint"}}</p>
+    <div class="form-group stacked">
+      <label for="spf-jev-api-key">{{localize "SIMPLYSF2E.ProviderSetup.JevKeyLabel"}}</label>
+      <div class="spf-model-picker">
+        <input id="spf-jev-api-key" type="password" name="jevApiKey" value="" spellcheck="false" autocomplete="new-password" placeholder="{{#if hasJevKey}}{{localize 'SIMPLYSF2E.ProviderSetup.JevKeySaved'}}{{else}}{{localize 'SIMPLYSF2E.ProviderSetup.JevKeyPlaceholder'}}{{/if}}">
+        <button type="button" data-action="saveJevKey"><i class="fa-solid fa-bolt"></i> {{localize "SIMPLYSF2E.ProviderSetup.SaveJevKey"}}</button>
+      </div>
+    </div>
+
+    <label class="spf-provider-clear-key spf-jev-clear" {{#unless hasJevKey}}hidden{{/unless}}>
+      <input type="checkbox" name="clearJevApiKey">
+      {{localize "SIMPLYSF2E.ProviderSetup.ClearJevKey"}}
+    </label>
+
+    <p class="notification warning spf-jev-warning"><i class="fa-solid fa-triangle-exclamation"></i> {{localize "SIMPLYSF2E.ProviderSetup.JevCorsWarning"}}</p>
+  </fieldset>
+
   <footer class="spf-actions">
     <button type="button" class="spf-primary" data-action="saveAndTest">
       <i class="fa-solid fa-signal"></i> {{localize "SIMPLYSF2E.ProviderSetup.SaveTest"}}

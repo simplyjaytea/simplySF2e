@@ -24,6 +24,9 @@ Conventions: "Generator" = the **SimplySF2e — Generator** window. "Forge" = th
 | 0.10 | Module Settings → SimplySF2e → **Compendium Sources** → **Configure Sources**. Before changing anything, read each category. | Every category (Bestiary Abilities, Spells, Feats, Equipment, Ancestries, Backgrounds, Classes, Class Features, Heritages, Bestiary Actors) lists packs, with the sf2e defaults marked "default" (`sf2e.classes`, `class-features`, `feats`, `spells`, `equipment`, `ancestries`, `heritages`, `backgrounds`, `bestiary-ability-glossary-srd`, `alien-core-bestiary`). | Sources window | | |
 | 0.11 | Click **Reset to defaults**, confirm the dialog, then **Save**. | "Compendium sources reset to the SF2e system pack defaults." then "Compendium sources saved." | Notifications | | |
 | 0.12 | Reopen the Generator. | Compendium Content row reads "Ready — N enabled packs"; no "Required compendium content is unavailable" message. | Generator | | |
+| 0.13 | Provider Setup → **Fast picks (Jev)** card: type an OpenRouter key and click **Save Jev key**. | "Jev key saved." The field is empty with the placeholder "A Jev key is saved — leave blank to keep it"; the key is not shown in plain text. A TypeSafe-direct key warning is visible. | Provider Setup | | |
+| 0.14 | Reopen Provider Setup; click **Save Jev key** with the field empty, then tick **Clear the saved Jev key** and click it again. | Empty click changes nothing. Clear shows "Jev key cleared." and the placeholder returns to "Optional: OpenRouter key". | Provider Setup | | |
+| 0.15 | Type a Jev key, leave the Model field empty, press **Save & Authorize**. | The chat save errors (model required) but reopening Provider Setup shows the Jev key is saved. | Provider Setup | | |
 
 ## 1. Presets and Manage Presets
 
@@ -323,13 +326,28 @@ Needs an OpenRouter connection, as 12b.
 | 12f.3 | Open Manage Presets with no presets, then with some. | Empty text points to New Preset / Import; each row button reads aloud as "Edit preset <name>" etc. | Presets | | |
 | 12f.4 | Item Forge Level and Rarity row. | Labels share one line and the fields sit together. | Item Forge | | |
 
-## 12g. U6 Compendium Sources flow
+## 12g. Generator UI fixes (U5a)
+
+Things the preview harness cannot show: real Foundry fonts, tooltips and a screen reader.
+
+| # | Step | Expected | Where to look | Result | Evidence |
+|---|------|----------|---------------|--------|----------|
+| 12g.1 | Tab with the keyboard onto Generate (and onto "Advanced options"). | A cyan ring is drawn all the way around the button (its notched corner squares off while focused); the summary shows the same ring. | Generator | | |
+| 12g.2 | Start a generation with a screen reader on. | One announcement per step change (the new step name (for example "Spell selection")); no announcement on every percent tick; Cancel announces "Cancelling". | Progress card | | |
+| 12g.3 | Encounter preview: raise members until XP is over budget; set one member to x0. | The over-budget number is light red with a red border; the x0 card shows a "Skipped" tag and stays readable. | Encounter preview | | |
+| 12g.4 | Set a Sources category to an empty/uninstalled pack, reopen the Generator. | Compendium row says "...unavailable: Spells, Feats." with names, not ids. | Status strip | | |
+| 12g.5 | Reskin mode, nothing dropped. | Empty hint tells you to drop an NPC. | Generator | | |
+| 12g.6 | Hover a long connection or model name in the status strip. | Full name appears in a tooltip. | Status strip | | |
+| 12g.7 | Create one actor. | Completion card reads `Created actor "Name".` | Generator | | |
+| 12g.8 | A "found" check and the not-found glyph (character preview, a spell the pack lacks). | Check is clearly green, not-found glyph is red, in all rows. | Preview | | |
+
+## 12h. U6 Compendium Sources flow
 
 | # | Do | Expect | Where | Pass | Notes |
 | --- | --- | --- | --- | --- | --- |
-| 12g.1 | Tick a pack, then click **Reset to defaults** and choose **No**. | A confirm dialog appears; No changes nothing and keeps your ticks. Yes resets and shows the "reset" notice. | Sources | | |
-| 12g.2 | Shrink the Sources window so the list scrolls. | **Save** and **Reset to defaults** stay pinned at the bottom while the categories scroll under them. | Sources | | |
-| 12g.3 | With every compendium pack disabled in the world, open Sources. | One "No compendium packs…" message, not one per category, and **Save** is disabled. | Sources | | |
+| 12h.1 | Tick a pack, then click **Reset to defaults** and choose **No**. | A confirm dialog appears; No changes nothing and keeps your ticks. Yes resets and shows the "reset" notice. | Sources | | |
+| 12h.2 | Shrink the Sources window so the list scrolls. | **Save** and **Reset to defaults** stay pinned at the bottom while the categories scroll under them. | Sources | | |
+| 12h.3 | With every compendium pack disabled in the world, open Sources. | One "No compendium packs…" message, not one per category, and **Save** is disabled. | Sources | | |
 
 ## 13. Firefox (if available)
 

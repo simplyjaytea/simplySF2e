@@ -4,6 +4,7 @@ export const SETTINGS = {
   apiBaseUrl: "apiBaseUrl",
   apiKey: "apiKey",
   apiKeyBaseUrl: "apiKeyBaseUrl",
+  jevApiKey: "jevApiKey",
   model: "model",
   providerBank: "providerBank",
   temperature: "temperature",
@@ -101,6 +102,20 @@ export function registerSettings(SourcesConfigApp, ProviderSetupApp) {
     type: String,
     default: "",
     onChange: clearApiKeyBindingForChangedKey
+  });
+
+  // Jev key: a key-only field on OpenRouter's fixed /systemone endpoint, kept
+  // outside the connection bank because it is not a chat connection. There is
+  // exactly one endpoint it can ever be sent to (JEV_ENDPOINT in jev.mjs), so
+  // there is nothing to bind it against, unlike apiKey above.
+  game.settings.register(MODULE_ID, SETTINGS.jevApiKey, {
+    name: "SIMPLYSF2E.Settings.JevApiKey.Name",
+    hint: "SIMPLYSF2E.Settings.JevApiKey.Hint",
+    scope: "client",
+    config: false,
+    restricted: true,
+    type: String,
+    default: ""
   });
 
   game.settings.register(MODULE_ID, SETTINGS.model, {
@@ -547,6 +562,11 @@ export function getProviderRequestConfig() {
       active: connection.id === bank.activeId
     }))
   };
+}
+
+/** The separate Jev key (`{ apiKey }`, trimmed; "" when unset). */
+export function getJevRequestConfig() {
+  return { apiKey: String(getSetting(SETTINGS.jevApiKey) ?? "").trim() };
 }
 
 /** Localization key for a useful provider-auth warning, or null when ready. */

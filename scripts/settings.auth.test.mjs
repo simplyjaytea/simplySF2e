@@ -254,6 +254,10 @@ assert.equal(
   "deepseek-v4-flash",
   "fresh installs must use a current DeepSeek model identifier"
 );
+const jevConfig = registrations.get(SETTINGS.jevApiKey);
+assert.equal(jevConfig?.scope, "client", "the Jev key must remain local to the GM client");
+assert.equal(jevConfig?.config, false, "the Jev key must not appear as plaintext in Foundry's settings form");
+assert.equal(jevConfig?.restricted, true, "the Jev key must be GM-restricted");
 const bankConfig = registrations.get(SETTINGS.providerBank);
 assert.equal(bankConfig?.scope, "client", "connection profiles must remain local to the GM client");
 assert.equal(

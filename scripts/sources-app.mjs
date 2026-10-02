@@ -1,20 +1,7 @@
 import { MODULE_ID, SETTINGS, getSetting } from "./settings.mjs";
-import { CATEGORIES, DEFAULT_PACKS, detectAvailablePacks } from "./compendium.mjs";
+import { CATEGORIES, CATEGORY_LABELS, DEFAULT_PACKS, detectAvailablePacks } from "./compendium.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
-
-const CATEGORY_LABELS = {
-  abilities: "SIMPLYSF2E.Sources.Abilities",
-  spells: "SIMPLYSF2E.Sources.Spells",
-  feats: "SIMPLYSF2E.Sources.Feats",
-  equipment: "SIMPLYSF2E.Sources.Equipment",
-  ancestries: "SIMPLYSF2E.Sources.Ancestries",
-  backgrounds: "SIMPLYSF2E.Sources.Backgrounds",
-  classes: "SIMPLYSF2E.Sources.Classes",
-  classFeatures: "SIMPLYSF2E.Sources.ClassFeatures",
-  heritages: "SIMPLYSF2E.Sources.Heritages",
-  bestiaryActors: "SIMPLYSF2E.Sources.BestiaryActors"
-};
 
 /**
  * Settings menu: scan the world's Item compendiums and let the GM choose

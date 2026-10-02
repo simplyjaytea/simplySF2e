@@ -67,6 +67,7 @@ const mocks = {
   dedupeLootAgainstEquipment: (loot) => loot, enforceNamedLootBudget: (loot) => loot,
   applyTreasureBudget: async (loot) => { budgetStarted?.(); if (budgetPending) await budgetPending; return loot; },
   pcStartingWealthGp: () => 0, equipmentValueGp: () => 0, lootValueGp: () => 0, parseCoins: () => null,
+  describeMissingSources: (missing = []) => missing.join(", "),
   createCharacterActor: async () => { creates++; if (createFailure) throw createFailure; return { actor, skillReport }; }
 };
 const source = await readFile(new URL("./generator-app.mjs", import.meta.url), "utf8");
