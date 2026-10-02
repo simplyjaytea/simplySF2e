@@ -2,7 +2,6 @@ import {
   SETTINGS, chatCompletionsUrl, getSetting, getProviderRequestConfig, isOfficialDeepSeekEndpoint,
   isOfficialOpenAIEndpoint, modelsUrl, resolveProviderModel
 } from "./settings.mjs";
-import { propertyRuneRestrictionNote } from "./runes.mjs";
 import { AI_TASK, completionOptionsFor } from "./ai-task-profiles.mjs";
 import { estimateTokens, normalizeUsage } from "./tokens.mjs";
 import { encodeFeatCandidateSlots, resolveEncodedFeatPicks } from "./ai-candidate-format.mjs";
@@ -1118,10 +1117,7 @@ export async function generateRunedItemConcept({
   }).join("; ");
 
   const runeList = runeCandidates.length
-    ? runeCandidates.map((c) => {
-      const note = propertyRuneRestrictionNote(c.usage);
-      return `${c.name} (L${c.level}${note ? `, ${note}` : ""})`;
-    }).join("; ")
+    ? runeCandidates.map((c) => `${c.name} (L${c.level})`).join("; ")
     : "(none available at this level)";
 
   const system = `You are an expert Starfinder 2e ${kind} designer. In Starfinder 2e, weapons and armor scale by equipment grade (commercial, tactical, advanced, superior, elite, ultimate, paragon) and can install upgrades/modules into upgrade slots.
@@ -1144,8 +1140,7 @@ ${runeList}
 
 Design guidance:
 - Never emit numeric fields, dice formulas, or code. Copy names and choose the offered grade enums; the module supplies all values.
-- Pick a base ${kind}, an appropriate grade, and compatible upgrades that tell a clear story for the GM's concept.${kind === "armor" ? `
-- An upgrade marked "light armor only" / "heavy armor only" / "medium/heavy armor only" may ONLY be picked when the chosen base armor's category matches — a mismatched upgrade is dropped.` : ""}`;
+- Pick a base ${kind}, an appropriate grade, and compatible upgrades that tell a clear story for the GM's concept.`;
   const user = [
     `${kind === "weapon" ? "Weapon" : "Armor"} target level: ${level}`,
     `Rarity: ${rarity}`,

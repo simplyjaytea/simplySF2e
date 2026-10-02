@@ -61,7 +61,7 @@ assert.deepEqual(itemData.system.runes, { potency: 0, striking: 0, property: [] 
   "SF2e equipment zeroes legacy runes");
 assert.equal(preview.grade, "tactical");
 assert.equal(preview.priceCredits, 1010, "Tactical weapon (350 cr) + base 1 gp (10 cr) + Striking upgrade 65 gp (650 cr) = 1010 credits");
-assert.equal(preview.level, 4, "Preview level is max of base (0), grade tactical (2), and upgrade Striking (4)");
+assert.equal(preview.level, 2, "Preview level is max of base (0) and grade tactical (2); installed upgrades do not raise it (physical/helpers.ts computeLevelRarityPrice)");
 assert.equal(itemData.name, "Longsword (Tactical: Striking)");
 assert.equal(itemData.system.subitems.length, 1, "Subitems array contains installed upgrade");
 assert.ok(itemData.system.subitems[0]._id, "Subitem retains a valid unique _id");

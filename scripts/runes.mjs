@@ -40,9 +40,13 @@ export const SECONDARY_RUNE_FIELD = { weapon: "striking", armor: "resilient" };
 /* Item types that can carry runes or grades at all. */
 export const RUNED_ITEM_KINDS = new Set(["weapon", "armor"]);
 
-/* SF2e Equipment Grades and level thresholds.
- * In SF2e (CTASEUP): commercial (0), tactical (2w/5a), advanced (4w/8a),
- * superior (10w/11a), elite (12w/14a), ultimate (16w/18a), paragon (19w/20a).
+/* SF2e equipment grades, levels, and credit prices. GRADE_LEVELS and
+ * GRADE_CREDITS_DELTA copy foundryvtt/pf2e v14-dev src/scripts/config/index.ts
+ * `weaponImprovements` / `armorImprovements` (level and credits columns), e.g.
+ *   tactical: { level: 2, tracking: 1, dice: 1, credits: 350 },      // weapon
+ *   tactical: { level: 5, bonus: 1, resilient: 0, credits: 1600 },   // armor
+ * The system's getGradeData (src/module/item/physical/helpers.ts) reads the
+ * same tables, so these only drive the forge preview.
  */
 export const EQUIPMENT_GRADES = [
   "commercial", "tactical", "advanced", "superior", "elite", "ultimate", "paragon"
@@ -84,44 +88,22 @@ export function parseUpgradeCapacity(desc, kind = "weapon") {
   return kind === "weapon" ? 1 : 0;
 }
 
-/* Real system.usage.value strings marking a property rune / upgrade module as valid for a
- * weapon vs. armor, with the armor-category constraint each armor usage
- * encodes (null = any category). Includes both classic PF2e usages and native SF2e installed usages.
+/* Upgrade usages the forge installs. Upstream (v14-dev
+ * src/scripts/config/usage.ts WEAPON_UPGRADES / ARMOR_UPGRADES) lets a graded
+ * weapon or armor hold only "installed-in-*" upgrades; PF2e "etched-onto-*"
+ * runes are never accepted, and no sf2e equipment uses them. The other
+ * installed usages ("installed-in-a-weapon-sight", "installed-in-two-handed-weapon",
+ * "installed-in-armor-with-the-exposed-trait", ...) depend on base-item traits
+ * the forge does not check, so they fail closed.
  */
-export const WEAPON_UPGRADE_USAGES = new Set([
-  "etched-onto-a-weapon",
-  "installed-in-a-weapon"
-]);
+export const WEAPON_UPGRADE_USAGES = new Set(["installed-in-a-weapon"]);
+export const ARMOR_UPGRADE_USAGES = new Set(["installed-in-armor"]);
 const WEAPON_RUNE_USAGE = WEAPON_UPGRADE_USAGES;
-
-const ARMOR_RUNE_USAGE_CATEGORIES = new Map([
-  ["etched-onto-armor", null],
-  ["etched-onto-light-armor", ["light"]],
-  ["etched-onto-heavy-armor", ["heavy"]],
-  ["etched-onto-med-heavy-armor", ["medium", "heavy"]],
-  ["installed-in-armor", null]
-]);
-export const ARMOR_UPGRADE_USAGES = new Set(ARMOR_RUNE_USAGE_CATEGORIES.keys());
 const ARMOR_RUNE_USAGE = ARMOR_UPGRADE_USAGES;
 
-/**
- * Whether a property rune or installed upgrade (by its real usage string) may be attached onto a
- * base item of this kind and system.category.
- */
-export function propertyRuneFitsBase(kind, usage, category) {
-  if (kind !== "armor") return WEAPON_UPGRADE_USAGES.has(usage);
-  const allowed = ARMOR_RUNE_USAGE_CATEGORIES.get(usage);
-  if (allowed === undefined) return false;
-  return allowed === null || allowed.includes(category);
-}
-/**
- * Short human-readable note for a category-restricted armor rune usage
- * ("light armor only"), or null when the usage carries no restriction —
- * shown next to each candidate so the AI can pick runes that fit its base.
- */
-export function propertyRuneRestrictionNote(usage) {
-  const allowed = ARMOR_RUNE_USAGE_CATEGORIES.get(usage);
-  return allowed ? `${allowed.join("/")} armor only` : null;
+/** Whether an upgrade (by its real usage string) may be installed in a base item of this kind. */
+export function propertyRuneFitsBase(kind, usage) {
+  return (kind === "armor" ? ARMOR_UPGRADE_USAGES : WEAPON_UPGRADE_USAGES).has(usage);
 }
 
 /* -------------------- parsing runes out of a name -------------------- */

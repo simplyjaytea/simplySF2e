@@ -218,26 +218,13 @@ export function normalizeRunedItemConcept(raw, {
   let grade = "commercial";
   if (availableGrades.includes(gradeChoice)) {
     grade = gradeChoice;
-  } else if (c.potency) {
-    // Backward compatibility: map legacy potency "single"/"double"/"triple" to tactical/superior/ultimate
-    const legacyMap = { single: "tactical", double: "superior", triple: "ultimate" };
-    const mapped = legacyMap[c.potency];
-    if (mapped && availableGrades.includes(mapped)) grade = mapped;
-    else if (availableGrades.length) grade = availableGrades[availableGrades.length - 1];
   } else {
+    if (c.grade) console.warn(`simplysf2e | itemforge: unknown grade "${c.grade}", using ${availableGrades[0] ?? "commercial"}`);
     grade = availableGrades[0] ?? "commercial";
   }
 
-  // Legacy potency/secondary representation for callers expecting it
-  const potency = grade === "ultimate" || grade === "paragon" ? 3
-    : grade === "superior" || grade === "elite" ? 2
-    : grade === "tactical" || grade === "advanced" ? 1 : 0;
-  const secondaryTier = grade === "elite" || grade === "paragon" ? 3
-    : grade === "advanced" || grade === "ultimate" ? 2
-    : grade === "tactical" || grade === "superior" ? 1 : 0;
-
-  // Capacity: base item's published upgrade slots in SF2e, or potency for classic rune callers
-  const maxSlots = base?.upgradeSlots != null ? base.upgradeSlots : Math.max(potency, 1);
+  // Upgrade slots come from the base candidate (see runes.parseUpgradeCapacity).
+  const maxSlots = base.upgradeSlots ?? 0;
   const propertyRunes = [];
   const seen = new Set();
   const requestedUpgrades = Array.isArray(c.upgrades) ? c.upgrades
@@ -250,8 +237,8 @@ export function normalizeRunedItemConcept(raw, {
       if (name) console.warn(`simplysf2e | itemforge: dropped unmatched upgrade/rune "${name}"`);
       continue;
     }
-    if (!propertyRuneFitsBase(kind, match.usage, base?.category)) {
-      console.warn(`simplysf2e | itemforge: dropped upgrade "${match.name}" (${match.usage}) — not installable onto ${base?.category ?? "unknown-category"} ${kind} "${base?.name}"`);
+    if (!propertyRuneFitsBase(kind, match.usage)) {
+      console.warn(`simplysf2e | itemforge: dropped upgrade "${match.name}" (${match.usage}) — not installable in ${kind} "${base.name}"`);
       continue;
     }
     const key = slugify(match.name);
@@ -264,8 +251,6 @@ export function normalizeRunedItemConcept(raw, {
     kind,
     baseItemName: base?.name ?? null,
     grade,
-    potency,
-    secondaryTier,
     propertyRunes,
     upgrades: propertyRunes,
     rarity: RARITIES.has(rarity) ? rarity : RARITIES.has(c.rarity) ? c.rarity : "common",
@@ -276,8 +261,8 @@ export function normalizeRunedItemConcept(raw, {
 /**
  * Assemble the Foundry item data for a normalized runed-item concept: the
  * REAL base item document, with system.runes set from the chosen tiers, a
- * transient preview price from its real rune components, a transient preview
- * level that is the max level among base/rune documents, and
+ * transient preview price from its real components, a transient preview
+ * level that is the max of base and grade level, and
  * a name built from the standard PF2e
  * "+N [secondary] [property runes] [base name]" convention.
  * @returns {Promise<{itemData: object, preview: {priceGp: number, level: number}}>}
@@ -325,12 +310,10 @@ export async function buildRunedItem(concept) {
   const totalGp = baseGp + (gradeCreditDelta / 10) + upgradeGpSum;
   const totalCredits = (baseGp * 10) + gradeCreditDelta + (upgradeGpSum * 10);
 
+  // Same as the system's computeLevelRarityPrice: max of item and grade
+  // level. Installed upgrades do not raise the item's level.
   const gradeLevel = (GRADE_LEVELS[concept.kind] && GRADE_LEVELS[concept.kind][grade]) ?? 0;
-  const level = Math.max(
-    data.system.level?.value ?? 0,
-    gradeLevel,
-    ...upgradeDocs.map((d) => d.system.level?.value ?? 0)
-  );
+  const level = Math.max(data.system.level?.value ?? 0, gradeLevel);
 
   // SF2e published naming convention: "{Base Name} ({Grade})" or with upgrades
   const gradeLabel = capitalized(grade);
