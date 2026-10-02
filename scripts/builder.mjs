@@ -23,7 +23,9 @@ const SPEED_TYPES = new Set(["land", "fly", "swim", "climb", "burrow"]);
 const STANDARD_SKILLS = new Set([
   "acrobatics", "arcana", "athletics", "crafting", "deception", "diplomacy",
   "intimidation", "medicine", "nature", "occultism", "performance", "religion",
-  "society", "stealth", "survival", "thievery"
+  "society", "stealth", "survival", "thievery",
+  // sf2e adds these when SYSTEM_ID === "sf2e" (pf2e v14-dev src/scripts/config/index.ts)
+  "computers", "piloting"
 ]);
 
 /*
@@ -994,7 +996,7 @@ const DAMAGE_TYPES =
   "acid|bludgeoning|cold|electricity|fire|force|mental|piercing|poison|slashing|sonic|spirit|vitality|void|bleed|precision|untyped";
 const SAVE_TYPES = "fortitude|reflex|will";
 const CHECK_TYPES =
-  "acrobatics|arcana|athletics|crafting|deception|diplomacy|intimidation|medicine|nature|occultism|performance|religion|society|stealth|survival|thievery|perception|flat";
+  "acrobatics|arcana|athletics|crafting|deception|diplomacy|intimidation|medicine|nature|occultism|performance|religion|society|stealth|survival|thievery|computers|piloting|perception|flat";
 
 /**
  * Turn conventional rules phrasing in AI ability text into PF2e inline
@@ -1305,11 +1307,20 @@ export async function createActor(concept, resolved, { img = null, scaffold = nu
   const stats = computeStats(concept);
   const items = [];
 
-  // Skills → lore items (the PF2e NPC skill representation)
+  // Core skills are NPC source data: system.skills.<slug>.base (v14-dev
+  // npc/data.ts NPCSkillSource; npc/document.ts marks a skill proficient when
+  // `slug in this._source.system.skills`). Only Lore skills are lore items:
+  // item/lore.ts sluggifyLoreName appends "-lore" to any other name, so a
+  // "Stealth" lore item would become a separate stealth-lore skill.
+  const skills = {};
   for (const skill of stats.skills) {
-    const isLore = !STANDARD_SKILLS.has(slugify(skill.name).replaceAll("-", ""));
+    const slug = slugify(skill.name).replaceAll("-", "");
+    if (STANDARD_SKILLS.has(slug)) {
+      skills[slug] = { base: skill.mod };
+      continue;
+    }
     items.push({
-      name: isLore ? skill.name : capitalized(skill.name),
+      name: skill.name,
       type: "lore",
       img: systemIcon("icons/default-icons/lore.svg"),
       system: { mod: { value: skill.mod } }
@@ -1500,6 +1511,7 @@ export async function createActor(concept, resolved, { img = null, scaffold = nu
           return sense;
         })
       },
+      skills,
       saves: {
         fortitude: { value: stats.saves.fortitude, saveDetail: "" },
         reflex: { value: stats.saves.reflex, saveDetail: "" },

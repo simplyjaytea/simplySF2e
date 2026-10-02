@@ -135,7 +135,7 @@ JSON schema (all keys required unless marked optional):
   "saveScales": { "fortitude": SCALE5, "reflex": SCALE5, "will": SCALE5 },
   "speeds": [ { "type": "land"|"fly"|"swim"|"climb"|"burrow", "value": number } ], // multiples of 5; include land unless immobile
   "senses": [ { "type": string, "acuity": "precise"|"imprecise"|"vague"|null, "range": number|null } ], // e.g. darkvision, scent
-  "skills": [ { "name": string, "scale": "extreme"|"high"|"moderate"|"low" } ], // 2-5; standard skill names or "<Topic> Lore"
+  "skills": [ { "name": string, "scale": "extreme"|"high"|"moderate"|"low" } ], // 2-5; standard skill names (Starfinder includes Computers and Piloting) or "<Topic> Lore"
   "strikes": [ // 1-4 strikes (including any feat attacks — see "feats")
     {
       "name": string, // e.g. "jaws", "rusted glaive"
