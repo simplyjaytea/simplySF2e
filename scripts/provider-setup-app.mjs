@@ -25,6 +25,7 @@ const LOCAL_PRESET_IDS = new Set(["ollama", "lmstudio", "custom"]);
 export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) {
   #onSaved;
   #selectedPreset = null;
+  #enterBound = false;
   #availableModels = [];
   #modelsBaseUrl = "";
   #busy = false;
@@ -107,13 +108,15 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
       }
     });
     // Enter in a field runs the visual primary (Save & Test), not the plain submit button.
-    this.element.addEventListener?.("keydown", (event) => {
+    // The form element survives re-renders, so bind it only once.
+    if (!this.#enterBound) this.element.addEventListener?.("keydown", (event) => {
       if (event.key !== "Enter" || event.isComposing || event.defaultPrevented) return;
       const field = event.target;
       if (field?.tagName !== "INPUT" || ["checkbox", "button", "submit"].includes(field.type)) return;
       event.preventDefault();
       this.element.querySelector("[data-action='saveAndTest']")?.click();
     });
+    this.#enterBound = true;
     this.element.querySelector("[name='activeConnection']")?.addEventListener("change", (event) =>
       ProviderSetupApp.#switchConnection.call(this, event.currentTarget.value)
     );
