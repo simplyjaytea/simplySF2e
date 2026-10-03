@@ -13,10 +13,21 @@ export const SETTINGS = {
   requestTimeout: "requestTimeout",
   sourcePacks: "sourcePacks",
   customPresets: "customPresets",
-  freeArchetype: "freeArchetype"
+  freeArchetype: "freeArchetype",
+  welcomeDismissed: "welcomeDismissed"
 };
 
-export function registerSettings(SourcesConfigApp, ProviderSetupApp) {
+export function registerSettings(SourcesConfigApp, ProviderSetupApp, WelcomeApp) {
+  if (WelcomeApp) {
+    game.settings.registerMenu(MODULE_ID, "welcomeMenu", {
+      name: "SIMPLYSF2E.Welcome.MenuName",
+      label: "SIMPLYSF2E.Welcome.MenuLabel",
+      hint: "SIMPLYSF2E.Welcome.MenuHint",
+      icon: "fa-solid fa-rocket",
+      type: WelcomeApp,
+      restricted: true
+    });
+  }
   if (ProviderSetupApp) {
     game.settings.registerMenu(MODULE_ID, "providerSetupMenu", {
       name: "SIMPLYSF2E.ProviderSetup.MenuName",
@@ -43,6 +54,16 @@ export function registerSettings(SourcesConfigApp, ProviderSetupApp) {
     config: false,
     type: Object,
     default: {}
+  });
+
+  // "Don't show this again" on the first-run welcome. Client scope: the AI
+  // connection the welcome checks is itself per browser, so each GM browser
+  // decides for itself.
+  game.settings.register(MODULE_ID, SETTINGS.welcomeDismissed, {
+    scope: "client",
+    config: false,
+    type: Boolean,
+    default: false
   });
 
   // GM-created generation presets, managed from the generator dialog.

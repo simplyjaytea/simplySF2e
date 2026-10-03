@@ -1,11 +1,14 @@
-import { MODULE_ID, registerSettings } from "./settings.mjs";
+import { MODULE_ID, SETTINGS, getSetting, getProviderAuthWarningKey, registerSettings } from "./settings.mjs";
 import { GeneratorApp } from "./generator-app.mjs";
 import { ItemForgeApp } from "./itemforge-app.mjs";
 import { SourcesConfigApp } from "./sources-app.mjs";
 import { ProviderSetupApp } from "./provider-setup-app.mjs";
+import { WelcomeApp } from "./welcome-app.mjs";
+import { shouldAutoOpenWelcome } from "./welcome.mjs";
 
 let app = null;
 let itemForgeApp = null;
+let welcomeApp = null;
 
 function canOpenApps() {
   if (game.system?.id !== "sf2e") {
@@ -31,6 +34,16 @@ function openItemForge() {
   itemForgeApp ??= new ItemForgeApp();
   itemForgeApp.render(true);
   return itemForgeApp;
+}
+
+function openWelcome() {
+  if (!canOpenApps()) return null;
+  // The settings menu builds its own instance with the same id; reuse
+  // whichever one is live so a cached copy is never left detached.
+  const live = foundry.applications.instances?.get?.(WelcomeApp.DEFAULT_OPTIONS.id);
+  welcomeApp = live ?? new WelcomeApp({}, openGenerator);
+  welcomeApp.render(true);
+  return welcomeApp;
 }
 
 function addDirectoryButton(html, { markerClass, icon, label, onClick, placement = "header" }) {
@@ -63,7 +76,7 @@ function addDirectoryButton(html, { markerClass, icon, label, onClick, placement
 }
 
 Hooks.once("init", () => {
-  registerSettings(SourcesConfigApp, ProviderSetupApp);
+  registerSettings(SourcesConfigApp, ProviderSetupApp, WelcomeApp);
   if (!Handlebars.helpers.eq) {
     Handlebars.registerHelper("eq", (a, b) => a === b);
   }
@@ -82,10 +95,26 @@ Hooks.once("ready", () => {
     }
     return;
   }
-  // Macro/console API: game.modules.get("simplysf2e").api.open()
-  // and .openItemForge() for the magic item forge.
+  // Macro/console API: game.modules.get("simplysf2e").api.open(),
+  // .openItemForge() for the magic item forge and .openWelcome().
   const module = game.modules.get(MODULE_ID);
-  module.api = { open: openGenerator, openItemForge };
+  module.api = { open: openGenerator, openItemForge, openWelcome };
+
+  // First-run welcome ("Until ready", JT 2026-10-03). Players never read the
+  // settings; a failure here must not break the rest of the module's ready.
+  if (!game.user.isGM) return;
+  try {
+    if (shouldAutoOpenWelcome({
+      isGM: true,
+      systemId: game.system.id,
+      dismissed: getSetting(SETTINGS.welcomeDismissed),
+      providerReady: !getProviderAuthWarningKey()
+    })) {
+      openWelcome();
+    }
+  } catch (err) {
+    console.warn(`${MODULE_ID} | could not open the welcome window`, err);
+  }
 });
 
 /* Add a "SimplySF2e" button to the Actors directory header (GM only). */
@@ -166,6 +195,7 @@ Hooks.on("pf2e.restForTheNight", async (actor) => {
  * Usage:
  *   /sf2e
  *   /sf2e itemforge
+ *   /sf2e welcome
  *   /sf2e [monster|npc|character|encounter] [level] [prompt]
  */
 Hooks.on("chatMessage", (_chatLog, message, _chatData) => {
@@ -178,6 +208,11 @@ Hooks.on("chatMessage", (_chatLog, message, _chatData) => {
   const args = trimmed.slice(command[0].length).trim();
   if (!args) {
     openGenerator();
+    return false;
+  }
+
+  if (/^welcome\b/i.test(args)) {
+    openWelcome();
     return false;
   }
 
