@@ -68,7 +68,8 @@ export class WelcomeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     await super._onRender(context, options);
     const checkbox = this.element.querySelector('input[name="dismissed"]');
     checkbox?.addEventListener("change", (event) => {
-      game.settings.set(MODULE_ID, SETTINGS.welcomeDismissed, event.currentTarget.checked);
+      game.settings.set(MODULE_ID, SETTINGS.welcomeDismissed, event.currentTarget.checked)
+        .catch((err) => console.warn(`${MODULE_ID} | could not save the welcome setting`, err));
     });
   }
 

@@ -38,7 +38,10 @@ function openItemForge() {
 
 function openWelcome() {
   if (!canOpenApps()) return null;
-  welcomeApp ??= new WelcomeApp({}, openGenerator);
+  // The settings menu builds its own instance with the same id; reuse
+  // whichever one is live so a cached copy is never left detached.
+  const live = foundry.applications.instances?.get?.(WelcomeApp.DEFAULT_OPTIONS.id);
+  welcomeApp = live ?? new WelcomeApp({}, openGenerator);
   welcomeApp.render(true);
   return welcomeApp;
 }

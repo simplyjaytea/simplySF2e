@@ -17,11 +17,12 @@ globalThis.Hooks = {
 let generatorOpenCalls = 0;
 let itemForgeOpenCalls = 0;
 let lastAppInput = null;
+const rendered = [];
 globalThis.foundry = {
   applications: {
     api: {
       ApplicationV2: class {
-        render() { return this; }
+        render() { rendered.push(this.constructor.name); return this; }
       },
       HandlebarsApplicationMixin: (Base) => class extends Base {},
       DialogV2: {}
@@ -71,7 +72,9 @@ assert.equal(handleChat("/sf2e"), false, "/sf2e command intercepted");
 assert.equal(handleChat("/sf2e itemforge"), false, "/sf2e itemforge intercepted");
 
 // 3b. /sf2e welcome opens the welcome window
+rendered.length = 0;
 assert.equal(handleChat("/sf2e welcome"), false, "/sf2e welcome intercepted");
+assert.deepEqual(rendered, ["WelcomeApp"], "/sf2e welcome opens the welcome window, not another app");
 
 // 4. Non-GM users cannot execute (command is intercepted and blocked with warning, returning false)
 game.user.isGM = false;
