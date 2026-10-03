@@ -350,6 +350,11 @@
 
 /* The module's preset edit and import dialogs are core DialogV2 windows
    without the .simplysf2e class; their content scrolls on a short screen. */
+/* The wrapper is only a hook; core's form layout and row gap stay intact. */
+.spf-dialog-body {
+  display: contents;
+}
+
 .application:has(.spf-dialog-body) {
   max-height: 100vh;
 }

@@ -713,5 +713,7 @@ assert.match(
   /\.application:has\(\.spf-dialog-body\) \.window-content\s*\{[^}]*overflow-y:\s*auto;/s,
   "preset dialogs must scroll on a short screen"
 );
+assert.match(css, /\.spf-dialog-body\s*\{[^}]*display:\s*contents;/s, "the dialog wrapper must not change core's form layout");
+assert.match(appBase, /addEventListener\("wheel"[\s\S]*?input\[type='number'\][\s\S]*?\.blur\(\)/, "the wheel must scroll, not step a focused number box");
 
 console.log("UI layout contract checks passed.");
