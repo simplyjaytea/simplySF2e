@@ -251,10 +251,10 @@ export function shapeSense({ type, acuity = null, range = null }) {
 
 /*
  * Model text for a narrative-only ability must not carry rules. Dice, a DC or
- * a Hit Point amount would read as a working mechanic the module never built,
+ * a Hit Point or damage amount would read as a working mechanic the module never built,
  * so such an ability is dropped rather than shown.
  */
-const NARRATIVE_MECHANICS = /\b\d+d\d+\b|\bDC\s*\d+|\b\d+\s*(?:hit points|hp)\b/i;
+const NARRATIVE_MECHANICS = /\b\d+d\d+\b|\bDC\s*\d+|\b\d+\s*(?:hit points|hp)\b|\b\d+\s+(?:[a-z]+\s+)?damage\b/i;
 
 /** True when narrative-only text reads like a rule (dice, a DC, Hit Points). */
 export function narrativeHasMechanics(text) {
@@ -305,7 +305,12 @@ export function strikeFromWeapon(strike, weapon, allowedTraits = null) {
   const reload = String(system.reload?.value ?? "");
   if (/^\d+$/.test(reload)) traits.push(`reload-${reload}`);
   if (Number.isInteger(system.expend) && system.expend > 0) traits.push(`expend-${system.expend}`);
-  const kept = filterAllowed([...new Set(traits)], allowedTraits ?? pf2eChoiceSet("npcAttackTraits") ?? new Set(), "NPC attack traits");
+  // Published NPCs fire grenades and area weapons (Frag Grenade, Plasma
+  // Cannon) as a strike with a maximum range and no grenade or area trait.
+  const isArea = traits.some((trait) => trait === "grenade" || /^area-/.test(trait));
+  const allowed = allowedTraits ?? pf2eChoiceSet("npcAttackTraits") ?? new Set();
+  let kept = filterAllowed([...new Set(traits)], allowed, "NPC attack traits")
+    .filter((trait) => !isArea || (trait !== "grenade" && !/^area-/.test(trait)));
   const damageType = slugify(system.damage?.damageType);
   const validDamage = (pf2eChoiceSet("damageTypes") ?? STRIKE_DAMAGE_TYPES).has(damageType);
   const thrownRange = thrownRangeFromTraits(kept);
@@ -313,17 +318,24 @@ export function strikeFromWeapon(strike, weapon, allowedTraits = null) {
   // A weapon with its own range is a ranged weapon; one without fights in
   // melee unless the model chose to throw a thrown weapon.
   const type = weaponRange != null ? "ranged" : strike.type === "ranged" && thrownRange != null ? "ranged" : "melee";
-  return {
+  // pf2e melee/document.ts gives any strike with a thrown-N trait a range,
+  // which makes it ranged; published melee strikes of thrown weapons
+  // (Ichor Lord's Aucturnite Chakram) leave the trait off.
+  if (type === "melee") kept = kept.filter((trait) => !/^thrown-\d+$/.test(trait));
+  const result = {
     ...strike,
     type,
     damageType: validDamage ? damageType : strike.damageType,
     traits: kept,
     range: type === "ranged" ? weaponRange ?? thrownRange : null
   };
+  if (isArea && type === "ranged") result.rangeMax = true;
+  else delete result.rangeMax;
+  return result;
 }
 
 /**
- * Pair each strike with a carried published weapon whose name it contains
+ * Pair each strike with a carried published weapon whose name ends it
  * ("rusted laser pistol" uses the Laser Pistol), longest name first, and
  * rebuild the strike from that weapon. Strikes with no matching weapon
  * (claws, jaws) keep their validated draft values.
@@ -337,9 +349,10 @@ export function alignStrikesToWeapons(strikes, weapons, allowedTraits = null) {
     .filter(({ key }) => key)
     .sort((a, b) => b.key.length - a.key.length);
   return strikes.map((strike) => {
+    // The weapon name must end the strike name, so "rusted laser pistol"
+    // matches but "pistol whip" does not.
     const key = weaponKey(strike.name);
-    const match = keyed.find((w) => key === w.key || key.endsWith(`-${w.key}`)
-      || key.startsWith(`${w.key}-`) || key.includes(`-${w.key}-`));
+    const match = keyed.find((w) => key === w.key || key.endsWith(`-${w.key}`));
     return match ? strikeFromWeapon(strike, match.weapon, allowedTraits) : strike;
   });
 }
@@ -1328,10 +1341,10 @@ export function enrichDescription(text, level) {
 /*
  * Which skills identify a creature, by creature-type trait. Copied from the
  * Starfinder GM Core pg. 54 "Creature Identification" table (sf2e
- * packs/sf2e/journals/gm-screen.json, v14-dev, checked 2026-10-03), which is
- * also what pf2e v14-dev src/module/recall-knowledge.ts identifySkills holds
- * once it adds "robot" for systems with a Computers skill. That table has no
- * "time" row, so a time creature gets no named skill here.
+ * packs/sf2e/journals/gm-screen.json, v14-dev, checked 2026-10-03). pf2e
+ * v14-dev src/module/recall-knowledge.ts identifySkills differs only by a
+ * "time" row (Occultism) that the SF2e table doesn't have, so a time
+ * creature gets no named skill here.
  */
 const RECALL_KNOWLEDGE_SKILLS = {
   aberration: ["occultism"], animal: ["nature"], astral: ["occultism"],
@@ -1617,7 +1630,8 @@ export async function createActor(concept, resolved, { img = null, scaffold = nu
         // PF2e 8.4.1 stores NPC range as structured system data. The old
         // range-increment-* trait encoding is migration input, not a valid
         // new-document trait (see item/melee/data.ts).
-        range: strike.type === "ranged" ? { increment: strike.range ?? 30, max: null } : null
+        range: strike.type !== "ranged" ? null
+          : strike.rangeMax ? { increment: null, max: strike.range } : { increment: strike.range ?? 30, max: null }
       }
     });
   }

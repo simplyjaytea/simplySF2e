@@ -51,11 +51,24 @@ const draft = (overrides) => ({
   assert.equal(stab.type, "melee");
   assert.equal(stab.range, null);
   assert.equal(stab.damageType, "piercing");
-  assert.deepEqual(stab.traits, ["agile", "finesse", "thrown-10", "versatile-s"], "traits outside npcAttackTraits drop");
+  assert.deepEqual(stab.traits, ["agile", "finesse", "versatile-s"],
+    "traits outside npcAttackTraits drop, and a melee strike loses thrown-N (pf2e would make it ranged)");
 
   const thrown = strikeFromWeapon(draft({ name: "thrown knife", type: "ranged", range: 60 }), knife, npcTraits);
   assert.equal(thrown.type, "ranged");
   assert.equal(thrown.range, 10, "thrown range comes from the weapon's thrown trait");
+  assert.ok(thrown.traits.includes("thrown-10"), "a thrown strike keeps its thrown trait");
+
+  // Published grenades and area weapons strike at a maximum range with no
+  // grenade or area trait (alien-core-bestiary Frag Grenade, Plasma Cannon).
+  const grenade = { name: "Frag Grenade", system: { damage: { damageType: "piercing" }, traits: { value: ["consumable", "grenade", "tech", "area-burst-10"] }, range: 70 } };
+  const lob = strikeFromWeapon(draft({ name: "frag grenade" }),
+    grenade, new Set([...npcTraits, "consumable", "grenade", "area-burst-10"]));
+  assert.equal(lob.type, "ranged");
+  assert.equal(lob.range, 70);
+  assert.equal(lob.rangeMax, true);
+  assert.deepEqual(lob.traits, ["consumable", "tech"]);
+  assert.equal(strikeFromWeapon(lob, laserPistol, npcTraits).rangeMax, undefined, "a normal weapon clears rangeMax");
 
   const weapons = [{ names: ["Laser Pistol", "laser pistol"], weapon: laserPistol }, { names: ["Knife"], weapon: knife }];
   const [pistol, jaws, blade] = alignStrikesToWeapons(
@@ -65,8 +78,10 @@ const draft = (overrides) => ({
   assert.equal(pistol.damageType, "fire");
   assert.equal(jaws.damageType, "piercing", "a strike with no matching weapon is unchanged");
   assert.deepEqual(jaws.traits, []);
-  assert.equal(blade.damageType, "piercing");
-  assert.ok(blade.traits.includes("agile"));
+  assert.equal(blade.damageType, "bludgeoning", "the weapon name must end the strike name");
+  assert.equal(alignStrikesToWeapons([draft({ name: "pistol whip" })], [{ names: ["pistol"], weapon: laserPistol }], npcTraits)[0].type,
+    "melee", "a strike that only starts with a weapon name is not that weapon");
+  assert.equal(alignStrikesToWeapons([draft({ name: "serrated knife" })], weapons, npcTraits)[0].damageType, "piercing");
   assert.equal(alignStrikesToWeapons([draft({ name: "knifepoint" })], weapons, npcTraits)[0].damageType,
     "bludgeoning", "only whole words match a weapon name");
 }
@@ -125,6 +140,7 @@ const draft = (overrides) => ({
   assert.ok(narrativeHasMechanics("Its bite deals 2d6 fire damage."));
   assert.ok(narrativeHasMechanics("DC 22 Fortitude or be sickened."));
   assert.ok(narrativeHasMechanics("It regains 15 Hit Points."));
+  assert.ok(narrativeHasMechanics("Its touch deals 10 fire damage."));
   assert.ok(!narrativeHasMechanics("It smells of ozone and hums in 2 tones."));
   assert.ok(!narrativeHasMechanics(""));
 }
