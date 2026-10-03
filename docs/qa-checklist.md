@@ -441,6 +441,17 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 | 12r.2 | Do the same with an Item Forge preview, AI Provider Setup, Manage Presets (with several presets) and Compendium Sources. | Each window scrolls to its last field; its button row stays at the bottom edge. Nothing is cut off. | Each window | | |
 | 12r.3 | Shrink the Foundry browser window to a short height (about 600 px) and open each window fresh. | No window runs past the screen with unreachable content; each scrolls inside. Tabbing through a long form never leaves the focused field hidden under the button row, and Load Models in Provider Setup keeps your scroll place. | Each window | | |
 
+## 12s. Compendium-first mechanics
+
+| # | Do | Expect | Where | Pass | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 12s.1 | Generate a level 3 "corporate security guard with a laser pistol". | The Laser Pistol is in the inventory, and the Laser Pistol strike deals fire damage with the tech, reload-1 and expend-2 traits and a 40-foot range increment, like the weapon. Attack bonus and damage dice still follow the creature's level. | Preview, Actions tab | | |
+| 12s.2 | Generate a "malfunctioning security robot" and open its notes. | Recall Knowledge lists Computers and Crafting checks. A creature whose traits name no table row (for example a time creature) shows only the DC, with no guessed skill. | Notes tab | | |
+| 12s.3 | Generate a fast flying beast and a creature with darkvision and scent. | Speeds are values published creatures use (land at most 60 feet, fly 10 to 200 feet). Darkvision has no range; scent shows imprecise with a range of 15, 30, 60 or 120 feet. | Sidebar senses and speeds | | |
+| 12s.4 | Generate a spontaneous spellcaster NPC. | Each known spell rank has 3 slots. | Spellcasting tab | | |
+| 12s.5 | Forge a wondrous item with a prompt that invites odd traits (e.g. "a humming cosmic charm"). | Only real equipment traits appear on the item; the console names any dropped trait. | Item sheet, F12 console | | |
+| 12s.6 | Generate a creature with a bespoke signature ability. | A narrative-only ability reads as flavor. If the AI wrote dice, a DC or Hit Points into it, the ability is left off and the console says so. | Actions tab, F12 console | | |
+
 ## 13. Firefox (if available)
 
 | # | Step | Expected | Where to look | Result | Evidence |
