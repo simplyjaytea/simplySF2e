@@ -1,14 +1,23 @@
 /**
- * Player Character leveling cadence from the Pathfinder 2e (remaster) Core
- * Rulebook — WHEN a PC gets an ability boost or a feat slot of each kind.
- * PF2e-compatible pending SF2e source: hardcoded from the PF2e book, not
- * invented, but NOT verified against a Starfinder source. Same category as
- * tables.mjs's PF2e-only GM Core benchmark numbers.
+ * Player Character leveling cadence: WHEN a PC gets an attribute boost or a
+ * feat slot of each kind. Checked against the Starfinder Player Core class
+ * tables in sf2e packs/sf2e/journals/classes.json (foundryvtt/pf2e v14-dev,
+ * Soldier page, 2026-10-03): boosts at 1/5/10/15/20, ancestry feats at
+ * 1/5/9/13/17, skill feats at every even level, general feats at
+ * 3/7/11/15/19. Class feats there also come at level 1, which the generic
+ * CLASS_FEAT_LEVELS fallback leaves out; production reads each real class's
+ * own feat schedule instead (buildFeatSlots).
  */
 
 /**
- * PF2e-compatible wealth table, pending SF2e source — do NOT treat as SF2e
- * published statistics. GM Core Table 10-10 "Character Wealth" (Chapter 1:
+ * CITED SF2e: Starfinder GM Core pg. 59 and 61 "Character Wealth", Lump Sum
+ * column, read from sf2e packs/sf2e/journals/gm-screen.json (page
+ * "Treasure", foundryvtt/pf2e v14-dev, 2026-10-03). It lists 150 credits at
+ * level 1 through 1,120,000 credits at level 20, which is exactly the gp
+ * column below at the cited 1 gp = 10 credits (currency.mjs), so the values
+ * stay in gp unchanged.
+ *
+ * Originally transcribed from the PF2e table, GM Core Table 10-10 "Character Wealth" (Chapter 1:
  * Rewards > Treasure > "Treasure for New Characters", GM Core pg. 61) — the
  * wealth a PC who is *created at* the given level starts with. Indexed by
  * level 1-20 via PC_WEALTH_BY_LEVEL[level - 1].
@@ -44,8 +53,7 @@
  * lump sum is deliberately worth less than items+currency (the book says so),
  * which is the correct trade for a module that lets the buyer pick freely.
  * Modelling the recommended per-level item ladder is part of the separate
- * known equipment gap — HANDOFF.md finding #15. Pending a cited SF2e
- * source, keep this PF2e-compatible table as-is; do not renumber by guess.
+ * known equipment gap — HANDOFF.md finding #15.
  *
  * Rules data used under the ORC License; see README for attribution.
  */

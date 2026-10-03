@@ -14,7 +14,7 @@ import {
 import {
   normalizeConcept, normalizeLoot, resolveConcept, resolveLoot, computeStats, adjustedStats, createActor,
   applyTreasureBudget, equipmentValueGp, lootValueGp, parseCoins, parseScroll, slugify,
-  dedupeLootAgainstEquipment, enforceNamedLootBudget, reskinActorData
+  dedupeLootAgainstEquipment, enforceNamedLootBudget, reskinActorData, narrativeHasMechanics
 } from "./builder.mjs";
 import { normalizeReskin, reskinRenameTargets } from "./reskin.mjs";
 import {
@@ -1292,7 +1292,13 @@ export class GeneratorApp extends SpfApp {
   async #refineCreatureAbilities(concept, signal) {
     if (!concept?.specialAbilities?.length) return;
     const draft = concept.specialAbilities;
-    const narratives = draft.filter((ability) => !ability.glossary).map((ability) => ({ ...ability, narrative: true }));
+    const narratives = draft.filter((ability) => !ability.glossary)
+      .filter((ability) => {
+        if (!narrativeHasMechanics(ability.description)) return true;
+        console.warn(`${MODULE_ID} | dropped narrative ability "${ability.name}": its text names dice, a DC or Hit Points`);
+        return false;
+      })
+      .map((ability) => ({ ...ability, narrative: true }));
     try {
       const keywords = draft.flatMap((ability) => [ability.glossary, ability.name])
         .map((name) => String(name ?? "").toLowerCase()).filter(Boolean);

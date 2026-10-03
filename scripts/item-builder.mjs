@@ -459,6 +459,15 @@ export function normalizeMagicItemConcept(raw, { level, rarity, availableKinds, 
   invested ||= appliedEffects.some((effect) => effect.exemplar.requiresInvestment);
   const traits = new Set((Array.isArray(c.traits) ? c.traits : []).map(slugify).filter(Boolean));
   for (const trait of UNSUPPORTED_KIND_TRAITS) traits.delete(trait);
+  // Model-written traits must be real equipment traits (CONFIG.PF2E.equipmentTraits,
+  // pf2e v14-dev src/scripts/config/traits.ts), the same live check creature
+  // traits get. Outside Foundry there is no list to check against.
+  const knownTraits = typeof CONFIG !== "undefined" ? CONFIG.PF2E?.equipmentTraits : null;
+  if (knownTraits) {
+    const dropped = [...traits].filter((trait) => !(trait in knownTraits));
+    for (const trait of dropped) traits.delete(trait);
+    if (dropped.length) console.warn(`simplysf2e | itemforge: dropped invalid item traits: ${dropped.join(", ")}`);
+  }
   if (kind === "augmentation") {
     // Exactly one augmentation category, as on every published augmentation.
     const category = AUGMENTATION_CATEGORIES.find((cat) => cat === slugify(c.category ?? ""))
