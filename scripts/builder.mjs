@@ -254,7 +254,7 @@ export function shapeSense({ type, acuity = null, range = null }) {
  * a Hit Point or damage amount would read as a working mechanic the module never built,
  * so such an ability is dropped rather than shown.
  */
-const NARRATIVE_MECHANICS = /\b\d+d\d+\b|\bDC\s*\d+|\b\d+\s*(?:hit points|hp)\b|\b\d+\s+(?:[a-z]+\s+)?damage\b/i;
+const NARRATIVE_MECHANICS = /\b\d+d\d+\b|\bDC\s*\d+|\b\d+\s*(?:hit points|hp)\b|\b\d+\s+(?:[a-z]+\s+){0,2}damage\b/i;
 
 /** True when narrative-only text reads like a rule (dice, a DC, Hit Points). */
 export function narrativeHasMechanics(text) {
@@ -302,12 +302,16 @@ function weaponKey(name) {
 export function strikeFromWeapon(strike, weapon, allowedTraits = null) {
   const system = weapon?.system ?? {};
   const traits = [...(system.traits?.value ?? [])];
-  const reload = String(system.reload?.value ?? "");
-  if (/^\d+$/.test(reload)) traits.push(`reload-${reload}`);
-  if (Number.isInteger(system.expend) && system.expend > 0) traits.push(`expend-${system.expend}`);
   // Published NPCs fire grenades and area weapons (Frag Grenade, Plasma
-  // Cannon) as a strike with a maximum range and no grenade or area trait.
+  // Cannon, Flash Grenade) as a strike with a maximum range and no grenade,
+  // area, reload or expend trait. Cones and lines are treated the same way;
+  // no published NPC strike shows one. A grenade with no range of its own
+  // (Szynegation) can't be shaped like that, so its strike keeps the draft.
   const isArea = traits.some((trait) => trait === "grenade" || /^area-/.test(trait));
+  if (isArea && normalizeStrikeRange(system.range) == null) return strike;
+  const reload = String(system.reload?.value ?? "");
+  if (!isArea && /^\d+$/.test(reload)) traits.push(`reload-${reload}`);
+  if (!isArea && Number.isInteger(system.expend) && system.expend > 0) traits.push(`expend-${system.expend}`);
   const allowed = allowedTraits ?? pf2eChoiceSet("npcAttackTraits") ?? new Set();
   let kept = filterAllowed([...new Set(traits)], allowed, "NPC attack traits")
     .filter((trait) => !isArea || (trait !== "grenade" && !/^area-/.test(trait)));
@@ -350,7 +354,8 @@ export function alignStrikesToWeapons(strikes, weapons, allowedTraits = null) {
     .sort((a, b) => b.key.length - a.key.length);
   return strikes.map((strike) => {
     // The weapon name must end the strike name, so "rusted laser pistol"
-    // matches but "pistol whip" does not.
+    // matches but "pistol whip" does not. A name like "plasma cannon blast"
+    // then keeps its validated draft values, which is the safe side.
     const key = weaponKey(strike.name);
     const match = keyed.find((w) => key === w.key || key.endsWith(`-${w.key}`));
     return match ? strikeFromWeapon(strike, match.weapon, allowedTraits) : strike;

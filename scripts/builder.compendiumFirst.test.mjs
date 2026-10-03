@@ -61,14 +61,17 @@ const draft = (overrides) => ({
 
   // Published grenades and area weapons strike at a maximum range with no
   // grenade or area trait (alien-core-bestiary Frag Grenade, Plasma Cannon).
-  const grenade = { name: "Frag Grenade", system: { damage: { damageType: "piercing" }, traits: { value: ["consumable", "grenade", "tech", "area-burst-10"] }, range: 70 } };
+  const grenade = { name: "Frag Grenade", system: { damage: { damageType: "piercing" }, traits: { value: ["consumable", "grenade", "tech", "area-burst-10"] }, range: 70, expend: 1 } };
   const lob = strikeFromWeapon(draft({ name: "frag grenade" }),
-    grenade, new Set([...npcTraits, "consumable", "grenade", "area-burst-10"]));
+    grenade, new Set([...npcTraits, "consumable", "grenade", "area-burst-10", "expend-1"]));
   assert.equal(lob.type, "ranged");
   assert.equal(lob.range, 70);
   assert.equal(lob.rangeMax, true);
   assert.deepEqual(lob.traits, ["consumable", "tech"]);
   assert.equal(strikeFromWeapon(lob, laserPistol, npcTraits).rangeMax, undefined, "a normal weapon clears rangeMax");
+  const szynegation = { name: "Szynegation Grenade", system: { damage: { damageType: "acid" }, traits: { value: ["grenade", "tech"] }, range: null } };
+  const keep = draft({ name: "szynegation grenade", type: "ranged", range: 30 });
+  assert.equal(strikeFromWeapon(keep, szynegation, npcTraits), keep, "a rangeless grenade leaves the draft alone");
 
   const weapons = [{ names: ["Laser Pistol", "laser pistol"], weapon: laserPistol }, { names: ["Knife"], weapon: knife }];
   const [pistol, jaws, blade] = alignStrikesToWeapons(
@@ -141,6 +144,7 @@ const draft = (overrides) => ({
   assert.ok(narrativeHasMechanics("DC 22 Fortitude or be sickened."));
   assert.ok(narrativeHasMechanics("It regains 15 Hit Points."));
   assert.ok(narrativeHasMechanics("Its touch deals 10 fire damage."));
+  assert.ok(narrativeHasMechanics("It deals 5 persistent fire damage."));
   assert.ok(!narrativeHasMechanics("It smells of ozone and hums in 2 tones."));
   assert.ok(!narrativeHasMechanics(""));
 }
