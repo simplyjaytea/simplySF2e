@@ -40,6 +40,8 @@ class MockSpfApp {
   _formatLastRunCost() { return null; }
   _buildTokenReport() { return null; }
   _recordTokens() {}
+  _recordFailure(err, operation, shown) { this.recordedFailure = { err, operation, shown }; }
+  _canReportBug() { return false; }
   async render() {}
   _beginProgress() { this.abort = new AbortController(); return this.abort.signal; }
   _throwIfCancelled() {
@@ -119,6 +121,11 @@ createFailure = new Error("write failed");
 await actions.createItem.call(forge);
 assert.ok((await forge._prepareContext()).preview);
 assert.equal((await forge._prepareContext()).error, "write failed");
+assert.deepEqual(
+  { operation: forge.recordedFailure?.operation, shown: forge.recordedFailure?.shown },
+  { operation: "item creation", shown: "write failed" },
+  "a failed write is recorded for Copy bug report with the exact error shown"
+);
 createFailure = null;
 macroFailure = new Error("macro failed");
 await actions.createItem.call(forge);

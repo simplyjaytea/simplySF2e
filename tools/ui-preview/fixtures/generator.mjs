@@ -163,6 +163,7 @@ export default [
     context: generatorContext("monster", {
       input: { prompt: "A very long prompt that failed" },
       error: "The provider returned HTTP 429: rate limit reached for model anthropic/claude-sonnet-5. Try again in a moment.",
+      canReportBug: true,
       showEmptyState: false
     })
   },

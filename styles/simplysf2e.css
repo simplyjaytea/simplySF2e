@@ -1048,3 +1048,32 @@
     animation: none;
   }
 }
+
+/* Copy bug report: the button sits inside the error notice it reports. */
+.simplysf2e .spf-error-notice {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.4rem;
+}
+
+.simplysf2e .spf-error-notice > p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.simplysf2e .spf-error-notice button.spf-bug-report {
+  flex: 0 0 auto;
+  width: auto;
+  font-size: var(--font-size-12, 0.75rem);
+}
+
+/* Manual-copy fallback dialog (not inside a .simplysf2e window). */
+textarea.spf-bug-report-text {
+  width: 100%;
+  min-height: 14rem;
+  font-family: var(--font-mono, monospace);
+  font-size: var(--font-size-11, 0.7rem);
+  white-space: pre;
+  resize: vertical;
+}
