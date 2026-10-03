@@ -23,6 +23,7 @@ class MockSpfApp {
   get _canCancel() { return false; }
   _formatLastRunCost() { return null; }
   _buildTokenReport() { return null; }
+  _canReportBug() { return false; }
   async render() { this.renders++; }
 }
 

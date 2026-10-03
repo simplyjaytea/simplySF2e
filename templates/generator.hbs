@@ -260,7 +260,14 @@
   {{#if busy}}{{> simplysf2e-progress}}{{/if}}
 
   {{#if error}}
-    <p class="notification error" role="alert">{{error}}</p>
+    <div class="spf-error-notice notification error">
+      <p role="alert">{{error}}</p>
+      {{#if canReportBug}}
+      <button type="button" class="spf-secondary spf-bug-report" data-action="copyBugReport" data-tooltip="{{localize 'SIMPLYSF2E.BugReport.Tooltip'}}">
+        <i aria-hidden="true" class="fa-solid fa-bug"></i> {{localize "SIMPLYSF2E.BugReport.Copy"}}
+      </button>
+      {{/if}}
+    </div>
   {{/if}}
 
   {{#if recent}}
