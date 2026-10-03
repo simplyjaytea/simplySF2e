@@ -455,6 +455,17 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 | 12s.5 | Forge a wondrous item with a prompt that invites odd traits (e.g. "a humming cosmic charm"). | Only real equipment traits appear on the item; the console names any dropped trait. | Item sheet, F12 console | | |
 | 12s.6 | Generate a creature with a bespoke signature ability. | A narrative-only ability reads as flavor. If the AI wrote dice, a DC or Hit Points into it, the ability is left off and the console says so. | Actions tab, F12 console | | |
 
+## 12t. First-run welcome
+
+| # | Do | Expect | Where | Pass | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 12t.1 | In a fresh browser profile (no saved AI key), log in as GM to an sf2e world with SimplySF2e enabled. | **Welcome to SimplySF2e** opens by itself. Starfinder 2e system and Compendium Content rows show a green check, AI connection shows a warning with the reason, Fast picks: Jev reads "off (optional ...)". The main button reads **Set Up AI Connection**. | Welcome window | | |
+| 12t.2 | Press **Set Up AI Connection**, save and authorize a working connection, close Provider Setup. | The welcome window refreshes on save: AI connection turns green, the main button becomes **Open Generator**, and pressing it opens the generator and closes the welcome. | Welcome window | | |
+| 12t.3 | Reload the world. | The welcome no longer opens by itself. `/sf2e welcome` and **Configure Settings → SimplySF2e → Open Welcome** both open it. | Chat, module settings | | |
+| 12t.4 | Clear the key again (or use a second browser), tick **Don't show this again at login**, reload. | The welcome stays closed even though the connection does not work. | Welcome window | | |
+| 12t.5 | In Compendium Sources, untick every Spells pack, save, then press **Check Again** in the welcome. | Compendium Content shows a warning naming Spells; the gear button opens Compendium Sources. | Welcome window | | |
+| 12t.6 | Log in as a player. | No welcome window, and `/sf2e welcome` shows the GM-only warning. | Player client | | |
+
 ## 12u. Copy bug report
 
 | # | Do | Expect | Where | Pass | Notes |

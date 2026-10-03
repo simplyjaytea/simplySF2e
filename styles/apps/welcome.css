@@ -1,0 +1,31 @@
+/* ==========================================================================
+   simplySF2e — first-run welcome window (templates/welcome.hbs only).
+   Loaded after styles/simplysf2e.css; the readiness rows reuse the shared
+   status bar (.spf-statusbar / .spf-provider-summary) from there.
+   ========================================================================== */
+
+.simplysf2e .simplysf2e-welcome {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spf-space-md);
+  padding: var(--spf-space-xs);
+}
+
+.simplysf2e .spf-welcome-next {
+  margin: 0;
+}
+
+.simplysf2e .spf-welcome-dismiss {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  align-self: flex-start;
+  font-size: var(--spf-text-sm);
+  color: var(--spf-text-muted);
+  cursor: pointer;
+}
+
+.simplysf2e .spf-welcome-dismiss input {
+  flex: 0 0 auto;
+  margin: 0;
+}
