@@ -142,7 +142,7 @@ export function normalizePCConcept(raw, { level }) {
 
 /**
  * Expected starting wealth (gp-equivalent) for a character created at `level`:
- * the lump sum from inherited Table 10-10 numbers (see PC_WEALTH_BY_LEVEL),
+ * the lump sum from the cited Starfinder GM Core Character Wealth table (see PC_WEALTH_BY_LEVEL),
  * scaled by the GM's Treasure amount setting. Surface that budget in credits
  * with `pcStartingWealthCredits` (1 gp = 10 credits, cited DENOMINATION_RATES).
  *
