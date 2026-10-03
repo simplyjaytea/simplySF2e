@@ -6,12 +6,13 @@
 #   2. tests         every scripts/**/*.test.mjs (same loop as CI)
 #   3. manifests     module.json and lang/en.json parse, with no duplicate keys
 #   4. references    every esmodule, style and language path in module.json,
-#                    and every templates/*.hbs path a script names, exists
+#                    and every templates/*.hbs path a script names, is
+#                    committed under a folder the release zip ships
 #   5. leftovers     no merge-conflict markers in any tracked file
 #   6. qa-rows       no duplicate row ids in docs/qa-checklist.md
 #   7. whitespace    git diff --check against origin/main (CI fails on this)
 #   8. ui            the UI preview harness renders every fixture at both
-#                    widths (tools/ui-preview, npm install + npm run shoot)
+#                    widths (tools/ui-preview, npm ci + npm run shoot)
 #
 # Every check runs even after one fails; the script prints a summary and exits
 # non-zero if any check failed. It changes nothing in the repo except
@@ -19,11 +20,17 @@
 #
 # Usage: tools/release-check.sh [--no-ui] [--base <ref>]
 #   --no-ui        skip the UI harness (it needs npm and Chromium)
-#   --base <ref>   ref for the whitespace check (default origin/main)
+#   --base <ref>   ref for the whitespace check (default origin/main;
+#                  run git fetch origin main first so it is current)
 #
 # Live Foundry behaviour is not covered: run docs/qa-checklist.md for that.
 
 set -uo pipefail
+
+if (( BASH_VERSINFO[0] < 4 || (BASH_VERSINFO[0] == 4 && BASH_VERSINFO[1] < 4) )); then
+  echo "release-check needs bash 4.4 or later (on macOS: brew install bash)" >&2
+  exit 2
+fi
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT" || exit 2
@@ -36,7 +43,7 @@ while (( $# )); do
     --base)
       if (( $# < 2 )); then echo "--base needs a ref" >&2; exit 2; fi
       BASE_REF="$2"; shift ;;
-    -h|--help) sed -n '2,25p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) sed -n '2,27p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "Unknown option: $1 (try --help)" >&2; exit 2 ;;
   esac
   shift
@@ -147,20 +154,32 @@ mapfile -t MANIFEST_PATHS < <(node -e '
   for (const p of [...(m.esmodules ?? []), ...(m.scripts ?? []), ...(m.styles ?? []), ...(m.languages ?? []).map((l) => l.path)]) console.log(p);
 ')
 mapfile -t TEMPLATE_PATHS < <(grep -rhoE 'templates/[A-Za-z0-9_./-]+\.hbs' scripts --include='*.mjs' --exclude='*.test.mjs' | sort -u)
+# The release zip is built from the commit and ships only these folders
+# (release.yml), so a file that exists on disk but is untracked, or lives
+# elsewhere, is still missing from the release.
 for p in "${MANIFEST_PATHS[@]}" "${TEMPLATE_PATHS[@]}"; do
-  [[ -e "$p" ]] || missing+=("$p")
+  if [[ ! "$p" =~ ^(lang|scripts|styles|templates)/ ]] || ! git ls-files --error-unmatch -- "$p" >/dev/null 2>&1; then
+    missing+=("$p")
+  fi
 done
 if (( ${#MANIFEST_PATHS[@]} == 0 )); then fail references "module.json lists no esmodules, styles or languages"
-elif (( ${#missing[@]} )); then fail references "missing files: ${missing[*]}"
-else pass references "${#MANIFEST_PATHS[@]} manifest paths and ${#TEMPLATE_PATHS[@]} template paths exist"; fi
+elif (( ${#missing[@]} )); then fail references "not committed under lang/, scripts/, styles/ or templates/: ${missing[*]}"
+else pass references "${#MANIFEST_PATHS[@]} manifest paths and ${#TEMPLATE_PATHS[@]} template paths are committed"; fi
 
 # 5. leftovers ---------------------------------------------------------------
 section "leftovers"
-if git grep -nE '^(<{7}|>{7}|={7})( |$)' -- . >"$LOG_DIR/markers" 2>/dev/null; then
+# A lone ======= also matches a setext heading underline of exactly seven;
+# none exist, so a hit is worth a look either way.
+git grep -nE '^(<{7}|>{7}|\|{7}|={7})( |$)' -- . >"$LOG_DIR/markers" 2>"$LOG_DIR/markers.err"
+rc=$?
+if (( rc == 0 )); then
   sed 's/^/    /' "$LOG_DIR/markers"
   fail leftovers "$(wc -l <"$LOG_DIR/markers") merge-conflict marker lines in tracked files"
-else
+elif (( rc == 1 )); then
   pass leftovers "no merge-conflict markers in tracked files"
+else
+  sed 's/^/    /' "$LOG_DIR/markers.err"
+  fail leftovers "git grep failed (exit $rc)"
 fi
 
 # 6. qa-rows -----------------------------------------------------------------
@@ -169,7 +188,7 @@ QA=docs/qa-checklist.md
 if [[ ! -f "$QA" ]]; then
   fail qa-rows "$QA is missing"
 else
-  rows=$(awk -F'|' '/^\|[[:space:]]*[0-9]+[a-z]?\.[0-9]+[[:space:]]*\|/ { gsub(/[[:space:]]/, "", $2); print $2 }' "$QA")
+  rows=$(awk -F'|' '/^\|[[:space:]]*[0-9]+[a-z]*\.[0-9]+[[:space:]]*\|/ { gsub(/[[:space:]]/, "", $2); print $2 }' "$QA")
   count=$(grep -c . <<<"$rows")
   dups=$(sort <<<"$rows" | uniq -d | paste -sd' ')
   if [[ -n "$dups" ]]; then fail qa-rows "duplicate QA row ids: $dups"
@@ -181,6 +200,8 @@ fi
 section "whitespace"
 if ! git rev-parse --verify --quiet "$BASE_REF^{commit}" >/dev/null; then
   fail whitespace "base ref $BASE_REF not found (git fetch origin main, or pass --base)"
+elif [[ "$(git rev-parse HEAD)" == "$(git rev-parse "$BASE_REF^{commit}")" && -z "$(git status --porcelain --untracked-files=no)" ]]; then
+  skip whitespace "HEAD is $BASE_REF with no local changes; nothing to compare"
 elif out=$(git diff --check "$BASE_REF" -- 2>&1); [[ -n "$out" ]]; then
   sed 's/^/    /' <<<"$out" | head -n 40
   fail whitespace "git diff --check against $BASE_REF reports whitespace errors"
@@ -192,9 +213,9 @@ fi
 section "ui"
 if (( ! RUN_UI )); then
   skip ui "UI harness skipped (--no-ui)"
-elif ! (cd tools/ui-preview && npm install --no-audit --no-fund --loglevel=error >"$LOG_DIR/npm.out" 2>&1); then
+elif ! (cd tools/ui-preview && npm ci --no-audit --no-fund --loglevel=error >"$LOG_DIR/npm.out" 2>&1); then
   tail -n 20 "$LOG_DIR/npm.out" | sed 's/^/    /'
-  fail ui "npm install in tools/ui-preview failed (needs the npm registry)"
+  fail ui "npm ci in tools/ui-preview failed (needs the npm registry)"
 elif (cd tools/ui-preview && npm run --silent shoot >"$LOG_DIR/ui.out" 2>&1); then
   shots=$(find tools/ui-preview/out -maxdepth 1 -name '*@*.png' ! -name '*-short.png' | wc -l)
   grep -E '^note:' "$LOG_DIR/ui.out" | sed 's/^/    /'
