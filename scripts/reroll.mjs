@@ -27,8 +27,9 @@ function listFor(concept, kind) {
 
 /**
  * The pick at `index`, when it is one that can be rerolled. A narrative-only
- * ability is flavor with no published entry, so it is not a target; an
- * unmatched spell, feat or glossary ability is, since a reroll can fix it.
+ * ability is flavor with no published entry, so it is not a target. A live
+ * preview only holds resolved picks (an incomplete one never reaches the
+ * preview), but an unmatched pick is still accepted here defensively.
  * @returns {object|string|null}
  */
 export function rerollTarget(concept, kind, index) {

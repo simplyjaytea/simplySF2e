@@ -46,7 +46,7 @@ try {
   assert.match(request.messages[1].content, /Already has \(do not repeat\): Haste/);
   assert.match(request.messages[1].content, /S4 \| Blur \(rank 2\)/);
   assert.match(request.messages[1].content, /Tradition: arcane/);
-  assert.equal(request.max_tokens, 256);
+  assert.equal(request.max_tokens, 512);
   assert.notEqual(request.temperature, 0, "rerolls are not deterministic, so repeated rerolls can differ");
 
   replies.push({ id: "invented" });

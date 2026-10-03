@@ -49,7 +49,7 @@ const TASK_PROFILES = Object.freeze({
   [AI_TASK.ENCOUNTER_DESIGN]: { maxTokens: 1024, deterministic: false, disableReasoning: true },
   [AI_TASK.RESKIN_FLAVOR]: { maxTokens: 2000, deterministic: false, disableReasoning: true },
   // Not deterministic: a second reroll of the same slot should be free to land elsewhere.
-  [AI_TASK.REROLL_PICK]: { maxTokens: 256, deterministic: false, disableReasoning: true }
+  [AI_TASK.REROLL_PICK]: { maxTokens: 512, deterministic: false, disableReasoning: true }
 });
 
 const finiteNumber = (value, fallback) => {

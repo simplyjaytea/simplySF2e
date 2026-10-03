@@ -1027,6 +1027,7 @@ const REROLL_LABELS = Object.freeze({
  * Reroll one pick: choose a single replacement ID from an issued catalog the
  * caller has already filtered (reroll.mjs rerollPool). Returns null when the
  * reply names nothing in that catalog; the caller keeps the preview as is.
+ * No Jev fast path: one pick from a short list gains little from it.
  * @param {object} args
  * @param {object} args.concept     current creature concept (context only)
  * @param {"spell"|"feat"|"ability"} args.kind
