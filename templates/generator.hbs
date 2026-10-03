@@ -359,6 +359,7 @@
         {{#each preview.abilities}}
           <li>
             <strong>{{this.name}}</strong>
+            {{#if this.rerollable}}<button type="button" class="spf-icon-btn spf-reroll-pick" data-action="rerollPick" data-kind="ability" data-index="{{this.index}}" data-tooltip="{{localize 'SIMPLYSF2E.Generator.RerollPickTooltip'}}" aria-label="{{localize 'SIMPLYSF2E.Generator.RerollPickLabel' name=this.name}}" {{#if @root.busy}}disabled{{/if}}><i aria-hidden="true" class="fa-solid fa-dice-d20"></i></button>{{/if}}
             {{#if this.fromGlossary}}
               <span class="spf-found" title="{{localize 'SIMPLYSF2E.Preview.FromCompendium'}}"><i aria-hidden="true" class="fa-solid fa-book"></i> {{this.glossaryName}}</span>
             {{else if this.narrative}}
@@ -382,6 +383,7 @@
           <li class="{{#unless this.found}}spf-dropped{{/unless}}">
             {{this.name}} <span class="spf-rank">({{#if this.rank}}{{localize "SIMPLYSF2E.Preview.Rank"}} {{this.rank}}{{else}}{{localize "SIMPLYSF2E.Preview.Cantrip"}}{{/if}})</span>
             {{#if this.found}}<i class="fa-solid fa-circle-check spf-match" role="img" aria-label="{{localize 'SIMPLYSF2E.Preview.Found'}}" title="{{localize 'SIMPLYSF2E.Preview.Found'}}"></i>{{else}}<i class="fa-solid fa-circle-exclamation spf-unmatched" role="img" aria-label="{{localize 'SIMPLYSF2E.Preview.NotFound'}}" title="{{localize 'SIMPLYSF2E.Preview.NotFound'}}"></i>{{/if}}
+            {{#if this.rerollable}}<button type="button" class="spf-icon-btn spf-reroll-pick" data-action="rerollPick" data-kind="spell" data-index="{{this.index}}" data-tooltip="{{localize 'SIMPLYSF2E.Generator.RerollPickTooltip'}}" aria-label="{{localize 'SIMPLYSF2E.Generator.RerollPickLabel' name=this.name}}" {{#if @root.busy}}disabled{{/if}}><i aria-hidden="true" class="fa-solid fa-dice-d20"></i></button>{{/if}}
           </li>
         {{/each}}
       </ul>
@@ -394,6 +396,7 @@
           <li class="{{#unless this.found}}spf-dropped{{/unless}}">
             {{this.name}}
             {{#if this.found}}<i class="fa-solid fa-circle-check spf-match" role="img" aria-label="{{localize 'SIMPLYSF2E.Preview.Found'}}" title="{{localize 'SIMPLYSF2E.Preview.Found'}}"></i>{{else}}<i class="fa-solid fa-circle-exclamation spf-unmatched" role="img" aria-label="{{localize 'SIMPLYSF2E.Preview.NotFound'}}" title="{{localize 'SIMPLYSF2E.Preview.NotFound'}}"></i>{{/if}}
+            {{#if this.rerollable}}<button type="button" class="spf-icon-btn spf-reroll-pick" data-action="rerollPick" data-kind="feat" data-index="{{this.index}}" data-tooltip="{{localize 'SIMPLYSF2E.Generator.RerollPickTooltip'}}" aria-label="{{localize 'SIMPLYSF2E.Generator.RerollPickLabel' name=this.name}}" {{#if @root.busy}}disabled{{/if}}><i aria-hidden="true" class="fa-solid fa-dice-d20"></i></button>{{/if}}
           </li>
         {{/each}}
       </ul>

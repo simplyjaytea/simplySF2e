@@ -62,7 +62,8 @@ const RULES = Object.freeze({
     required: ["name", "blurb", "description", "readAloud", "recallKnowledge", "renames"],
     arrays: ["renames"],
     nonEmptyStrings: ["name", "description"]
-  }
+  },
+  [AI_TASK.REROLL_PICK]: { required: ["id"], nonEmptyStrings: ["id"] }
 });
 
 const isPlainObject = (value) => Boolean(value && typeof value === "object" && !Array.isArray(value));

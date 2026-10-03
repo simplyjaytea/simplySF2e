@@ -5,7 +5,7 @@ import {
 import {
   generateConcept, generateLoot, selectSpells, chooseSpellFocus, selectEquipment, selectLoot, designEncounter,
   generatePCConcept, generatePCLoot, selectAncestryBackgroundClass, selectFeats, selectCreatureFeats, selectCreatureAbilities, selectCharacterChoices,
-  generateReskin
+  generateReskin, selectRerollPick
 } from "./ai.mjs";
 import {
   getSpellCandidates, getEquipmentCandidates, getLootCandidates, getScrollSpellCandidates,
@@ -17,6 +17,7 @@ import {
   dedupeLootAgainstEquipment, enforceNamedLootBudget, reskinActorData, narrativeHasMechanics
 } from "./builder.mjs";
 import { normalizeReskin, reskinRenameTargets } from "./reskin.mjs";
+import { REROLL_KINDS, rerollTarget, rerollPool, applyRerollPick, rerollKeywords } from "./reroll.mjs";
 import {
   normalizePCConcept, resolvePCConcept, resolveFeatPicks, createCharacterActor, pcStartingWealthGp
 } from "./pc-builder.mjs";
@@ -81,6 +82,7 @@ export class GeneratorApp extends SpfApp {
       memberUp: GeneratorApp.#onMemberUp,
       memberDown: GeneratorApp.#onMemberDown,
       rerollLoot: GeneratorApp.#onRerollLoot,
+      rerollPick: GeneratorApp.#onRerollPick,
       authorizeApiKey: GeneratorApp.#onAuthorizeApiKey,
       configureProvider: GeneratorApp.#onConfigureProvider,
       configureSources: GeneratorApp.#onConfigureSources,
@@ -120,6 +122,8 @@ export class GeneratorApp extends SpfApp {
   #created = null;
   /** Validated plan manifest retained only until it is presented after creation. */
   #manifest = null;
+  /** Names rerolled away from, per "kind:index" slot, so a reroll never swaps back. */
+  #rerollRejected = new Map();
   /** Cycles the example placeholder; starts randomly so reopening varies. */
   #exampleTick = Math.floor(Math.random() * 5);
   /** External programmatic input update (e.g. from chat command). */
@@ -415,15 +419,22 @@ export class GeneratorApp extends SpfApp {
     const concept = this.#concept;
     // Show what the sheet will display once pf2e applies Elite/Weak.
     const stats = adjustedStats(computeStats(concept), concept);
-    const abilities = (this.#resolved?.abilities ?? []).map(({ ability, entry }) => ({
+    // Resolved spells, feats and abilities line up 1:1 with the concept lists,
+    // so a row's index is also its reroll slot.
+    const rerollable = (kind, index) => Boolean(rerollTarget(concept, kind, index));
+    const abilities = (this.#resolved?.abilities ?? []).map(({ ability, entry }, index) => ({
       name: ability.name,
       fromGlossary: Boolean(entry),
       glossaryName: entry?.name ?? null,
       narrative: Boolean(ability.narrative),
-      description: ability.description
+      description: ability.description,
+      index,
+      rerollable: rerollable("ability", index)
     }));
-    const spells = GeneratorApp.#mapSpells(this.#resolved?.spells);
-    const feats = GeneratorApp.#mapNamed(this.#resolved?.feats);
+    const spells = GeneratorApp.#mapSpells(this.#resolved?.spells)
+      .map((row, index) => ({ ...row, index, rerollable: rerollable("spell", index) }));
+    const feats = GeneratorApp.#mapNamed(this.#resolved?.feats)
+      .map((row, index) => ({ ...row, index, rerollable: rerollable("feat", index) }));
     const equipment = GeneratorApp.#mapGear(this.#resolved?.equipment, this.#resolved?.skippedGear, "equipment");
     const loot = GeneratorApp.#mapGear(this.#resolved?.loot, this.#resolved?.skippedGear, "loot");
     // Signed display strings live beside `stats`, never in it: stats also feeds
@@ -753,6 +764,7 @@ export class GeneratorApp extends SpfApp {
     this.#error = null;
     this.#created = null;
     this.#manifest = null;
+    this.#rerollRejected.clear();
     this.#encounter = null;
     this.#pcConcept = null;
     this.#pcResolved = null;
@@ -1869,6 +1881,78 @@ export class GeneratorApp extends SpfApp {
     }
   }
 
+  /**
+   * Reroll one spell, feat or published ability in the creature preview. The
+   * replacement comes from a fresh issued compendium catalog of the same kind
+   * (same tradition and slot for spells, level-capped class feats, bestiary
+   * actions), filtered so it never repeats a pick on the creature or one
+   * already rerolled away from. The AI only chooses an ID from that list; an
+   * empty list or an unlisted reply leaves the preview unchanged.
+   */
+  static async #onRerollPick(_event, target) {
+    const kind = target?.dataset?.kind;
+    const index = Number(target?.dataset?.index);
+    if (this.#busy || !this.#concept || !this.#resolved || !REROLL_KINDS.includes(kind)) return;
+    const current = rerollTarget(this.#concept, kind, index);
+    if (!current) return;
+    const currentName = typeof current === "string" ? current : current.name;
+    const slot = `${kind}:${index}`;
+    this.#busy = true;
+    this.#error = null;
+    const label = game.i18n.localize("SIMPLYSF2E.Progress.PickReroll");
+    const signal = this._beginProgress([["reroll", label]]);
+    try {
+      await this._setStep("reroll");
+      const concept = this.#concept;
+      const keywords = rerollKeywords(concept, kind, index);
+      const catalog = kind === "spell"
+        ? await getSpellCandidates(concept.spellcasting.tradition, concept.spellcasting.maxRank, keywords)
+        : kind === "feat"
+          ? await getFeatCandidates({ level: Math.max(concept.level, 1), category: "class" })
+          : await getAbilityCandidates(keywords);
+      const pool = rerollPool(catalog, { concept, kind, index, rejected: [...(this.#rerollRejected.get(slot) ?? [])] });
+      if (!pool.length) {
+        ui.notifications.warn(game.i18n.format("SIMPLYSF2E.Generator.RerollPickNone", { name: currentName }));
+        return;
+      }
+      const { candidate, usage } = await selectRerollPick({
+        concept, kind, current: currentName, candidates: pool,
+        onProgress: (p) => this._onAIProgress(p), signal
+      });
+      this._recordTokens(label, usage);
+      this._throwIfCancelled();
+      if (!candidate) {
+        ui.notifications.warn(game.i18n.format("SIMPLYSF2E.Generator.RerollPickInvalid", { name: currentName }));
+        return;
+      }
+      const next = applyRerollPick(concept, { kind, index, candidate });
+      const resolved = { ...this.#resolved };
+      if (kind === "spell") {
+        resolved.spells = [...resolved.spells];
+        resolved.spells[index] = { spell: next.spellcasting.spells[index], entry: candidate.ref };
+      } else if (kind === "feat") {
+        resolved.feats = [...resolved.feats];
+        resolved.feats[index] = { name: candidate.name, entry: candidate.ref };
+      } else {
+        resolved.abilities = [...resolved.abilities];
+        resolved.abilities[index] = { ability: next.specialAbilities[index], entry: candidate.ref };
+      }
+      const manifest = completionManifest({ mode: this.#manifest?.mode ?? "monster", concept: next, resolved });
+      assertComplete(manifest);
+      if (!this.#rerollRejected.has(slot)) this.#rerollRejected.set(slot, new Set());
+      this.#rerollRejected.get(slot).add(currentName);
+      this.#concept = next;
+      this.#resolved = resolved;
+      this.#manifest = manifest;
+    } catch (err) {
+      this.#noteGenerationFailure(err, "pick reroll");
+    } finally {
+      this.#busy = false;
+      this._finishRun();
+      await this.render();
+    }
+  }
+
   static async #onDiscard() {
     if (this.#busy) return;
     if (!await this._confirm("SIMPLYSF2E.Generator.DiscardTitle", "SIMPLYSF2E.Generator.DiscardConfirm")) return;
@@ -1880,6 +1964,7 @@ export class GeneratorApp extends SpfApp {
     this.#pcConcept = null;
     this.#pcResolved = null;
     this.#manifest = null;
+    this.#rerollRejected.clear();
     this.#reskinFlavor = null;
     this.#error = null;
     this._tokenUsage = [];

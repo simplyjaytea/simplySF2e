@@ -476,6 +476,17 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 | 12u.4 | Make an Item Forge run fail the same way and click Copy bug report. | Same as 12u.1, with "Window: Item Forge" and the forge's kind, level and rarity. | Item Forge | | |
 | 12u.5 | Open the world over plain http from another machine (not localhost), make a run fail and click Copy bug report. | The browser blocks the clipboard, so a "Bug report" window opens with the report already selected; Ctrl+C copies it. | Dialog | | |
 
+## 12w. Reroll one pick
+
+| # | Do | Expect | Where | Pass | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 12w.1 | Generate a level 5 spellcasting monster. Click the dice next to a ranked spell. | The progress bar shows "Pick reroll". Only that spell changes; it keeps its rank, the new spell is from the same tradition, it isn't already on the creature, and it shows the green found check. Everything else in the preview is unchanged. The token report gains a "Pick reroll" line. | Preview, token report | | |
+| 12w.2 | Click the dice next to a cantrip. | The cantrip is replaced by a different cantrip, never a ranked spell. | Preview | | |
+| 12w.3 | Reroll the same spell several times. | It never swaps back to a spell it already replaced. When nothing else fits, a warning says no other compendium option fits and the spell stays. | Preview, notification | | |
+| 12w.4 | Reroll a feat and a published ability (book icon). | Each changes to a different published feat or bestiary action; the ability shows the book icon with its compendium name. Narrative-only abilities have no dice. | Preview | | |
+| 12w.5 | Reroll a spell, then Create Actor. | The sheet has the new spell (not the old one) at the shown rank, and the feat or ability you rerolled is the new one. | Spellcasting and Actions tabs | | |
+| 12w.6 | Start a reroll and close the window or press Stop. | The preview keeps its old pick; only the usual "cancelled" notice appears. | Preview | | |
+
 ## 13. Firefox (if available)
 
 | # | Step | Expected | Where to look | Result | Evidence |

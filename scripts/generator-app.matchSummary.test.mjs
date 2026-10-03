@@ -7,6 +7,7 @@ import { readFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import vm from "node:vm";
 import { signed } from "./text.mjs";
+import { rerollTarget } from "./reroll.mjs";
 
 if (!vm.SourceTextModule) {
   const run = spawnSync(process.execPath, ["--experimental-vm-modules", import.meta.filename], { stdio: "inherit" });
@@ -16,7 +17,7 @@ const source = (await readFile(new URL("./generator-app.mjs", import.meta.url), 
   .replace(/#(concept|resolved|buildPreviewContext|matchSummary)\b/g, "_test_$1");
 const context = vm.createContext({ console, game: { i18n: { format: (_key, { matched, total }) => `${matched}/${total}` } } });
 let fakeStats = {};
-const mocks = { signed, SpfApp: class {}, MODULE_ID: "simplysf2e", computeStats: () => fakeStats, adjustedStats: (stats) => stats };
+const mocks = { signed, SpfApp: class {}, MODULE_ID: "simplysf2e", computeStats: () => fakeStats, adjustedStats: (stats) => stats, rerollTarget };
 const module = new vm.SourceTextModule(source, { context });
 await module.link((specifier) => {
   const imports = [...source.matchAll(/import\s*\{([^}]+)\}\s*from\s*"([^"]+)"/g)]
