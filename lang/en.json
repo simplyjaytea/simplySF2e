@@ -289,6 +289,17 @@
       "Reskin": "Reskin",
       "ReskinHint": "New fiction, same stat block"
     },
+    "Recent": {
+      "Heading": "Recent previews",
+      "Hint": "Earlier previews from this session. Open one to review or create it. Reloading Foundry clears this list.",
+      "Unnamed": "Untitled preview",
+      "Detail": "{mode} · Level {level} · {time}",
+      "DetailNoLevel": "{mode} · {time}",
+      "Open": "Open",
+      "OpenAria": "Open preview {name}",
+      "Remove": "Remove from recent previews",
+      "RemoveAria": "Remove preview {name}"
+    },
     "Threat": {
       "Trivial": "Trivial",
       "Low": "Low",

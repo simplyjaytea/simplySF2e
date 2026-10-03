@@ -444,6 +444,18 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 | 12r.5 | Pick a connection or model with a long name, then hover the name, the model id and the last-run cost in both the Generator and the Item Forge status strip. | Each shows its full text in a tooltip when it is cut short with "...". | Generator, Item Forge | | |
 | 12r.6 | In each module window, scroll with the mouse wheel while the pointer is over a text box, a dropdown and the Level number box; then click into Level (and Party Size in Encounter mode) and wheel over it. | The window keeps scrolling (a long text box scrolls itself first); Level and Party Size never change from the wheel. | Each window | | |
 
+## 12v. Recent previews
+
+| # | Do | Expect | Where | Pass | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 12v.1 | Generate a monster, then generate a different monster. | A "Recent previews" card appears under the Generate button with the first monster: its name, "Monster · Level N" and the time it was made. The new monster's preview shows below. | Generator | | |
+| 12v.2 | Press Open on the listed monster. | The first monster's preview comes back exactly as it was (same stats, picks, token usage), with Create Actor working. The second monster now sits in the list. | Generator | | |
+| 12v.3 | Make one preview in each other mode (NPC, Encounter, Player Character, Reskin), then Open each from the list. | Each restores into its own mode (the mode tab switches) and its Create button creates that preview. A Reskin entry brings back its dropped creature too. | Generator | | |
+| 12v.4 | Create an actor from a restored preview, then look at the list. | The created preview is gone from the list; nothing in the list can create it a second time. | Generator | | |
+| 12v.5 | Close the Generator window and open it again from the Actors sidebar. | The preview on screen and the list are both still there. | Generator | | |
+| 12v.6 | Press the x on an entry, and Discard a preview on screen. | The x removes only that entry. Discard removes only the preview on screen; the list keeps its entries. | Generator | | |
+| 12v.7 | Make seven previews in a row, then reload Foundry (F5). | The list never shows more than five (the oldest drop off). After the reload the list is empty. | Generator | | |
+
 ## 13. Firefox (if available)
 
 | # | Step | Expected | Where to look | Result | Evidence |

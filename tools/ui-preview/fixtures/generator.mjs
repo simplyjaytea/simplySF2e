@@ -24,6 +24,15 @@ const RANDOM_TOOLTIP = {
   character: "SIMPLYSF2E.Generator.RandomCharacterTooltip"
 };
 
+/** #buildRecentContext() rows: one per mode, plus an overlong name. */
+const RECENT = [
+  { id: "recent-5", mode: "character", icon: "fa-user-astronaut", name: "Kess Vandrel", detail: "Player Character · Level 3 · 14:32" },
+  { id: "recent-4", mode: "encounter", icon: "fa-crosshairs", name: "Ambush at the Failing Lattice", detail: "Encounters · Level 4 · 14:20" },
+  { id: "recent-3", mode: "reskin", icon: "fa-masks-theater", name: "Captain Voss of the Derelict", detail: "Reskin · Level 8 · 14:05" },
+  { id: "recent-2", mode: "npc", icon: "fa-id-badge", name: "Station Quartermaster Ilyra Benthos-Varn of the Outer Ring Docks", detail: "NPC · Level 2 · 13:58" },
+  { id: "recent-1", mode: "monster", icon: "fa-dna", name: "Rift-Scarred Vanguard", detail: "Monster · Level 4 · 13:41" }
+];
+
 const cap = (s) => `${s.charAt(0).toUpperCase()}${s.slice(1)}`;
 
 /** The full _prepareContext() object for a mode, empty of results. */
@@ -68,6 +77,7 @@ export function generatorContext(mode, patch = {}) {
     pcPreview: null,
     characterReview: null,
     created: null,
+    recent: null,
     showEmptyState: true,
     ...rest
   };
@@ -273,6 +283,22 @@ export default [
       }
     })
   },
+  {
+    id: "generator-recent-empty",
+    app: "generator",
+    context: generatorContext("character", { input: { level: 3 }, recent: RECENT })
+  },
+  (() => {
+    const c = concept({ specialAbilities: [] });
+    return {
+      id: "generator-recent-preview",
+      app: "generator",
+      context: generatorContext("monster", {
+        input: { level: 4 }, showEmptyState: false, tokenReport: TOKEN_REPORT,
+        preview: creaturePreview(c, RICH), recent: RECENT.slice(0, 2)
+      })
+    };
+  })(),
   {
     id: "generator-created",
     app: "generator",

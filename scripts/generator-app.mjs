@@ -37,6 +37,7 @@ import { validateArchetypeSlotPlacement } from "./pc-prerequisites.mjs";
 import { SpfApp } from "./app-base.mjs";
 import { jevKeySource } from "./jev.mjs";
 import { signed } from "./text.mjs";
+import { findRecent, forgetRecent, previewModeOf, previewNameOf, rememberRecent } from "./recent-generations.mjs";
 
 async function rollbackActor(actor, label) {
   if (!actor) return null;
@@ -85,7 +86,9 @@ export class GeneratorApp extends SpfApp {
       configureProvider: GeneratorApp.#onConfigureProvider,
       configureSources: GeneratorApp.#onConfigureSources,
       testProvider: GeneratorApp.#onTestProvider,
-      cancelGeneration: GeneratorApp.#onCancelGeneration
+      cancelGeneration: GeneratorApp.#onCancelGeneration,
+      openRecent: GeneratorApp.#onOpenRecent,
+      forgetRecent: GeneratorApp.#onForgetRecent
     }
   };
 
@@ -119,6 +122,12 @@ export class GeneratorApp extends SpfApp {
   #created = null;
   /** Validated plan manifest retained only until it is presented after creation. */
   #manifest = null;
+  /** Earlier previews the GM moved away from, newest first. In memory only:
+   * a page reload clears them (recent-generations.mjs). */
+  #recent = [];
+  #recentSeq = 0;
+  /** Mode, level and time of the preview on screen, set when it was made. */
+  #previewMeta = null;
   /** Cycles the example placeholder; starts randomly so reopening varies. */
   #exampleTick = Math.floor(Math.random() * 5);
   /** External programmatic input update (e.g. from chat command). */
@@ -222,6 +231,7 @@ export class GeneratorApp extends SpfApp {
       pcPreview: this.#input.mode === "character" ? this.#buildPCPreviewContext() : null,
       characterReview: this.#characterReview,
       created: this.#created,
+      recent: this.#buildRecentContext(),
       tokenReport: this._buildTokenReport(),
       // Presentation only: show the getting-started panel when the active
       // mode has no result (busy/error states render their own blocks).
@@ -721,16 +731,19 @@ export class GeneratorApp extends SpfApp {
     if (!this.#assertGenerationReady()) return;
     if (this.#input.mode === "reskin") {
       await this.#generateReskin();
+      if (this.#reskinFlavor && !this.#error) this.#markPreview();
       if (create && this.#reskinFlavor && !this.#error) await this.#createReskinActor();
       return;
     }
     if (this.#input.mode === "character") {
       await this.#generatePC(isRandom);
+      if (this.#pcConcept && !this.#error) this.#markPreview();
       if (create && this.#pcConcept && !this.#error) await this.#createCharacterActor();
       return;
     }
     if (this.#input.mode === "encounter") {
       await this.#generateEncounter(isRandom);
+      if (this.#encounter && !this.#error) this.#markPreview();
       if (create && this.#encounter && !this.#error) await this.#createEncounterActors();
       return;
     }
@@ -738,6 +751,7 @@ export class GeneratorApp extends SpfApp {
       ui.notifications.warn(game.i18n.localize("SIMPLYSF2E.Errors.NoPrompt"));
       return;
     }
+    this.#stashPreview();
     this.#busy = true;
     this.#error = null;
     this.#created = null;
@@ -827,6 +841,7 @@ export class GeneratorApp extends SpfApp {
       this._finishRun();
       await this.render();
     }
+    if (this.#concept && !this.#error) this.#markPreview();
     if (create && this.#concept && !this.#error) await GeneratorApp.#onCreateActor.call(this);
   }
 
@@ -836,6 +851,7 @@ export class GeneratorApp extends SpfApp {
    * through the normal single-creature pipeline.
    */
   async #generateEncounter(isRandom = false) {
+    this.#stashPreview();
     this.#busy = true;
     this.#error = null;
     this.#created = null;
@@ -958,6 +974,7 @@ export class GeneratorApp extends SpfApp {
       ui.notifications.warn(game.i18n.localize("SIMPLYSF2E.Errors.NoPrompt"));
       return;
     }
+    this.#stashPreview();
     this.#busy = true;
     this.#error = null;
     this.#created = null;
@@ -1459,6 +1476,7 @@ export class GeneratorApp extends SpfApp {
       this.#concept = null;
       this.#resolved = null;
       this.#manifest = null;
+      this.#previewMeta = null;
       this.#created = { name: actor.name, actorId: actor.id, count: 1, grounding };
       committed = true;
       try {
@@ -1476,6 +1494,7 @@ export class GeneratorApp extends SpfApp {
           this.#concept = null;
           this.#resolved = null;
           this.#manifest = null;
+          this.#previewMeta = null;
         }
         console.error(`${MODULE_ID} | actor creation failed`, err);
         this.#error = survivor ? `${err.message} ${survivor}` : err.message;
@@ -1546,6 +1565,7 @@ export class GeneratorApp extends SpfApp {
       this.#pcResolved = null;
       this.#characterReview = null;
       this.#manifest = null;
+      this.#previewMeta = null;
       this.#created = { name: actor.name, actorId: actor.id, count: 1, grounding };
       created = true;
       committed = true;
@@ -1583,6 +1603,7 @@ export class GeneratorApp extends SpfApp {
         this.#pcResolved = null;
         this.#characterReview = null;
         this.#manifest = null;
+        this.#previewMeta = null;
       }
       if (!committed) {
         console.error(`${MODULE_ID} | character actor creation failed`, err);
@@ -1666,6 +1687,7 @@ export class GeneratorApp extends SpfApp {
         Array.from({ length: member.count }, () => member.manifest)
       ));
       this.#encounter = null;
+      this.#previewMeta = null;
       this.#created = { name: folder.name, actorId: actors[0]?.id ?? null, count: created, inFolder: true, grounding };
       committed = true;
       try {
@@ -1698,6 +1720,7 @@ export class GeneratorApp extends SpfApp {
       }
       if (survivors.length) {
         this.#encounter = null;
+        this.#previewMeta = null;
         this.#error = `${err.message} ${survivors.join(" ")} The plan was discarded to prevent a duplicate.`;
       } else this.#error = err.message;
     } finally {
@@ -1717,6 +1740,8 @@ export class GeneratorApp extends SpfApp {
       return;
     }
     this.#readForm();
+    // A new source replaces the reskin on screen; keep that paid draft reachable.
+    if (this.#reskinFlavor) this.#stashPreview();
     this.#reskinSource = {
       uuid: actor.uuid,
       name: actor.name,
@@ -1747,6 +1772,7 @@ export class GeneratorApp extends SpfApp {
       ui.notifications.warn(game.i18n.localize("SIMPLYSF2E.Errors.NoPrompt"));
       return;
     }
+    this.#stashPreview();
     this.#busy = true;
     this.#error = null;
     this.#created = null;
@@ -1790,6 +1816,7 @@ export class GeneratorApp extends SpfApp {
       const data = reskinActorData(await this.#reskinSourceData(), this.#reskinFlavor);
       const actor = await Actor.create(data);
       this.#reskinFlavor = null;
+      this.#previewMeta = null;
       this.#created = { name: actor.name, actorId: actor.id, count: 1, grounding: { total: 0, rows: [] } };
       try {
         ui.notifications.info(game.i18n.format("SIMPLYSF2E.Generator.Created", { name: actor.name }));
@@ -1860,8 +1887,116 @@ export class GeneratorApp extends SpfApp {
     this.#pcResolved = null;
     this.#manifest = null;
     this.#reskinFlavor = null;
+    this.#previewMeta = null;
     this.#error = null;
     this._tokenUsage = [];
+    await this.render();
+  }
+
+  /** Remember when, and in which mode and level, the on-screen preview was made. */
+  #markPreview() {
+    this.#previewMeta = {
+      mode: this.#input.mode,
+      level: this.#input.mode === "reskin" ? this.#reskinSource?.level ?? null : this.#input.level,
+      at: Date.now()
+    };
+  }
+
+  /** The on-screen preview as a Recent generations entry, or null when there is none. */
+  #capturePreview() {
+    const all = {
+      concept: this.#concept, resolved: this.#resolved, manifest: this.#manifest,
+      encounter: this.#encounter, pcConcept: this.#pcConcept, pcResolved: this.#pcResolved,
+      reskinSource: this.#reskinSource, reskinFlavor: this.#reskinFlavor
+    };
+    const mode = previewModeOf(all, this.#previewMeta?.mode);
+    if (!mode) return null;
+    // Keep only the fields this mode's preview reads, so restoring one entry
+    // can never bring back a second, stale preview from another mode.
+    const state = {
+      monster: { concept: all.concept, resolved: all.resolved, manifest: all.manifest },
+      npc: { concept: all.concept, resolved: all.resolved, manifest: all.manifest },
+      encounter: { encounter: all.encounter },
+      character: { pcConcept: all.pcConcept, pcResolved: all.pcResolved, manifest: all.manifest },
+      reskin: { reskinSource: all.reskinSource, reskinFlavor: all.reskinFlavor }
+    }[mode];
+    return {
+      id: `recent-${++this.#recentSeq}`,
+      mode,
+      name: previewNameOf(all, mode),
+      level: this.#previewMeta?.level ?? null,
+      at: this.#previewMeta?.at ?? Date.now(),
+      tokenUsage: [...(this._tokenUsage ?? [])],
+      state
+    };
+  }
+
+  /** Move the on-screen preview into Recent generations before anything replaces it. */
+  #stashPreview() {
+    const entry = this.#capturePreview();
+    if (entry) this.#recent = rememberRecent(this.#recent, entry);
+    this.#concept = null;
+    this.#resolved = null;
+    this.#manifest = null;
+    this.#encounter = null;
+    this.#pcConcept = null;
+    this.#pcResolved = null;
+    this.#reskinFlavor = null;
+    this.#previewMeta = null;
+  }
+
+  #buildRecentContext() {
+    if (!this.#recent.length) return null;
+    const icons = {
+      monster: "fa-dna", npc: "fa-id-badge", encounter: "fa-crosshairs",
+      character: "fa-user-astronaut", reskin: "fa-masks-theater"
+    };
+    const modeKeys = { monster: "Monster", npc: "Npc", encounter: "Encounter", character: "Character", reskin: "Reskin" };
+    return this.#recent.map((entry) => {
+      const mode = game.i18n.localize(`SIMPLYSF2E.Mode.${modeKeys[entry.mode]}`);
+      const time = new Date(entry.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      return {
+        id: entry.id,
+        mode: entry.mode,
+        icon: icons[entry.mode],
+        name: entry.name || game.i18n.localize("SIMPLYSF2E.Recent.Unnamed"),
+        detail: Number.isFinite(entry.level)
+          ? game.i18n.format("SIMPLYSF2E.Recent.Detail", { mode, level: entry.level, time })
+          : game.i18n.format("SIMPLYSF2E.Recent.DetailNoLevel", { mode, time })
+      };
+    });
+  }
+
+  /** Bring an earlier preview back on screen; the current one takes its place in the list. */
+  static async #onOpenRecent(event, target) {
+    if (this.#busy) return;
+    const entry = findRecent(this.#recent, target?.dataset?.recentId);
+    if (!entry) return;
+    this.#readForm();
+    this.#recent = forgetRecent(this.#recent, entry.id);
+    this.#stashPreview();
+    const state = entry.state;
+    this.#concept = state.concept ?? null;
+    this.#resolved = state.resolved ?? null;
+    this.#manifest = state.manifest ?? null;
+    this.#encounter = state.encounter ?? null;
+    this.#pcConcept = state.pcConcept ?? null;
+    this.#pcResolved = state.pcResolved ?? null;
+    this.#reskinFlavor = state.reskinFlavor ?? null;
+    if (entry.mode === "reskin") this.#reskinSource = state.reskinSource;
+    this.#previewMeta = { mode: entry.mode, level: entry.level, at: entry.at };
+    this._tokenUsage = [...entry.tokenUsage];
+    this.#input.mode = entry.mode;
+    this.#input.prompt = this.#modePrompts[entry.mode] ?? "";
+    this.#created = null;
+    this.#characterReview = null;
+    this.#error = null;
+    await this.render();
+  }
+
+  static async #onForgetRecent(event, target) {
+    if (this.#busy) return;
+    this.#recent = forgetRecent(this.#recent, target?.dataset?.recentId);
     await this.render();
   }
 

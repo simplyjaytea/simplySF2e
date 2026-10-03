@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import vm from "node:vm";
+import * as recentGenerations from "./recent-generations.mjs";
 import { reviewUnresolvedChoices } from "./choice-set.mjs";
 import { normalizeSkillPriorities, skillPriorityOrder } from "./pc-skills.mjs";
 import { assertComplete, completionManifest, completionSummary } from "./completion.mjs";
@@ -49,6 +50,7 @@ const context = vm.createContext({
 const resolved = () => ({ ancestryDoc: { name: "Dwarf" }, classDoc: { name: "Fighter" },
   backgroundDoc: { name: "Warrior" }, featSlots: [], feats: [], spells: [], equipment: [], loot: previewLoot });
 const mocks = {
+  ...recentGenerations,
   SpfApp: App, MODULE_ID: "simplysf2e", SETTINGS: { freeArchetype: "freeArchetype" }, reviewUnresolvedChoices, normalizeSkillPriorities, skillPriorityOrder,
   assertComplete, completionManifest, completionSummary,
   verifyCreatedActor: () => { if (verifyFailure) throw verifyFailure; },
@@ -58,7 +60,7 @@ const mocks = {
   BUILT_IN_PRESETS: [], getCustomPresets: () => [], findPreset: () => null, examplePrompt: () => "",
   presetPickerGroups: () => ({ selectedId: "", standard: [], custom: [] }),
   THREATS: {}, TREASURE_AMOUNT_MULTIPLIER: {}, randomBrief: () => "A dwarf",
-  generatePCConcept: async () => { conceptCalls++; return { concept: { name: "Test", level: 1, equipment: [], loot: [] } }; },
+  generatePCConcept: async () => { conceptCalls++; return { concept: { name: `Test ${conceptCalls}`, level: 1, equipment: [], loot: [] } }; },
   normalizePCConcept: (raw) => raw,
   getAncestryCandidates: () => [], getBackgroundCandidates: () => [], getClassCandidates: () => [{ name: "Fighter" }], getHeritageCandidates: () => [],
   selectAncestryBackgroundClass: async () => ({ ancestry: "Dwarf", background: "Warrior", class: "Fighter" }),
@@ -280,4 +282,46 @@ releaseBudget();
 await Promise.all([firstRun, secondRun]);
 assert.equal(conceptCalls, callsBeforeDuplicate + 1, "one active run owns the provider calls and cancellation signal");
 budgetPending = budgetStarted = null;
+
+// Recent previews: a new run moves the on-screen preview into the list
+// instead of discarding it; Open swaps it back; a created preview is
+// consumed and never offered again (no duplicate actor from the list).
+{
+  setActor();
+  createFailure = verifyFailure = null;
+  const recentApp = new GeneratorApp();
+  await actions.generateRandom.call(recentApp);
+  const firstName = recentApp.context.pcPreview.concept.name;
+  assert.equal(recentApp.context.recent, null, "the preview on screen is not listed");
+  await actions.generateRandom.call(recentApp);
+  const secondName = recentApp.context.pcPreview.concept.name;
+  assert.notEqual(firstName, secondName);
+  assert.equal(recentApp.context.recent.length, 1);
+  assert.equal(recentApp.context.recent[0].name, firstName);
+  assert.equal(recentApp.context.recent[0].mode, "character");
+  await actions.openRecent.call(recentApp, {}, { dataset: { recentId: recentApp.context.recent[0].id } });
+  assert.equal(recentApp.context.pcPreview.concept.name, firstName, "Open restores the earlier preview");
+  assert.equal(recentApp.context.recent.length, 1);
+  assert.equal(recentApp.context.recent[0].name, secondName, "the replaced preview takes its place in the list");
+  const createsBefore = creates;
+  await actions.createActor.call(recentApp);
+  assert.equal(creates, createsBefore + 1);
+  assert.equal(recentApp.context.pcPreview, null);
+  assert.deepEqual(Array.from(recentApp.context.recent, (row) => row.name), [secondName],
+    "a created preview is not put back in the list");
+  await actions.generateAnother.call(recentApp);
+  await actions.generateRandom.call(recentApp);
+  assert.equal(recentApp.context.recent.length, 1, "nothing is stashed when no preview was on screen");
+  await actions.forgetRecent.call(recentApp, {}, { dataset: { recentId: recentApp.context.recent[0].id } });
+  assert.equal(recentApp.context.recent, null, "Remove drops the entry");
+  for (let i = 0; i < recentGenerations.RECENT_LIMIT + 2; i++) await actions.generateRandom.call(recentApp);
+  assert.equal(recentApp.context.recent.length, recentGenerations.RECENT_LIMIT, "the list is capped");
+  const listed = Array.from(recentApp.context.recent, (row) => row.id);
+  recentApp._confirm = async () => true;
+  await actions.discard.call(recentApp);
+  assert.equal(recentApp.context.pcPreview, null);
+  assert.deepEqual(Array.from(recentApp.context.recent, (row) => row.id), listed,
+    "Discard throws away only the preview on screen");
+}
+
 console.log("generator-app.review.test.mjs: production generation/creation/review lifecycle passed");
