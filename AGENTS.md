@@ -13,6 +13,7 @@ This file is the tool-neutral contract for every agent (Codex, Claude, or otherw
 
 ## Verification bar
 
+- Before a release, or when asked "is it shippable?": `tools/release-check.sh` reruns every self-checkable check in one command (syntax, all regression tests, duplicate keys in `module.json`/`lang/en.json`, missing manifest/template paths, merge-conflict markers, duplicate QA row ids, `git diff --check` against `origin/main`, and the UI harness) and exits non-zero if any fails. `--no-ui` skips the harness. It lives in `tools/` so the release zip never ships it.
 - `node --check` on every touched `.mjs`.
 - Run all regression tests: `for f in scripts/*.test.mjs; do node "$f"; done` — all must pass.
 - Add a `*.test.mjs` for genuinely pure logic behind any bug-shaped change.
