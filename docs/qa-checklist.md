@@ -455,6 +455,17 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 | 12s.5 | Forge a wondrous item with a prompt that invites odd traits (e.g. "a humming cosmic charm"). | Only real equipment traits appear on the item; the console names any dropped trait. | Item sheet, F12 console | | |
 | 12s.6 | Generate a creature with a bespoke signature ability. | A narrative-only ability reads as flavor. If the AI wrote dice, a DC or Hit Points into it, the ability is left off and the console says so. | Actions tab, F12 console | | |
 
+## 12w. Reroll one pick
+
+| # | Do | Expect | Where | Pass | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 12w.1 | Generate a level 5 spellcasting monster. Click the dice next to a ranked spell. | The progress bar shows "Pick reroll". Only that spell changes; it keeps its rank, the new spell is from the same tradition, it isn't already on the creature, and it shows the green found check. Everything else in the preview is unchanged. The token report gains a "Pick reroll" line. | Preview, token report | | |
+| 12w.2 | Click the dice next to a cantrip. | The cantrip is replaced by a different cantrip, never a ranked spell. | Preview | | |
+| 12w.3 | Reroll the same spell several times. | It never swaps back to a spell it already replaced. When nothing else fits, a warning says no other compendium option fits and the spell stays. | Preview, notification | | |
+| 12w.4 | Reroll a feat and a published ability (book icon). | Each changes to a different published feat or bestiary action; the ability shows the book icon with its compendium name. Narrative-only abilities have no dice. | Preview | | |
+| 12w.5 | Reroll a spell, then Create Actor. | The sheet has the new spell (not the old one) at the shown rank, and the feat or ability you rerolled is the new one. | Spellcasting and Actions tabs | | |
+| 12w.6 | Start a reroll and close the window or press Stop. | The preview keeps its old pick and nothing else changes. | Preview | | |
+
 ## 13. Firefox (if available)
 
 | # | Step | Expected | Where to look | Result | Evidence |

@@ -79,6 +79,11 @@ const spell = (name, rank, found = true, signature = false) => ({ name, rank, fo
 
 /** Context of #buildPreviewContext() for a (possibly adjusted) creature concept. */
 function creaturePreview(c, { abilities = [], spells = [], feats = [], equipment = [], loot = [] } = {}) {
+  // Reroll slots, as #buildPreviewContext() adds them: every row but narrative abilities.
+  const slot = (row, index) => ({ ...row, index, rerollable: !row.narrative });
+  abilities = abilities.map(slot);
+  spells = spells.map(slot);
+  feats = feats.map(slot);
   const stats = adjustedStats(computeStats(c), c);
   const all = [...spells, ...feats, ...equipment, ...loot];
   const total = all.length + abilities.filter((a) => !a.narrative).length;
