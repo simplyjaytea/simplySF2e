@@ -562,6 +562,72 @@
   }
 }
 
+/* Recent previews: earlier paid previews from this session, one compact row
+   each, tinted with the accent of the mode that made it. */
+.simplysf2e .spf-recent {
+  padding: var(--spf-space-sm) var(--spf-space-md);
+}
+
+.simplysf2e .spf-recent h3 {
+  margin: 0 0 var(--spf-space-xs);
+  font-size: var(--spf-text-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--spf-text-muted);
+}
+
+.simplysf2e .spf-recent-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--spf-space-xs);
+}
+
+.simplysf2e .spf-recent-row {
+  --spf-recent-accent: var(--spf-mode-monster);
+  display: flex;
+  align-items: center;
+  gap: var(--spf-space-sm);
+  padding: 0.2rem 0 0.2rem var(--spf-space-sm);
+  border-left: 2px solid var(--spf-recent-accent);
+}
+
+.simplysf2e .spf-recent-npc { --spf-recent-accent: var(--spf-mode-npc); }
+.simplysf2e .spf-recent-encounter { --spf-recent-accent: var(--spf-mode-encounter); }
+.simplysf2e .spf-recent-character { --spf-recent-accent: var(--spf-mode-character); }
+.simplysf2e .spf-recent-reskin { --spf-recent-accent: var(--spf-mode-reskin); }
+
+.simplysf2e .spf-recent-icon {
+  flex: 0 0 1.2rem;
+  text-align: center;
+  color: var(--spf-recent-accent);
+}
+
+.simplysf2e .spf-recent-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.simplysf2e .spf-recent-name,
+.simplysf2e .spf-recent-detail {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.simplysf2e .spf-recent-detail {
+  font-size: var(--spf-text-sm);
+  color: var(--spf-text-muted);
+}
+
+.simplysf2e .spf-recent-row button.spf-recent-open {
+  flex: 0 0 auto;
+  width: auto;
+  white-space: nowrap;
+
 /* Reroll-one-pick dice: a compact inline icon button beside each spell,
    feat or ability, sized to the text so the list rows keep their height. */
 .simplysf2e .spf-reroll-pick {

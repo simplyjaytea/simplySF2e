@@ -5,13 +5,14 @@ import { spawnSync } from "node:child_process";
 import vm from "node:vm";
 import { completionManifest, assertComplete } from "./completion.mjs";
 import * as reroll from "./reroll.mjs";
+import * as recentGenerations from "./recent-generations.mjs";
 
 if (!vm.SourceTextModule) {
   const run = spawnSync(process.execPath, ["--experimental-vm-modules", import.meta.filename], { stdio: "inherit" });
   process.exit(run.status ?? 1);
 }
 const source = (await readFile(new URL("./generator-app.mjs", import.meta.url), "utf8"))
-  .replace(/#(concept|resolved|manifest|error|busy|rerollRejected|buildPreviewContext)\b/g, "_test_$1");
+  .replace(/#(concept|resolved|manifest|error|busy|rerollRejected|buildPreviewContext|stashPreview|readForm|recent)\b/g, "_test_$1");
 const warnings = [];
 const context = vm.createContext({
   console: { warn() {}, error() {}, log() {} },
@@ -42,6 +43,7 @@ const mocks = {
     async render() {}
   },
   ...reroll,
+  ...recentGenerations,
   completionManifest, assertComplete,
   getSpellCandidates: async (...args) => { spellArgs = args; return spellCatalog; },
   getFeatCandidates: async (args) => {
@@ -200,5 +202,30 @@ for (const failure of [new Error("provider unavailable"), Object.assign(new Erro
   assert.equal(app._test_rerollRejected.size, 0, "a failed reroll rejects nothing");
 }
 providerFailure = null;
+
+// Recent previews: a rerolled preview keeps its picks (and its rejected
+// names) when it moves to the list, and Open brings back exactly that state.
+// Rerolling the restored preview never edits a list entry in place.
+{
+  const app = preview();
+  app._test_readForm = () => {};
+  replyId = "F1";
+  await action.call(app, null, target("feat", 0));
+  const rerolled = app._test_concept;
+  app._test_stashPreview();
+  assert.equal(app._test_concept, null);
+  assert.equal(app._test_rerollRejected.size, 0, "the next preview starts with no rejected names");
+  const [entry] = app._test_recent;
+  assert.equal(entry.state.concept, rerolled);
+  await App.DEFAULT_OPTIONS.actions.openRecent.call(app, null, { dataset: { recentId: entry.id } });
+  assert.equal(app._test_concept.feats[0].name, "Reactive Shield", "the rerolled pick comes back");
+  assert.equal(app._test_rerollRejected.get("feat:0")?.size, 1, "rejected names come back with their preview");
+  assert.equal(app._test_recent.length, 0, "the open preview is not also in the list");
+  replyId = "A1";
+  await action.call(app, null, target("ability", 0));
+  assert.equal(entry.state.concept.specialAbilities[0].name, rerolled.specialAbilities[0].name,
+    "a reroll after Open leaves the old entry object untouched");
+  assert.equal(app._test_manifest.complete, true);
+}
 
 console.log("generator-app reroll pick: slot-preserving grounded swaps passed");

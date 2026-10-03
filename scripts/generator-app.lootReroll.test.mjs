@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import vm from "node:vm";
+import * as recentGenerations from "./recent-generations.mjs";
 import { completionManifest, assertComplete } from "./completion.mjs";
 import { normalizeConcept, normalizeLoot, parseCoins, parseScroll } from "./builder.mjs";
 import { composeEncounter } from "./encounter.mjs";
@@ -28,6 +29,7 @@ let abortController;
 let abortDuringResolve = false;
 const ref = { packId: "test.equipment", _id: "potion" };
 const mocks = {
+  ...recentGenerations,
   MODULE_ID: "simplysf2e",
   SpfApp: class {
     _beginProgress() { abortController = new AbortController(); return abortController.signal; }

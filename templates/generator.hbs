@@ -270,6 +270,25 @@
     </div>
   {{/if}}
 
+  {{#if recent}}
+  <section class="spf-recent spf-card" aria-labelledby="spf-recent-heading">
+    <h3 id="spf-recent-heading" data-tooltip="{{localize 'SIMPLYSF2E.Recent.Hint'}}"><i aria-hidden="true" class="fa-solid fa-clock-rotate-left"></i> {{localize "SIMPLYSF2E.Recent.Heading"}}</h3>
+    <ul class="spf-recent-list">
+      {{#each recent}}
+      <li class="spf-recent-row spf-recent-{{this.mode}}">
+        <i aria-hidden="true" class="spf-recent-icon fa-solid {{this.icon}}"></i>
+        <span class="spf-recent-text">
+          <strong class="spf-recent-name" data-tooltip="{{this.name}}">{{this.name}}</strong>
+          <span class="spf-recent-detail">{{this.detail}}</span>
+        </span>
+        <button type="button" class="spf-recent-open" data-action="openRecent" data-recent-id="{{this.id}}" aria-label="{{localize 'SIMPLYSF2E.Recent.OpenAria' name=this.name}}" {{#if @root.busy}}disabled{{/if}}><i aria-hidden="true" class="fa-solid fa-folder-open"></i> {{localize "SIMPLYSF2E.Recent.Open"}}</button>
+        <button type="button" class="spf-icon-btn" data-action="forgetRecent" data-recent-id="{{this.id}}" data-tooltip="{{localize 'SIMPLYSF2E.Recent.Remove'}}" aria-label="{{localize 'SIMPLYSF2E.Recent.RemoveAria' name=this.name}}" {{#if @root.busy}}disabled{{/if}}><i aria-hidden="true" class="fa-solid fa-xmark"></i></button>
+      </li>
+      {{/each}}
+    </ul>
+  </section>
+  {{/if}}
+
   {{#if created}}
   <section class="spf-preview spf-card" aria-label="{{localize 'SIMPLYSF2E.Generator.CompleteTitle'}}">
     <header class="spf-statblock-header">

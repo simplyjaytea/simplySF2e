@@ -476,6 +476,18 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 | 12u.4 | Make an Item Forge run fail the same way and click Copy bug report. | Same as 12u.1, with "Window: Item Forge" and the forge's kind, level and rarity. | Item Forge | | |
 | 12u.5 | Open the world over plain http from another machine (not localhost), make a run fail and click Copy bug report. | The browser blocks the clipboard, so a "Bug report" window opens with the report already selected; Ctrl+C copies it. | Dialog | | |
 
+## 12v. Recent previews
+
+| # | Do | Expect | Where | Pass | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 12v.1 | Generate a monster, then generate a different monster. | A "Recent previews" card appears under the Generate button with the first monster: its name, "Monster · Level N" and the time it was made. The new monster's preview shows below. | Generator | | |
+| 12v.2 | Press Open on the listed monster. | The first monster's preview comes back exactly as it was (same stats, picks, token usage), with Create Actor working. The second monster now sits in the list. | Generator | | |
+| 12v.3 | Make one preview in each other mode (NPC, Encounter, Player Character, Reskin), then Open each from the list. | Each restores into its own mode (the mode tab switches) and its Create button creates that preview. A Reskin entry brings back its dropped creature too. | Generator | | |
+| 12v.4 | Create an actor from a restored preview, then look at the list. | The created preview is gone from the list; nothing in the list can create it a second time. | Generator | | |
+| 12v.5 | Close the Generator window and open it again from the Actors sidebar. | The preview on screen and the list are both still there. | Generator | | |
+| 12v.6 | Press the x on an entry, and Discard a preview on screen. | The x removes only that entry. Discard removes only the preview on screen; the list keeps its entries. | Generator | | |
+| 12v.7 | Make seven previews in a row, then reload Foundry (F5). | The list never shows more than five (the oldest drop off). After the reload the list is empty. | Generator | | |
+
 ## 12w. Reroll one pick
 
 | # | Do | Expect | Where | Pass | Notes |
