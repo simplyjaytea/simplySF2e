@@ -87,7 +87,8 @@ export class GeneratorApp extends SpfApp {
       configureProvider: GeneratorApp.#onConfigureProvider,
       configureSources: GeneratorApp.#onConfigureSources,
       testProvider: GeneratorApp.#onTestProvider,
-      cancelGeneration: GeneratorApp.#onCancelGeneration
+      cancelGeneration: GeneratorApp.#onCancelGeneration,
+      copyBugReport: GeneratorApp.#onCopyBugReport
     }
   };
 
@@ -155,6 +156,7 @@ export class GeneratorApp extends SpfApp {
       canCancel: this._canCancel,
       lastRunCost: this._formatLastRunCost(),
       error: this.#error,
+      canReportBug: this._canReportBug(this.#error),
       progress: this._progress,
       apiKeyWarning: authWarningKey ? game.i18n.localize(authWarningKey) : null,
       providerBaseUrl: authState.baseUrl,
@@ -686,6 +688,15 @@ export class GeneratorApp extends SpfApp {
     if (err?.cancelled) console.warn(`${MODULE_ID} | ${label} cancelled`);
     else console.error(`${MODULE_ID} | ${label} failed`, err);
     this.#error = err?.message ?? String(err);
+    this._recordFailure(err, label, this.#error);
+  }
+
+  /** Copy the last failure's report; the form as read now stands in for the run's input. */
+  static async #onCopyBugReport() {
+    this.#readForm();
+    const input = { ...this.#input };
+    if (input.mode === "reskin") input.reskinSource = this.#reskinSource?.name ?? null;
+    return this._copyBugReport("Generator", input);
   }
 
   static async #onGenerate() {
@@ -1497,6 +1508,7 @@ export class GeneratorApp extends SpfApp {
         }
         console.error(`${MODULE_ID} | actor creation failed`, err);
         this.#error = survivor ? `${err.message} ${survivor}` : err.message;
+        this._recordFailure(err, "actor creation", this.#error);
       } else {
         console.warn(`${MODULE_ID} | actor committed, but completion presentation failed`, err);
       }
@@ -1605,6 +1617,7 @@ export class GeneratorApp extends SpfApp {
       if (!committed) {
         console.error(`${MODULE_ID} | character actor creation failed`, err);
         this.#error = survivor ? `${err.message} ${survivor}` : err.message;
+        this._recordFailure(err, "character creation", this.#error);
       } else console.warn(`${MODULE_ID} | character committed, but completion presentation failed`, err);
     } finally {
       this.#busy = false;
@@ -1718,6 +1731,7 @@ export class GeneratorApp extends SpfApp {
         this.#encounter = null;
         this.#error = `${err.message} ${survivors.join(" ")} The plan was discarded to prevent a duplicate.`;
       } else this.#error = err.message;
+      this._recordFailure(err, "encounter creation", this.#error);
     } finally {
       this.#busy = false;
       await this.render();
@@ -1818,6 +1832,7 @@ export class GeneratorApp extends SpfApp {
     } catch (err) {
       console.error(`${MODULE_ID} | reskin creation failed`, err);
       this.#error = err?.message ?? String(err);
+      this._recordFailure(err, "reskin creation", this.#error);
     } finally {
       this.#busy = false;
       await this.render();

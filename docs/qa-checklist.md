@@ -466,6 +466,16 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 | 12t.5 | In Compendium Sources, untick every Spells pack, save, then press **Check Again** in the welcome. | Compendium Content shows a warning naming Spells; the gear button opens Compendium Sources. | Welcome window | | |
 | 12t.6 | Log in as a player. | No welcome window, and `/sf2e welcome` shows the GM-only warning. | Player client | | |
 
+## 12u. Copy bug report
+
+| # | Do | Expect | Where | Pass | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 12u.1 | Make a Generator run fail (for example, set the model to a name the provider does not have, then Generate a monster). | The red error box shows a Copy bug report button. Clicking it shows "Bug report copied" and the clipboard holds a fenced block with the error, the failed step, the steps finished, the form values, settings and versions. | Generator, paste into a text editor | | |
+| 12u.2 | Search the pasted report for your API key and your Jev key (and any other saved connection's key). | Neither key appears; the report says only "API key set: yes" and "Jev key set: yes/no". The endpoint shows only scheme and host. | Pasted report | | |
+| 12u.3 | Start a generation and press Cancel. | The error box says the run was cancelled and shows no Copy bug report button. | Generator | | |
+| 12u.4 | Make an Item Forge run fail the same way and click Copy bug report. | Same as 12u.1, with "Window: Item Forge" and the forge's kind, level and rarity. | Item Forge | | |
+| 12u.5 | Open the world over plain http from another machine (not localhost), make a run fail and click Copy bug report. | The browser blocks the clipboard, so a "Bug report" window opens with the report already selected; Ctrl+C copies it. | Dialog | | |
+
 ## 12w. Reroll one pick
 
 | # | Do | Expect | Where | Pass | Notes |

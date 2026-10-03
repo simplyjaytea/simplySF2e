@@ -40,7 +40,8 @@ for (const [name, template] of [
     `${name} provider readiness must not depend on color or a tooltip`
   );
   assert.match(template, /notification warning spf-provider-warning" role="status"/, `${name} provider warnings must expose status semantics`);
-  assert.match(template, /notification error" role="alert"/, `${name} generation failures must be announced as alerts`);
+  // The alert covers only the message, so the Copy bug report button is not re-announced.
+  assert.match(template, /notification error">\s*<p role="alert">\{\{error\}\}<\/p>/, `${name} generation failures must be announced as alerts`);
 }
 
 for (const [name, template] of [

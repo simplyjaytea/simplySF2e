@@ -35,6 +35,7 @@ const mocks = {
     async _setStep() {}
     _recordTokens() {}
     _finishRun() {}
+    _recordFailure() {}
     _throwIfCancelled() {
       if (this.abort?.signal.aborted) throw Object.assign(new Error("cancelled"), { cancelled: true });
     }

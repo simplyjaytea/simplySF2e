@@ -79,7 +79,7 @@ export default [
     id: "itemforge-error",
     app: "itemforge",
     context: itemforgeContext("wondrous", {
-      error: "The provider returned no usable item. Try rewording the prompt.", showEmptyState: false,
+      error: "The provider returned no usable item. Try rewording the prompt.", showEmptyState: false, canReportBug: true,
       unavailableNote: localize("SIMPLYSF2E.ItemForge.KindsUnavailable", { kinds: "weakness, immunity, speed" })
     })
   },
