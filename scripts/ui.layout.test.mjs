@@ -701,4 +701,17 @@ assert.match(
   "action rows must stay pinned while the body scrolls"
 );
 
+// Truncated status-strip text stays readable on hover in both windows (QA 12r.5).
+for (const [name, template] of [["generator", generator], ["item forge", itemForge]]) {
+  assert.match(template, /<strong data-tooltip-text="\{\{#if connectionName\}\}/, `${name} must show the full connection name on hover`);
+  assert.match(template, /spf-provider-model"\{\{#if provider\.model\}\} data-tooltip-text=/, `${name} must show the full model id on hover`);
+  assert.match(template, /spf-last-run" data-tooltip-text=/, `${name} must show the full last-run cost on hover`);
+}
+assert.match(css, /\.application\.simplysf2e\s*\{[^}]*max-height:\s*100vh;/s, "module windows must never run past the screen");
+assert.match(
+  css,
+  /\.application:has\(\.spf-dialog-body\) \.window-content\s*\{[^}]*overflow-y:\s*auto;/s,
+  "preset dialogs must scroll on a short screen"
+);
+
 console.log("UI layout contract checks passed.");
