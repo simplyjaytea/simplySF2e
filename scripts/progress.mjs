@@ -35,6 +35,7 @@ export function stepWeight(key) {
     case "loot": return taskMaxTokens(AI_TASK.LOOT_SELECTION);
     case "design": return taskMaxTokens(AI_TASK.ENCOUNTER_DESIGN);
     case "reskin": return taskMaxTokens(AI_TASK.RESKIN_FLAVOR);
+    case "reroll": return taskMaxTokens(AI_TASK.REROLL_PICK);
     case "abc": return taskMaxTokens(AI_TASK.ABC_SELECTION);
     case "choices": return taskMaxTokens(AI_TASK.CHARACTER_CHOICES);
     default: return LOCAL_STEP_WEIGHT;
