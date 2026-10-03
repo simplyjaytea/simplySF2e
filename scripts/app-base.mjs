@@ -42,6 +42,7 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _keysElement = null;
   /** Snapshot of the last failed run for Copy bug report (see bug-report.mjs). */
   _failure = null;
+  _bugReportBusy = false;
 
   /**
    * Remember a failure for the bug report. Call it in the catch, before
@@ -64,8 +65,20 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   /** Build the report for this window's last failure and copy it to the clipboard. */
   async _copyBugReport(appName, input) {
+    if (!this._failure || this._bugReportBusy) return;
+    this._bugReportBusy = true;
+    try {
+      await this._deliverBugReport(appName, input);
+    } catch (err) {
+      console.error(`${MODULE_ID} | could not build the bug report`, err);
+      ui.notifications.error(game.i18n.localize("SIMPLYSF2E.BugReport.Failed"));
+    } finally {
+      this._bugReportBusy = false;
+    }
+  }
+
+  async _deliverBugReport(appName, input) {
     const failure = this._failure;
-    if (!failure) return;
     const { env, secrets } = gatherEnvironment({
       moduleId: MODULE_ID,
       provider: getProviderRequestConfig(),
@@ -82,14 +95,18 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const { DialogV2 } = foundry.applications.api;
     await DialogV2.prompt({
       window: { title: "SIMPLYSF2E.BugReport.ManualTitle" },
+      position: { width: 640 },
       content: `<p>${esc(game.i18n.localize("SIMPLYSF2E.BugReport.ManualHint"))}</p>`
         + `<textarea class="spf-bug-report-text" readonly rows="14" aria-label="${esc(game.i18n.localize("SIMPLYSF2E.BugReport.ManualTitle"))}">${esc(text)}</textarea>`,
       ok: { label: "SIMPLYSF2E.BugReport.ManualClose" },
       rejectClose: false,
       render: (_event, dialog) => {
         const area = (dialog?.element ?? dialog)?.querySelector?.(".spf-bug-report-text");
-        area?.focus();
-        area?.select();
+        // After the dialog's own autofocus on its button, or Ctrl+C copies nothing.
+        requestAnimationFrame(() => {
+          area?.focus();
+          area?.select();
+        });
       }
     });
   }

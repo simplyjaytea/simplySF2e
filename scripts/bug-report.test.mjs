@@ -124,4 +124,24 @@ assert.equal((report.match(/```/g) ?? []).length, 2);
 const fenced = formatBugReport({ app: "Item Forge", failure: captureFailure(new Error("bad ```json"), { operation: "x" }) });
 assert.equal((fenced.match(/```/g) ?? []).length, 2, "a fence inside the error cannot end the block");
 
+// Exact-match path alone: a key with no recognised shape (short, no digit run).
+const plainKey = "plainkeyvalueABCdef";
+assert.equal(redactSecrets(`echo ${plainKey} end`, [plainKey]), "echo [redacted] end");
+// A provider error cut mid-key still masks the fragment it kept.
+assert.equal(redactSecrets(`detail: ${plainKey.slice(0, 10)}…`, [plainKey]), "detail: [redacted]…");
+assert.equal(redactSecrets(`…${plainKey.slice(-9)} tail`, [plainKey]), "…[redacted] tail");
+assert.equal(redactSecrets("groq gsk_abcdefghijklmnopqrstuvwx"), "groq [redacted]");
+assert.equal(redactSecrets("hex 9f3c2a7b4e1d8c6f5a0b9e2d7c4f1a3b9f3c"), "hex [redacted]");
+
+// A key spanning the prompt cut is redacted before truncation.
+const spanKey = "plainSpanningKeyNoDigitsHere";
+const spanReport = formatBugReport({
+  app: "Generator",
+  failure: captureFailure(new Error(`bad key ${spanKey}`), { operation: "generation" }),
+  input: { prompt: `${"a".repeat(590)}${spanKey}${"b".repeat(50)}` },
+  secrets: [spanKey]
+});
+assert.ok(!spanReport.includes(spanKey.slice(0, 8)), "no fragment of a key spanning the prompt cut");
+assert.ok(!spanReport.includes(spanKey), "exact key in the error is masked");
+
 console.log("bug-report.test.mjs: ok");

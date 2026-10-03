@@ -14,18 +14,31 @@ const REDACTED = "[redacted]";
 /** Generic key shapes masked even when the exact key is unknown. */
 const SECRET_PATTERNS = [
   /\bBearer\s+[A-Za-z0-9._~+/=-]{8,}/gi,
-  /\b(?:sk|pk|rk|ts)-[A-Za-z0-9_-]{8,}/g,
+  /\b(?:sk|pk|rk|ts|xai)-[A-Za-z0-9_-]{8,}/g,
+  /\bgsk_[A-Za-z0-9_-]{8,}/g,
+  // Any long token with a digit in it (hex or base64-ish keys of unknown shape).
+  /\b(?=[A-Za-z_-]*\d)[A-Za-z0-9_-]{32,}/g,
   /\bAIza[A-Za-z0-9_-]{20,}/g,
   /([?&](?:api[_-]?key|key|token|access_token)=)[^&\s"']+/gi
 ];
 
-/** Replace each exact secret and anything key-shaped with "[redacted]". */
+const MIN_SECRET_FRAGMENT = 8;
+
+/**
+ * Replace each exact secret, any cut-off start or end of one (a provider
+ * error truncated mid-key), and anything key-shaped with "[redacted]".
+ */
 export function redactSecrets(text, secrets = []) {
   let out = String(text ?? "");
   for (const secret of secrets) {
     const value = String(secret ?? "").trim();
     // A very short "key" would mask ordinary words; real keys are long.
-    if (value.length >= 6) out = out.split(value).join(REDACTED);
+    if (value.length < 6) continue;
+    out = out.split(value).join(REDACTED);
+    for (let len = value.length - 1; len >= MIN_SECRET_FRAGMENT; len--) {
+      out = out.split(value.slice(0, len)).join(REDACTED);
+      out = out.split(value.slice(-len)).join(REDACTED);
+    }
   }
   for (const pattern of SECRET_PATTERNS) {
     out = out.replace(pattern, (match, prefix) => (typeof prefix === "string" && match.startsWith(prefix)
@@ -114,6 +127,8 @@ export function formatBugReport({ app, failure, input = {}, env = {}, secrets = 
   for (const [key, value] of Object.entries(input ?? {})) {
     if (value === undefined) continue;
     let shown = formatValue(value);
+    // Redact before cutting, so a key spanning the cut cannot survive in part.
+    if (typeof shown === "string") shown = redactSecrets(shown, secrets);
     if (key === "prompt" && typeof shown === "string" && shown.length > MAX_PROMPT_CHARS) {
       shown = `${shown.slice(0, MAX_PROMPT_CHARS)}... (${shown.length} chars)`;
     }
@@ -158,7 +173,8 @@ export function gatherEnvironment({ moduleId, provider = {}, jev = {}, getSettin
   const sourcePacks = getSetting("sourcePacks");
   const packList = sourcePacks && typeof sourcePacks === "object"
     ? Object.entries(sourcePacks).map(([category, packs]) =>
-      `${category}=${Array.isArray(packs) ? packs.join("|") || "(none)" : String(packs)}`)
+      `${category}=${Array.isArray(packs) ? packs.join("|") || "(none)"
+        : packs && typeof packs === "object" ? JSON.stringify(packs) : String(packs)}`)
     : [];
   const env = {
     moduleVersion: mod?.version ?? "(unknown)",

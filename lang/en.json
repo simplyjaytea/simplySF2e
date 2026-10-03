@@ -519,7 +519,8 @@
       "Copied": "Bug report copied. Paste it to the module author.",
       "ManualTitle": "Bug report",
       "ManualHint": "This browser blocked the clipboard. The report is selected below: press Ctrl+C (Cmd+C on a Mac) to copy it.",
-      "ManualClose": "Close"
+      "ManualClose": "Close",
+      "Failed": "Could not build the bug report. The browser console (F12) has the details."
     },
     "Errors": {
       "GMOnly": "Only a GM can use SimplySF2e generation and provider setup.",
