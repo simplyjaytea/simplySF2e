@@ -56,6 +56,7 @@ Encounter mode: `designEncounter()` picks a theme + per-role briefs once, then t
 | `ai-task-profiles.mjs` / `ai-candidate-format.mjs` | Pure per-operation token/sampling caps (`taskMaxTokens`) and compact grounded-candidate encoding. |
 | `settings.mjs` | Foundry settings, exact-endpoint API-key binding, local/keyless provider readiness, and the client-side named connection bank. |
 | `builder.mjs` | NPC pipeline + shared resolve/build helpers used by both actor pipelines (`resolveEquipment`, `resolveLoot`, `resolveFocusSpells`, `buildEquipmentItems`, `buildLootItems`, `filterItemTypes`, `applyTreasureBudget`, `enrichDescription`). `reskinActorData()` builds a Reskin copy via `reskin.mjs`. |
+| `reroll.mjs` | Pure reroll-one-pick rules for the creature preview: `rerollPool` offers only issued catalog entries of the same kind that are not on the creature or already rejected for that slot (a spell keeps its cantrip/ranked slot), `applyRerollPick` swaps one slot. The AI picks one ID via `selectRerollPick` (`ai.mjs`). |
 | `reskin.mjs` | Pure Reskin validation/copy: `normalizeReskin` drops unknown/duplicate renames, `applyReskin` changes only prose and strike/ability display names, pinning each renamed item's original slug (`pf2eSluggify`, a port of v14-dev `sluggify`). |
 | `art.mjs` | Borrows token art/structure from the closest-matching bestiary creature (`findBestiaryScaffold`, `findBestiaryArt`). |
 | `currency.mjs` | Cited SF2e Credstick/UPB templates and gold-to-credit mapping. |

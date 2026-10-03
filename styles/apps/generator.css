@@ -627,4 +627,18 @@
   flex: 0 0 auto;
   width: auto;
   white-space: nowrap;
+
+/* Reroll-one-pick dice: a compact inline icon button beside each spell,
+   feat or ability, sized to the text so the list rows keep their height. */
+.simplysf2e .spf-reroll-pick {
+  --spf-icon-btn: 1.4rem;
+  display: inline-grid;
+  vertical-align: middle;
+  margin-inline-start: 0.25rem;
+  font-size: 0.7em;
+  text-decoration: none;
+}
+
+.simplysf2e .spf-dropped .spf-reroll-pick i {
+  color: inherit;
 }

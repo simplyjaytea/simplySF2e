@@ -140,7 +140,7 @@ The AI chooses only descriptive scales such as "high AC" or "low HP". SimplySF2e
 - a check mark means it matched a real compendium item;
 - **Narrative only** marks an ability the AI made up on purpose. It is flavor text with no mechanics, and it is allowed.
 
-If the creature carries loot, **Reroll Loot** generates different loot without changing anything else. **Create Actor** makes the NPC actor, using art from the closest-matching creature in your Bestiary Actors packs. The finished panel reports how much came from the compendium. **Open Sheet** jumps to the new actor.
+If the creature carries loot, **Reroll Loot** generates different loot without changing anything else. The dice next to a spell, feat or published ability swaps just that pick for a different compendium entry of the same kind (a spell keeps its rank and tradition); it costs one small AI call and never repeats a pick the creature already has. **Create Actor** makes the NPC actor, using art from the closest-matching creature in your Bestiary Actors packs. The finished panel reports how much came from the compendium. **Open Sheet** jumps to the new actor.
 
 ### Encounters
 

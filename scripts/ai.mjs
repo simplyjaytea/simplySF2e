@@ -1017,6 +1017,54 @@ Choose the actions that fit the creature's role and tactics. Omit a proposed abi
   };
 }
 
+const REROLL_LABELS = Object.freeze({
+  spell: "spell",
+  feat: "published class feat",
+  ability: "published bestiary action"
+});
+
+/**
+ * Reroll one pick: choose a single replacement ID from an issued catalog the
+ * caller has already filtered (reroll.mjs rerollPool). Returns null when the
+ * reply names nothing in that catalog; the caller keeps the preview as is.
+ * No Jev fast path: one pick from a short list gains little from it.
+ * @param {object} args
+ * @param {object} args.concept     current creature concept (context only)
+ * @param {"spell"|"feat"|"ability"} args.kind
+ * @param {string} args.current     name being replaced
+ * @param {object[]} args.candidates issued catalog ({id, name, rank?})
+ * @returns {Promise<{candidate: object|null, usage: object}>}
+ */
+export async function selectRerollPick({ concept, kind, current, candidates, onProgress, signal }) {
+  const label = REROLL_LABELS[kind];
+  if (!label || !Array.isArray(candidates) || !candidates.length) throw new TypeError("Invalid reroll request");
+  const others = (kind === "spell" ? concept.spellcasting?.spells ?? []
+    : kind === "feat" ? concept.feats ?? [] : concept.specialAbilities ?? [])
+    .map((pick) => (typeof pick === "string" ? pick : pick?.name))
+    .filter((name) => name && name !== current);
+  const catalog = candidates.map((candidate) => kind === "spell"
+    ? `${candidate.id} | ${candidate.name} (${candidate.rank === 0 ? "cantrip" : `rank ${candidate.rank}`})`
+    : `${candidate.id} | ${candidate.name}`).join("\n");
+  const system = `You are replacing ONE ${label} on a Starfinder 2e creature. The GM wants something different from the current pick. Choose exactly one ID from the provided catalog; never invent one. Return a single JSON object and nothing else:
+{ "id": string }
+Choose the option that best fits the creature's role, theme and tactics and does not repeat what it already has.`;
+  const user = [
+    concept.gmPrompt ? `Original GM request: ${concept.gmPrompt}` : null,
+    `Creature: ${concept.name} (level ${concept.level})`,
+    concept.blurb ? `Blurb: ${concept.blurb}` : null,
+    concept.description ? `Description: ${concept.description}` : null,
+    concept.traits?.length ? `Traits: ${concept.traits.join(", ")}` : null,
+    kind === "spell" && concept.spellcasting?.tradition ? `Tradition: ${concept.spellcasting.tradition}` : null,
+    `Replacing: ${current}`,
+    others.length ? `Already has (do not repeat): ${others.join(", ")}` : null,
+    "",
+    "Catalog (ID | exact name):",
+    catalog
+  ].filter((line) => line !== null).join("\n");
+  const { data: parsed, usage } = await requestJSON({ task: AI_TASK.REROLL_PICK, system, user, onProgress, signal });
+  return { candidate: candidateForPick(candidates, { id: parsed.id }), usage };
+}
+
 /** Select only opaque IDs from the builder's bounded, static choice catalog.
  * Real rule values and write destinations stay in the builder, never the AI.
  * Missing, invalid, or ambiguous answers are left for native SF2e dialogs. */
