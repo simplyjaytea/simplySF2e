@@ -70,6 +70,9 @@ assert.equal(handleChat("/sf2e"), false, "/sf2e command intercepted");
 // 3. /sf2e itemforge triggers item forge
 assert.equal(handleChat("/sf2e itemforge"), false, "/sf2e itemforge intercepted");
 
+// 3b. /sf2e welcome opens the welcome window
+assert.equal(handleChat("/sf2e welcome"), false, "/sf2e welcome intercepted");
+
 // 4. Non-GM users cannot execute (command is intercepted and blocked with warning, returning false)
 game.user.isGM = false;
 assert.equal(handleChat("/sf2e"), false, "Non-GM command is intercepted and blocked");

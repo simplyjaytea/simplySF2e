@@ -1,0 +1,56 @@
+<div class="spf-window-body simplysf2e-welcome spf-hud">
+  <p class="spf-hint spf-hud-accent"><i class="fa-solid fa-satellite-dish" aria-hidden="true"></i> {{localize "SIMPLYSF2E.Welcome.Intro"}}</p>
+
+  <div class="spf-statusbar spf-welcome-checks" role="list">
+    <div class="spf-provider-summary {{#if system.ready}}spf-provider-ready{{else}}spf-provider-attention{{/if}}" role="listitem">
+      <span class="spf-provider-name"><i aria-hidden="true" class="fa-solid fa-gamepad"></i> <strong>{{localize "SIMPLYSF2E.Welcome.SystemRow"}}</strong></span>
+      <span class="spf-provider-detail">{{#if system.ready}}{{localize "SIMPLYSF2E.Welcome.SystemReady" version=system.version}}{{else}}{{localize "SIMPLYSF2E.Welcome.SystemOld" version=system.version minimum=system.minimum}}{{/if}}</span>
+      <span class="spf-provider-actions"><i class="fa-solid {{#if system.ready}}fa-circle-check{{else}}fa-triangle-exclamation{{/if}} spf-provider-state" role="img" aria-label="{{#if system.ready}}{{localize 'SIMPLYSF2E.Welcome.Ready'}}{{else}}{{localize 'SIMPLYSF2E.Welcome.NeedsAttention'}}{{/if}}"></i></span>
+    </div>
+    <div class="spf-provider-summary {{#if sources.ready}}spf-provider-ready{{else}}spf-provider-attention{{/if}}" role="listitem">
+      <span class="spf-provider-name"><i aria-hidden="true" class="fa-solid fa-book-atlas"></i> <strong>{{localize "SIMPLYSF2E.Generator.CompendiumContent"}}</strong></span>
+      <span class="spf-provider-detail">{{#if sources.ready}}{{localize "SIMPLYSF2E.Generator.SourcesReady" packCount=sources.packCount}}{{else}}{{localize "SIMPLYSF2E.Welcome.SourcesMissing" categories=sourcesMissing}}{{/if}}</span>
+      <span class="spf-provider-actions">
+        <button type="button" data-action="openSources" data-tooltip="{{localize 'SIMPLYSF2E.Generator.ConfigureSources'}}" aria-label="{{localize 'SIMPLYSF2E.Generator.ConfigureSources'}}"><i aria-hidden="true" class="fa-solid fa-gear"></i></button>
+        <i class="fa-solid {{#if sources.ready}}fa-circle-check{{else}}fa-triangle-exclamation{{/if}} spf-provider-state" role="img" aria-label="{{#if sources.ready}}{{localize 'SIMPLYSF2E.Welcome.Ready'}}{{else}}{{localize 'SIMPLYSF2E.Welcome.NeedsAttention'}}{{/if}}"></i>
+      </span>
+    </div>
+    <div class="spf-provider-summary {{#if provider.ready}}spf-provider-ready{{else}}spf-provider-attention{{/if}}" role="listitem">
+      <span class="spf-provider-name"><i aria-hidden="true" class="fa-solid fa-plug-circle-check"></i> <strong>{{localize "SIMPLYSF2E.Welcome.ProviderRow"}}</strong></span>
+      <span class="spf-provider-detail">{{#if provider.ready}}{{localize "SIMPLYSF2E.Welcome.ProviderReady"}}{{else}}{{providerWarning}}{{/if}}</span>
+      <span class="spf-provider-actions">
+        <button type="button" data-action="openProvider" data-tooltip="{{localize 'SIMPLYSF2E.ProviderSetup.Configure'}}" aria-label="{{localize 'SIMPLYSF2E.ProviderSetup.Configure'}}"><i aria-hidden="true" class="fa-solid fa-gear"></i></button>
+        <i class="fa-solid {{#if provider.ready}}fa-circle-check{{else}}fa-triangle-exclamation{{/if}} spf-provider-state" role="img" aria-label="{{#if provider.ready}}{{localize 'SIMPLYSF2E.Welcome.Ready'}}{{else}}{{localize 'SIMPLYSF2E.Welcome.NeedsAttention'}}{{/if}}"></i>
+      </span>
+    </div>
+    <div class="spf-provider-summary {{#if jev.on}}spf-provider-ready{{else}}spf-provider-off{{/if}}" role="listitem">
+      <span class="spf-provider-name"><i aria-hidden="true" class="fa-solid fa-bolt"></i> <strong>{{localize "SIMPLYSF2E.Generator.JevRow"}}</strong></span>
+      <span class="spf-provider-detail">{{#if (eq jev.source "key")}}{{localize "SIMPLYSF2E.Generator.JevOnKey"}}{{else if (eq jev.source "typesafe")}}{{localize "SIMPLYSF2E.Generator.JevOnTypeSafe"}}{{else if (eq jev.source "connection")}}{{localize "SIMPLYSF2E.Generator.JevOnConnection"}}{{else}}{{localize "SIMPLYSF2E.Welcome.JevOptional"}}{{/if}}</span>
+    </div>
+  </div>
+
+  <p class="spf-hint spf-welcome-next">{{#if ready}}{{localize "SIMPLYSF2E.Welcome.AllReady"}}{{else}}{{localize "SIMPLYSF2E.Welcome.NotReady"}}{{/if}}</p>
+
+  <label class="spf-welcome-dismiss">
+    <input type="checkbox" name="dismissed" {{#if dismissed}}checked{{/if}}>
+    <span>{{localize "SIMPLYSF2E.Welcome.DontShow"}}</span>
+  </label>
+
+  <footer class="spf-actions spf-hud-actions">
+    {{#if provider.ready}}
+      <button type="button" class="spf-primary" data-action="openGenerator">
+        <i aria-hidden="true" class="fa-solid fa-dragon"></i> {{localize "SIMPLYSF2E.Welcome.OpenGenerator"}}
+      </button>
+    {{else}}
+      <button type="button" class="spf-primary" data-action="openProvider">
+        <i aria-hidden="true" class="fa-solid fa-plug-circle-check"></i> {{localize "SIMPLYSF2E.Welcome.OpenProvider"}}
+      </button>
+    {{/if}}
+    <button type="button" data-action="recheck">
+      <i aria-hidden="true" class="fa-solid fa-rotate"></i> {{localize "SIMPLYSF2E.Welcome.Recheck"}}
+    </button>
+    <button type="button" data-action="closeWelcome">
+      <i aria-hidden="true" class="fa-solid fa-xmark"></i> {{localize "SIMPLYSF2E.Welcome.Close"}}
+    </button>
+  </footer>
+</div>
