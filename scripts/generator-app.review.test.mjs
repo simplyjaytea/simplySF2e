@@ -316,6 +316,17 @@ budgetPending = budgetStarted = null;
   assert.equal(recentApp.context.recent, null, "Remove drops the entry");
   for (let i = 0; i < recentGenerations.RECENT_LIMIT + 2; i++) await actions.generateRandom.call(recentApp);
   assert.equal(recentApp.context.recent.length, recentGenerations.RECENT_LIMIT, "the list is capped");
+  // Discard only removes the preview the GM confirmed: an Open while the
+  // dialog was up swaps the screen, and the confirm then does nothing.
+  const shownBefore = recentApp.context.pcPreview.concept.name;
+  const swapTarget = recentApp.context.recent[0];
+  recentApp._confirm = async () => {
+    await actions.openRecent.call(recentApp, {}, { dataset: { recentId: swapTarget.id } });
+    return true;
+  };
+  await actions.discard.call(recentApp);
+  assert.equal(recentApp.context.pcPreview.concept.name, swapTarget.name, "the swapped-in preview survives");
+  assert.ok(recentApp.context.recent.some((row) => row.name === shownBefore), "the confirmed preview went to the list");
   const listed = Array.from(recentApp.context.recent, (row) => row.id);
   recentApp._confirm = async () => true;
   await actions.discard.call(recentApp);
