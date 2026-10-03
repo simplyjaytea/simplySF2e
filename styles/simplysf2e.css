@@ -343,6 +343,27 @@
   scrollbar-color: var(--spf-brand-dark) #0c1620;
 }
 
+/* A fixed-height window (Sources) never runs past a short screen. */
+.application.simplysf2e {
+  max-height: 100vh;
+}
+
+/* The module's preset edit and import dialogs are core DialogV2 windows
+   without the .simplysf2e class; their content scrolls on a short screen. */
+/* The wrapper is only a hook; core's form layout and row gap stay intact. */
+.spf-dialog-body {
+  display: contents;
+}
+
+.application:has(.spf-dialog-body) {
+  max-height: 100vh;
+}
+
+.application:has(.spf-dialog-body) .window-content {
+  min-height: 0;
+  overflow-y: auto;
+}
+
 /* Action rows stay pinned to the bottom edge while the body scrolls
    (first shipped for Sources, audit S2). The negative offset matches the
    body's padding so the bar sits flush with the window's lower edge. */

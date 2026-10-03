@@ -107,6 +107,12 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
         event.preventDefault();
         generate.click();
       });
+      // The wheel scrolls the window, never steps a focused number box
+      // (Level, Party Size) the pointer happens to pass over.
+      this.element.addEventListener("wheel", (event) => {
+        const target = event.target;
+        if (target?.matches?.("input[type='number']") && target === document.activeElement) target.blur();
+      }, { passive: true });
     }
   }
 
