@@ -84,10 +84,27 @@ export function normalizeReskin(raw, actorData) {
 }
 
 /**
+ * The Recall Knowledge block for actor notes: one clickable check per skill
+ * the creature's traits name. With no identifying trait the published table
+ * names no skill, so only the DC is shown (any applicable Lore can still be
+ * rolled against it) instead of guessing one.
+ * @param {string|string[]} skills  skill slug(s), possibly empty
+ * @param {number} dc
+ * @param {string} text  AI flavor text; escaped here
+ */
+export function recallKnowledgeNote(skills, dc, text) {
+  const list = [].concat(skills ?? []).filter(Boolean);
+  const checks = list.length
+    ? list.map((skill) => `<strong>${esc(capitalized(skill))}</strong> @Check[type:${skill}|dc:${dc}]`).join(" or ")
+    : `<strong>DC ${dc}</strong>`;
+  return `<h3>Recall Knowledge</h3><p>${checks}: ${esc(text)}</p>`;
+}
+
+/**
  * Return creation data for the reskinned copy. `actorData` is the source
  * actor's plain data (toObject / fromCompendium); it is not mutated.
  * @param {object} [options]
- * @param {(traits: string[]) => string} [options.recallSkill]  skill slug for Recall Knowledge
+ * @param {(traits: string[]) => string|string[]} [options.recallSkill]  Recall Knowledge skill slug(s)
  * @param {(level: number, rarity: string) => number} [options.recallDC]
  */
 export function applyReskin(actorData, flavor = {}, { recallSkill = null, recallDC = null } = {}) {
@@ -103,9 +120,8 @@ export function applyReskin(actorData, flavor = {}, { recallSkill = null, recall
   if (flavor.description) notes.push(toHtml(flavor.description));
   if (flavor.recallKnowledge && recallSkill && recallDC) {
     const traits = data.system?.traits?.value ?? [];
-    const skill = recallSkill(traits);
     const dc = recallDC(data.system?.details?.level?.value ?? 1, data.system?.traits?.rarity ?? "common");
-    notes.push(`<h3>Recall Knowledge</h3><p><strong>${esc(capitalized(skill))}</strong> @Check[type:${skill}|dc:${dc}]: ${esc(flavor.recallKnowledge)}</p>`);
+    notes.push(recallKnowledgeNote(recallSkill(traits), dc, flavor.recallKnowledge));
   }
   data.system ??= {};
   data.system.details ??= {};

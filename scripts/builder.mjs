@@ -1,7 +1,7 @@
 import * as T from "./tables.mjs";
 import { getPacksFor, findEntry, getDocument, toItemData, priceToGp, isIssuedCandidate } from "./compendium.mjs";
 import { slugify, capitalized, esc, toHtml } from "./text.mjs";
-import { applyReskin } from "./reskin.mjs";
+import { applyReskin, recallKnowledgeNote } from "./reskin.mjs";
 import { parseRunes, applyRunes, dropUncitedRunePrefix, runeGp, hasRunes } from "./runes.mjs";
 import {
   parseCoins, currencyQuantity, isCurrencyDocument, gpToCredits,
@@ -101,6 +101,8 @@ function thrownRangeFromTraits(traits) {
  *     - traditionIWR: magicTraditions (src/scripts/config/traits.ts):
  *       arcane/divine/occult/primal.
  *     - sanctifiedIWR: holy/unholy.
+ * - "custom" is left out of all three lists on purpose: it stands for a
+ *   GM-written rule with its own label, which a model-picked slug can't carry.
  * - src/module/actor/creature/values.ts — SENSE_TYPES, and LANGUAGES, which
  *   is ["common", ...LANGUAGES_BY_RARITY[SYSTEM_ID]] — the `sf2e` entry
  *   (common + uncommon; rare and secret are empty), not PF2e's list.
@@ -116,7 +118,7 @@ const IMMUNITY_TYPES = new Set([
   ...IWR_MATERIALS, ...IWR_SANCTIFIED, ...IWR_TRADITIONS,
   "acid", "aging", "air", "alchemical", "area-damage", "auditory", "bleed", "blinded",
   "bludgeoning", "clumsy", "cold", "confused", "controlled", "critical-hits",
-  "curse", "custom", "dazzled", "deafened", "death-effects", "detection",
+  "curse", "dazzled", "deafened", "death-effects", "detection",
   "disease", "doomed", "drained", "earth", "electricity", "emotion", "energy",
   "enfeebled", "fascinated", "fatigued", "fear-effects", "fire", "fleeing",
   "force", "fortune-effects", "frightened", "grabbed", "healing", "illusion",
@@ -135,7 +137,7 @@ const WEAKNESS_TYPES = new Set([
   ...IWR_MATERIALS, ...IWR_SANCTIFIED, ...IWR_TRADITIONS,
   "acid", "air", "alchemical", "all-damage", "area-damage",
   "arrow-vulnerability", "axe-vulnerability", "bleed", "bludgeoning", "cold",
-  "critical-hits", "custom", "earth", "electricity", "emotion", "energy",
+  "critical-hits", "earth", "electricity", "emotion", "energy",
   "fire", "force", "ghost-touch", "glass", "light", "magical", "mental",
   "metal", "mythic", "non-magical", "nonlethal-attacks", "persistent-damage",
   "physical", "piercing", "plant", "poison", "precision", "radiation", "salt",
@@ -148,7 +150,7 @@ const WEAKNESS_TYPES = new Set([
 const RESISTANCE_TYPES = new Set([
   ...IWR_MATERIALS, ...IWR_SANCTIFIED, ...IWR_TRADITIONS,
   "acid", "air", "alchemical", "all-damage", "area-damage", "axes", "bleed",
-  "bludgeoning", "cold", "critical-hits", "custom", "damage-from-spells",
+  "bludgeoning", "cold", "critical-hits", "damage-from-spells",
   "earth", "electricity", "energy", "fire", "force", "ghost-touch", "light",
   "magical", "mental", "metal", "mythic", "non-magical", "nonlethal",
   "nonlethal-attacks", "persistent-damage", "physical", "piercing", "plant",
@@ -186,6 +188,79 @@ const LANGUAGE_TYPES = new Set([
   "ysoki"
 ]);
 
+/*
+ * Speeds and sense ranges have no Building Creatures table, so the model
+ * picks feet and the module moves each to the nearest value a published sf2e
+ * creature uses. Values are every distinct one in the 243 NPCs of
+ * packs/sf2e/alien-core-bestiary (foundryvtt/pf2e v14-dev, read 2026-10-03).
+ */
+const PUBLISHED_SPEEDS = {
+  land: [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 60],
+  fly: [10, 20, 25, 30, 40, 50, 60, 75, 80, 90, 100, 120, 140, 150, 160, 180, 200],
+  climb: [10, 15, 20, 25, 30, 40, 50],
+  burrow: [5, 10, 15, 20, 25, 30, 40],
+  swim: [20, 25, 30, 40, 50, 60, 100]
+};
+
+/*
+ * Sense shapes, from pf2e v14-dev src/module/actor/creature/values.ts:
+ * SENSES_WITH_UNLIMITED_RANGE carry no range, and SENSES_WITH_MANDATORY_ACUITIES
+ * are always precise (published creatures store the unlimited ones as a bare
+ * type). Every other sense needs an acuity and a range (creature/data.ts
+ * SenseData). Published ranges and the most common acuity per sense come from
+ * the same alien-core-bestiary read; a sense no published creature has uses
+ * every published sense range, and 60 feet when the model gives none (the
+ * most common published sense range).
+ */
+const UNLIMITED_RANGE_SENSES = new Set(["darkvision", "greater-darkvision", "low-light-vision", "see-invisibility"]);
+const MANDATORY_ACUITY_SENSES = new Set(["echolocation", "greater-darkvision", "infrared-vision", "low-light-vision", "see-invisibility", "truesight", "darkvision"]);
+const PUBLISHED_SENSES = {
+  bloodsense: { acuity: "imprecise", ranges: [120], range: 120 },
+  "infrared-vision": { acuity: "precise", ranges: [30, 60], range: 60 },
+  lifesense: { acuity: "imprecise", ranges: [30, 60, 100, 500], range: 60 },
+  "motion-sense": { acuity: "imprecise", ranges: [30, 60], range: 30 },
+  scent: { acuity: "imprecise", ranges: [15, 30, 60, 120], range: 60 },
+  thoughtsense: { acuity: "precise", ranges: [60, 120, 200], range: 60 },
+  tremorsense: { acuity: "imprecise", ranges: [10, 30, 60, 200], range: 60 },
+  truesight: { acuity: "precise", ranges: [60], range: 60 },
+  wavesense: { acuity: "imprecise", ranges: [120], range: 120 }
+};
+const ALL_PUBLISHED_SENSE_RANGES = [10, 15, 30, 60, 100, 120, 200, 500];
+
+/** The published value nearest `value` (the lower one on a tie). */
+export function nearestPublished(value, published) {
+  return published.reduce((best, option) =>
+    Math.abs(option - value) < Math.abs(best - value) ? option : best);
+}
+
+/**
+ * One sense in the shape published creatures use. Acuity and range a sense
+ * can't have are dropped; a ranged sense always gets both, snapped to
+ * published values.
+ */
+export function shapeSense({ type, acuity = null, range = null }) {
+  if (UNLIMITED_RANGE_SENSES.has(type)) return { type };
+  const published = PUBLISHED_SENSES[type];
+  const ranges = published?.ranges ?? ALL_PUBLISHED_SENSE_RANGES;
+  return {
+    type,
+    acuity: MANDATORY_ACUITY_SENSES.has(type) ? "precise" : acuity ?? published?.acuity ?? "imprecise",
+    range: Number(range) > 0 ? nearestPublished(Number(range), ranges) : published?.range ?? 60
+  };
+}
+
+/*
+ * Model text for a narrative-only ability must not carry rules. Dice, a DC or
+ * a Hit Point or damage amount would read as a working mechanic the module never built,
+ * so such an ability is dropped rather than shown.
+ */
+const NARRATIVE_MECHANICS = /\b\d+d\d+\b|\bDC\s*\d+|\b\d+\s*(?:hit points|hp)\b|\b\d+\s+(?:[a-z]+\s+){0,2}damage\b/i;
+
+/** True when narrative-only text reads like a rule (dice, a DC, Hit Points). */
+export function narrativeHasMechanics(text) {
+  return NARRATIVE_MECHANICS.test(String(text ?? ""));
+}
+
 /**
  * Filter a slugified list against a real allowed-value set (invariant 5:
  * fail closed, never guess). Shared by the IWR/sense/language whitelists.
@@ -204,6 +279,89 @@ function scale5(value, fallback = "moderate") {
   return SCALE5.has(value) ? value : fallback;
 }
 
+/* Name key for matching a strike to a carried weapon: case, punctuation and
+ * a trailing "(Commercial)"-style parenthetical don't matter. */
+function weaponKey(name) {
+  return slugify(String(name ?? "").replace(/\([^)]*\)\s*$/, ""));
+}
+
+/**
+ * Give a strike the mechanics of the published weapon it is named after.
+ * Published sf2e NPCs (packs/sf2e/alien-core-bestiary, e.g. Aeon Guard
+ * Trooper's Aeon Rifle and Pulse Gauntlet) copy the carried weapon's damage
+ * type, traits, reload/expend and range onto the matching melee item; only
+ * the attack bonus and damage dice come from the creature's level. So the
+ * weapon's values replace the model's guesses here, and the GM Core scales
+ * still set the numbers. Traits go through the same npcAttackTraits filter as
+ * model-written ones.
+ * @param {object} strike   normalized concept strike
+ * @param {object} weapon   published weapon data ({system: {damage, traits, range, reload, expend}})
+ * @param {Set<string>|null} [allowedTraits]  defaults to CONFIG.PF2E.npcAttackTraits
+ * @returns {object} a new strike
+ */
+export function strikeFromWeapon(strike, weapon, allowedTraits = null) {
+  const system = weapon?.system ?? {};
+  const traits = [...(system.traits?.value ?? [])];
+  // Published NPCs fire grenades and area weapons (Frag Grenade, Plasma
+  // Cannon, Flash Grenade) as a strike with a maximum range and no grenade,
+  // area, reload or expend trait. Cones and lines are treated the same way;
+  // no published NPC strike shows one. A grenade with no range of its own
+  // (Szynegation) can't be shaped like that, so its strike keeps the draft.
+  const isArea = traits.some((trait) => trait === "grenade" || /^area-/.test(trait));
+  if (isArea && normalizeStrikeRange(system.range) == null) return strike;
+  const reload = String(system.reload?.value ?? "");
+  if (!isArea && /^\d+$/.test(reload)) traits.push(`reload-${reload}`);
+  if (!isArea && Number.isInteger(system.expend) && system.expend > 0) traits.push(`expend-${system.expend}`);
+  const allowed = allowedTraits ?? pf2eChoiceSet("npcAttackTraits") ?? new Set();
+  let kept = filterAllowed([...new Set(traits)], allowed, "NPC attack traits")
+    .filter((trait) => !isArea || (trait !== "grenade" && !/^area-/.test(trait)));
+  const damageType = slugify(system.damage?.damageType);
+  const validDamage = (pf2eChoiceSet("damageTypes") ?? STRIKE_DAMAGE_TYPES).has(damageType);
+  const thrownRange = thrownRangeFromTraits(kept);
+  const weaponRange = normalizeStrikeRange(system.range);
+  // A weapon with its own range is a ranged weapon; one without fights in
+  // melee unless the model chose to throw a thrown weapon.
+  const type = weaponRange != null ? "ranged" : strike.type === "ranged" && thrownRange != null ? "ranged" : "melee";
+  // pf2e melee/document.ts gives any strike with a thrown-N trait a range,
+  // which makes it ranged; published melee strikes of thrown weapons
+  // (Ichor Lord's Aucturnite Chakram) leave the trait off.
+  if (type === "melee") kept = kept.filter((trait) => !/^thrown-\d+$/.test(trait));
+  const result = {
+    ...strike,
+    type,
+    damageType: validDamage ? damageType : strike.damageType,
+    traits: kept,
+    range: type === "ranged" ? weaponRange ?? thrownRange : null
+  };
+  if (isArea && type === "ranged") result.rangeMax = true;
+  else delete result.rangeMax;
+  return result;
+}
+
+/**
+ * Pair each strike with a carried published weapon whose name ends it
+ * ("rusted laser pistol" uses the Laser Pistol), longest name first, and
+ * rebuild the strike from that weapon. Strikes with no matching weapon
+ * (claws, jaws) keep their validated draft values.
+ * @param {object[]} strikes
+ * @param {{names: string[], weapon: object}[]} weapons
+ * @param {Set<string>|null} [allowedTraits]
+ */
+export function alignStrikesToWeapons(strikes, weapons, allowedTraits = null) {
+  const keyed = weapons
+    .flatMap(({ names, weapon }) => names.map((name) => ({ key: weaponKey(name), weapon })))
+    .filter(({ key }) => key)
+    .sort((a, b) => b.key.length - a.key.length);
+  return strikes.map((strike) => {
+    // The weapon name must end the strike name, so "rusted laser pistol"
+    // matches but "pistol whip" does not. A name like "plasma cannon blast"
+    // then keeps its validated draft values, which is the safe side.
+    const key = weaponKey(strike.name);
+    const match = keyed.find((w) => key === w.key || key.endsWith(`-${w.key}`));
+    return match ? strikeFromWeapon(strike, match.weapon, allowedTraits) : strike;
+  });
+}
+
 /**
  * Coerce whatever the AI returned into a well-formed concept. Guarantees every
  * field downstream code touches exists and has a legal value.
@@ -219,7 +377,7 @@ export function normalizeConcept(raw, { level, rarity }) {
 
   const speeds = (Array.isArray(c.speeds) ? c.speeds : [])
     .filter((s) => SPEED_TYPES.has(s?.type) && Number(s?.value) > 0)
-    .map((s) => ({ type: s.type, value: Math.round(Number(s.value) / 5) * 5 }));
+    .map((s) => ({ type: s.type, value: nearestPublished(Number(s.value), PUBLISHED_SPEEDS[s.type]) }));
   if (!speeds.length) speeds.push({ type: "land", value: 25 });
 
   const strikes = (Array.isArray(c.strikes) ? c.strikes : [])
@@ -331,7 +489,8 @@ export function normalizeConcept(raw, { level, rarity }) {
         if (SENSE_TYPES.has(s.type)) return true;
         console.warn(`simplysf2e | dropped invalid creature sense: ${s.type}`);
         return false;
-      }),
+      })
+      .map(shapeSense),
     skills: (Array.isArray(c.skills) ? c.skills : [])
       .filter((s) => s?.name)
       .filter((s) => {
@@ -779,6 +938,14 @@ export async function resolveConcept(concept, { exactContent = false } = {}) {
   const equipment = await resolveEquipment(concept, { exactContent, skipped: skippedGear });
   const loot = await resolveLoot(concept, { exactContent, skipped: skippedGear });
 
+  const weapons = [];
+  for (const line of equipment) {
+    if (!line.entry) continue;
+    const doc = await getDocument(line.entry);
+    if (doc?.type === "weapon") weapons.push({ names: [doc.name, line.name], weapon: doc });
+  }
+  if (weapons.length) concept.strikes = alignStrikesToWeapons(concept.strikes, weapons);
+
   return { abilities, spells, feats, focusSpells, equipment, loot, skippedGear };
 }
 
@@ -1176,22 +1343,31 @@ export function enrichDescription(text, level) {
   return out;
 }
 
-/* Which skill identifies a creature, by creature-type trait (Recall Knowledge). */
+/*
+ * Which skills identify a creature, by creature-type trait. Copied from the
+ * Starfinder GM Core pg. 54 "Creature Identification" table (sf2e
+ * packs/sf2e/journals/gm-screen.json, v14-dev, checked 2026-10-03). pf2e
+ * v14-dev src/module/recall-knowledge.ts identifySkills differs only by a
+ * "time" row (Occultism) that the SF2e table doesn't have, so a time
+ * creature gets no named skill here.
+ */
 const RECALL_KNOWLEDGE_SKILLS = {
-  aberration: "occultism", animal: "nature", astral: "occultism", beast: "nature",
-  celestial: "religion", construct: "crafting", dragon: "arcana", dream: "occultism",
-  elemental: "nature", ethereal: "occultism", fey: "nature", fiend: "religion",
-  fungus: "nature", giant: "society", humanoid: "society", monitor: "religion",
-  ooze: "occultism", plant: "nature", shade: "religion", spirit: "occultism",
-  time: "occultism", undead: "religion"
+  aberration: ["occultism"], animal: ["nature"], astral: ["occultism"],
+  beast: ["arcana", "nature"], celestial: ["religion"], construct: ["arcana", "crafting"],
+  dragon: ["arcana"], dream: ["occultism"], elemental: ["arcana", "nature"],
+  ethereal: ["occultism"], fey: ["nature"], fiend: ["religion"], fungus: ["nature"],
+  humanoid: ["society"], monitor: ["religion"], ooze: ["occultism"], plant: ["nature"],
+  robot: ["computers", "crafting"], shade: ["religion"], spirit: ["occultism"],
+  undead: ["religion"]
 };
 
-/** The Recall Knowledge skill for a concept's creature-type traits. */
-export function recallKnowledgeSkill(traits) {
-  for (const trait of traits) {
-    if (RECALL_KNOWLEDGE_SKILLS[trait]) return RECALL_KNOWLEDGE_SKILLS[trait];
-  }
-  return "occultism";
+/**
+ * The Recall Knowledge skills for a concept's creature-type traits, in table
+ * order with duplicates removed. Empty when no trait is in the table: the
+ * module never picks a skill the rules don't name.
+ */
+export function recallKnowledgeSkills(traits) {
+  return [...new Set((traits ?? []).flatMap((trait) => RECALL_KNOWLEDGE_SKILLS[trait] ?? []))];
 }
 
 /** Bold statblock keywords ("Trigger", "Effect", ...) in escaped ability text. */
@@ -1401,6 +1577,14 @@ function actionIcon(actionType) {
   return systemIcon(`icons/actions/${file}`);
 }
 
+/*
+ * Slots per known rank for a generated spontaneous caster. No table gives
+ * this; 3 is what most published sf2e casters carry per rank
+ * (packs/sf2e/alien-core-bestiary, v14-dev: prepared dragons and Necrovite
+ * at 3, spontaneous casters 2 to 4).
+ */
+export const NPC_SLOTS_PER_RANK = 3;
+
 /**
  * Build the full actor + embedded item data and create the NPC actor.
  * @param {object} [options]
@@ -1451,7 +1635,8 @@ export async function createActor(concept, resolved, { img = null, scaffold = nu
         // PF2e 8.4.1 stores NPC range as structured system data. The old
         // range-increment-* trait encoding is migration input, not a valid
         // new-document trait (see item/melee/data.ts).
-        range: strike.type === "ranged" ? { increment: strike.range ?? 30, max: null } : null
+        range: strike.type !== "ranged" ? null
+          : strike.rangeMax ? { increment: null, max: strike.range } : { increment: strike.range ?? 30, max: null }
       }
     });
   }
@@ -1495,7 +1680,7 @@ export async function createActor(concept, resolved, { img = null, scaffold = nu
     const slots = {};
     for (const rank of ranksUsed) {
       if (rank === 0) continue;
-      slots[`slot${rank}`] = { value: 2, max: 2 };
+      slots[`slot${rank}`] = { value: NPC_SLOTS_PER_RANK, max: NPC_SLOTS_PER_RANK };
     }
     items.push({
       _id: entryId,
@@ -1576,12 +1761,9 @@ export async function createActor(concept, resolved, { img = null, scaffold = nu
     notesParts.push(toHtml(concept.description));
   }
   if (concept.recallKnowledge) {
-    const skill = recallKnowledgeSkill(concept.traits);
     // pf2e recall-knowledge.ts uses the prepared (Elite/Weak-adjusted) level.
     const dc = T.identificationDC(adjustedLevel(concept.level, concept.adjustment ?? null), concept.rarity);
-    notesParts.push(
-      `<h3>Recall Knowledge</h3><p><strong>${capitalized(skill)}</strong> @Check[type:${skill}|dc:${dc}]: ${esc(concept.recallKnowledge)}</p>`
-    );
+    notesParts.push(recallKnowledgeNote(recallKnowledgeSkills(concept.traits), dc, concept.recallKnowledge));
   }
   const description = notesParts.join("\n");
 
@@ -1672,7 +1854,7 @@ export async function reskinActor(baseActorDoc, newFlavor = {}) {
 /** Creation data for a reskinned copy; see reskin.mjs applyReskin. */
 export function reskinActorData(rawData, flavor = {}) {
   return applyReskin(rawData, flavor, {
-    recallSkill: recallKnowledgeSkill,
+    recallSkill: recallKnowledgeSkills,
     recallDC: (level, rarity) => T.identificationDC(adjustedLevel(level, rawData.system?.attributes?.adjustment ?? null), rarity)
   });
 }
