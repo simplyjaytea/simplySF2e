@@ -209,6 +209,8 @@ SimplySF2e builds from real content and **fails closed**: when it cannot match s
 
 ## Troubleshooting
 
+When a run fails, the red error box in the Generator or Item Forge has a **Copy bug report** button. It copies the error, the step that failed, your form values, the module settings and the module, system, Foundry and browser versions, ready to paste to the module author. It never includes an API key: it only says whether one is set, shows just the host of the endpoint, and masks anything key-shaped in the error text. It does include your description text. If the browser blocks the clipboard (a plain-http world opened from another machine), a window opens with the report selected so you can copy it by hand.
+
 | Symptom | What to do |
 | --- | --- |
 | "SimplySF2e requires the Starfinder Second Edition (sf2e) game system." | The world uses another system. The module only runs in `sf2e` worlds, and its buttons are hidden elsewhere. |

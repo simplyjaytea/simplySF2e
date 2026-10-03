@@ -29,6 +29,8 @@ class App {
   _beginProgress() { this.abort = new AbortController(); return this.abort.signal; }
   async _setStep() {}
   _recordTokens() {}
+  _recordFailure() {}
+  _canReportBug() { return false; }
   _buildTokenReport() { return null; }
   _formatLastRunCost() { return null; }
   _finishRun() { this._progress = null; }

@@ -1,5 +1,13 @@
 import { testProviderConnection } from "./ai.mjs";
-import { getProviderRequestConfig, selectProviderConnection } from "./settings.mjs";
+import {
+  MODULE_ID,
+  getJevRequestConfig,
+  getProviderRequestConfig,
+  getSetting,
+  selectProviderConnection
+} from "./settings.mjs";
+import { captureFailure, formatBugReport, gatherEnvironment } from "./bug-report.mjs";
+import { esc } from "./text.mjs";
 import { ProviderSetupApp } from "./provider-setup-app.mjs";
 import {
   PHASE_FILL,
@@ -32,6 +40,74 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _closePromptOpen = false;
   /** Window frame the shortcut is bound to; a reopened window gets a new frame. */
   _keysElement = null;
+  /** Snapshot of the last failed run for Copy bug report (see bug-report.mjs). */
+  _failure = null;
+
+  /**
+   * Remember a failure for the bug report. Call it in the catch, before
+   * `_finishRun()` drops the progress steps, with the exact error text shown.
+   */
+  _recordFailure(err, operation, shown) {
+    try {
+      this._failure = captureFailure(err, { operation, shown, progress: this._progress });
+    } catch (captureErr) {
+      console.warn(`${MODULE_ID} | could not record failure for the bug report`, captureErr);
+      this._failure = null;
+    }
+  }
+
+  /** True when `shown` is the error of the recorded failure and it was not a cancel. */
+  _canReportBug(shown) {
+    const failure = this._failure;
+    return Boolean(shown && failure && !failure.cancelled && failure.shown === shown);
+  }
+
+  /** Build the report for this window's last failure and copy it to the clipboard. */
+  async _copyBugReport(appName, input) {
+    const failure = this._failure;
+    if (!failure) return;
+    const { env, secrets } = gatherEnvironment({
+      moduleId: MODULE_ID,
+      provider: getProviderRequestConfig(),
+      jev: getJevRequestConfig(),
+      getSetting
+    });
+    const text = formatBugReport({ app: appName, failure, input, env, secrets });
+    if (await this._writeClipboard(text)) {
+      ui.notifications.info(game.i18n.localize("SIMPLYSF2E.BugReport.Copied"));
+      return;
+    }
+    // No clipboard access (plain-http world, denied permission): show the
+    // text selected so the GM can copy it by hand.
+    const { DialogV2 } = foundry.applications.api;
+    await DialogV2.prompt({
+      window: { title: "SIMPLYSF2E.BugReport.ManualTitle" },
+      content: `<p>${esc(game.i18n.localize("SIMPLYSF2E.BugReport.ManualHint"))}</p>`
+        + `<textarea class="spf-bug-report-text" readonly rows="14" aria-label="${esc(game.i18n.localize("SIMPLYSF2E.BugReport.ManualTitle"))}">${esc(text)}</textarea>`,
+      ok: { label: "SIMPLYSF2E.BugReport.ManualClose" },
+      rejectClose: false,
+      render: (_event, dialog) => {
+        const area = (dialog?.element ?? dialog)?.querySelector?.(".spf-bug-report-text");
+        area?.focus();
+        area?.select();
+      }
+    });
+  }
+
+  /**
+   * Clipboard write; false when the browser refuses. Uses the browser API
+   * directly because it throws on refusal, so "Copied" is never shown falsely.
+   */
+  async _writeClipboard(text) {
+    try {
+      if (!globalThis.navigator?.clipboard?.writeText) return false;
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch (err) {
+      console.warn(`${MODULE_ID} | clipboard copy failed`, err);
+      return false;
+    }
+  }
 
   /** Yes/No dialog; resolves false when declined or dismissed. */
   async _confirm(titleKey, bodyKey) {

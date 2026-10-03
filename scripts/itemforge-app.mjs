@@ -44,7 +44,8 @@ export class ItemForgeApp extends SpfApp {
       cancelGeneration: ItemForgeApp.#onCancelGeneration,
       levelUp: ItemForgeApp.#onLevelUp,
       levelDown: ItemForgeApp.#onLevelDown,
-      selectKind: ItemForgeApp.#onSelectKind
+      selectKind: ItemForgeApp.#onSelectKind,
+      copyBugReport: ItemForgeApp.#onCopyBugReport
     }
   };
 
@@ -80,6 +81,7 @@ export class ItemForgeApp extends SpfApp {
       canCancel: this._canCancel,
       lastRunCost: this._formatLastRunCost(),
       error: this.#error,
+      canReportBug: this._canReportBug(this.#error),
       progress: this._progress,
       apiKeyWarning: authWarningKey ? game.i18n.localize(authWarningKey) : null,
       providerBaseUrl: authState.baseUrl,
@@ -301,6 +303,7 @@ export class ItemForgeApp extends SpfApp {
       if (err?.cancelled) console.warn(`${MODULE_ID} | item generation cancelled`);
       else console.error(`${MODULE_ID} | item generation failed`, err);
       this.#error = err.message;
+      this._recordFailure(err, "item generation", this.#error);
       this.#concept = null;
     } finally {
       this.#busy = false;
@@ -370,6 +373,7 @@ export class ItemForgeApp extends SpfApp {
       if (err?.cancelled) console.warn(`${MODULE_ID} | runed item generation cancelled`);
       else console.error(`${MODULE_ID} | runed item generation failed`, err);
       this.#error = err.message;
+      this._recordFailure(err, `${this.#kind} generation`, this.#error);
       this.#concept = null;
       this.#itemData = null;
       this.#runedPreview = null;
@@ -415,10 +419,17 @@ export class ItemForgeApp extends SpfApp {
     } catch (err) {
       console.error(`${MODULE_ID} | item creation failed`, err);
       this.#error = err.message;
+      this._recordFailure(err, "item creation", this.#error);
     } finally {
       this.#busy = false;
       await this.render();
     }
+  }
+
+  /** Copy the last failure's report with the form as read now. */
+  static async #onCopyBugReport() {
+    this.#readForm();
+    return this._copyBugReport("Item Forge", { ...this.#input });
   }
 
   static async #onDiscard() {

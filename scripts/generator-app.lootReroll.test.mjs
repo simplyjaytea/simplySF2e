@@ -33,6 +33,8 @@ const mocks = {
     _beginProgress() { abortController = new AbortController(); return abortController.signal; }
     async _setStep() {}
     _recordTokens() {}
+    _recordFailure() {}
+    _canReportBug() { return false; }
     _finishRun() {}
     _throwIfCancelled() {
       if (abortController.signal.aborted) throw Object.assign(new Error("cancelled"), { cancelled: true });

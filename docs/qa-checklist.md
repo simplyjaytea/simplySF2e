@@ -444,6 +444,16 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 | 12r.5 | Pick a connection or model with a long name, then hover the name, the model id and the last-run cost in both the Generator and the Item Forge status strip. | Each shows its full text in a tooltip when it is cut short with "...". | Generator, Item Forge | | |
 | 12r.6 | In each module window, scroll with the mouse wheel while the pointer is over a text box, a dropdown and the Level number box; then click into Level (and Party Size in Encounter mode) and wheel over it. | The window keeps scrolling (a long text box scrolls itself first); Level and Party Size never change from the wheel. | Each window | | |
 
+## 12u. Copy bug report
+
+| # | Do | Expect | Where | Pass | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 12u.1 | Make a Generator run fail (for example, set the model to a name the provider does not have, then Generate a monster). | The red error box shows a Copy bug report button. Clicking it shows "Bug report copied" and the clipboard holds a fenced block with the error, the failed step, the steps finished, the form values, settings and versions. | Generator, paste into a text editor | | |
+| 12u.2 | Search the pasted report for your API key and your Jev key (and any other saved connection's key). | Neither key appears; the report says only "API key set: yes" and "Jev key set: yes/no". The endpoint shows only scheme and host. | Pasted report | | |
+| 12u.3 | Start a generation and press Cancel. | The error box says the run was cancelled and shows no Copy bug report button. | Generator | | |
+| 12u.4 | Make an Item Forge run fail the same way and click Copy bug report. | Same as 12u.1, with "Window: Item Forge" and the forge's kind, level and rarity. | Item Forge | | |
+| 12u.5 | Open the world over plain http from another machine (not localhost), make a run fail and click Copy bug report. | The browser blocks the clipboard, so a "Bug report" window opens with the report already selected; Ctrl+C copies it. | Dialog | | |
+
 ## 13. Firefox (if available)
 
 | # | Step | Expected | Where to look | Result | Evidence |
