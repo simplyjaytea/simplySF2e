@@ -440,6 +440,9 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 | 12r.1 | Generate a monster, then drag the Generator window's bottom edge up to about a third of the screen. | The window body scrolls with the mouse wheel down to the stat block's end. Create Actor, Reroll Loot (when the preview has loot) and Discard stay visible at the bottom edge while the preview scrolls. | Generator | | |
 | 12r.2 | Do the same with an Item Forge preview, AI Provider Setup, Manage Presets (with several presets) and Compendium Sources. | Each window scrolls to its last field; its button row stays at the bottom edge. Nothing is cut off. | Each window | | |
 | 12r.3 | Shrink the Foundry browser window to a short height (about 600 px) and open each window fresh. | No window runs past the screen with unreachable content; each scrolls inside. Tabbing through a long form never leaves the focused field hidden under the button row, and Load Models in Provider Setup keeps your scroll place. | Each window | | |
+| 12r.4 | With the Foundry browser window short (about 600 px), open Manage Presets, then New preset, then Import. | Both dialogs scroll to their Save/Import button; nothing is cut off. | Preset dialogs | | |
+| 12r.5 | Pick a connection or model with a long name, then hover the name, the model id and the last-run cost in both the Generator and the Item Forge status strip. | Each shows its full text in a tooltip when it is cut short with "...". | Generator, Item Forge | | |
+| 12r.6 | In each module window, scroll with the mouse wheel while the pointer is over a text box, a dropdown and the Level number box; then click into Level (and Party Size in Encounter mode) and wheel over it. | The window keeps scrolling (a long text box scrolls itself first); Level and Party Size never change from the wheel. | Each window | | |
 
 ## 13. Firefox (if available)
 

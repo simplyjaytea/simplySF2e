@@ -27,7 +27,7 @@ export async function promptPresetDialog({
   const options = (values, prefix, current) => values.map((v) =>
     `<option value="${v}" ${v === current ? "selected" : ""}>${game.i18n.localize(`SIMPLYSF2E.${prefix}.${capitalize(v)}`)}</option>`
   ).join("");
-  const content = `
+  const content = `<div class="spf-dialog-body">
     <div class="form-group">
       <label>${game.i18n.localize("SIMPLYSF2E.Presets.DialogName")}</label>
       <input type="text" name="presetName" required value="${esc(name)}" placeholder="${game.i18n.localize("SIMPLYSF2E.Presets.DialogNamePlaceholder")}">
@@ -49,7 +49,8 @@ export async function promptPresetDialog({
         <input type="checkbox" name="presetSpellcasting" ${allowSpellcasting ? "checked" : ""}>
         ${game.i18n.localize("SIMPLYSF2E.Generator.AllowSpellcasting")}
       </label>
-    </div>`;
+    </div>
+  </div>`;
   const result = await DialogV2.prompt({
     window: { title, icon: "fa-solid fa-bookmark" },
     position: { width: 480 },
@@ -190,11 +191,12 @@ export class ManagePresetsApp extends HandlebarsApplicationMixin(ApplicationV2) 
     const json = await DialogV2.prompt({
       window: { title: "SIMPLYSF2E.Presets.ImportTitle", icon: "fa-solid fa-file-import" },
       position: { width: 480 },
-      content: `
+      content: `<div class="spf-dialog-body">
         <div class="form-group stacked">
           <label>${game.i18n.localize("SIMPLYSF2E.Presets.ImportHint")}</label>
           <textarea name="presetJson" rows="10" placeholder='[{ "name": "...", "prompt": "..." }]'></textarea>
-        </div>`,
+        </div>
+      </div>`,
       ok: {
         label: "SIMPLYSF2E.Presets.Import",
         icon: "fa-solid fa-file-import",

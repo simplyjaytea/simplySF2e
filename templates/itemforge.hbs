@@ -11,11 +11,11 @@
           {{/each}}
         </select>
       {{else}}
-        <strong>{{#if connectionName}}{{connectionName}}{{else}}{{provider.name}}{{/if}}</strong>
+        <strong data-tooltip-text="{{#if connectionName}}{{connectionName}}{{else}}{{provider.name}}{{/if}}">{{#if connectionName}}{{connectionName}}{{else}}{{provider.name}}{{/if}}</strong>
       {{/if}}
     </span>
-    <code class="spf-provider-model">{{#if provider.model}}{{provider.model}}{{else}}{{localize "SIMPLYSF2E.Generator.NoModelShort"}}{{/if}}</code>
-    {{#if lastRunCost}}<span class="spf-last-run">{{lastRunCost}}</span>{{/if}}
+    <code class="spf-provider-model"{{#if provider.model}} data-tooltip-text="{{provider.model}}"{{/if}}>{{#if provider.model}}{{provider.model}}{{else}}{{localize "SIMPLYSF2E.Generator.NoModelShort"}}{{/if}}</code>
+    {{#if lastRunCost}}<span class="spf-last-run" data-tooltip-text="{{lastRunCost}}">{{lastRunCost}}</span>{{/if}}
     <span class="spf-provider-actions">
       {{#if providerReady}}
         <button type="button" data-action="testProvider" data-tooltip="{{localize 'SIMPLYSF2E.ProviderSetup.TestConnection'}}" aria-label="{{localize 'SIMPLYSF2E.ProviderSetup.TestConnection'}}" {{#if busy}}disabled{{/if}}>
