@@ -1552,7 +1552,7 @@ export class GeneratorApp extends SpfApp {
   /** Create the previewed PC actor. No bestiary art lookup (that's
    * creature-specific) — the character gets the default portrait. */
   async #createCharacterActor() {
-    if (!this.#pcConcept) return;
+    if (this.#busy || !this.#pcConcept) return;
     this.#busy = true;
     this.#error = null;
     const applyingMessage = game.i18n.localize("SIMPLYSF2E.Progress.ApplyingCharacter");
@@ -1697,7 +1697,7 @@ export class GeneratorApp extends SpfApp {
 
   /** Create every encounter member, each with closest-match bestiary art. */
   async #createEncounterActors() {
-    if (!this.#encounter) return;
+    if (this.#busy || !this.#encounter) return;
     this.#busy = true;
     this.#error = null;
     await this.render();
