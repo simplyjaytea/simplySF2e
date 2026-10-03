@@ -49,7 +49,8 @@ Encounter mode: `designEncounter()` picks a theme + per-role briefs once, then t
 
 | File | Role |
 | --- | --- |
-| `simplysf2e.mjs` | Module entry: settings registration, app launchers, `/sf2e` / `/simplysf2e` chat command. |
+| `simplysf2e.mjs` | Module entry: settings registration, app launchers, `/sf2e` / `/simplysf2e` chat command, first-run welcome auto-open. |
+| `welcome.mjs` / `welcome-app.mjs` | First-run welcome: pure readiness rows + auto-open rule (opens for a GM until the AI connection works or "Don't show again"), and the window over them. |
 | `ai.mjs` | All AI calls, SYSTEM_PROMPT, `pcSystemPrompt()`, `lootGuide()`. Streaming SSE, retry-once, fail-closed JSON parsing. |
 | `ai-response-validation.mjs` | Per-task required-key shape checks on parsed AI responses (`taskResponseProblem`). |
 | `ai-task-profiles.mjs` / `ai-candidate-format.mjs` | Pure per-operation token/sampling caps (`taskMaxTokens`) and compact grounded-candidate encoding. |

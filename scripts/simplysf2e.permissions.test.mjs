@@ -137,8 +137,9 @@ assert.equal(itemDirectory.children.filter((child) => child.className === "spf-d
 
 assert.equal(moduleRecord.api.open(), null, "a player cannot open the generator through the public API");
 assert.equal(moduleRecord.api.openItemForge(), null, "a player cannot open the item forge through the public API");
+assert.equal(moduleRecord.api.openWelcome(), null, "a player cannot open the welcome through the public API");
 assert.equal(renders, 0, "denied API calls must not instantiate or render an app");
-assert.equal(notices.warn.length, 2);
+assert.equal(notices.warn.length, 3);
 assert.ok(notices.warn.every((message) => message === "SIMPLYSF2E.Errors.GMOnly"));
 
 game.user = { id: "gm", isGM: true };
