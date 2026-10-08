@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 import { normalizeConcept } from "./builder.mjs";
 import * as T from "./tables.mjs";
-import { expectedSheetStats, readSheetStats, scaleBand, checkStats, statCheckForActor, describeStatCheck } from "./stat-check.mjs";
+import { expectedSheetStats, readSheetStats, scaleBand, checkStats, statCheckForActor, describeStatCheck, hasSpellEntry } from "./stat-check.mjs";
 
 const raw = {
   name: "Drift Zombie",
@@ -99,6 +99,41 @@ assert.equal(scaleBand(T.PERCEPTION_AND_SAVES, 4, T.PERCEPTION_AND_SAVES.terribl
 assert.equal(scaleBand(T.AC, 4, null), null);
 const tooHigh = checkStats({ ...expected, ac: T.AC.extreme[5] + 4 }, readSheetStats(fakeActor({ ...expected, ac: T.AC.extreme[5] + 4 })));
 assert.equal(tooHigh.rows.find((r) => r.key === "ac").status, "outOfRange", "matches the preview but is outside GM Core");
+
+// Strike names: createActor capitalizes them ("jaws" becomes "Jaws").
+{
+  const jaws = normalizeConcept({ ...raw, strikes: [{ ...raw.strikes[0], name: "jaws" }] }, { level: 4, rarity: "common" });
+  const jawsExpected = expectedSheetStats(jaws);
+  assert.equal(jawsExpected.strikes[0].name, "Jaws");
+  const sheet = fakeActor({ ...jawsExpected, strikes: [{ name: "Jaws", bonus: jawsExpected.strikes[0].bonus }] });
+  assert.equal(statCheckForActor(jaws, sheet).problems, 0, "a lowercase AI strike name still matches its capitalized melee item");
+}
+
+// No spellcasting entry was built (no spell resolved): no Spell DC row.
+assert.equal(statCheckForActor(caster, fakeActor({ ...casterExpected, spellDC: null }), { spellEntry: false })
+  .rows.some((r) => r.key === "spellDC"), false);
+assert.equal(hasSpellEntry(caster, { spells: [{ entry: { uuid: "x" } }] }), true);
+assert.equal(hasSpellEntry(caster, { spells: [{ entry: null }] }), false);
+assert.equal(hasSpellEntry(concept, { spells: [{ entry: { uuid: "x" } }] }), false);
+
+// Normal, Elite and Weak never flag a creature whose sheet matches the preview, at any
+// level and scale: bands are read at the base level, not the adjusted one.
+for (const adjustment of [null, "elite", "weak"]) {
+  for (let level = -1; level <= 24; level++) {
+    for (const scale of ["extreme", "high", "moderate", "low"]) {
+      const c = normalizeConcept({
+        ...raw, level, acScale: scale, hpScale: scale === "extreme" ? "high" : scale, perceptionScale: scale,
+        saveScales: { fortitude: scale, reflex: scale, will: scale === "low" ? "terrible" : scale },
+        strikes: [{ ...raw.strikes[0], attackScale: scale }],
+        spellcasting: { tradition: "arcane", type: "prepared", dcScale: scale === "low" ? "moderate" : scale, spells: [] }
+      }, { level, rarity: "common" });
+      const adjusted = { ...c, adjustment };
+      const sheet = expectedSheetStats(adjusted);
+      const check = statCheckForActor(adjusted, fakeActor(sheet));
+      assert.equal(check.problems, 0, `${adjustment} level ${level} ${scale}: ${JSON.stringify(check.rows.filter((r) => r.status !== "ok"))}`);
+    }
+  }
+}
 
 console.log("stat-check.test.mjs: expected-vs-sheet rows, bands and unreadable values verified");
 

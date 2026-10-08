@@ -3,7 +3,8 @@
 // level. Report only; nothing here writes to the actor. Pure apart from the
 // actor object passed in, so node-testable.
 import * as T from "./tables.mjs";
-import { computeStats, adjustedStats } from "./builder.mjs";
+import { computeStats, adjustedStats, hpAdjustment } from "./builder.mjs";
+import { capitalized } from "./text.mjs";
 
 /** GM Core table per checked stat (tables.mjs, GM Core pp. 119-126). */
 const STAT_TABLES = {
@@ -22,16 +23,22 @@ const SCALE_ORDER = ["extreme", "high", "moderate", "low", "terrible"];
  * The numbers the sheet should show: computeStats() plus the stored
  * Elite/Weak adjustment, exactly as the preview displays them.
  */
-export function expectedSheetStats(concept) {
+export function expectedSheetStats(concept, { spellEntry = true } = {}) {
   const stats = adjustedStats(computeStats(concept), concept);
+  const adjustment = concept.adjustment === "elite" || concept.adjustment === "weak" ? concept.adjustment : null;
   return {
     level: stats.level,
+    baseLevel: concept.level,
+    adjustment,
     ac: stats.ac,
     hp: stats.hp,
     perception: stats.perception,
     saves: { ...stats.saves },
-    strikes: stats.strikes.map((strike) => ({ name: strike.name, bonus: strike.bonus })),
-    spellDC: stats.spellDC
+    // createActor names each melee item capitalized(strike.name).
+    strikes: stats.strikes.map((strike) => ({ name: capitalized(strike.name), bonus: strike.bonus })),
+    // createActor builds a spellcasting entry only when a spell resolved, so
+    // the caller says whether one exists; no entry means no Spell DC row.
+    spellDC: spellEntry ? stats.spellDC : null
   };
 }
 
@@ -88,8 +95,20 @@ export function scaleBand(table, level, value) {
   return "below";
 }
 
-function row(key, label, table, level, expected, actual) {
-  const band = scaleBand(table, level, actual);
+/**
+ * The value the GM Core band is read from. Elite/Weak shift each number by
+ * +/-2 (HP by getHpAdjustment), which is not one level's step, so an adjusted
+ * creature's numbers are mapped back to its base level before banding.
+ */
+function baseValue(key, value, expected) {
+  if (value === null || !expected.adjustment) return value;
+  if (key === "hp") return value - hpAdjustment(expected.baseLevel, expected.adjustment);
+  return value - (expected.adjustment === "elite" ? 2 : -2);
+}
+
+function row(key, label, table, expectedStats, expected, actual) {
+  const level = expectedStats.adjustment ? expectedStats.baseLevel : (expectedStats.sheetLevel ?? expectedStats.level);
+  const band = scaleBand(table, level, baseValue(key, actual, expectedStats));
   const status = actual === null ? "unreadable"
     : expected !== null && actual !== expected ? "differs"
     : band === "above" || band === "below" ? "outOfRange"
@@ -105,32 +124,39 @@ function row(key, label, table, level, expected, actual) {
  */
 export function checkStats(expected, actual) {
   const level = actual.level ?? expected.level;
+  const ctx = { ...expected, sheetLevel: level };
   const rows = [
-    row("ac", "SIMPLYSF2E.StatCheck.AC", STAT_TABLES.ac, level, expected.ac, actual.ac),
-    row("hp", "SIMPLYSF2E.StatCheck.HP", STAT_TABLES.hp, level, expected.hp, actual.hp),
-    row("perception", "SIMPLYSF2E.StatCheck.Perception", STAT_TABLES.perception, level, expected.perception, actual.perception)
+    row("ac", "SIMPLYSF2E.StatCheck.AC", STAT_TABLES.ac, ctx, expected.ac, actual.ac),
+    row("hp", "SIMPLYSF2E.StatCheck.HP", STAT_TABLES.hp, ctx, expected.hp, actual.hp),
+    row("perception", "SIMPLYSF2E.StatCheck.Perception", STAT_TABLES.perception, ctx, expected.perception, actual.perception)
   ];
   for (const save of ["fortitude", "reflex", "will"]) {
     rows.push({
-      ...row(`save-${save}`, `SIMPLYSF2E.StatCheck.${save[0].toUpperCase()}${save.slice(1)}`, STAT_TABLES.save, level,
+      ...row(`save-${save}`, `SIMPLYSF2E.StatCheck.${save[0].toUpperCase()}${save.slice(1)}`, STAT_TABLES.save, ctx,
         expected.saves?.[save] ?? null, actual.saves?.[save] ?? null)
     });
   }
   const remaining = [...actual.strikes];
   for (const strike of expected.strikes) {
-    const index = remaining.findIndex((candidate) => candidate.name === strike.name);
+    const wanted = strike.name.toLowerCase();
+    const index = remaining.findIndex((candidate) => candidate.name.toLowerCase() === wanted);
     const found = index >= 0 ? remaining.splice(index, 1)[0] : null;
-    rows.push({ ...row(`strike-${strike.name}`, "SIMPLYSF2E.StatCheck.Strike", STAT_TABLES.strike, level, strike.bonus, found?.bonus ?? null), name: strike.name });
+    rows.push({ ...row(`strike-${strike.name}`, "SIMPLYSF2E.StatCheck.Strike", STAT_TABLES.strike, ctx, strike.bonus, found?.bonus ?? null), name: strike.name });
   }
   if (expected.spellDC !== null && expected.spellDC !== undefined) {
-    rows.push(row("spellDC", "SIMPLYSF2E.StatCheck.SpellDC", STAT_TABLES.spellDC, level, expected.spellDC, actual.spellDC));
+    rows.push(row("spellDC", "SIMPLYSF2E.StatCheck.SpellDC", STAT_TABLES.spellDC, ctx, expected.spellDC, actual.spellDC));
   }
   return { level, rows, problems: rows.filter((r) => r.status !== "ok").length };
 }
 
 /** Expected-vs-sheet check for one created NPC. */
-export function statCheckForActor(concept, actor) {
-  return checkStats(expectedSheetStats(concept), readSheetStats(actor));
+export function statCheckForActor(concept, actor, { spellEntry = true } = {}) {
+  return checkStats(expectedSheetStats(concept, { spellEntry }), readSheetStats(actor));
+}
+
+/** Whether createActor built a spellcasting entry for these resolved picks (builder.mjs createActor). */
+export function hasSpellEntry(concept, resolved) {
+  return Boolean(concept?.spellcasting && resolved?.spells?.some((spell) => spell.entry));
 }
 
 const BAND_KEYS = {

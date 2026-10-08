@@ -38,7 +38,7 @@ import { validateArchetypeSlotPlacement } from "./pc-prerequisites.mjs";
 import { SpfApp } from "./app-base.mjs";
 import { jevKeySource } from "./jev.mjs";
 import { signed, esc } from "./text.mjs";
-import { statCheckForActor, describeStatCheck } from "./stat-check.mjs";
+import { statCheckForActor, describeStatCheck, hasSpellEntry } from "./stat-check.mjs";
 import { findRecent, forgetRecent, previewModeOf, previewNameOf, rememberRecent } from "./recent-generations.mjs";
 
 async function rollbackActor(actor, label) {
@@ -337,20 +337,22 @@ export class GeneratorApp extends SpfApp {
     };
   }
 
-  /** Localized, count-only view of a validated completion manifest. */
   /**
    * Stat check after Create: compare each new NPC's prepared sheet with the
    * preview and the GM Core range. Report only, after the commit, so it can
    * never roll back or block a creation. When something is off, the GM also
    * gets a chat whisper that outlives this window.
-   * @param {{concept: object, actor: object}[]} pairs
+   * @param {{concept: object, resolved: object, actor: object}[]} pairs
    */
   static #statCheckContext(pairs) {
     try {
-      const creatures = pairs.map(({ concept, actor }) =>
-        describeStatCheck(actor.name, statCheckForActor(concept, actor), game.i18n));
+      const creatures = pairs.map(({ concept, resolved, actor }) => describeStatCheck(actor.name,
+        statCheckForActor(concept, actor, { spellEntry: hasSpellEntry(concept, resolved) }), game.i18n));
       const problems = creatures.reduce((sum, creature) => sum + creature.problems, 0);
-      if (problems) GeneratorApp.#whisperStatCheck(creatures.filter((creature) => creature.problems));
+      if (problems) {
+        try { GeneratorApp.#whisperStatCheck(creatures.filter((creature) => creature.problems)); }
+        catch (err) { console.warn(`${MODULE_ID} | could not whisper the stat check`, err); }
+      }
       return { creatures, problems, total: creatures.reduce((sum, creature) => sum + creature.total, 0), failed: null };
     } catch (err) {
       console.warn(`${MODULE_ID} | stat check failed`, err);
@@ -364,10 +366,11 @@ export class GeneratorApp extends SpfApp {
     }</ul>`).join("");
     ChatMessage.create({
       content: `<p>${esc(game.i18n.localize("SIMPLYSF2E.StatCheck.ChatIntro"))}</p>${body}`,
-      whisper: ChatMessage.getWhisperRecipients("GM").map((user) => user.id)
+      whisper: game.users.filter((user) => user.isGM).map((user) => user.id)
     }).catch((err) => console.warn(`${MODULE_ID} | could not whisper the stat check`, err));
   }
 
+  /** Localized, count-only view of a validated completion manifest. */
   static #completionContext(manifests) {
     const summary = completionSummary(manifests);
     const rows = [
@@ -1546,13 +1549,14 @@ export class GeneratorApp extends SpfApp {
       // work so a sheet-render failure cannot create a duplicate on retry.
       const grounding = GeneratorApp.#completionContext(this.#manifest);
       const createdConcept = this.#concept;
+      const createdResolved = this.#resolved;
       this.#concept = null;
       this.#resolved = null;
       this.#manifest = null;
       this.#previewMeta = null;
       this.#created = { name: actor.name, actorId: actor.id, count: 1, grounding, statCheck: null };
       committed = true;
-      this.#created.statCheck = GeneratorApp.#statCheckContext([{ concept: createdConcept, actor }]);
+      this.#created.statCheck = GeneratorApp.#statCheckContext([{ concept: createdConcept, resolved: createdResolved, actor }]);
       try {
         ui.notifications.info(game.i18n.format("SIMPLYSF2E.Generator.Created", { name: actor.name }));
         await actor.sheet.render(true);
@@ -1751,7 +1755,7 @@ export class GeneratorApp extends SpfApp {
           const createdActor = await createActor(member.concept, member.resolved, { img, scaffold });
           const actor = createdActor.actor;
           actors.push(actor);
-          checked.push({ concept: member.concept, actor });
+          checked.push({ concept: member.concept, resolved: member.resolved, actor });
           const update = { folder: folder.id };
           if (member.count > 1) update.name = `${actor.name} ${i + 1}`;
           await actor.update(update);
