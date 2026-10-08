@@ -46,6 +46,8 @@ function providerSetup(selected, patch = {}) {
       { id: "typesafe", label: "TypeSafe AI", selected: false }
     ],
     jevOnTypeSafe: false,
+    jevEndpoint: "",
+    jevDefaultEndpoint: "https://api.typesafe.ai/v1/systemone",
     jevKeyPlaceholder: localize("SIMPLYSF2E.ProviderSetup.JevKeyPlaceholder", { source: "OpenRouter" }),
     showLocalHint: ["ollama", "lmstudio", "custom"].includes(selected),
     localServerHint: localize("SIMPLYSF2E.ProviderSetup.LocalServerHint", { origin: "http://localhost:30000" }),
@@ -98,6 +100,7 @@ export default [
         { id: "typesafe", label: "TypeSafe AI", selected: true }
       ],
       jevOnTypeSafe: true,
+      jevEndpoint: "https://jev-proxy.example.com/v1/systemone",
       jevKeyPlaceholder: localize("SIMPLYSF2E.ProviderSetup.JevKeySaved")
     })
   },

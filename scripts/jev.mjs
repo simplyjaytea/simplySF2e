@@ -35,6 +35,30 @@ export const JEV_SOURCES = Object.freeze({
 
 export const DEFAULT_JEV_SOURCE = "openrouter";
 
+const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
+
+/**
+ * The TypeSafe endpoint a GM may point at their own CORS proxy. Empty means the
+ * official endpoint. Returns the normalized URL, or `null` when it is not a usable
+ * address: not http(s), carries a user name or password, or is plain http to a
+ * host other than this machine (a key must not cross the network unencrypted).
+ */
+export function normalizeTypeSafeEndpoint(value) {
+  const text = String(value ?? "").trim();
+  if (!text) return TYPESAFE_JEV_ENDPOINT;
+  let url;
+  try { url = new URL(text); } catch { return null; }
+  if (url.username || url.password) return null;
+  // The official address typed with a trailing slash or an explicit :443 is still official.
+  if (url.protocol === "https:" && url.origin === new URL(TYPESAFE_JEV_ENDPOINT).origin
+    && /^\/v1\/systemone\/?$/.test(url.pathname) && !url.search && !url.hash) {
+    return TYPESAFE_JEV_ENDPOINT;
+  }
+  if (url.protocol === "https:") return url.href;
+  if (url.protocol === "http:" && LOOPBACK_HOSTS.has(url.hostname)) return url.href;
+  return null;
+}
+
 /** A known source id, else the default. */
 export function normalizeJevSource(value) {
   const id = String(value ?? "").trim();
@@ -58,7 +82,7 @@ const isUnit = (value) => typeof value === "number" && Number.isFinite(value) &&
 /**
  * The only gate J2-J5 use. Returns `{ source, endpoint, model, apiKey }` or `null`
  * (use the chat LLM). Order: a dedicated Jev key, sent to its chosen source
- * (OpenRouter or TypeSafe); else the active connection's key when that connection
+ * (OpenRouter, or TypeSafe at its saved endpoint, which may be the GM's proxy); else the active connection's key when that connection
  * is OpenRouter, always on OpenRouter's route. Never returns an empty key.
  *
  * Reusing a key bound to `https://openrouter.ai/api/v1` for the sibling `/systemone`
@@ -73,7 +97,14 @@ export function resolveJevConfig({ provider = getProviderRequestConfig, dedicate
     const dedicatedKey = String(own?.apiKey ?? "").trim();
     if (dedicatedKey) {
       const source = JEV_SOURCES[normalizeJevSource(own?.source)];
-      return { source: source.id, endpoint: source.endpoint, model: source.model, apiKey: dedicatedKey };
+      if (source.id !== "typesafe") {
+        return { source: source.id, endpoint: source.endpoint, model: source.model, apiKey: dedicatedKey };
+      }
+      // A GM's own CORS proxy for TypeSafe. An unusable stored address fails
+      // closed (Jev off) rather than sending the key somewhere unexpected.
+      const endpoint = normalizeTypeSafeEndpoint(own?.endpoint);
+      if (!endpoint) return null;
+      return { source: source.id, endpoint, model: source.model, apiKey: dedicatedKey };
     }
     const state = provider();
     // `apiKey` is already "" unless bound to the exact base URL (settings.mjs); never read raw settings.
@@ -271,5 +302,5 @@ export async function testJevConnection({ config = resolveJevConfig(), fetchImpl
   const result = await callJev({
     ...config, state: JEV_TEST_STATE, questions: JEV_TEST_QUESTIONS, fetchImpl, timeoutMs, signal
   });
-  return { ...result, source: config.source ?? "openrouter" };
+  return { ...result, source: config.source ?? "openrouter", endpoint: config.endpoint };
 }

@@ -6,6 +6,7 @@ export const SETTINGS = {
   apiKeyBaseUrl: "apiKeyBaseUrl",
   jevApiKey: "jevApiKey",
   jevSource: "jevSource",
+  jevTypeSafeEndpoint: "jevTypeSafeEndpoint",
   model: "model",
   providerBank: "providerBank",
   temperature: "temperature",
@@ -149,6 +150,18 @@ export function registerSettings(SourcesConfigApp, ProviderSetupApp, WelcomeApp)
     restricted: true,
     type: String,
     default: "openrouter"
+  });
+
+  // Where a TypeSafe Jev key is sent: the official endpoint, or a CORS proxy the
+  // GM runs. Provider Setup clears the key when this changes without a new key.
+  game.settings.register(MODULE_ID, SETTINGS.jevTypeSafeEndpoint, {
+    name: "SIMPLYSF2E.Settings.JevTypeSafeEndpoint.Name",
+    hint: "SIMPLYSF2E.Settings.JevTypeSafeEndpoint.Hint",
+    scope: "client",
+    config: false,
+    restricted: true,
+    type: String,
+    default: ""
   });
 
   game.settings.register(MODULE_ID, SETTINGS.model, {
@@ -598,13 +611,14 @@ export function getProviderRequestConfig() {
 }
 
 /**
- * The separate Jev key and where it goes (`{ apiKey, source }`; key trimmed and
- * "" when unset; source is the raw setting, normalized by jev.mjs).
+ * The separate Jev key and where it goes (`{ apiKey, source, endpoint }`; key trimmed and
+ * "" when unset; source and the TypeSafe endpoint are raw settings, normalized by jev.mjs).
  */
 export function getJevRequestConfig() {
   return {
     apiKey: String(getSetting(SETTINGS.jevApiKey) ?? "").trim(),
-    source: String(getSetting(SETTINGS.jevSource) ?? "openrouter")
+    source: String(getSetting(SETTINGS.jevSource) ?? "openrouter"),
+    endpoint: String(getSetting(SETTINGS.jevTypeSafeEndpoint) ?? "")
   };
 }
 

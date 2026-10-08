@@ -5,7 +5,9 @@ import {
   normalizeApiBaseUrl, selectProviderConnection, upsertActiveProviderConnection
 } from "./settings.mjs";
 import { listProviderModels, testProviderConnection } from "./ai.mjs";
-import { JEV_SOURCES, normalizeJevSource, testJevConnection } from "./jev.mjs";
+import {
+  JEV_SOURCES, TYPESAFE_JEV_ENDPOINT, normalizeJevSource, normalizeTypeSafeEndpoint, testJevConnection
+} from "./jev.mjs";
 import { esc } from "./text.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -24,8 +26,9 @@ const LOCAL_PRESET_IDS = new Set(["ollama", "lmstudio", "custom"]);
 
 /**
  * Toast for a Test Jev result: `{ level, key, data }`. Pure so it is node-testable.
- * A browser reports a CORS refusal as a plain network error, so on TypeSafe a
- * network failure names the known CORS block instead of "check your network".
+ * A browser reports a CORS refusal as a plain network error, so on the official
+ * TypeSafe endpoint a network failure names the known CORS block; on a GM's own
+ * proxy it names that address instead.
  */
 export function jevTestNotice(result) {
   const source = JEV_SOURCES[normalizeJevSource(result?.source)]?.label ?? "OpenRouter";
@@ -35,7 +38,11 @@ export function jevTestNotice(result) {
   switch (result?.reason) {
     case "unconfigured": return fail("Off");
     case "http": return [401, 403].includes(result.status) ? fail("BadKey", { status: result.status }) : fail("Http", { status: result.status || "?" });
-    case "network": return result.source === "typesafe" ? fail("TypeSafeCors") : fail("Network");
+    case "network":
+      if (result.source !== "typesafe") return fail("Network");
+      return result.endpoint && result.endpoint !== TYPESAFE_JEV_ENDPOINT
+        ? fail("ProxyNetwork", { endpoint: result.endpoint })
+        : fail("TypeSafeCors");
     case "timeout": return fail("Timeout");
     case "shape": return fail("Shape");
     default: return fail("Network");
@@ -129,6 +136,8 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
       hasJevKey: Boolean(jev.apiKey),
       jevSources: Object.values(JEV_SOURCES).map(({ id, label }) => ({ id, label, selected: id === source })),
       jevOnTypeSafe: source === "typesafe",
+      jevEndpoint: String(jev.endpoint ?? "").trim(),
+      jevDefaultEndpoint: TYPESAFE_JEV_ENDPOINT,
       jevKeyPlaceholder: ProviderSetupApp.#jevPlaceholder(Boolean(jev.apiKey), source)
     };
   }
@@ -141,18 +150,25 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
 
   _onRender(context, options) {
     super._onRender?.(context, options);
-    this.element.querySelector("[name='jevSource']")?.addEventListener("change", (event) => {
-      const source = normalizeJevSource(event.currentTarget.value);
-      const warning = this.element.querySelector(".spf-jev-warning");
-      if (warning) warning.hidden = source !== "typesafe";
+    // A saved key belongs to its route (source, and for TypeSafe the endpoint);
+    // once the form shows another route, the key field asks for a new key.
+    const syncJevRoute = () => {
+      const source = normalizeJevSource(this.element.querySelector("[name='jevSource']")?.value);
+      for (const typeSafeOnly of this.element.querySelectorAll(".spf-jev-warning, .spf-jev-endpoint")) {
+        typeSafeOnly.hidden = source !== "typesafe";
+      }
+      const stored = getJevRequestConfig();
+      const typed = this.element.querySelector("[name='jevEndpoint']")?.value;
+      const sameRoute = source === normalizeJevSource(stored.source)
+        && (source !== "typesafe" || normalizeTypeSafeEndpoint(typed) === normalizeTypeSafeEndpoint(stored.endpoint));
+      const hasKey = Boolean(stored.apiKey) && sameRoute;
       const input = this.element.querySelector("[name='jevApiKey']");
-      const stored = normalizeJevSource(getJevRequestConfig().source);
-      // A saved key belongs to its source; picking the other one asks for a new key.
-      const hasKey = Boolean(getJevRequestConfig().apiKey) && source === stored;
       if (input) input.placeholder = ProviderSetupApp.#jevPlaceholder(hasKey, source);
       const clearLabel = this.element.querySelector(".spf-jev-clear");
       if (clearLabel) clearLabel.hidden = !hasKey;
-    });
+    };
+    this.element.querySelector("[name='jevSource']")?.addEventListener("change", syncJevRoute);
+    this.element.querySelector("[name='jevEndpoint']")?.addEventListener("input", syncJevRoute);
     this.element.querySelector("[name='apiBaseUrl']")?.addEventListener("input", (event) => {
       if (normalizeApiBaseUrl(event.currentTarget.value) !== this.#modelsBaseUrl) {
         this.#clearModelSuggestions();
@@ -334,11 +350,13 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
   }
 
   /**
-   * Save or clear the separate Jev key and its source. Independent of #saveSettings
-   * so a GM with no chat model can still save it. Empty input keeps the stored key,
-   * unless the source changed: a key belongs to its service, so switching source
-   * without a new key clears the old one (as a chat key is cleared when its base
-   * URL changes). Returns "saved", "cleared", "source" (source only) or null.
+   * Save or clear the separate Jev key, its source and the TypeSafe endpoint.
+   * Independent of #saveSettings so a GM with no chat model can still save it.
+   * Empty input keeps the stored key, unless the route changed (another source,
+   * or another TypeSafe endpoint): a key belongs to the address it was saved for,
+   * so a route change without a new key clears the old one (as a chat key is
+   * cleared when its base URL changes). An unusable endpoint throws before any
+   * write. Returns "saved", "cleared", "source" (route only) or null.
    */
   static async #saveJevKey() {
     const entered = String(this.element.querySelector("[name='jevApiKey']")?.value ?? "").trim();
@@ -347,21 +365,35 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
     const storedSource = normalizeJevSource(stored.source);
     const picker = this.element.querySelector("[name='jevSource']");
     const source = picker ? normalizeJevSource(picker.value) : storedSource;
+    const storedEndpoint = normalizeTypeSafeEndpoint(stored.endpoint);
+    const endpointField = this.element.querySelector("[name='jevEndpoint']");
+    const endpoint = endpointField ? normalizeTypeSafeEndpoint(endpointField.value) : storedEndpoint;
+    // The field is hidden unless TypeSafe is the source, so a bad value there never
+    // blocks an OpenRouter save; it is simply not written.
+    if (!endpoint && source === "typesafe") {
+      throw new Error(game.i18n.localize("SIMPLYSF2E.ProviderSetup.JevEndpointInvalid"));
+    }
+    // Store "" for the official endpoint so a later default change follows it.
+    const endpointSetting = endpoint === TYPESAFE_JEV_ENDPOINT ? "" : endpoint;
+    const endpointChanged = Boolean(endpoint) && endpointSetting !== String(stored.endpoint ?? "").trim();
     const sourceChanged = source !== storedSource;
-    // Clear the old key before the source moves, so no read in between (or a
-    // failed later write) can pair the old key with the other service.
-    if (sourceChanged && stored.apiKey) await game.settings.set(MODULE_ID, SETTINGS.jevApiKey, "");
+    const routeChanged = sourceChanged || (source === "typesafe" && endpoint !== storedEndpoint);
+    // Clear the old key before the route moves, so no read in between (or a
+    // failed later write) can pair the old key with another address.
+    if (routeChanged && stored.apiKey) await game.settings.set(MODULE_ID, SETTINGS.jevApiKey, "");
+    if (endpointChanged) await game.settings.set(MODULE_ID, SETTINGS.jevTypeSafeEndpoint, endpointSetting);
     if (sourceChanged) await game.settings.set(MODULE_ID, SETTINGS.jevSource, source);
+    const sourceOrEndpointSaved = sourceChanged || endpointChanged;
     if (clear) {
-      if (!sourceChanged || !stored.apiKey) await game.settings.set(MODULE_ID, SETTINGS.jevApiKey, "");
+      if (!routeChanged || !stored.apiKey) await game.settings.set(MODULE_ID, SETTINGS.jevApiKey, "");
       return "cleared";
     }
     if (entered) {
       await game.settings.set(MODULE_ID, SETTINGS.jevApiKey, entered);
       return "saved";
     }
-    if (!sourceChanged) return null;
-    return stored.apiKey ? "cleared" : "source";
+    if (routeChanged && stored.apiKey) return "cleared";
+    return sourceOrEndpointSaved ? "source" : null;
   }
 
   /** Toast for a #saveJevKey result; null shows nothing. */

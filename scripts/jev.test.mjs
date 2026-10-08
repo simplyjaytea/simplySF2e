@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import {
   JEV_ENDPOINT, JEV_MODEL, TYPESAFE_JEV_ENDPOINT, TYPESAFE_JEV_MODEL, JEV_TEST_QUESTIONS,
-  buildChoiceQuestion, callJev, normalizeJevSource, parseJevAnswers, requestJevDecision, resolveJevConfig,
+  buildChoiceQuestion, callJev, normalizeJevSource, normalizeTypeSafeEndpoint, parseJevAnswers, requestJevDecision, resolveJevConfig,
   jevKeySource, testJevConnection
 } from "./jev.mjs";
 import { normalizeJevUsage } from "./tokens.mjs";
@@ -52,6 +52,32 @@ assert.deepEqual(
 assert.deepEqual(
   resolveJevConfig({ provider: () => orState("or-key"), dedicated: () => null }),
   orRoute("or-key"), "OpenRouter chat key reused");
+// TypeSafe endpoint (a GM's own CORS proxy)
+const proxy = "https://jev-proxy.example.com/v1/systemone";
+assert.equal(normalizeTypeSafeEndpoint(""), TYPESAFE_JEV_ENDPOINT, "blank is the official endpoint");
+assert.equal(normalizeTypeSafeEndpoint(undefined), TYPESAFE_JEV_ENDPOINT);
+assert.equal(normalizeTypeSafeEndpoint(` ${proxy} `), proxy);
+assert.equal(normalizeTypeSafeEndpoint("https://api.typesafe.ai/v1/systemone/"), TYPESAFE_JEV_ENDPOINT, "trailing slash is still official");
+assert.equal(normalizeTypeSafeEndpoint("https://API.typesafe.ai:443/v1/systemone"), TYPESAFE_JEV_ENDPOINT, "explicit :443 is still official");
+assert.notEqual(normalizeTypeSafeEndpoint("https://api.typesafe.ai/v1/other"), TYPESAFE_JEV_ENDPOINT);
+assert.equal(normalizeTypeSafeEndpoint("http://localhost:8787/systemone"), "http://localhost:8787/systemone", "plain http allowed on this machine");
+assert.equal(normalizeTypeSafeEndpoint("http://127.0.0.1:8787/"), "http://127.0.0.1:8787/");
+assert.equal(normalizeTypeSafeEndpoint("http://[::1]:8787/x"), "http://[::1]:8787/x");
+assert.equal(normalizeTypeSafeEndpoint("http://proxy.example.com/systemone"), null, "no plain http across the network");
+assert.equal(normalizeTypeSafeEndpoint("https://user:pw@proxy.example.com/"), null, "no credentials in the URL");
+assert.equal(normalizeTypeSafeEndpoint("ftp://proxy.example.com/"), null);
+assert.equal(normalizeTypeSafeEndpoint("javascript:alert(1)"), null);
+assert.equal(normalizeTypeSafeEndpoint("not a url"), null);
+assert.deepEqual(
+  resolveJevConfig({ provider: () => orState("or-key"), dedicated: () => ({ apiKey: "ts", source: "typesafe", endpoint: proxy }) }),
+  { ...tsRoute("ts"), endpoint: proxy }, "a TypeSafe key goes to the saved proxy");
+assert.deepEqual(
+  resolveJevConfig({ provider: () => orState("or-key"), dedicated: () => ({ apiKey: "k", source: "openrouter", endpoint: proxy }) }),
+  orRoute("k"), "the TypeSafe endpoint never moves an OpenRouter key");
+assert.equal(
+  resolveJevConfig({ provider: () => orState("or-key"), dedicated: () => ({ apiKey: "ts", source: "typesafe", endpoint: "http://evil.example.com/" }) }),
+  null, "an unusable stored endpoint turns Jev off instead of sending the key");
+
 assert.equal(normalizeJevSource("typesafe"), "typesafe");
 assert.equal(normalizeJevSource("__proto__"), "openrouter");
 assert.equal(normalizeJevSource(undefined), "openrouter");
@@ -174,7 +200,7 @@ try {
   assert.equal(seen.url, TYPESAFE_JEV_ENDPOINT);
   assert.deepEqual(JSON.parse(seen.init.body).questions, JEV_TEST_QUESTIONS);
   const blocked = await testJevConnection({ config: tsRoute("ts"), fetchImpl: async () => { throw new TypeError("Failed to fetch"); } });
-  assert.deepEqual([blocked.ok, blocked.source, blocked.reason], [false, "typesafe", "network"]);
+  assert.deepEqual([blocked.ok, blocked.source, blocked.reason, blocked.endpoint], [false, "typesafe", "network", TYPESAFE_JEV_ENDPOINT]);
 
   const logged = [];
   console.warn = (...a) => logged.push(a.join(" "));

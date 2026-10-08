@@ -13,6 +13,10 @@
         "Name": "Jev API Key",
         "Hint": "OpenRouter or TypeSafe AI key used only for Jev fast picks. Stored in this browser; manage it through AI Provider Setup."
       },
+      "JevTypeSafeEndpoint": {
+        "Name": "Jev TypeSafe Endpoint",
+        "Hint": "Where a TypeSafe AI Jev key is sent: blank for api.typesafe.ai, or the address of your own CORS proxy. Manage it through AI Provider Setup."
+      },
       "JevSource": {
         "Name": "Jev Source",
         "Hint": "Where the separate Jev key is sent: OpenRouter or TypeSafe AI. Manage it through AI Provider Setup."
@@ -79,14 +83,18 @@
       "JevKeySaved": "A Jev key is saved — leave blank to keep it",
       "ClearJevKey": "Clear the saved Jev key",
       "SaveJevKey": "Save Jev key",
-      "JevCorsWarning": "TypeSafe AI currently blocks calls from a browser (CORS), so Foundry most likely cannot reach it directly. Use Test Jev to check, or switch to OpenRouter. A TypeSafe key is sent only to api.typesafe.ai.",
+      "JevCorsWarning": "TypeSafe AI currently blocks calls from a browser (CORS), so Foundry cannot reach api.typesafe.ai directly. Use OpenRouter, or enter the address of your own CORS proxy above. Use Test Jev to check. The TypeSafe key is sent only to the endpoint above.",
+      "JevEndpointLabel": "TypeSafe endpoint",
+      "JevEndpointHint": "Leave blank for api.typesafe.ai. To use TypeSafe today, enter the address of a CORS proxy you run that forwards to https://api.typesafe.ai/v1/systemone. It must use https, or http on this computer (localhost). Changing it clears the saved Jev key.",
+      "JevEndpointInvalid": "The TypeSafe endpoint must be an https address, or http on this computer (localhost), with no user name or password.",
       "TestJev": "Test Jev",
       "JevSourceSaved": "Jev source saved.",
       "JevTestSuccess": "Jev is working: {source} answered in {seconds} s.",
       "JevTestOff": "Jev is off: save a Jev key, or save an OpenRouter chat connection with its key.",
       "JevTestBadKey": "{source} rejected the Jev key (HTTP {status}).",
       "JevTestHttp": "{source} refused the Jev request (HTTP {status}).",
-      "JevTestTypeSafeCors": "TypeSafe AI blocks calls from a browser (CORS), so Foundry cannot reach it directly. Switch the Jev source to OpenRouter.",
+      "JevTestTypeSafeCors": "TypeSafe AI blocks calls from a browser (CORS), so Foundry cannot reach it directly. Switch the Jev source to OpenRouter, or enter your own CORS proxy as the TypeSafe endpoint.",
+      "JevTestProxyNetwork": "Could not reach your TypeSafe endpoint {endpoint}. Check that the proxy is running and allows this Foundry address (CORS).",
       "JevTestNetwork": "Could not reach {source}. Check your network connection.",
       "JevTestTimeout": "{source} did not answer within 15 s.",
       "JevTestShape": "{source} answered, but not in Jev's format. Check that the key is for Jev.",
