@@ -6,6 +6,26 @@ import { getPacksFor } from "./compendium.mjs";
  * matches the concept's creature-type traits, size and level.
  */
 
+/**
+ * True when an image path is a placeholder rather than creature art. Every
+ * NPC in the sf2e 1.5.1 creature packs ships `systems/sf2e/icons/default-icons/npc.svg`;
+ * real art arrives through an art module's compendium art mapping.
+ */
+export function isPlaceholderArt(img) {
+  return !img || /mystery-man|\/default-icons\//.test(img);
+}
+
+/* Art an installed module maps onto a compendium actor (Foundry `game.compendiumArt`), if any. */
+function mappedArt(uuid) {
+  try {
+    const art = game.compendiumArt?.enabled === false ? null : game.compendiumArt?.get?.(uuid);
+    const src = art?.actor ?? art?.token?.texture?.src ?? art?.token;
+    return typeof src === "string" ? src : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Choose one exact bestiary actor to supply established token structure/art. */
 export async function findBestiaryScaffold(concept) {
   try {
@@ -24,11 +44,15 @@ export async function findBestiaryScaffold(concept) {
         const shared = traits.filter((trait) => conceptTraits.has(trait)).length;
         const levelGap = Math.abs((entry.system?.details?.level?.value ?? 0) - concept.level);
         const sizeBonus = entry.system?.traits?.size?.value === concept.size ? 1 : 0;
+        const uuid = entry.uuid ?? `Compendium.${packId}.Actor.${entry._id}`;
+        const art = !isPlaceholderArt(mappedArt(uuid) ?? entry.img) ? 1 : 0;
         // A real creature scaffold is mandatory for complete-only creature
-        // creation. Prefer trait/size/level similarity, but retain the
-        // closest level-and-size actor as an exact fallback for an unusual
-        // yet valid trait combination instead of silently dropping scaffolds.
-        const score = shared * 100 + sizeBonus * 10 - levelGap;
+        // creation. Prefer trait similarity, then a creature with real art,
+        // then size and level, but retain the closest level-and-size actor as
+        // an exact fallback for an unusual yet valid trait combination instead
+        // of silently dropping scaffolds. Level gaps never exceed 49, so art
+        // only decides between creatures with the same shared-trait count.
+        const score = shared * 100 + art * 50 + sizeBonus * 10 - levelGap;
         const tie = best && `${packId}:${entry._id}`.localeCompare(`${best.packId}:${best.entry._id}`);
         if (score > bestScore || (score === bestScore && tie < 0)) {
           bestScore = score;
@@ -51,5 +75,5 @@ export async function findBestiaryScaffold(concept) {
  */
 export async function findBestiaryArt(concept) {
   const scaffold = await findBestiaryScaffold(concept);
-  return scaffold?.img && !scaffold.img.includes("mystery-man") ? scaffold.img : null;
+  return isPlaceholderArt(scaffold?.img) ? null : scaffold.img;
 }

@@ -22,7 +22,15 @@ assert.deepEqual(DEFAULT_PACKS, {
   classes: ["sf2e.classes"],
   classFeatures: ["sf2e.class-features"],
   heritages: ["sf2e.heritages"],
-  bestiaryActors: ["sf2e.alien-core-bestiary"]
+  bestiaryActors: [
+    "sf2e.alien-core-bestiary",
+    "sf2e.guilt-of-the-grave-world-bestiary",
+    "sf2e.secrets-of-the-swarm-bestiary",
+    "sf2e.standalone-adventure-bestiary",
+    "sf2e.starfinder-society-bestiary",
+    "sf2e.rulebook-bestiaries",
+    "sf2e.tales-from-the-vast-bestiary"
+  ]
 });
 for (const [category, ids] of Object.entries(DEFAULT_PACKS)) {
   for (const id of ids) {

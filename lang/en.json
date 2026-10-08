@@ -637,6 +637,33 @@
       "TypeShield": "Shield",
       "TypeGear": "Gear",
       "TypeConsumable": "Consumable"
+    },
+    "StatCheck": {
+      "Heading": "Stat check",
+      "AllOk": "{name}: all {total} numbers match the preview and sit inside the GM Core range for level {level}.",
+      "Problems": "{name}: {problems} of {total} numbers need a look.",
+      "RowOk": "{label} {actual} ({band})",
+      "RowDiffers": "{label} {actual} on the sheet, but the preview said {expected}",
+      "RowOutOfRange": "{label} {actual} is {band}",
+      "RowUnreadable": "{label}: could not be read from the sheet",
+      "AC": "AC",
+      "HP": "Max HP",
+      "Perception": "Perception",
+      "Fortitude": "Fortitude",
+      "Reflex": "Reflex",
+      "Will": "Will",
+      "Strike": "Strike: {name}",
+      "SpellDC": "Spell DC",
+      "BandExtreme": "extreme",
+      "BandHigh": "high",
+      "BandModerate": "moderate",
+      "BandLow": "low",
+      "BandTerrible": "terrible",
+      "BandAbove": "above the GM Core extreme benchmark",
+      "BandBelow": "below the lowest GM Core benchmark",
+      "ChatIntro": "SimplySF2e stat check found numbers to review. Nothing on the actor was changed.",
+      "Details": "Show all numbers",
+      "Failed": "The stat check could not run; the actor was created normally."
     }
   }
 }

@@ -46,7 +46,17 @@ export const DEFAULT_PACKS = {
   // PF2e's `classfeatures`.
   classFeatures: ["sf2e.class-features"],
   heritages: ["sf2e.heritages"],
-  bestiaryActors: ["sf2e.alien-core-bestiary"]
+  // Every creature Actor pack in system.sf2e.json 1.5.1 (same in 1.5.0).
+  // `iconics` and `paizo-pregens` are player characters, not creatures.
+  bestiaryActors: [
+    "sf2e.alien-core-bestiary",
+    "sf2e.guilt-of-the-grave-world-bestiary",
+    "sf2e.secrets-of-the-swarm-bestiary",
+    "sf2e.standalone-adventure-bestiary",
+    "sf2e.starfinder-society-bestiary",
+    "sf2e.rulebook-bestiaries",
+    "sf2e.tales-from-the-vast-bestiary"
+  ]
 };
 
 export const EQUIPMENT_TYPES = new Set([
