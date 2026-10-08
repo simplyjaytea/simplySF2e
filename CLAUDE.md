@@ -78,6 +78,7 @@ Encounter mode: `designEncounter()` picks a theme + per-role briefs once, then t
 | `macro-templates.mjs` | Pre-written activation macro bodies for forged 1/day items; AI supplies only enum slugs/prose. |
 | `generator-app.mjs` / `itemforge-app.mjs` / `manage-presets-app.mjs` / `sources-app.mjs` / `provider-setup-app.mjs` | UI apps over `app-base.mjs` (token tracking + progress). |
 | `app-base.mjs` | Shared generator/item-forge shell: connection switch, token report, monotonic progress bar. |
+| `shop.mjs` / `shop-app.mjs` | Shop generator: pure concept/pick/merchant-data rules, and the window. The AI writes flavor plus keyword/category slugs, then picks stock IDs from `getShopCandidates` (equipment of the shop's level or lower, rarity-capped); Create makes a native `loot` actor with `lootSheetType: "Merchant"` (v14-dev `actor/loot/data.ts`) of exact compendium clones. |
 | `recent-generations.mjs` | Pure in-memory Recent previews list helpers (cap 5, newest first). The Generator stashes the on-screen preview there before any new run replaces it; nothing is persisted. |
 | `progress.mjs` | Pure weighted/monotonic generation-progress math (step budgets, stream mapping). |
 | `tokens.mjs` | Token estimate + `normalizeUsage`; fallback counts are labeled estimated and coarsened on display. |

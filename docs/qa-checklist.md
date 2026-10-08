@@ -518,6 +518,17 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 | 12y.2 | Generate and create a creature whose type only appears outside Alien Core (e.g. a swarm or a Grave World undead), with an art module enabled that maps sf2e creature packs through Foundry's compendium art mapping (the system's own pf2e-art flag only maps pf2e packs). | The new actor's portrait and token use art from a published creature with the same traits when one has art; creation never fails for lack of a scaffold. | Actors sidebar, token | | |
 | 12y.3 | Repeat 12y.2 with no art module enabled. | Creation still works; the actor keeps the default sf2e NPC icon. | Actors sidebar | | |
 
+## 12z. Shop generator
+
+| # | Do | Expect | Where | Pass | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 12z.1 | As GM, look at the Actors sidebar header, then type `/sf2e shop`. | A **Shop** button sits next to the SimplySF2e button; both it and the chat command open the SimplySF2e Shop window. Players see no Shop button. | Actors sidebar, chat | | |
+| 12z.2 | Describe a weapons dealer, Shop level 3, Standard, Common. Press Generate shop. | Progress runs Naming the shop, Finding matching items, Choosing the stock, Reading prices. The preview shows a name, keeper, up to 16 rows, all level 3 or lower, all common, mostly weapons/ammo. Credits match each item's compendium price. | Preview | | |
+| 12z.3 | Remove two rows with ×, then Create merchant. | A loot actor opens in Merchant mode with the remaining items, quantities as shown (3 for consumables/ammo), prices as in the compendium. Each item links back to its compendium entry. The description shows the blurb, keeper and prose. | Merchant sheet | | |
+| 12z.4 | Drag the merchant onto a scene and have a player buy an item. | The native merchant buy flow works and deducts the player's credits. | Scene, player sheet | | |
+| 12z.5 | Generate at level 0 with Rarest stock Rare, then Large. | Only level 0 items; uncommon/rare items appear with a rarity tag; up to 24 rows. | Preview | | |
+| 12z.6 | Press Stop mid-run, and separately close the window mid-run. | Nothing is created; the usual cancelled notice appears. | Preview, Actors sidebar | | |
+
 ## 13. Firefox (if available)
 
 | # | Step | Expected | Where to look | Result | Evidence |
