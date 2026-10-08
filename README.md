@@ -142,6 +142,8 @@ The AI chooses only descriptive scales such as "high AC" or "low HP". SimplySF2e
 
 If the creature carries loot, **Reroll Loot** generates different loot without changing anything else. The dice next to a spell, feat or published ability swaps just that pick for a different compendium entry of the same kind (a spell keeps its rank and tradition); it costs one small AI call and never repeats a pick the creature already has. **Create Actor** makes the NPC actor, using art from the closest-matching creature in your Bestiary Actors packs. The finished panel reports how much came from the compendium. **Open Sheet** jumps to the new actor.
 
+After **Create Actor** (and **Create All Actors** for an encounter), a **Stat check** reads the new sheet and compares its AC, max HP, Perception, saves, strike attack bonuses and spell DC with the preview and with the *Starfinder GM Core* range for the creature's level. Each number shows its GM Core scale (for example "AC 21 (moderate)"). A number that differs from the preview, sits outside the GM Core range, or cannot be read is marked, and the GM also gets a chat whisper listing it so it is still there after the window closes. The check only reports; it never changes the actor. Player Characters are not checked, because the system computes their numbers.
+
 ### Encounters
 
 Set **Party level**, **Party size** and **Threat**, and optionally fill **Describe the encounter theme (optional)**. The AI designs a theme and a set of roles, and SimplySF2e then builds each member through the full creature pipeline. That means one AI round per creature, so encounters take longer and cost more tokens than a single monster.

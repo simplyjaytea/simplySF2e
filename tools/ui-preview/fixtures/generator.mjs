@@ -8,6 +8,7 @@ import {
 import { signed } from "../../../scripts/text.mjs";
 import { THREATS } from "../../../scripts/encounter.mjs";
 import { TREASURE_AMOUNT_MULTIPLIER } from "../../../scripts/tables.mjs";
+import { expectedSheetStats, checkStats, describeStatCheck } from "../../../scripts/stat-check.mjs";
 
 const MODE_FLAGS = (mode) => ({
   monsterMode: mode === "monster",
@@ -32,6 +33,22 @@ const RECENT = [
   { id: "recent-2", mode: "npc", icon: "fa-id-badge", name: "Station Quartermaster Ilyra Benthos-Varn of the Outer Ring Docks", detail: "NPC · Level 2 · 13:58" },
   { id: "recent-1", mode: "monster", icon: "fa-dna", name: "Rift-Scarred Vanguard", detail: "Monster · Level 4 · 13:41" }
 ];
+
+/** #statCheckContext() output, built with the module's own stat check. */
+function statCheck(entries) {
+  const i18n = { localize, format: localize };
+  const creatures = entries.map(([name, c, patch = {}]) => {
+    const expected = expectedSheetStats(c);
+    const actual = { ...expected, saves: { ...expected.saves }, strikes: expected.strikes.map((s) => ({ ...s })), ...patch };
+    return describeStatCheck(name, checkStats(expected, actual), i18n);
+  });
+  return {
+    creatures,
+    problems: creatures.reduce((sum, x) => sum + x.problems, 0),
+    total: creatures.reduce((sum, x) => sum + x.total, 0),
+    failed: null
+  };
+}
 
 const cap = (s) => `${s.charAt(0).toUpperCase()}${s.slice(1)}`;
 
@@ -313,7 +330,41 @@ export default [
       created: {
         inFolder: false,
         name: "Rift-Scarred Vanguard", actorId: "x1", count: 1,
-        grounding: { total: 9, rows: [{ text: "6 from the compendium" }, { text: "2 built by the module" }, { text: "1 narrative only" }] }
+        grounding: { total: 9, rows: [{ text: "6 from the compendium" }, { text: "2 built by the module" }, { text: "1 narrative only" }] },
+        statCheck: statCheck([["Rift-Scarred Vanguard", concept({ level: 4 })]])
+      }
+    })
+  },
+  {
+    id: "generator-created-stat-problems",
+    app: "generator",
+    context: generatorContext("encounter", {
+      showEmptyState: false, tokenReport: TOKEN_REPORT,
+      created: {
+        inFolder: true,
+        name: "Ambush at the Failing Lattice", actorId: "x1", count: 3,
+        grounding: { total: 18, rows: [{ text: "15 from the compendium" }, { text: "3 built by the module" }] },
+        statCheck: (() => {
+          const boss = concept({ level: 6 });
+          const bossStats = expectedSheetStats(boss);
+          return statCheck([
+            ["Lattice Warden", boss, { ac: bossStats.ac + 2, strikes: [] }],
+            ["Drift Scavenger 1", concept({ level: 3 })],
+            ["Drift Scavenger 2", concept({ level: 3 })]
+          ]);
+        })()
+      }
+    })
+  },
+  {
+    id: "generator-created-stat-failed",
+    app: "generator",
+    context: generatorContext("monster", {
+      showEmptyState: false, tokenReport: null,
+      created: {
+        inFolder: false, name: "Rift-Scarred Vanguard", actorId: "x1", count: 1,
+        grounding: { total: 0, rows: [] },
+        statCheck: { creatures: [], problems: 0, total: 0, failed: localize("SIMPLYSF2E.StatCheck.Failed") }
       }
     })
   },
