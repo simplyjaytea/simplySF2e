@@ -21,7 +21,7 @@ Conventions: "Generator" = the **SimplySF2e — Generator** window. "Forge" = th
 | 0.7 | Click **Save & Test**. | Success message "Connected to {provider} with model {model} ({total} tokens)." and no failure message. | Notification, Provider Setup | | |
 | 0.8 | Open the Generator. Look at the provider row. | Green check, "Provider configuration is ready", and the model ID. The Forge shows the same row. | Generator header | | |
 | 0.9 | (Optional) In Provider Setup add a second connection, **Save & Authorize**, switch to it with the Active connection selector in the Generator, then switch back. | Switching loads that connection's URL/model; the key is not shown in plain text. | Generator connection switch | | |
-| 0.10 | Module Settings → SimplySF2e → **Compendium Sources** → **Configure Sources**. Before changing anything, read each category. | Every category (Bestiary Abilities, Spells, Feats, Equipment, Ancestries, Backgrounds, Classes, Class Features, Heritages, Bestiary Actors) lists packs, with the sf2e defaults marked "default" (`sf2e.classes`, `class-features`, `feats`, `spells`, `equipment`, `ancestries`, `heritages`, `backgrounds`, `bestiary-ability-glossary-srd`, `alien-core-bestiary`). | Sources window | | |
+| 0.10 | Module Settings → SimplySF2e → **Compendium Sources** → **Configure Sources**. Before changing anything, read each category. | Every category (Bestiary Abilities, Spells, Feats, Equipment, Ancestries, Backgrounds, Classes, Class Features, Heritages, Bestiary Actors) lists packs, with the sf2e defaults marked "default" (`sf2e.classes`, `class-features`, `feats`, `spells`, `equipment`, `ancestries`, `heritages`, `backgrounds`, `bestiary-ability-glossary-srd`, and the seven creature packs: `alien-core-bestiary`, `guilt-of-the-grave-world-bestiary`, `secrets-of-the-swarm-bestiary`, `standalone-adventure-bestiary`, `starfinder-society-bestiary`, `rulebook-bestiaries`, `tales-from-the-vast-bestiary`). | Sources window | | |
 | 0.11 | Click **Reset to defaults**, confirm the dialog, then **Save**. | "Compendium sources reset to the SF2e system pack defaults." then "Compendium sources saved." | Notifications | | |
 | 0.12 | Reopen the Generator. | Compendium Content row reads "Ready — N enabled packs"; no "Required compendium content is unavailable" message. | Generator | | |
 | 0.13 | Provider Setup → **Fast picks (Jev)** card: type an OpenRouter key and click **Save Jev key**. | "Jev key saved." The field is empty with the placeholder "A Jev key is saved — leave blank to keep it"; the key is not shown in plain text. A TypeSafe-direct key warning is visible. | Provider Setup | | |
@@ -509,6 +509,14 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 | 12x.4 | Create an encounter with at least two members. | One collapsible line per created actor (numbered minions included). Lines with problems are open; clean ones are closed. | Finished panel | | |
 | 12x.5 | Whenever a row is marked (for example a published ability whose rule adds to AC or a save), note which creature and row. | The affected row is bold with a warning sign ("on the sheet, but the preview said ..."), the panel edge is orange, and the GM gets a whisper in chat listing only the rows that need a look. Nothing on the actor changed. | Finished panel, chat | | |
 | 12x.6 | Create a Player Character and a Reskin copy. | No stat check section appears for either. | Finished panel | | |
+
+## 12y. All Starfinder bestiaries
+
+| # | Do | Expect | Where | Pass | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 12y.1 | Settings → Compendium Sources → Configure Sources, press Reset, then open it again. | Bestiary Actors marks seven packs "default": Alien Core, Guilt of the Grave World, Secrets of the Swarm, Standalone Adventures, Starfinder Society, Rulebooks, Tales from the Vast. Iconics and Adventure Pregens are listed but not ticked. | Sources window | | |
+| 12y.2 | Generate and create a creature whose type only appears outside Alien Core (e.g. a swarm or a Grave World undead), with an art module enabled that maps sf2e creature packs through Foundry's compendium art mapping (the system's own pf2e-art flag only maps pf2e packs). | The new actor's portrait and token use art from a published creature with the same traits when one has art; creation never fails for lack of a scaffold. | Actors sidebar, token | | |
+| 12y.3 | Repeat 12y.2 with no art module enabled. | Creation still works; the actor keeps the default sf2e NPC icon. | Actors sidebar | | |
 
 ## 13. Firefox (if available)
 
