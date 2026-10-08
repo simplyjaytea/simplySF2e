@@ -301,6 +301,22 @@
         {{#each created.grounding.rows}}<li>{{this.text}}</li>{{/each}}
       </ul>
     {{/if}}
+    {{#if created.statCheck.failed}}
+      <h3>{{localize "SIMPLYSF2E.StatCheck.Heading"}}</h3>
+      <p class="spf-hint">{{created.statCheck.failed}}</p>
+    {{else if created.statCheck.creatures.length}}
+      <div class="spf-stat-check {{#if created.statCheck.problems}}spf-stat-check-attention{{else}}spf-stat-check-ok{{/if}}">
+        <h3><i aria-hidden="true" class="fa-solid {{#if created.statCheck.problems}}fa-triangle-exclamation{{else}}fa-circle-check{{/if}}"></i> {{localize "SIMPLYSF2E.StatCheck.Heading"}}</h3>
+        {{#each created.statCheck.creatures}}
+          <details {{#if this.problems}}open{{/if}}>
+            <summary>{{this.summary}}</summary>
+            <ul class="spf-list">
+              {{#each this.rows}}<li class="spf-stat-row spf-stat-{{this.status}}">{{this.text}}</li>{{/each}}
+            </ul>
+          </details>
+        {{/each}}
+      </div>
+    {{/if}}
     {{#if tokenReport}}
       <div class="spf-token-report">
         <h3>{{localize "SIMPLYSF2E.Tokens.Heading"}}</h3>

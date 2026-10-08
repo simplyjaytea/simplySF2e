@@ -37,7 +37,8 @@ import { supportedClassCandidates } from "./pc-support.mjs";
 import { validateArchetypeSlotPlacement } from "./pc-prerequisites.mjs";
 import { SpfApp } from "./app-base.mjs";
 import { jevKeySource } from "./jev.mjs";
-import { signed } from "./text.mjs";
+import { signed, esc } from "./text.mjs";
+import { statCheckForActor, describeStatCheck, hasSpellEntry } from "./stat-check.mjs";
 import { findRecent, forgetRecent, previewModeOf, previewNameOf, rememberRecent } from "./recent-generations.mjs";
 
 async function rollbackActor(actor, label) {
@@ -334,6 +335,39 @@ export class GeneratorApp extends SpfApp {
           "loadout-missing-ammo": "MissingAmmo"
         }[code] ?? "NativeData"}`))
     };
+  }
+
+  /**
+   * Stat check after Create: compare each new NPC's prepared sheet with the
+   * preview and the GM Core range. Report only, after the commit, so it can
+   * never roll back or block a creation. When something is off, the GM also
+   * gets a chat whisper that outlives this window.
+   * @param {{concept: object, resolved: object, actor: object}[]} pairs
+   */
+  static #statCheckContext(pairs) {
+    try {
+      const creatures = pairs.map(({ concept, resolved, actor }) => describeStatCheck(actor.name,
+        statCheckForActor(concept, actor, { spellEntry: hasSpellEntry(concept, resolved) }), game.i18n));
+      const problems = creatures.reduce((sum, creature) => sum + creature.problems, 0);
+      if (problems) {
+        try { GeneratorApp.#whisperStatCheck(creatures.filter((creature) => creature.problems)); }
+        catch (err) { console.warn(`${MODULE_ID} | could not whisper the stat check`, err); }
+      }
+      return { creatures, problems, total: creatures.reduce((sum, creature) => sum + creature.total, 0), failed: null };
+    } catch (err) {
+      console.warn(`${MODULE_ID} | stat check failed`, err);
+      return { creatures: [], problems: 0, total: 0, failed: game.i18n.localize("SIMPLYSF2E.StatCheck.Failed") };
+    }
+  }
+
+  static #whisperStatCheck(creatures) {
+    const body = creatures.map((creature) => `<p><strong>${esc(creature.summary)}</strong></p><ul>${
+      creature.rows.filter((row) => row.status !== "ok").map((row) => `<li>${esc(row.text)}</li>`).join("")
+    }</ul>`).join("");
+    ChatMessage.create({
+      content: `<p>${esc(game.i18n.localize("SIMPLYSF2E.StatCheck.ChatIntro"))}</p>${body}`,
+      whisper: game.users.filter((user) => user.isGM).map((user) => user.id)
+    }).catch((err) => console.warn(`${MODULE_ID} | could not whisper the stat check`, err));
   }
 
   /** Localized, count-only view of a validated completion manifest. */
@@ -1514,12 +1548,15 @@ export class GeneratorApp extends SpfApp {
       // The actor now exists. Clear the retryable plan before any presentation
       // work so a sheet-render failure cannot create a duplicate on retry.
       const grounding = GeneratorApp.#completionContext(this.#manifest);
+      const createdConcept = this.#concept;
+      const createdResolved = this.#resolved;
       this.#concept = null;
       this.#resolved = null;
       this.#manifest = null;
       this.#previewMeta = null;
-      this.#created = { name: actor.name, actorId: actor.id, count: 1, grounding };
+      this.#created = { name: actor.name, actorId: actor.id, count: 1, grounding, statCheck: null };
       committed = true;
+      this.#created.statCheck = GeneratorApp.#statCheckContext([{ concept: createdConcept, resolved: createdResolved, actor }]);
       try {
         ui.notifications.info(game.i18n.format("SIMPLYSF2E.Generator.Created", { name: actor.name }));
         await actor.sheet.render(true);
@@ -1608,7 +1645,7 @@ export class GeneratorApp extends SpfApp {
       this.#characterReview = null;
       this.#manifest = null;
       this.#previewMeta = null;
-      this.#created = { name: actor.name, actorId: actor.id, count: 1, grounding };
+      this.#created = { name: actor.name, actorId: actor.id, count: 1, grounding, statCheck: null };
       created = true;
       committed = true;
       try {
@@ -1703,6 +1740,7 @@ export class GeneratorApp extends SpfApp {
     await this.render();
     let folder = null;
     const actors = [];
+    const checked = [];
     let committed = false;
     try {
       folder = await Folder.create({ name: this.#encounter.name, type: "Actor" });
@@ -1717,6 +1755,7 @@ export class GeneratorApp extends SpfApp {
           const createdActor = await createActor(member.concept, member.resolved, { img, scaffold });
           const actor = createdActor.actor;
           actors.push(actor);
+          checked.push({ concept: member.concept, resolved: member.resolved, actor });
           const update = { folder: folder.id };
           if (member.count > 1) update.name = `${actor.name} ${i + 1}`;
           await actor.update(update);
@@ -1731,8 +1770,9 @@ export class GeneratorApp extends SpfApp {
       ));
       this.#encounter = null;
       this.#previewMeta = null;
-      this.#created = { name: folder.name, actorId: actors[0]?.id ?? null, count: created, inFolder: true, grounding };
+      this.#created = { name: folder.name, actorId: actors[0]?.id ?? null, count: created, inFolder: true, grounding, statCheck: null };
       committed = true;
+      this.#created.statCheck = GeneratorApp.#statCheckContext(checked);
       try {
         ui.notifications.info(game.i18n.format("SIMPLYSF2E.Generator.CreatedAll", {
           count: created, name: folder.name
@@ -1865,7 +1905,7 @@ export class GeneratorApp extends SpfApp {
       const actor = await Actor.create(data);
       this.#reskinFlavor = null;
       this.#previewMeta = null;
-      this.#created = { name: actor.name, actorId: actor.id, count: 1, grounding: { total: 0, rows: [] } };
+      this.#created = { name: actor.name, actorId: actor.id, count: 1, grounding: { total: 0, rows: [] }, statCheck: null };
       try {
         ui.notifications.info(game.i18n.format("SIMPLYSF2E.Generator.Created", { name: actor.name }));
         await actor.sheet.render(true);
