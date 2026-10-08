@@ -627,6 +627,7 @@
   flex: 0 0 auto;
   width: auto;
   white-space: nowrap;
+}
 
 /* Reroll-one-pick dice: a compact inline icon button beside each spell,
    feat or ability, sized to the text so the list rows keep their height. */
@@ -641,4 +642,52 @@
 
 .simplysf2e .spf-dropped .spf-reroll-pick i {
   color: inherit;
+}
+
+/* Stat check after Create: one collapsible list per new creature; rows that
+   differ from the preview or leave the GM Core range are marked. */
+.simplysf2e .spf-stat-check {
+  margin-top: var(--spf-space-md);
+  padding: var(--spf-space-sm) var(--spf-space-md);
+  border: 1px solid var(--spf-border);
+  border-left: 3px solid var(--spf-success);
+  border-radius: var(--spf-radius);
+  font-size: var(--spf-text-sm);
+}
+
+.simplysf2e .spf-stat-check-attention {
+  border-left-color: var(--spf-warning);
+}
+
+.simplysf2e .spf-stat-check h3 {
+  font-size: 1em;
+  margin: 0 0 var(--spf-space-xs);
+}
+
+.simplysf2e .spf-stat-check summary {
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+
+.simplysf2e .spf-stat-check ul {
+  margin: var(--spf-space-xs) 0 var(--spf-space-sm);
+  padding-left: 1.1rem;
+  list-style: none;
+}
+
+.simplysf2e .spf-stat-row.spf-stat-ok {
+  color: var(--spf-text-muted);
+}
+
+.simplysf2e .spf-stat-row:not(.spf-stat-ok) {
+  color: var(--spf-text);
+  font-weight: bold;
+}
+
+.simplysf2e .spf-stat-row:not(.spf-stat-ok)::before {
+  content: "\26A0\FE0E";
+  display: inline-block;
+  width: 1.1rem;
+  margin-left: -1.1rem;
+  color: color-mix(in srgb, var(--spf-warning) 55%, #ffd2b8);
 }

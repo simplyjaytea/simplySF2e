@@ -499,6 +499,17 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 | 12w.5 | Reroll a spell, then Create Actor. | The sheet has the new spell (not the old one) at the shown rank, and the feat or ability you rerolled is the new one. | Spellcasting and Actions tabs | | |
 | 12w.6 | Start a reroll and close the window or press Stop. | The preview keeps its old pick; only the usual "cancelled" notice appears. | Preview | | |
 
+## 12x. Stat check after Create
+
+| # | Do | Expect | Where | Pass | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 12x.1 | Generate and create a level 4 Monster with no Elite/Weak adjustment. | The finished panel shows **Stat check** with a green edge: "all N numbers match the preview and sit inside the GM Core range for level 4". Expanding it lists AC, Max HP, Perception, Fortitude, Reflex, Will, each strike, and Spell DC for a caster, each with a scale word. No chat whisper. | Finished panel | | |
+| 12x.2 | Open the sheet and compare AC, HP, Perception, saves and each strike's attack bonus with the stat check list. | Every number in the list is the number on the sheet. | Actor sheet | | |
+| 12x.3 | Generate and create an Elite NPC, then a Weak NPC. | Both checks pass: the expected numbers include the +2/-2 and HP change, and the scale words use the adjusted level. | Finished panel | | |
+| 12x.4 | Create an encounter with at least two members. | One collapsible line per created actor (numbered minions included). Lines with problems are open; clean ones are closed. | Finished panel | | |
+| 12x.5 | Whenever a row is marked (for example a published ability whose rule adds to AC or a save), note which creature and row. | The affected row is bold with a warning sign ("on the sheet, but the preview said ..."), the panel edge is orange, and the GM gets a whisper in chat listing only the rows that need a look. Nothing on the actor changed. | Finished panel, chat | | |
+| 12x.6 | Create a Player Character and a Reskin copy. | No stat check section appears for either. | Finished panel | | |
+
 ## 13. Firefox (if available)
 
 | # | Step | Expected | Where to look | Result | Evidence |
