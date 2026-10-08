@@ -80,7 +80,8 @@ try {
         const content = document.querySelector(".window-content");
         return content.scrollWidth > content.clientWidth + 1 ? content.scrollWidth - content.clientWidth : 0;
       });
-      if (overflow) console.log(`note: ${name} scrolls horizontally by ${overflow}px`);
+      // A window body must never need a sideways scrollbar (JT: whole UI reachable).
+      if (overflow) problems.push(`${name}: scrolls horizontally by ${overflow}px`);
       await page.addStyleTag({ content: SHORT_WINDOW_CSS });
       await page.evaluate(() => document.documentElement.classList.add("spf-short-window"));
       const unreachable = await page.evaluate(() => {

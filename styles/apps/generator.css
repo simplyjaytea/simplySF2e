@@ -581,11 +581,15 @@
   margin: 0;
   padding: 0;
   display: grid;
+  /* minmax(0, 1fr): a grid track otherwise grows to the longest unwrapped
+     name, pushing Open and Remove off a narrow window. */
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--spf-space-xs);
 }
 
 .simplysf2e .spf-recent-row {
   --spf-recent-accent: var(--spf-mode-monster);
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: var(--spf-space-sm);

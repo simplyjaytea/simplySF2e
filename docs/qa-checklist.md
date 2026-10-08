@@ -487,6 +487,7 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 | 12v.5 | Close the Generator window and open it again from the Actors sidebar. | The preview on screen and the list are both still there. | Generator | | |
 | 12v.6 | Press the x on an entry, and Discard a preview on screen. | The x removes only that entry. Discard removes only the preview on screen; the list keeps its entries. | Generator | | |
 | 12v.7 | Make seven previews in a row, then reload Foundry (F5). | The list never shows more than five (the oldest drop off). After the reload the list is empty. | Generator | | |
+| 12v.8 | Make an NPC preview with a very long name, generate another, then narrow the Generator window to its smallest width. | The window never scrolls sideways. The long name is cut short with "..." and shows in full on hover; Open and the x stay visible on every row. | Generator | | |
 
 ## 12w. Reroll one pick
 
