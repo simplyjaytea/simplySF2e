@@ -338,8 +338,6 @@
      if Foundry does not clamp the window to the screen itself. */
   max-height: 80vh;
   overscroll-behavior: contain;
-  /* Keyboard focus scrolls a control clear of the pinned action row. */
-  scroll-padding-block-end: 3.5rem;
   scrollbar-color: var(--spf-brand-dark) #0c1620;
 }
 
@@ -348,13 +346,13 @@
   max-height: 100vh;
 }
 
-/* The module's preset edit and import dialogs are core DialogV2 windows
-   without the .simplysf2e class; their content scrolls on a short screen. */
 /* The wrapper is only a hook; core's form layout and row gap stay intact. */
 .spf-dialog-body {
   display: contents;
 }
 
+/* The module's preset edit and import dialogs are core DialogV2 windows
+   without the .simplysf2e class; their content scrolls on a short screen. */
 .application:has(.spf-dialog-body) {
   max-height: 100vh;
 }
@@ -362,27 +360,6 @@
 .application:has(.spf-dialog-body) .window-content {
   min-height: 0;
   overflow-y: auto;
-}
-
-/* Action rows stay pinned to the bottom edge while the body scrolls
-   (first shipped for Sources, audit S2). The negative offset matches the
-   body's padding so the bar sits flush with the window's lower edge. */
-.simplysf2e .spf-window-body footer.spf-actions {
-  position: sticky;
-  bottom: calc(var(--spf-space-xs) * -1);
-  z-index: 1;
-  padding-bottom: var(--spf-space-xs);
-  background: color-mix(in srgb, var(--spf-brand-dark) 40%, #0a121b);
-}
-
-/* .spf-hud-actions rows keep their own md top padding and rule. */
-.simplysf2e .spf-window-body footer.spf-actions:not(.spf-hud-actions) {
-  padding-top: var(--spf-space-sm);
-}
-
-/* Inside a preview card the pinned row matches the card surface. */
-.simplysf2e .spf-window-body .spf-card > footer.spf-actions {
-  background: var(--spf-surface-raised);
 }
 
 /* --------------------------------------------------------------------------
