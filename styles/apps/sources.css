@@ -101,7 +101,20 @@
   color: var(--spf-text-muted);
 }
 
-/* The body's flex gap already spaces the pinned Save/Reset bar. */
+/* Save and Reset stay in view while the category list scrolls (audit S2).
+   Every other window's button row scrolls with its content (JT, 2026-10-08).
+   The negative offset matches the body's padding so the bar sits flush with
+   the window's lower edge; the body's flex gap already spaces it. */
 .simplysf2e .simplysf2e-sources > .spf-actions {
+  position: sticky;
+  bottom: calc(var(--spf-space-xs) * -1);
   margin-top: 0;
+  padding: var(--spf-space-sm) 0 var(--spf-space-xs);
+  background: color-mix(in srgb, var(--spf-brand-dark) 40%, #0a121b);
+  z-index: 1;
+}
+
+/* Keyboard focus scrolls a checkbox clear of the pinned row. */
+.simplysf2e .simplysf2e-sources {
+  scroll-padding-block-end: 3.5rem;
 }

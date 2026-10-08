@@ -690,17 +690,22 @@ assert.match(
 );
 assert.match(
   css,
-  /\.window-content > \.spf-window-body\s*\{[^}]*max-height:\s*80vh;[^}]*scroll-padding-block-end:/s,
-  "auto-height windows must cap at 80vh and keep focused controls clear of the pinned row"
+  /\.window-content > \.spf-window-body\s*\{[^}]*max-height:\s*80vh;/s,
+  "auto-height windows must cap at 80vh, then scroll"
 );
 for (const [name, app] of [["generator", generatorApp], ["item forge", itemForgeApp]]) {
   assert.match(app, /templates\/[a-z-]+\.hbs`, scrollable: \[""\] \}/, `${name} must keep its scroll place across re-renders`);
 }
+// Button rows scroll with the content (JT, 2026-10-08); only Sources pins its
+// Save/Reset row (audit S2). QA 12r.1, 12r.2.
 assert.match(
   css,
-  /\.spf-window-body footer\.spf-actions\s*\{[^}]*position:\s*sticky;/s,
-  "action rows must stay pinned while the body scrolls"
+  /\.simplysf2e-sources > \.spf-actions\s*\{[^}]*position:\s*sticky;/s,
+  "Sources keeps its Save/Reset row pinned"
 );
+for (const match of css.matchAll(/([^{}]+)\{[^}]*position:\s*sticky;/g)) {
+  assert.match(match[1], /simplysf2e-sources/, `only Sources may pin a row: ${match[1].trim()}`);
+}
 
 // Truncated status-strip text stays readable on hover in both windows (QA 12r.5).
 for (const [name, template] of [["generator", generator], ["item forge", itemForge]]) {
