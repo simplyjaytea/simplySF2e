@@ -49,6 +49,11 @@ export function normalizeTypeSafeEndpoint(value) {
   let url;
   try { url = new URL(text); } catch { return null; }
   if (url.username || url.password) return null;
+  // The official address typed with a trailing slash or an explicit :443 is still official.
+  if (url.protocol === "https:" && url.origin === new URL(TYPESAFE_JEV_ENDPOINT).origin
+    && /^\/v1\/systemone\/?$/.test(url.pathname) && !url.search && !url.hash) {
+    return TYPESAFE_JEV_ENDPOINT;
+  }
   if (url.protocol === "https:") return url.href;
   if (url.protocol === "http:" && LOOPBACK_HOSTS.has(url.hostname)) return url.href;
   return null;

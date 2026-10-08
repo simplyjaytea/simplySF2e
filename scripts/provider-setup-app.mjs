@@ -150,19 +150,25 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
 
   _onRender(context, options) {
     super._onRender?.(context, options);
-    this.element.querySelector("[name='jevSource']")?.addEventListener("change", (event) => {
-      const source = normalizeJevSource(event.currentTarget.value);
+    // A saved key belongs to its route (source, and for TypeSafe the endpoint);
+    // once the form shows another route, the key field asks for a new key.
+    const syncJevRoute = () => {
+      const source = normalizeJevSource(this.element.querySelector("[name='jevSource']")?.value);
       for (const typeSafeOnly of this.element.querySelectorAll(".spf-jev-warning, .spf-jev-endpoint")) {
         typeSafeOnly.hidden = source !== "typesafe";
       }
+      const stored = getJevRequestConfig();
+      const typed = this.element.querySelector("[name='jevEndpoint']")?.value;
+      const sameRoute = source === normalizeJevSource(stored.source)
+        && (source !== "typesafe" || normalizeTypeSafeEndpoint(typed) === normalizeTypeSafeEndpoint(stored.endpoint));
+      const hasKey = Boolean(stored.apiKey) && sameRoute;
       const input = this.element.querySelector("[name='jevApiKey']");
-      const stored = normalizeJevSource(getJevRequestConfig().source);
-      // A saved key belongs to its source; picking the other one asks for a new key.
-      const hasKey = Boolean(getJevRequestConfig().apiKey) && source === stored;
       if (input) input.placeholder = ProviderSetupApp.#jevPlaceholder(hasKey, source);
       const clearLabel = this.element.querySelector(".spf-jev-clear");
       if (clearLabel) clearLabel.hidden = !hasKey;
-    });
+    };
+    this.element.querySelector("[name='jevSource']")?.addEventListener("change", syncJevRoute);
+    this.element.querySelector("[name='jevEndpoint']")?.addEventListener("input", syncJevRoute);
     this.element.querySelector("[name='apiBaseUrl']")?.addEventListener("input", (event) => {
       if (normalizeApiBaseUrl(event.currentTarget.value) !== this.#modelsBaseUrl) {
         this.#clearModelSuggestions();
@@ -362,10 +368,14 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
     const storedEndpoint = normalizeTypeSafeEndpoint(stored.endpoint);
     const endpointField = this.element.querySelector("[name='jevEndpoint']");
     const endpoint = endpointField ? normalizeTypeSafeEndpoint(endpointField.value) : storedEndpoint;
-    if (!endpoint) throw new Error(game.i18n.localize("SIMPLYSF2E.ProviderSetup.JevEndpointInvalid"));
+    // The field is hidden unless TypeSafe is the source, so a bad value there never
+    // blocks an OpenRouter save; it is simply not written.
+    if (!endpoint && source === "typesafe") {
+      throw new Error(game.i18n.localize("SIMPLYSF2E.ProviderSetup.JevEndpointInvalid"));
+    }
     // Store "" for the official endpoint so a later default change follows it.
     const endpointSetting = endpoint === TYPESAFE_JEV_ENDPOINT ? "" : endpoint;
-    const endpointChanged = endpointSetting !== String(stored.endpoint ?? "").trim();
+    const endpointChanged = Boolean(endpoint) && endpointSetting !== String(stored.endpoint ?? "").trim();
     const sourceChanged = source !== storedSource;
     const routeChanged = sourceChanged || (source === "typesafe" && endpoint !== storedEndpoint);
     // Clear the old key before the route moves, so no read in between (or a

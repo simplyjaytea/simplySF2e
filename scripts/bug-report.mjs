@@ -196,6 +196,8 @@ export function gatherEnvironment({ moduleId, provider = {}, jev = {}, getSettin
       "Request timeout": getSetting("requestTimeout"),
       "Jev key set": Boolean(jev.apiKey),
       "Jev source": jev.source,
+      // A boolean only: a GM's private proxy host stays out of the report.
+      "Jev TypeSafe endpoint custom": Boolean(String(jev.endpoint ?? "").trim()),
       "Free Archetype": Boolean(getSetting("freeArchetype")),
       "Source packs": packList.length ? packList : "(defaults)"
     }

@@ -495,6 +495,60 @@ assert.equal(values.get(SETTINGS.jevApiKey), "or-jev-4");
   await jevAction({ jevSource: "openrouter", jevEndpoint: proxy });
   assert.equal(values.get(SETTINGS.jevApiKey), "or-5", "editing the TypeSafe endpoint leaves an OpenRouter key alone");
 
+  // Clear box plus an endpoint move: one key clear, endpoint written.
+  values.set(SETTINGS.jevSource, "typesafe");
+  values.set(SETTINGS.jevTypeSafeEndpoint, "");
+  values.set(SETTINGS.jevApiKey, "ts-6");
+  {
+    const order = [];
+    const realSet = game.settings.set;
+    game.settings.set = async (m, key, value) => { order.push([key, value]); return realSet(m, key, value); };
+    await jevAction({ jevSource: "typesafe", jevEndpoint: proxy, clearJevApiKey: true });
+    game.settings.set = realSet;
+    assert.deepEqual(order, [[SETTINGS.jevApiKey, ""], [SETTINGS.jevTypeSafeEndpoint, proxy]], "clear + endpoint move");
+  }
+
+  // Source and endpoint move together: key cleared first, then both route settings.
+  values.set(SETTINGS.jevSource, "openrouter");
+  values.set(SETTINGS.jevTypeSafeEndpoint, "");
+  values.set(SETTINGS.jevApiKey, "or-6");
+  {
+    const order = [];
+    const realSet = game.settings.set;
+    game.settings.set = async (m, key, value) => { order.push([key, value]); return realSet(m, key, value); };
+    await jevAction({ jevSource: "typesafe", jevEndpoint: proxy });
+    game.settings.set = realSet;
+    assert.deepEqual(order, [[SETTINGS.jevApiKey, ""], [SETTINGS.jevTypeSafeEndpoint, proxy], [SETTINGS.jevSource, "typesafe"]],
+      "source + endpoint move clears the key first");
+  }
+
+  // A bad value in the hidden endpoint field never blocks an OpenRouter save.
+  values.set(SETTINGS.jevSource, "openrouter");
+  values.set(SETTINGS.jevApiKey, "");
+  await jevAction({ jevSource: "openrouter", jevEndpoint: "not a url", jevApiKey: "or-7" });
+  assert.deepEqual([values.get(SETTINGS.jevApiKey), values.get(SETTINGS.jevTypeSafeEndpoint)], ["or-7", proxy],
+    "OpenRouter key saved; bad hidden endpoint not written");
+
+  // A stored endpoint that is unusable: TypeSafe saves refuse until it is fixed.
+  values.set(SETTINGS.jevSource, "typesafe");
+  values.set(SETTINGS.jevTypeSafeEndpoint, "http://evil.example.com/");
+  values.set(SETTINGS.jevApiKey, "ts-8");
+  {
+    const errBefore = notices.error.length;
+    await jevAction({ jevSource: "typesafe", jevEndpoint: "http://evil.example.com/", jevApiKey: "ts-9" });
+    assert.ok(notices.error.length > errBefore, "unusable stored endpoint is refused");
+    assert.equal(values.get(SETTINGS.jevApiKey), "ts-8");
+    await jevAction({ jevSource: "typesafe", jevEndpoint: proxy });
+    assert.deepEqual([values.get(SETTINGS.jevTypeSafeEndpoint), values.get(SETTINGS.jevApiKey)], [proxy, ""],
+      "fixing it clears the key saved for the old address");
+  }
+
+  // A stored trailing-slash official URL is still official: key kept.
+  values.set(SETTINGS.jevTypeSafeEndpoint, "https://api.typesafe.ai/v1/systemone/");
+  values.set(SETTINGS.jevApiKey, "ts-10");
+  await jevAction({ jevSource: "typesafe", jevEndpoint: "" });
+  assert.deepEqual([values.get(SETTINGS.jevTypeSafeEndpoint), values.get(SETTINGS.jevApiKey)], ["", "ts-10"]);
+
   // Test Jev reaches the proxy, and names it when unreachable.
   const realFetch = globalThis.fetch;
   const calls = [];
