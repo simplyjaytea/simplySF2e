@@ -136,7 +136,7 @@ Inherited PF2e-era notes for the scaffolded builders. They are **not** SF2e sche
 - **Still later:** see the GM-ready checklist. Deferred past GM-ready: full Free Archetype graphs, upgrade prerequisite validation, shields/ammo.
 - **Inherited code:** NPC/PC/forge pipelines, fail-closed grounding, cloned Rule Elements. Treat [HISTORY.md](HISTORY.md) as parent-project history, not simplySF2e releases.
 
-**Recorded live evidence:** none for simplySF2e.
+**Recorded live evidence:** JT ran `docs/qa-checklist.md` on a live Foundry world on 2026-10-08 and reported it OK; no per-row evidence log was kept.
 
 ## Known gaps
 

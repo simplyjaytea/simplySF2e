@@ -65,8 +65,8 @@ Read this first, then CLAUDE.md. **The active plan is now [docs/next-steps.md](d
 
 ### Gate C — live verification (the user, on the VPS)
 
-- [ ] **G11 · Run `docs/qa-checklist.md`** on Foundry 14.367 with sf2e 1.5.x. Record the evidence under CLAUDE.md "Recorded live evidence" (currently "none").
-- [ ] **G12 · Fix live findings.** One PR per finding cluster, each with a regression test where the logic is pure.
+- [x] **G11 · Run `docs/qa-checklist.md`** on Foundry 14.367 with sf2e 1.5.x. Done: JT reported the live QA run OK on 2026-10-08 (no per-row evidence log was shared). Recorded under CLAUDE.md "Recorded live evidence".
+- [x] **G12 · Fix live findings.** None to fix: the 2026-10-08 live QA run came back OK.
 
 ### Gate D — release
 
@@ -82,7 +82,7 @@ The coordinator (Opus or Fable) owns planning, every sf2e schema verification, i
 
 **Wave 1** (parallel, no file overlap): G1 (Sonnet), G5 (Sonnet), G8 (Sonnet), G10 (Sonnet), G4 (Opus reviewer). Before Wave 1, the coordinator does the G2 and G3 verification itself.
 **Wave 2** (after G1 merges into the integration branch): G3 apply, G2 apply, G9.
-**Blocked on the user:** G6 and G7 (design decisions), G11 (live QA), G13.
+**Blocked on the user:** G13 (Alpha to Beta call) and the optional design cards.
 
 Spawn each worker with the `Agent` tool: `model: "sonnet"`, `isolation: "worktree"`, `run_in_background: true`, one checklist ID per worker. Prompt template:
 
