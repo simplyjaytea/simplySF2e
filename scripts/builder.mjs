@@ -191,14 +191,18 @@ const LANGUAGE_TYPES = new Set([
 /*
  * Speeds and sense ranges have no Building Creatures table, so the model
  * picks feet and the module moves each to the nearest value a published sf2e
- * creature uses. Values are every distinct one in the 243 NPCs of
- * packs/sf2e/alien-core-bestiary (foundryvtt/pf2e v14-dev, read 2026-10-03).
+ * creature uses. Values are every distinct one in the 452 NPCs of the seven
+ * creature packs in system.sf2e.json 1.5.1 (alien-core-bestiary,
+ * guilt-of-the-grave-world-bestiary, secrets-of-the-swarm-bestiary,
+ * standalone-adventure-bestiary, starfinder-society-bestiary,
+ * rulebook-bestiaries, tales-from-the-vast-bestiary; foundryvtt/pf2e tag
+ * sf2e-1.5.1, read 2026-10-08).
  */
 const PUBLISHED_SPEEDS = {
   land: [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 60],
-  fly: [10, 20, 25, 30, 40, 50, 60, 75, 80, 90, 100, 120, 140, 150, 160, 180, 200],
+  fly: [10, 15, 20, 25, 30, 40, 45, 50, 60, 75, 80, 90, 100, 120, 140, 150, 160, 180, 200],
   climb: [10, 15, 20, 25, 30, 40, 50],
-  burrow: [5, 10, 15, 20, 25, 30, 40],
+  burrow: [5, 10, 15, 20, 25, 30, 40, 45],
   swim: [20, 25, 30, 40, 50, 60, 100]
 };
 
@@ -208,7 +212,7 @@ const PUBLISHED_SPEEDS = {
  * are always precise (published creatures store the unlimited ones as a bare
  * type). Every other sense needs an acuity and a range (creature/data.ts
  * SenseData). Published ranges and the most common acuity per sense come from
- * the same alien-core-bestiary read; a sense no published creature has uses
+ * the same seven-pack read; a sense no published creature has uses
  * every published sense range, and 60 feet when the model gives none (the
  * most common published sense range).
  */
@@ -217,15 +221,15 @@ const MANDATORY_ACUITY_SENSES = new Set(["echolocation", "greater-darkvision", "
 const PUBLISHED_SENSES = {
   bloodsense: { acuity: "imprecise", ranges: [120], range: 120 },
   "infrared-vision": { acuity: "precise", ranges: [30, 60], range: 60 },
-  lifesense: { acuity: "imprecise", ranges: [30, 60, 100, 500], range: 60 },
+  lifesense: { acuity: "imprecise", ranges: [30, 40, 60, 100, 120, 500], range: 60 },
   "motion-sense": { acuity: "imprecise", ranges: [30, 60], range: 30 },
   scent: { acuity: "imprecise", ranges: [15, 30, 60, 120], range: 60 },
   thoughtsense: { acuity: "precise", ranges: [60, 120, 200], range: 60 },
-  tremorsense: { acuity: "imprecise", ranges: [10, 30, 60, 200], range: 60 },
+  tremorsense: { acuity: "imprecise", ranges: [10, 30, 60, 90, 200], range: 60 },
   truesight: { acuity: "precise", ranges: [60], range: 60 },
   wavesense: { acuity: "imprecise", ranges: [120], range: 120 }
 };
-const ALL_PUBLISHED_SENSE_RANGES = [10, 15, 30, 60, 100, 120, 200, 500];
+const ALL_PUBLISHED_SENSE_RANGES = [10, 15, 30, 40, 60, 90, 100, 120, 200, 500];
 
 /** The published value nearest `value` (the lower one on a tie). */
 export function nearestPublished(value, published) {

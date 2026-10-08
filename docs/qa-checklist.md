@@ -21,7 +21,7 @@ Conventions: "Generator" = the **SimplySF2e — Generator** window. "Forge" = th
 | 0.7 | Click **Save & Test**. | Success message "Connected to {provider} with model {model} ({total} tokens)." and no failure message. | Notification, Provider Setup | | |
 | 0.8 | Open the Generator. Look at the provider row. | Green check, "Provider configuration is ready", and the model ID. The Forge shows the same row. | Generator header | | |
 | 0.9 | (Optional) In Provider Setup add a second connection, **Save & Authorize**, switch to it with the Active connection selector in the Generator, then switch back. | Switching loads that connection's URL/model; the key is not shown in plain text. | Generator connection switch | | |
-| 0.10 | Module Settings → SimplySF2e → **Compendium Sources** → **Configure Sources**. Before changing anything, read each category. | Every category (Bestiary Abilities, Spells, Feats, Equipment, Ancestries, Backgrounds, Classes, Class Features, Heritages, Bestiary Actors) lists packs, with the sf2e defaults marked "default" (`sf2e.classes`, `class-features`, `feats`, `spells`, `equipment`, `ancestries`, `heritages`, `backgrounds`, `bestiary-ability-glossary-srd`, `alien-core-bestiary`). | Sources window | | |
+| 0.10 | Module Settings → SimplySF2e → **Compendium Sources** → **Configure Sources**. Before changing anything, read each category. | Every category (Bestiary Abilities, Spells, Feats, Equipment, Ancestries, Backgrounds, Classes, Class Features, Heritages, Bestiary Actors) lists packs, with the sf2e defaults marked "default" (`sf2e.classes`, `class-features`, `feats`, `spells`, `equipment`, `ancestries`, `heritages`, `backgrounds`, `bestiary-ability-glossary-srd`, and the seven creature packs: `alien-core-bestiary`, `guilt-of-the-grave-world-bestiary`, `secrets-of-the-swarm-bestiary`, `standalone-adventure-bestiary`, `starfinder-society-bestiary`, `rulebook-bestiaries`, `tales-from-the-vast-bestiary`). | Sources window | | |
 | 0.11 | Click **Reset to defaults**, confirm the dialog, then **Save**. | "Compendium sources reset to the SF2e system pack defaults." then "Compendium sources saved." | Notifications | | |
 | 0.12 | Reopen the Generator. | Compendium Content row reads "Ready — N enabled packs"; no "Required compendium content is unavailable" message. | Generator | | |
 | 0.13 | Provider Setup → **Fast picks (Jev)** card: type an OpenRouter key and click **Save Jev key**. | "Jev key saved." The field is empty with the placeholder "A Jev key is saved — leave blank to keep it"; the key is not shown in plain text. A TypeSafe-direct key warning is visible. | Provider Setup | | |
@@ -498,6 +498,14 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 | 12w.4 | Reroll a feat and a published ability (book icon). | Each changes to a different published feat or bestiary action; the ability shows the book icon with its compendium name. Narrative-only abilities have no dice. | Preview | | |
 | 12w.5 | Reroll a spell, then Create Actor. | The sheet has the new spell (not the old one) at the shown rank, and the feat or ability you rerolled is the new one. | Spellcasting and Actions tabs | | |
 | 12w.6 | Start a reroll and close the window or press Stop. | The preview keeps its old pick; only the usual "cancelled" notice appears. | Preview | | |
+
+## 12y. All Starfinder bestiaries
+
+| # | Do | Expect | Where | Pass | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 12y.1 | Settings → Compendium Sources → Configure Sources, press Reset, then open it again. | Bestiary Actors marks seven packs "default": Alien Core, Guilt of the Grave World, Secrets of the Swarm, Standalone Adventures, Starfinder Society, Rulebooks, Tales from the Vast. Iconics and Adventure Pregens are listed but not ticked. | Sources window | | |
+| 12y.2 | Generate and create a creature whose type only appears outside Alien Core (e.g. a swarm or a Grave World undead), with any sf2e art module enabled. | The new actor's portrait and token use art from a published creature with the same traits when one has art; creation never fails for lack of a scaffold. | Actors sidebar, token | | |
+| 12y.3 | Repeat 12y.2 with no art module enabled. | Creation still works; the actor keeps the default sf2e NPC icon. | Actors sidebar | | |
 
 ## 13. Firefox (if available)
 
