@@ -117,9 +117,9 @@ Inherited PF2e-era notes for the scaffolded builders. They are **not** SF2e sche
 - A character's `resources.focus.max` is reset to 0 every prep (`character/document.ts`), then each embedded non-cantrip focus spell adds 1 (`item/spell/document.ts` `prepareActorData`), clamped to 3. So the PC pool needs no rule; cloning one would double-count. An NPC's pool is plain actor data (`npc/document.ts`). Re-verified against v14-dev 2026-10-02.
 - v14-dev `ActorInventory.addCurrency` clones bundled `credstick.json` / `upb.json` for credits/UPB and still lists classic coin UUIDs on `pf2e.equipment-srd` (`src/module/actor/inventory/index.ts`). Credits quantity is stored on `system.price.value` (`sp` on create; prepared `.credits`). Do not invent sf2e gold-piece UUIDs. This module maps gold-piece loot language onto Credstick and assembles those cited templates.
 
-## Current state (2026-10-01)
+## Current state (2026-10-08)
 
-**Active plan: [docs/next-steps.md](docs/next-steps.md)** (UI polish U1–U7, Jev fast picks J1–J6). G11–G13 of the GM-ready checklist in [HANDOFF.md](HANDOFF.md) remain JT's live QA and release steps.
+**Active plan: [docs/next-steps.md](docs/next-steps.md)** (UI polish U1–U7, Jev fast picks J1–J6). G11 and G12 of the GM-ready checklist in [HANDOFF.md](HANDOFF.md) are done (live QA reported OK); G13 (Alpha to Beta) remains JT's release step.
 
 **Starfinder 2e "Neon Drift" UI overhaul.** simplySF2e identity is `simplysf2e` / SimplySF2e, targeting system **`sf2e` 1.5.0 or later** (cited against 1.5.1). Status is **Alpha**. Every merge to `main` publishes the next tag; check GitHub Releases for the current version rather than pinning it here. Git is authoritative for branch state; [HANDOFF.md](HANDOFF.md) is the live baton.
 
@@ -136,7 +136,7 @@ Inherited PF2e-era notes for the scaffolded builders. They are **not** SF2e sche
 - **Still later:** see the GM-ready checklist. Deferred past GM-ready: full Free Archetype graphs, upgrade prerequisite validation, shields/ammo.
 - **Inherited code:** NPC/PC/forge pipelines, fail-closed grounding, cloned Rule Elements. Treat [HISTORY.md](HISTORY.md) as parent-project history, not simplySF2e releases.
 
-**Recorded live evidence:** JT ran `docs/qa-checklist.md` on a live Foundry world on 2026-10-08 and reported it OK; no per-row evidence log was kept.
+**Recorded live evidence:** JT reported on 2026-10-08 that the live QA run of `docs/qa-checklist.md` was OK. This is a verbal report: no Foundry/sf2e versions, world or per-row results were recorded.
 
 ## Known gaps
 

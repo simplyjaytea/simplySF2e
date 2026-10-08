@@ -1,6 +1,6 @@
 # HANDOFF.md — live session baton
 
-Read this first, then CLAUDE.md. **The active plan is now [docs/next-steps.md](docs/next-steps.md)** (UI polish track U, Jev fast-picks track J, JT's decisions, and how a step thread builds, reviews and merges). The GM-ready checklist below still owns G11–G13. HISTORY.md is the PF2e-era scaffold narrative; do not treat its v0.3.5.x release baton as simplySF2e state.
+Read this first, then CLAUDE.md. **The active plan is now [docs/next-steps.md](docs/next-steps.md)** (UI polish track U, Jev fast-picks track J, JT's decisions, and how a step thread builds, reviews and merges). The GM-ready checklist below still owns G13. HISTORY.md is the PF2e-era scaffold narrative; do not treat its v0.3.5.x release baton as simplySF2e state.
 
 ## Last session — 2026-10-02 next-steps plan
 
@@ -37,7 +37,7 @@ Read this first, then CLAUDE.md. **The active plan is now [docs/next-steps.md](d
 
 ### Gate B — GM-facing usability
 
-- [x] **G6 · Reskin has no entry point.** JT decided (2026-10-02): a fifth generator mode; the GM drags an NPC from the Actors sidebar or a compendium onto a drop zone; the AI writes flavor and also renames strikes/abilities (rules, damage, traits unchanged). Built in the G6 PR. Needs a live check (G10/G11): compendium drop, world-actor drop, a renamed strike with attack effects still applying.
+- [x] **G6 · Reskin has no entry point.** JT decided (2026-10-02): a fifth generator mode; the GM drags an NPC from the Actors sidebar or a compendium onto a drop zone; the AI writes flavor and also renames strikes/abilities (rules, damage, traits unchanged). Built in the G6 PR. Needs a live check (G10/G11; the 2026-10-08 QA run was reported OK as a whole, without a per-row record): compendium drop, world-actor drop, a renamed strike with attack effects still applying.
 - [x] **G7 · Multiclass scope.** JT decided (2026-10-02): deferred until after GM-ready. `SF2E_MULTICLASS_DEDICATIONS` (`pc-support.mjs`) is unwired. **User decision:** defer past GM-ready (recommended; needs a PC feat-slot design plus prerequisite checks), or wire it into the PC pipeline now (Opus design, then Sonnet build).
 - [x] **G8 · README GM guide.** Done 2026-10-02: README rewritten as a GM guide (quick start, provider/connection bank, launchers, all five modes + Item Forge kinds, credits/UPB, manual-review list, troubleshooting, privacy), every label from `lang/en.json`/templates. Original brief:
   - quick start: install, enable, provider setup including local/keyless, and where the launchers are (the Actors directory header button, Item Forge entry, and `/sf2e`; confirm each placement in `simplysf2e.mjs`)
@@ -49,7 +49,7 @@ Read this first, then CLAUDE.md. **The active plan is now [docs/next-steps.md](d
 
   Use the real `lang/en.json` labels so the guide matches the UI. **Worker: Sonnet.**
 - [x] **G9 · Re-evaluate "Known gaps" for SF2e.** CLAUDE.md's list is inherited from PF2e. Check, with citations: which SF2e classes have focus pools; whether the focus-pool RE exemplar exists in `sf2e.*` packs (`rule-templates.mjs` `focusPool`); whether passive Item Forge REs have eligible exemplars in `sf2e.equipment`. Also rewrite the rune-era Phase 3 notes in upgrade terms. **Worker: Opus** (research), Sonnet for the doc edit. Done 2026-10-02: only Mystic/Witchwarper have focus pools; no `sf2e.*` focus-pool RE exists, but v14-dev `spell/document.ts` adds +1 per focus spell so the pool works without it; forge passive kinds with sf2e.equipment exemplars are item bonus, resistance, sense (none for weakness/immunity/speed). Known gaps rewritten.
-- [x] **G10 · Live QA script.** (Done: `docs/qa-checklist.md` written, 13 sections plus failure log; awaits the G11 live run.) Write `docs/qa-checklist.md`: per feature, give exact steps, the expected result, where to look on the sheet, and a result/evidence column. Cover:
+- [x] **G10 · Live QA script.** (Done: `docs/qa-checklist.md` written, 13 sections plus failure log; the G11 live run was reported OK on 2026-10-08.) Write `docs/qa-checklist.md`: per feature, give exact steps, the expected result, where to look on the sheet, and a result/evidence column. Cover:
   - Item Forge grade/upgrades/credits
   - NPC with GM Core stats, including Elite/Weak
   - Encounter
@@ -65,8 +65,8 @@ Read this first, then CLAUDE.md. **The active plan is now [docs/next-steps.md](d
 
 ### Gate C — live verification (the user, on the VPS)
 
-- [x] **G11 · Run `docs/qa-checklist.md`** on Foundry 14.367 with sf2e 1.5.x. Done: JT reported the live QA run OK on 2026-10-08 (no per-row evidence log was shared). Recorded under CLAUDE.md "Recorded live evidence".
-- [x] **G12 · Fix live findings.** None to fix: the 2026-10-08 live QA run came back OK.
+- [x] **G11 · Run `docs/qa-checklist.md`** on Foundry 14.367 with sf2e 1.5.x. Closed on JT's verbal report that the live QA run was OK on 2026-10-08; no versions, world or per-row evidence log were recorded. Recorded under CLAUDE.md "Recorded live evidence".
+- [x] **G12 · Fix live findings.** No findings to fix: JT reported no failures on 2026-10-08; no per-row log was kept.
 
 ### Gate D — release
 
@@ -82,7 +82,7 @@ The coordinator (Opus or Fable) owns planning, every sf2e schema verification, i
 
 **Wave 1** (parallel, no file overlap): G1 (Sonnet), G5 (Sonnet), G8 (Sonnet), G10 (Sonnet), G4 (Opus reviewer). Before Wave 1, the coordinator does the G2 and G3 verification itself.
 **Wave 2** (after G1 merges into the integration branch): G3 apply, G2 apply, G9.
-**Blocked on the user:** G13 (Alpha to Beta call) and the optional design cards.
+**Blocked on the user:** G13 (Alpha to Beta call) and the optional design cards JT is answering in the project chat.
 
 Spawn each worker with the `Agent` tool: `model: "sonnet"`, `isolation: "worktree"`, `run_in_background: true`, one checklist ID per worker. Prompt template:
 
