@@ -538,6 +538,18 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 | 13.2 | Open the Generator and the Forge. | Both render with the module styling; resizing causes no horizontal scroll. | Windows | | |
 | 13.3 | Save & Test and one NPC generation. | Succeeds as in Chrome. (Local provider: confirm CORS allows Firefox's origin.) | Notification | | |
 
+## 13b. Jev TypeSafe endpoint (CORS proxy)
+
+| # | Do | Expect | Where | Pass | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 13b.1 | Open AI Provider Setup with Jev source OpenRouter, then switch it to TypeSafe AI. | A "TypeSafe endpoint" field appears under Jev source, blank with api.typesafe.ai as its placeholder, plus its hint. Switching back to OpenRouter hides it. | Provider Setup | | |
+| 13b.2 | TypeSafe AI, endpoint blank, a TypeSafe key typed, press Test Jev. | Error toast says TypeSafe blocks browser calls and suggests OpenRouter or your own proxy. | Toast | | |
+| 13b.3 | Enter `http://proxy.example.com/x` (plain http, not this computer) and press Save Jev key. | Error toast: the endpoint must be https or http on localhost. Nothing is saved; the key placeholder is unchanged. | Toast | | |
+| 13b.4 | With a TypeSafe key saved, enter `https://jev-proxy.invalid/v1/systemone`, leave the key blank, press Save Jev key. | Toast "Jev key cleared." The key is gone because the address changed. | Toast | | |
+| 13b.5 | Type a TypeSafe key with the endpoint from 13b.4 and press Test Jev. | Error toast "Could not reach your TypeSafe endpoint https://jev-proxy.invalid/v1/systemone…". DevTools Network shows the request went to that address, not api.typesafe.ai. | Toast, Network | | |
+| 13b.6 | Optional, only if you run a CORS proxy that forwards to `https://api.typesafe.ai/v1/systemone`: enter its address and a TypeSafe key, press Test Jev, then generate a monster. | Green toast "Jev is working: TypeSafe AI answered in N.N s." Generator Jev row reads "on (TypeSafe AI key)" and Equipment/Loot steps end with "Jev, N.N s". | Toast, Generator | | |
+| 13b.7 | Narrow the window to about 360 px with TypeSafe AI chosen. | Endpoint field, hint and warning wrap cleanly; no horizontal scroll. | Provider Setup | | |
+
 ## Failure log
 
 One row per failure, so each cluster can become one fix PR.

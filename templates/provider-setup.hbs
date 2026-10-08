@@ -84,6 +84,11 @@
         {{/each}}
       </select>
     </div>
+    <div class="form-group stacked spf-jev-endpoint" {{#unless jevOnTypeSafe}}hidden{{/unless}}>
+      <label for="spf-jev-endpoint">{{localize "SIMPLYSF2E.ProviderSetup.JevEndpointLabel"}}</label>
+      <input id="spf-jev-endpoint" type="url" name="jevEndpoint" value="{{jevEndpoint}}" spellcheck="false" autocomplete="url" placeholder="{{jevDefaultEndpoint}}">
+      <p class="spf-hint">{{localize "SIMPLYSF2E.ProviderSetup.JevEndpointHint"}}</p>
+    </div>
     <div class="form-group stacked">
       <label for="spf-jev-api-key">{{localize "SIMPLYSF2E.ProviderSetup.JevKeyLabel"}}</label>
       <div class="spf-model-picker">

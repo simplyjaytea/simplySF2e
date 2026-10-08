@@ -140,7 +140,7 @@ const submit = async ({ baseUrl, model, apiKey = "", clearApiKey = false, connec
   assert.equal(saved, 1, "successful setup must refresh the calling generator");
 };
 
-const jevAction = async ({ jevApiKey = "", clearJevApiKey = false, chatKey = "", jevSource, action = "saveJevKey" }) => {
+const jevAction = async ({ jevApiKey = "", clearJevApiKey = false, chatKey = "", jevSource, jevEndpoint, action = "saveJevKey" }) => {
   let rendered = 0;
   const app = new ProviderSetupApp();
   app.render = async () => { rendered += 1; };
@@ -150,7 +150,8 @@ const jevAction = async ({ jevApiKey = "", clearJevApiKey = false, chatKey = "",
     ["[name='jevApiKey']", { value: jevApiKey, disabled: false }],
     ["[name='clearJevApiKey']", { checked: clearJevApiKey, disabled: false }],
     ["[name='apiKey']", { value: chatKey, disabled: false }],
-    ...(jevSource === undefined ? [] : [["[name='jevSource']", { value: jevSource, disabled: false }]])
+    ...(jevSource === undefined ? [] : [["[name='jevSource']", { value: jevSource, disabled: false }]]),
+    ...(jevEndpoint === undefined ? [] : [["[name='jevEndpoint']", { value: jevEndpoint, disabled: false }]])
   ]);
   app.element = {
     querySelector: (selector) => controls.get(selector) ?? null,
@@ -459,12 +460,66 @@ assert.equal(values.get(SETTINGS.jevApiKey), "or-jev-4");
   }
 }
 
+// TypeSafe endpoint: a key belongs to the address it was saved for.
+{
+  const proxy = "https://jev-proxy.example.com/v1/systemone";
+  values.set(SETTINGS.jevSource, "typesafe");
+  values.set(SETTINGS.jevTypeSafeEndpoint, "");
+  values.set(SETTINGS.jevApiKey, "ts-1");
+  await jevAction({ jevSource: "typesafe", jevEndpoint: "" });
+  assert.equal(values.get(SETTINGS.jevApiKey), "ts-1", "same (official) endpoint keeps the key");
+  await jevAction({ jevSource: "typesafe", jevEndpoint: "https://api.typesafe.ai/v1/systemone" });
+  assert.deepEqual([values.get(SETTINGS.jevTypeSafeEndpoint), values.get(SETTINGS.jevApiKey)], ["", "ts-1"],
+    "typing the official URL stores blank and keeps the key");
+
+  const order = [];
+  const realSet = game.settings.set;
+  game.settings.set = async (m, key, value) => { order.push([key, value]); return realSet(m, key, value); };
+  await jevAction({ jevSource: "typesafe", jevEndpoint: ` ${proxy} ` });
+  game.settings.set = realSet;
+  assert.deepEqual(order, [[SETTINGS.jevApiKey, ""], [SETTINGS.jevTypeSafeEndpoint, proxy]],
+    "old key is cleared before the endpoint moves");
+
+  await jevAction({ jevSource: "typesafe", jevEndpoint: proxy, jevApiKey: "ts-2" });
+  assert.deepEqual([values.get(SETTINGS.jevTypeSafeEndpoint), values.get(SETTINGS.jevApiKey)], [proxy, "ts-2"]);
+
+  const errBefore = notices.error.length;
+  await jevAction({ jevSource: "typesafe", jevEndpoint: "http://proxy.example.com/systemone", jevApiKey: "ts-3" });
+  assert.ok(notices.error.slice(errBefore).some((m) => m.startsWith("SIMPLYSF2E.ProviderSetup.JevSaveFailed")), "unusable endpoint is refused");
+  assert.deepEqual([values.get(SETTINGS.jevTypeSafeEndpoint), values.get(SETTINGS.jevApiKey)], [proxy, "ts-2"],
+    "a refused endpoint writes nothing");
+
+  await jevAction({ jevSource: "openrouter", jevEndpoint: "", jevApiKey: "or-5" });
+  assert.deepEqual([values.get(SETTINGS.jevSource), values.get(SETTINGS.jevTypeSafeEndpoint), values.get(SETTINGS.jevApiKey)],
+    ["openrouter", "", "or-5"]);
+  await jevAction({ jevSource: "openrouter", jevEndpoint: proxy });
+  assert.equal(values.get(SETTINGS.jevApiKey), "or-5", "editing the TypeSafe endpoint leaves an OpenRouter key alone");
+
+  // Test Jev reaches the proxy, and names it when unreachable.
+  const realFetch = globalThis.fetch;
+  const calls = [];
+  globalThis.fetch = async (url) => { calls.push(url); throw new TypeError("Failed to fetch"); };
+  try {
+    const before = notices.error.length;
+    await jevAction({ action: "testJev", jevSource: "typesafe", jevEndpoint: proxy, jevApiKey: "ts-4" });
+    assert.deepEqual(calls, [proxy], "Test Jev calls the saved proxy");
+    assert.ok(notices.error.slice(before).some((m) => m.startsWith("SIMPLYSF2E.ProviderSetup.JevTestProxyNetwork") && m.includes(proxy)),
+      "proxy failure names the proxy, not TypeSafe's CORS block");
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+}
+
 // Test Jev toast mapping.
 assert.equal(jevTestNotice({ ok: true, source: "openrouter", ms: 412 }).data.seconds, "0.4");
 assert.equal(jevTestNotice({ ok: false, reason: "unconfigured", source: null }).key, "SIMPLYSF2E.ProviderSetup.JevTestOff");
 assert.equal(jevTestNotice({ ok: false, reason: "http", status: 401, source: "openrouter" }).key, "SIMPLYSF2E.ProviderSetup.JevTestBadKey");
 assert.equal(jevTestNotice({ ok: false, reason: "http", status: 429, source: "openrouter" }).key, "SIMPLYSF2E.ProviderSetup.JevTestHttp");
 assert.equal(jevTestNotice({ ok: false, reason: "network", source: "typesafe" }).key, "SIMPLYSF2E.ProviderSetup.JevTestTypeSafeCors");
+assert.equal(jevTestNotice({ ok: false, reason: "network", source: "typesafe", endpoint: "https://api.typesafe.ai/v1/systemone" }).key,
+  "SIMPLYSF2E.ProviderSetup.JevTestTypeSafeCors");
+assert.deepEqual(jevTestNotice({ ok: false, reason: "network", source: "typesafe", endpoint: "https://p.example.com/x" }).data,
+  { source: "TypeSafe AI", endpoint: "https://p.example.com/x" });
 assert.equal(jevTestNotice({ ok: false, reason: "network", source: "openrouter" }).key, "SIMPLYSF2E.ProviderSetup.JevTestNetwork");
 assert.equal(jevTestNotice({ ok: false, reason: "timeout", source: "typesafe" }).data.source, "TypeSafe AI");
 assert.equal(jevTestNotice({ ok: false, reason: "shape", source: "openrouter" }).level, "error");

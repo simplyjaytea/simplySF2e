@@ -262,6 +262,11 @@ const jevSourceConfig = registrations.get(SETTINGS.jevSource);
 assert.equal(jevSourceConfig?.scope, "client", "the Jev source stays with its client-scoped key");
 assert.equal(jevSourceConfig?.config, false, "the Jev source is managed in Provider Setup");
 assert.equal(jevSourceConfig?.default, "openrouter");
+const jevEndpointConfig = registrations.get(SETTINGS.jevTypeSafeEndpoint);
+assert.equal(jevEndpointConfig?.scope, "client", "the TypeSafe endpoint stays with its client-scoped key");
+assert.equal(jevEndpointConfig?.config, false, "the TypeSafe endpoint is managed in Provider Setup");
+assert.equal(jevEndpointConfig?.restricted, true);
+assert.equal(jevEndpointConfig?.default, "", "blank means the official TypeSafe endpoint");
 const bankConfig = registrations.get(SETTINGS.providerBank);
 assert.equal(bankConfig?.scope, "client", "connection profiles must remain local to the GM client");
 assert.equal(
