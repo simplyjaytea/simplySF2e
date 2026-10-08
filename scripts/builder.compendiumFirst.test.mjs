@@ -127,6 +127,11 @@ const draft = (overrides) => ({
     { type: "echolocation", acuity: "precise", range: 30 }
   ]);
   assert.deepEqual(shapeSense({ type: "low-light-vision", range: 30 }), { type: "low-light-vision" });
+  // Values only the non-Alien Core creature packs publish (sf2e 1.5.1).
+  assert.equal(shapeSense({ type: "tremorsense", range: 90 }).range, 90);
+  assert.equal(shapeSense({ type: "lifesense", range: 40 }).range, 40);
+  const wide = normalizeConcept({ speeds: [{ type: "fly", value: 15 }, { type: "burrow", value: 45 }] }, { level: 3, rarity: "common" });
+  assert.deepEqual(wide.speeds.filter((s) => s.type !== "land"), [{ type: "fly", value: 15 }, { type: "burrow", value: 45 }]);
 }
 
 // --- 4. custom IWR ---
