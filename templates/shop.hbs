@@ -1,0 +1,192 @@
+<div class="spf-window-body simplysf2e-generator simplysf2e-shop spf-hud">
+  <div class="spf-statusbar">
+  <div class="spf-provider-summary {{#if providerReady}}spf-provider-ready{{else}}spf-provider-attention{{/if}}" data-tooltip="{{providerBaseUrl}}">
+    <span class="spf-provider-name">
+      <i aria-hidden="true" class="fa-solid {{#if provider.local}}fa-server{{else}}fa-cloud{{/if}}"></i>
+      {{#if canSwitchConnection}}
+        <label for="spf-shop-connection" class="spf-sr-only">{{localize "SIMPLYSF2E.ProviderSetup.ActiveConnection"}}</label>
+        <select id="spf-shop-connection" name="activeConnection" {{#if busy}}disabled{{/if}} aria-label="{{localize 'SIMPLYSF2E.ProviderSetup.ActiveConnection'}}">
+          {{#each connections}}
+            <option value="{{this.id}}" {{#if this.active}}selected{{/if}}>{{this.name}}</option>
+          {{/each}}
+        </select>
+      {{else}}
+        <strong data-tooltip-text="{{#if connectionName}}{{connectionName}}{{else}}{{provider.name}}{{/if}}">{{#if connectionName}}{{connectionName}}{{else}}{{provider.name}}{{/if}}</strong>
+      {{/if}}
+    </span>
+    <code class="spf-provider-model"{{#if provider.model}} data-tooltip-text="{{provider.model}}"{{/if}}>{{#if provider.model}}{{provider.model}}{{else}}{{localize "SIMPLYSF2E.Generator.NoModelShort"}}{{/if}}</code>
+    {{#if lastRunCost}}<span class="spf-last-run" data-tooltip-text="{{lastRunCost}}">{{lastRunCost}}</span>{{/if}}
+    <span class="spf-provider-actions">
+      {{#if providerReady}}
+        <button type="button" data-action="testProvider" data-tooltip="{{localize 'SIMPLYSF2E.ProviderSetup.TestConnection'}}" aria-label="{{localize 'SIMPLYSF2E.ProviderSetup.TestConnection'}}" {{#if busy}}disabled{{/if}}>
+          <i aria-hidden="true" class="fa-solid fa-signal"></i>
+        </button>
+      {{/if}}
+      <button type="button" data-action="configureProvider" data-tooltip="{{localize 'SIMPLYSF2E.ProviderSetup.Configure'}}" aria-label="{{localize 'SIMPLYSF2E.ProviderSetup.Configure'}}" {{#if busy}}disabled{{/if}}>
+        <i aria-hidden="true" class="fa-solid fa-gear"></i>
+      </button>
+      <i class="fa-solid {{#if providerReady}}fa-circle-check{{else}}fa-triangle-exclamation{{/if}} spf-provider-state" role="img" aria-label="{{#if providerReady}}{{localize 'SIMPLYSF2E.Generator.ProviderReady'}}{{else}}{{apiKeyWarning}}{{/if}}" data-tooltip="{{#if providerReady}}{{localize 'SIMPLYSF2E.Generator.ProviderReady'}}{{else}}{{apiKeyWarning}}{{/if}}"></i>
+    </span>
+  </div>
+  <div class="spf-provider-summary spf-provider-ready">
+    <span class="spf-provider-name"><i class="fa-solid fa-book-atlas" aria-hidden="true"></i> <strong>{{localize "SIMPLYSF2E.Generator.CompendiumContent"}}</strong></span>
+    <span class="spf-provider-detail">{{localize "SIMPLYSF2E.Shop.SourcesDetail"}}</span>
+    <span class="spf-provider-actions"><button type="button" data-action="configureSources" data-tooltip="{{localize 'SIMPLYSF2E.Generator.ConfigureSources'}}" aria-label="{{localize 'SIMPLYSF2E.Generator.ConfigureSources'}}" {{#if busy}}disabled{{/if}}><i aria-hidden="true" class="fa-solid fa-gear"></i></button></span>
+  </div>
+  </div>
+  {{#if apiKeyWarning}}
+    <p class="notification warning spf-provider-warning" role="status">
+      <span>{{apiKeyWarning}}</span>
+      {{#if canAuthorizeApiKey}}
+        <span class="spf-provider-endpoint"><strong>{{localize "SIMPLYSF2E.Generator.ApiKeyEndpoint"}}</strong> <code>{{providerBaseUrl}}</code></span>
+        <button type="button" data-action="authorizeApiKey" data-base-url="{{providerBaseUrl}}" {{#if busy}}disabled{{/if}}>{{localize "SIMPLYSF2E.Generator.AuthorizeApiKey"}}</button>
+      {{/if}}
+    </p>
+  {{/if}}
+
+  <fieldset class="spf-inputs spf-card" {{#if busy}}disabled{{/if}}>
+    <legend>{{localize "SIMPLYSF2E.Shop.ConceptLegend"}}</legend>
+    <div class="form-group stacked">
+      <label for="spf-shop-prompt">{{localize "SIMPLYSF2E.Shop.Prompt"}}</label>
+      <textarea id="spf-shop-prompt" name="prompt" rows="3" placeholder="{{localize 'SIMPLYSF2E.Shop.PromptPlaceholder'}}">{{input.prompt}}</textarea>
+    </div>
+    <div class="spf-row spf-shop-optionrow">
+      <div class="form-group">
+        <label for="spf-shop-level">{{localize "SIMPLYSF2E.Shop.Level"}}</label>
+        <div class="spf-level-controls">
+          <button type="button" class="spf-icon-btn" data-action="levelDown" data-tooltip="{{localize 'SIMPLYSF2E.Generator.LevelDown'}}" aria-label="{{localize 'SIMPLYSF2E.Generator.LevelDown'}}">
+            <i aria-hidden="true" class="fa-solid fa-minus"></i>
+          </button>
+          <input id="spf-shop-level" type="number" name="level" min="{{minLevel}}" max="{{maxLevel}}" step="1" value="{{input.level}}" aria-describedby="spf-shop-level-hint">
+          <button type="button" class="spf-icon-btn" data-action="levelUp" data-tooltip="{{localize 'SIMPLYSF2E.Generator.LevelUp'}}" aria-label="{{localize 'SIMPLYSF2E.Generator.LevelUp'}}">
+            <i aria-hidden="true" class="fa-solid fa-plus"></i>
+          </button>
+        </div>
+        <p id="spf-shop-level-hint" class="spf-hint">{{localize "SIMPLYSF2E.Shop.LevelHint"}}</p>
+      </div>
+      <div class="form-group">
+        <label for="spf-shop-size">{{localize "SIMPLYSF2E.Shop.Size"}}</label>
+        <select id="spf-shop-size" name="size">
+          {{#each sizes}}
+            <option value="{{this.value}}" {{#if (eq this.value @root.input.size)}}selected{{/if}}>{{localize this.label count=this.count}}</option>
+          {{/each}}
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="spf-shop-rarity">{{localize "SIMPLYSF2E.Shop.Rarity"}}</label>
+        <select id="spf-shop-rarity" name="rarity">
+          {{#each rarities}}
+            <option value="{{this.value}}" {{#if (eq this.value @root.input.rarity)}}selected{{/if}}>{{localize this.label}}</option>
+          {{/each}}
+        </select>
+      </div>
+    </div>
+    <div class="spf-generate-row">
+      <button type="button" class="spf-primary" data-action="generate" {{#if busy}}disabled{{/if}}>
+        <i aria-hidden="true" class="fa-solid fa-store"></i>
+        {{localize "SIMPLYSF2E.Shop.Generate"}}
+      </button>
+    </div>
+  </fieldset>
+
+  {{#if busy}}{{> simplysf2e-progress}}{{/if}}
+
+  {{#if error}}
+    <div class="spf-error-notice notification error">
+      <p role="alert">{{error}}</p>
+      {{#if canReportBug}}
+      <button type="button" class="spf-secondary spf-bug-report" data-action="copyBugReport" data-tooltip="{{localize 'SIMPLYSF2E.BugReport.Tooltip'}}">
+        <i aria-hidden="true" class="fa-solid fa-bug"></i> {{localize "SIMPLYSF2E.BugReport.Copy"}}
+      </button>
+      {{/if}}
+    </div>
+  {{/if}}
+
+  {{#if showEmptyState}}
+    <p class="spf-empty">{{localize "SIMPLYSF2E.Shop.EmptyHint"}}</p>
+  {{/if}}
+
+  {{#if preview}}
+  <section class="spf-preview spf-card" aria-label="{{preview.concept.name}}">
+    <header class="spf-statblock-header">
+      <h2>{{preview.concept.name}}</h2>
+      <span class="spf-level">{{localize "SIMPLYSF2E.Shop.ShopLevel" level=preview.level}}</span>
+    </header>
+    <div class="spf-traits">
+      {{#each preview.categories}}<span class="spf-trait">{{localize this}}</span>{{/each}}
+    </div>
+    {{#if preview.concept.blurb}}<p class="spf-blurb"><em>{{preview.concept.blurb}}</em></p>{{/if}}
+    {{#if preview.concept.shopkeeper}}
+      <div class="spf-statline">
+        <span><strong>{{localize "SIMPLYSF2E.Shop.Shopkeeper"}}</strong> {{preview.concept.shopkeeper}}</span>
+      </div>
+    {{/if}}
+
+    <h3>{{localize "SIMPLYSF2E.Shop.StockHeading" count=preview.count}}</h3>
+    {{#if preview.hasStock}}
+    <div class="spf-shop-stock-wrap">
+      <table class="spf-shop-stock">
+        <thead>
+          <tr>
+            <th scope="col">{{localize "SIMPLYSF2E.Shop.ColItem"}}</th>
+            <th scope="col">{{localize "SIMPLYSF2E.Shop.ColType"}}</th>
+            <th scope="col" class="spf-num">{{localize "SIMPLYSF2E.Shop.ColLevel"}}</th>
+            <th scope="col" class="spf-num">{{localize "SIMPLYSF2E.Shop.ColPrice"}}</th>
+            <th scope="col" class="spf-num">{{localize "SIMPLYSF2E.Shop.ColQty"}}</th>
+            <th scope="col"><span class="spf-sr-only">{{localize "SIMPLYSF2E.Shop.ColRemove"}}</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          {{#each preview.rows}}
+          <tr>
+            <th scope="row">{{this.name}}{{#if this.rarity}} <span class="spf-trait spf-shop-rarity">{{this.rarity}}</span>{{/if}}</th>
+            <td>{{localize this.typeLabel}}</td>
+            <td class="spf-num">{{this.level}}</td>
+            <td class="spf-num">{{this.price}}</td>
+            <td class="spf-num">{{this.quantity}}</td>
+            <td>
+              <button type="button" class="spf-icon-btn" data-action="removeStock" data-key="{{this.key}}" data-tooltip="{{localize 'SIMPLYSF2E.Shop.Remove'}}" aria-label="{{localize 'SIMPLYSF2E.Shop.RemoveItem' name=this.name}}" {{#if @root.busy}}disabled{{/if}}>
+                <i aria-hidden="true" class="fa-solid fa-xmark"></i>
+              </button>
+            </td>
+          </tr>
+          {{/each}}
+        </tbody>
+      </table>
+    </div>
+    <p class="spf-hint">{{localize "SIMPLYSF2E.Shop.StockTotal" total=preview.total}}</p>
+    {{else}}
+      <p class="notification warning" role="status">{{localize "SIMPLYSF2E.Shop.AllRemoved"}}</p>
+    {{/if}}
+    {{#if preview.dropped}}
+      <p class="spf-hint">{{localize "SIMPLYSF2E.Shop.Dropped" count=preview.dropped}}</p>
+    {{/if}}
+
+    {{#if preview.concept.description}}
+      <h3>{{localize "SIMPLYSF2E.Preview.Description"}}</h3>
+      <p class="spf-description">{{preview.concept.description}}</p>
+    {{/if}}
+
+    {{#if tokenReport}}
+      <div class="spf-token-report">
+        <h3>{{localize "SIMPLYSF2E.Tokens.Heading"}}</h3>
+        <ul>
+          {{#each tokenReport.steps}}
+            <li><strong>{{this.label}}</strong> — {{this.text}}</li>
+          {{/each}}
+        </ul>
+        <p class="spf-token-total">{{tokenReport.totalText}}</p>
+      </div>
+    {{/if}}
+
+    <footer class="spf-actions">
+      <button type="button" class="spf-primary" data-action="createShop" {{#if busy}}disabled{{/if}}{{#unless preview.hasStock}} disabled{{/unless}}>
+        <i aria-hidden="true" class="fa-solid fa-store"></i> {{localize "SIMPLYSF2E.Shop.Create"}}
+      </button>
+      <button type="button" data-action="discard" {{#if busy}}disabled{{/if}}>
+        <i aria-hidden="true" class="fa-solid fa-trash"></i> {{localize "SIMPLYSF2E.Generator.Discard"}}
+      </button>
+    </footer>
+  </section>
+  {{/if}}
+</div>

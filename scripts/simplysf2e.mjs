@@ -1,6 +1,7 @@
 import { MODULE_ID, SETTINGS, getSetting, getProviderAuthWarningKey, registerSettings } from "./settings.mjs";
 import { GeneratorApp } from "./generator-app.mjs";
 import { ItemForgeApp } from "./itemforge-app.mjs";
+import { ShopApp } from "./shop-app.mjs";
 import { SourcesConfigApp } from "./sources-app.mjs";
 import { ProviderSetupApp } from "./provider-setup-app.mjs";
 import { WelcomeApp } from "./welcome-app.mjs";
@@ -8,6 +9,7 @@ import { shouldAutoOpenWelcome } from "./welcome.mjs";
 
 let app = null;
 let itemForgeApp = null;
+let shopApp = null;
 let welcomeApp = null;
 
 function canOpenApps() {
@@ -34,6 +36,13 @@ function openItemForge() {
   itemForgeApp ??= new ItemForgeApp();
   itemForgeApp.render(true);
   return itemForgeApp;
+}
+
+function openShop() {
+  if (!canOpenApps()) return null;
+  shopApp ??= new ShopApp();
+  shopApp.render(true);
+  return shopApp;
 }
 
 function openWelcome() {
@@ -96,9 +105,10 @@ Hooks.once("ready", () => {
     return;
   }
   // Macro/console API: game.modules.get("simplysf2e").api.open(),
-  // .openItemForge() for the magic item forge and .openWelcome().
+  // .openItemForge() for the magic item forge, .openShop() for the shop
+  // generator and .openWelcome().
   const module = game.modules.get(MODULE_ID);
-  module.api = { open: openGenerator, openItemForge, openWelcome };
+  module.api = { open: openGenerator, openItemForge, openShop, openWelcome };
 
   // First-run welcome ("Until ready", JT 2026-10-03). Players never read the
   // settings; a failure here must not break the rest of the module's ready.
@@ -125,6 +135,12 @@ Hooks.on("renderActorDirectory", (_directory, html) => {
     icon: "fa-dragon",
     label: "SIMPLYSF2E.Generator.OpenButton",
     onClick: openGenerator
+  });
+  addDirectoryButton(html, {
+    markerClass: "spf-shop-directory-button",
+    icon: "fa-store",
+    label: "SIMPLYSF2E.Shop.OpenButton",
+    onClick: openShop
   });
 });
 
@@ -195,6 +211,7 @@ Hooks.on("pf2e.restForTheNight", async (actor) => {
  * Usage:
  *   /sf2e
  *   /sf2e itemforge
+ *   /sf2e shop
  *   /sf2e welcome
  *   /sf2e [monster|npc|character|encounter] [level] [prompt]
  */
@@ -218,6 +235,11 @@ Hooks.on("chatMessage", (_chatLog, message, _chatData) => {
 
   if (/^itemforge\b/i.test(args)) {
     openItemForge();
+    return false;
+  }
+
+  if (/^shop\b/i.test(args)) {
+    openShop();
     return false;
   }
 

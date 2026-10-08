@@ -8,6 +8,7 @@
 import { SETTINGS, getSetting } from "./settings.mjs";
 import { featPrerequisitesMet } from "./pc-prerequisites.mjs";
 import { slugify } from "./text.mjs";
+import { withinShopRarity } from "./shop.mjs";
 
 export const CATEGORIES = [
   "abilities", "spells", "feats", "equipment", "ancestries", "backgrounds", "classes", "classFeatures", "heritages", "bestiaryActors"
@@ -755,6 +756,48 @@ export async function getEquipmentCandidates(
  */
 export function getLootCandidates(level, keywords = []) {
   return getEquipmentCandidates(level + 2, keywords, { treasure: true, limit: LOOT_CANDIDATE_LIMIT });
+}
+
+/**
+ * Shop stock catalog: real equipment-pack items of the shop's level or lower,
+ * limited to the shop's item types and rarity cap, balanced and capped by
+ * limitEquipmentCandidates() like the carried-gear catalog. Spell-gem and
+ * scroll templates and treasure never qualify.
+ * @param {number} level shop level
+ * @param {string[]} keywords flavor keywords from the shop concept
+ * @param {{types: Set<string>, maxRarity?: string, limit?: number}} options
+ * @returns {Promise<{id: string, ref: object, name: string, type: string, level: number, rarity: string}[]>}
+ */
+export async function getShopCandidates(level, keywords = [], { types, maxRarity = "common", limit = EQUIPMENT_CANDIDATE_LIMIT } = {}) {
+  const maxLevel = Math.max(Number(level) || 0, 0);
+  const candidates = [];
+  const seen = new Set();
+  for (const packId of getPacksFor("equipment")) {
+    const entries = await getIndex(packId);
+    if (!entries) continue;
+    for (const entry of entries) {
+      if (!EQUIPMENT_TYPES.has(entry.type) || entry.type === "treasure" || !types?.has(entry.type)) continue;
+      if (entry.type === "consumable" && BLANK_SPELL_CONSUMABLES.has(entry.system?.category) && entry.system?.spell == null) continue;
+      const itemLevel = entry.system?.level?.value ?? 0;
+      if (itemLevel > maxLevel) continue;
+      const rarity = entry.system?.traits?.rarity ?? "common";
+      if (!withinShopRarity(rarity, maxRarity)) continue;
+      if (seen.has(entry.normalized)) continue;
+      seen.add(entry.normalized);
+      candidates.push(candidateRecord(entry, {
+        name: entry.name,
+        type: entry.type,
+        level: itemLevel,
+        rarity,
+        traits: entry.system?.traits?.value ?? [],
+        ...(entry.type === "weapon" && entry.system?.group
+          ? { group: entry.system.group, category: entry.system?.category ?? null } : {})
+      }));
+    }
+  }
+  candidates.sort((a, b) => a.level - b.level || a.name.localeCompare(b.name));
+  return limitEquipmentCandidates(candidates, keywords, limit, { weaponGroups: types?.has("weapon") ?? false })
+    .map(({ id, ref, name, type, level: lv, rarity }) => ({ id, ref, name, type, level: lv, rarity }));
 }
 
 /**
