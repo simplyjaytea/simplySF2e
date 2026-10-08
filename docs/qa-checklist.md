@@ -542,8 +542,8 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 
 | # | Do | Expect | Where | Pass | Notes |
 | --- | --- | --- | --- | --- | --- |
-| 13a.1 | Generate a monster, NPC, encounter and player character, then make the Generator short enough that each preview scrolls. Scroll from the top to the bottom. | No button row stays stuck to the bottom edge while you scroll; Create Actor and Discard (and Reroll Loot, Create All, Create Character where shown) appear only at the end of the preview. | Generator | | |
-| 13a.2 | Do the same with an Item Forge preview, AI Provider Setup and Manage Presets. | Create Item / Discard, Save & Test / Save & Authorize / Close, and New preset sit at the end of the content and scroll with it. | Item Forge, Provider Setup, Presets | | |
+| 13a.1 | Generate a monster, NPC, encounter and player character, then make the Generator short enough that each preview scrolls. Scroll from the top to the bottom. | No button row stays stuck to the bottom edge while you scroll; Create Actor and Discard (and Reroll Loot, Create All Actors or Create Reskinned Copy where shown) appear only at the end of the preview. | Generator | | |
+| 13a.2 | Do the same with an Item Forge preview, AI Provider Setup, Manage Presets and the Shop window. | Create Item / Discard, Save & Test / Save & Authorize / Close, New Preset, and the Shop's button row sit at the end of the content and scroll with it. | Item Forge, Provider Setup, Presets, Shop | | |
 | 13a.3 | Open Compendium Sources in a short window and scroll the category list. | Save and Reset stay pinned at the bottom edge while the list scrolls. | Sources | | |
 
 ## Failure log

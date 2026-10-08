@@ -703,7 +703,7 @@ assert.match(
   /\.simplysf2e-sources > \.spf-actions\s*\{[^}]*position:\s*sticky;/s,
   "Sources keeps its Save/Reset row pinned"
 );
-for (const match of css.matchAll(/([^{}]+)\{[^}]*position:\s*sticky;/g)) {
+for (const match of css.replace(/\/\*[\s\S]*?\*\//g, "").matchAll(/([^{}]+)\{[^}]*position:\s*sticky\s*[;}]/g)) {
   assert.match(match[1], /simplysf2e-sources/, `only Sources may pin a row: ${match[1].trim()}`);
 }
 
