@@ -146,7 +146,8 @@ export function checkStats(expected, actual) {
   if (expected.spellDC !== null && expected.spellDC !== undefined) {
     rows.push(row("spellDC", "SIMPLYSF2E.StatCheck.SpellDC", STAT_TABLES.spellDC, ctx, expected.spellDC, actual.spellDC));
   }
-  return { level, rows, problems: rows.filter((r) => r.status !== "ok").length };
+  // The level the GM Core bands were read at (the base level for Elite/Weak).
+  return { level: expected.adjustment ? expected.baseLevel : level, rows, problems: rows.filter((r) => r.status !== "ok").length };
 }
 
 /** Expected-vs-sheet check for one created NPC. */

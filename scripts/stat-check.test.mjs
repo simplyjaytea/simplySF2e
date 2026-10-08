@@ -80,6 +80,7 @@ const elite = expectedSheetStats({ ...concept, adjustment: "elite" });
 assert.equal(elite.level, 5);
 assert.equal(elite.ac, expected.ac + 2);
 assert.equal(statCheckForActor({ ...concept, adjustment: "elite" }, fakeActor(elite)).problems, 0);
+assert.equal(statCheckForActor({ ...concept, adjustment: "elite" }, fakeActor(elite)).level, 4, "bands and the summary use the base level");
 
 // Spellcasters get a spell DC row.
 const caster = normalizeConcept({ ...raw, spellcasting: { tradition: "arcane", type: "prepared", dcScale: "high", spells: [] } }, { level: 4, rarity: "common" });
