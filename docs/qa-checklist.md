@@ -504,7 +504,7 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 | # | Do | Expect | Where | Pass | Notes |
 | --- | --- | --- | --- | --- | --- |
 | 12y.1 | Settings → Compendium Sources → Configure Sources, press Reset, then open it again. | Bestiary Actors marks seven packs "default": Alien Core, Guilt of the Grave World, Secrets of the Swarm, Standalone Adventures, Starfinder Society, Rulebooks, Tales from the Vast. Iconics and Adventure Pregens are listed but not ticked. | Sources window | | |
-| 12y.2 | Generate and create a creature whose type only appears outside Alien Core (e.g. a swarm or a Grave World undead), with any sf2e art module enabled. | The new actor's portrait and token use art from a published creature with the same traits when one has art; creation never fails for lack of a scaffold. | Actors sidebar, token | | |
+| 12y.2 | Generate and create a creature whose type only appears outside Alien Core (e.g. a swarm or a Grave World undead), with an art module enabled that maps sf2e creature packs through Foundry's compendium art mapping (the system's own pf2e-art flag only maps pf2e packs). | The new actor's portrait and token use art from a published creature with the same traits when one has art; creation never fails for lack of a scaffold. | Actors sidebar, token | | |
 | 12y.3 | Repeat 12y.2 with no art module enabled. | Creation still works; the actor keeps the default sf2e NPC icon. | Actors sidebar | | |
 
 ## 13. Firefox (if available)

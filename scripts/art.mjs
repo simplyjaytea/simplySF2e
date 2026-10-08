@@ -19,7 +19,8 @@ export function isPlaceholderArt(img) {
 function mappedArt(uuid) {
   try {
     const art = game.compendiumArt?.enabled === false ? null : game.compendiumArt?.get?.(uuid);
-    return art?.actor ?? art?.token?.texture?.src ?? art?.token ?? null;
+    const src = art?.actor ?? art?.token?.texture?.src ?? art?.token;
+    return typeof src === "string" ? src : null;
   } catch {
     return null;
   }
