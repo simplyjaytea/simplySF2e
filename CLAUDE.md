@@ -119,7 +119,7 @@ Inherited PF2e-era notes for the scaffolded builders. They are **not** SF2e sche
 
 ## Current state (2026-10-08)
 
-**Active plan: [docs/next-steps.md](docs/next-steps.md)** (UI polish U1–U7, Jev fast picks J1–J6). G11 and G12 of the GM-ready checklist in [HANDOFF.md](HANDOFF.md) are done (live QA reported OK); G13 (Alpha to Beta) remains JT's release step.
+**Active plan: [docs/next-steps.md](docs/next-steps.md)** (UI polish U1–U7, Jev fast picks J1–J6). G11 of the GM-ready checklist in [HANDOFF.md](HANDOFF.md) is closed on JT's verbal OK (2026-10-08) and G12 has no findings to fix per that report; G13 (Alpha to Beta) remains JT's release step.
 
 **Starfinder 2e "Neon Drift" UI overhaul.** simplySF2e identity is `simplysf2e` / SimplySF2e, targeting system **`sf2e` 1.5.0 or later** (cited against 1.5.1). Status is **Alpha**. Every merge to `main` publishes the next tag; check GitHub Releases for the current version rather than pinning it here. Git is authoritative for branch state; [HANDOFF.md](HANDOFF.md) is the live baton.
 

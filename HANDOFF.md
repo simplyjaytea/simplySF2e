@@ -37,7 +37,7 @@ Read this first, then CLAUDE.md. **The active plan is now [docs/next-steps.md](d
 
 ### Gate B — GM-facing usability
 
-- [x] **G6 · Reskin has no entry point.** JT decided (2026-10-02): a fifth generator mode; the GM drags an NPC from the Actors sidebar or a compendium onto a drop zone; the AI writes flavor and also renames strikes/abilities (rules, damage, traits unchanged). Built in the G6 PR. Needs a live check (G10/G11; the 2026-10-08 QA run was reported OK as a whole, without a per-row record): compendium drop, world-actor drop, a renamed strike with attack effects still applying.
+- [x] **G6 · Reskin has no entry point.** JT decided (2026-10-02): a fifth generator mode; the GM drags an NPC from the Actors sidebar or a compendium onto a drop zone; the AI writes flavor and also renames strikes/abilities (rules, damage, traits unchanged). Built in the G6 PR. Needs a live check (G10/G11; the 2026-10-08 QA run was reported OK as a whole; these three rows were not individually confirmed): compendium drop, world-actor drop, a renamed strike with attack effects still applying.
 - [x] **G7 · Multiclass scope.** JT decided (2026-10-02): deferred until after GM-ready. `SF2E_MULTICLASS_DEDICATIONS` (`pc-support.mjs`) is unwired. **User decision:** defer past GM-ready (recommended; needs a PC feat-slot design plus prerequisite checks), or wire it into the PC pipeline now (Opus design, then Sonnet build).
 - [x] **G8 · README GM guide.** Done 2026-10-02: README rewritten as a GM guide (quick start, provider/connection bank, launchers, all five modes + Item Forge kinds, credits/UPB, manual-review list, troubleshooting, privacy), every label from `lang/en.json`/templates. Original brief:
   - quick start: install, enable, provider setup including local/keyless, and where the launchers are (the Actors directory header button, Item Forge entry, and `/sf2e`; confirm each placement in `simplysf2e.mjs`)
@@ -66,7 +66,7 @@ Read this first, then CLAUDE.md. **The active plan is now [docs/next-steps.md](d
 ### Gate C — live verification (the user, on the VPS)
 
 - [x] **G11 · Run `docs/qa-checklist.md`** on Foundry 14.367 with sf2e 1.5.x. Closed on JT's verbal report that the live QA run was OK on 2026-10-08; no versions, world or per-row evidence log were recorded. Recorded under CLAUDE.md "Recorded live evidence".
-- [x] **G12 · Fix live findings.** No findings to fix: JT reported no failures on 2026-10-08; no per-row log was kept.
+- [x] **G12 · Fix live findings.** No findings to fix: JT reported the live run OK on 2026-10-08; no failures or per-row log were recorded.
 
 ### Gate D — release
 
