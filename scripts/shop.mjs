@@ -22,7 +22,9 @@ export const SHOP_SIZES = Object.freeze({ small: 8, standard: 16, large: 24 });
 export const SHOP_CATEGORIES = Object.freeze({
   weapons: ["weapon", "ammo"],
   armor: ["armor", "shield"],
-  gear: ["equipment", "backpack", "kit"],
+  // No "kit": a kit is not physical, and a loot actor only holds physical
+  // items (v14-dev actor/loot/document.ts `allowedItemTypes`).
+  gear: ["equipment", "backpack"],
   consumables: ["consumable"]
 });
 
@@ -124,10 +126,10 @@ export function shopStockValue(rows) {
 }
 
 /** The merchant's sheet description: escaped AI prose plus the keeper line. */
-export function shopDescriptionHtml(concept) {
+export function shopDescriptionHtml(concept, { shopkeeperLabel = "Shopkeeper" } = {}) {
   const parts = [];
   if (concept?.blurb) parts.push(`<p><em>${esc(concept.blurb)}</em></p>`);
-  if (concept?.shopkeeper) parts.push(`<p><strong>Shopkeeper:</strong> ${esc(concept.shopkeeper)}</p>`);
+  if (concept?.shopkeeper) parts.push(`<p><strong>${esc(shopkeeperLabel)}:</strong> ${esc(concept.shopkeeper)}</p>`);
   const body = toHtml(concept?.description ?? "");
   if (body) parts.push(body);
   return parts.join("\n");
@@ -141,13 +143,13 @@ export function shopDescriptionHtml(concept) {
  * @param {number} level shop level
  * @param {object[]} items embedded item source data (compendium clones)
  */
-export function shopActorData(concept, level, items) {
+export function shopActorData(concept, level, items, { shopkeeperLabel } = {}) {
   return {
     name: concept.name,
     type: "loot",
     system: {
       details: {
-        description: shopDescriptionHtml(concept),
+        description: shopDescriptionHtml(concept, { shopkeeperLabel }),
         level: { value: clampShopLevel(level, 0) }
       },
       lootSheetType: "Merchant"

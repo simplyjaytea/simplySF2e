@@ -18,7 +18,8 @@ assert.deepEqual(weapons.categories, ["weapons"]);
 assert.deepEqual([...weapons.types].sort(), ["ammo", "weapon"]);
 assert.ok(!shopTypesFor(["armor"]).types.has("treasure"), "treasure is never shop stock");
 assert.equal(shopTypesFor(["nonsense"]).categories.length, 4, "no valid slug falls back to every category");
-assert.equal(shopTypesFor(null).types.size, 8);
+assert.equal(shopTypesFor(null).types.size, 7);
+assert.ok(!shopTypesFor(["gear"]).types.has("kit"), "kits are not physical, so a merchant cannot hold one");
 
 // Rarity cap.
 assert.ok(withinShopRarity("common", "common"));
@@ -66,6 +67,7 @@ assert.equal(shopStockValue(null), 0);
 const html = shopDescriptionHtml({ ...concept, shopkeeper: "<script>x</script>" });
 assert.ok(!html.includes("<script>"));
 assert.ok(html.includes("&lt;two&gt;"));
+assert.ok(shopDescriptionHtml(concept, { shopkeeperLabel: "Ladenbesitzer" }).includes("<strong>Ladenbesitzer:</strong>"));
 
 // Actor data: native loot actor in Merchant mode (v14-dev actor/loot/data.ts).
 const items = [{ name: "Laser Pistol", type: "weapon" }];

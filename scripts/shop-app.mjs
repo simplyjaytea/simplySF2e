@@ -20,7 +20,6 @@ const TYPE_LABELS = {
   shield: "SIMPLYSF2E.Shop.TypeShield",
   equipment: "SIMPLYSF2E.Shop.TypeGear",
   backpack: "SIMPLYSF2E.Shop.TypeGear",
-  kit: "SIMPLYSF2E.Shop.TypeGear",
   consumable: "SIMPLYSF2E.Shop.TypeConsumable"
 };
 
@@ -160,7 +159,7 @@ export class ShopApp extends SpfApp {
     const input = this.element.querySelector('input[name="level"]');
     if (!input) return;
     const current = Number.parseInt(input.value, 10);
-    input.value = clampShopLevel((Number.isNaN(current) ? 3 : current) + delta, 3);
+    input.value = clampShopLevel((Number.isNaN(current) ? this.#input.level : current) + delta, this.#input.level);
   }
 
   static async #onAuthorizeApiKey(_event, target) {
@@ -301,7 +300,9 @@ export class ShopApp extends SpfApp {
     try {
       await this.render();
       const items = this.#stock.map((row) => foundry.utils.deepClone(row.itemData));
-      actor = await Actor.create(shopActorData(this.#concept, this.#level, items));
+      actor = await Actor.create(shopActorData(this.#concept, this.#level, items, {
+        shopkeeperLabel: game.i18n.localize("SIMPLYSF2E.Shop.Shopkeeper")
+      }));
       verifyCreatedActor(actor, { complete: true }, items);
       const created = actor;
       actor = null;
