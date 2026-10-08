@@ -32,6 +32,7 @@
     "styles/apps/itemforge.css",
     "styles/apps/manage-presets.css",
     "styles/apps/provider-setup.css",
+    "styles/apps/shop.css",
     "styles/apps/sources.css",
     "styles/apps/welcome.css"
   ],

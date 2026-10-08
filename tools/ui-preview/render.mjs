@@ -41,6 +41,7 @@ export function createEnvironment() {
 export const APPS = {
   generator: { template: "generator.hbs", title: "SIMPLYSF2E.Generator.Title", icon: "fa-solid fa-dragon", tag: "form" },
   itemforge: { template: "itemforge.hbs", title: "SIMPLYSF2E.ItemForge.Title", icon: "fa-solid fa-hammer", tag: "form" },
+  shop: { template: "shop.hbs", title: "SIMPLYSF2E.Shop.Title", icon: "fa-solid fa-store", tag: "form" },
   "provider-setup": { template: "provider-setup.hbs", title: "SIMPLYSF2E.ProviderSetup.Title", icon: "fa-solid fa-plug-circle-check", tag: "form" },
   sources: { template: "sources.hbs", title: "SIMPLYSF2E.Sources.Title", icon: "fa-solid fa-book-atlas", tag: "form" },
   "manage-presets": { template: "manage-presets.hbs", title: "SIMPLYSF2E.Presets.ManageTitle", icon: "fa-solid fa-bookmark", tag: "div" },

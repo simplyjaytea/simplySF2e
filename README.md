@@ -98,11 +98,13 @@ All launchers are GM-only and only appear in an `sf2e` world.
 | --- | --- |
 | **SimplySF2e** button in the **Actors** sidebar header | The generator (Monster, NPC, Encounters, Player Character, Reskin) |
 | **Item Forge** button on its own row just below the **Items** sidebar header | The Item Forge |
+| **Shop** button in the **Actors** sidebar header | The shop generator |
 | Chat: `/sf2e` or `/simplysf2e` | The generator |
 | Chat: `/sf2e itemforge` | The Item Forge |
+| Chat: `/sf2e shop` | The shop generator |
 | Chat: `/sf2e welcome` | The welcome and setup check |
 | Chat: `/sf2e [monster\|npc\|character\|encounter] [level] [description]` | The generator, pre-filled. Every part is optional, but they must come in that order, so a description that starts with a number is read as the level. Example: `/sf2e npc 4 street doc who patches up gang runners`. |
-| Macro: `game.modules.get("simplysf2e").api.open()` / `.openItemForge()` / `.openWelcome()` | The generator / the Item Forge / the welcome window |
+| Macro: `game.modules.get("simplysf2e").api.open()` / `.openItemForge()` / `.openShop()` / `.openWelcome()` | The generator / the Item Forge / the shop generator / the welcome window |
 
 The chat command is not case-sensitive. It only pre-fills the form; nothing is generated until you press a button. A level outside the mode's range is clamped (−1 to 24 for Monster and NPC, 1 to 20 for Encounters and Player Character). Reskin has no chat shortcut.
 
@@ -193,6 +195,14 @@ Notes:
 - An activated power is a pre-written script macro named "Activate: *item name*", stored in a **SimplySF2e Item Forge** macro folder and linked from the item's description by an **Activate** link. The item is limited to once per day, and its uses refill when the owner uses the system's Rest for the Night. Deleting the last copy of a forged item also deletes its macro.
 - Prices preview in credits. The system recalculates the final price and level of graded weapons and armor itself.
 - Only upgrades that install into any weapon or any armor are used. Upgrades restricted to particular weapon or armor traits are skipped.
+
+## Using the shop generator
+
+Fill **What does it sell, and who runs it?**, then set **Shop level** (0–20), **Stock size** (Small 8, Standard 16 or Large 24 items) and **Rarest stock** (Common, Uncommon or Rare). Press **Generate shop**.
+
+The AI writes the shop's name, keeper and description, and picks the stock from a list of real items in your equipment compendium: items of the shop's level or lower, of the kinds it sells, no rarer than your setting. It never names an item or a price itself. Each row shows the item's published level and price in credits. Consumables and ammunition are stocked 3 at a time, everything else singly. Remove any row with its **×** button.
+
+**Create merchant** makes a loot actor in Merchant mode, holding exact compendium copies of the stock. Drag it onto a scene; players buy from its sheet. Change quantities or prices there.
 
 ## Credits and UPB
 

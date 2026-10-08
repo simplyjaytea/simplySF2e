@@ -1361,6 +1361,76 @@ Rename a strike or ability only when its current name clashes with the new ficti
 }
 
 /**
+ * Shop generator, step 1: flavor and search terms only. The module turns the
+ * keywords and category slugs into a real catalog; the AI never names an item
+ * or a price here.
+ * @param {object} args
+ * @param {string} args.prompt  the GM's shop request
+ * @param {number} args.level   shop level (stock is this level or lower)
+ * @param {string[]} args.categories  offered category slugs
+ * @returns {Promise<{concept: object, usage: object}>}
+ */
+export async function generateShopConcept({ prompt, level, categories, onProgress, signal }) {
+  const system = `You design shops for a Starfinder 2e game. You write flavor only; the module stocks the shop with real published items afterwards. Never write item names, prices, numbers, or game statistics.
+
+Respond with a SINGLE JSON object and nothing else. No markdown fences, no commentary.
+
+JSON schema (all keys required):
+{
+  "name": string, // the shop's name, e.g. "Vex's Arms & Oddments"
+  "shopkeeper": string, // the keeper's name and a few words about them
+  "blurb": string, // one short line a GM can read out
+  "description": string, // 1-2 short paragraphs: the place, its mood, who shops there
+  "keywords": string[], // 3-8 single lowercase words describing what it sells (weapon kinds, gear kinds, materials, themes), used to search the item catalog
+  "categories": string[] // what it sells, one or more of: ${categories.join(", ")}
+}`;
+  const user = [
+    `GM request: ${prompt}`,
+    `Shop level: ${level}`
+  ].join("\n");
+  const { data, usage } = await requestJSON({
+    task: AI_TASK.SHOP_CONCEPT, system, user, onProgress, signal
+  });
+  return { concept: data, usage };
+}
+
+/**
+ * Shop generator, step 2: pick the stock by ID from this run's real catalog.
+ * shop.mjs pickShopStock() keeps only issued IDs; quantities are module-set.
+ * @param {object} args
+ * @param {object} args.concept  normalized shop concept
+ * @param {{id: string, name: string, type: string, level: number}[]} args.candidates
+ * @param {number} args.count  how many distinct items to pick
+ * @returns {Promise<{ids: unknown[], usage: object}>}
+ */
+export async function selectShopStock({ concept, candidates, count, gmPrompt = "", onProgress, signal }) {
+  const byType = new Map();
+  for (const c of candidates) {
+    if (!byType.has(c.type)) byType.set(c.type, []);
+    byType.get(c.type).push(`${c.id} | ${c.name}${c.level > 0 ? ` (L${c.level})` : ""}`);
+  }
+  const list = [...byType.entries()].map(([type, names]) => `${type}: ${names.join("; ")}`).join("\n");
+  const system = `You stock a Starfinder 2e shop. Choose ONLY IDs from the provided list. Respond with a single JSON object and nothing else:
+{ "ids": string[] }
+Pick exactly ${count} DISTINCT items (fewer only if the list is shorter) that this shop would plausibly sell, matching its theme and keeper. Mix price points and item levels so customers of different means find something. Never repeat an ID.`;
+  const user = [
+    gmPrompt ? `GM request: ${gmPrompt}` : null,
+    `Shop: ${concept.name}`,
+    concept.shopkeeper ? `Shopkeeper: ${concept.shopkeeper}` : null,
+    concept.blurb ? `Blurb: ${concept.blurb}` : null,
+    concept.description ? `Description: ${concept.description}` : null,
+    concept.keywords.length ? `Sells: ${concept.keywords.join(", ")}` : null,
+    "",
+    "Available items:",
+    list
+  ].filter((line) => line !== null).join("\n");
+  const { data, usage } = await requestJSON({
+    task: AI_TASK.SHOP_SELECTION, system, user, onProgress, signal
+  });
+  return { ids: Array.isArray(data.ids) ? data.ids : [], usage };
+}
+
+/**
  * Send one chat completion request and return the assistant's text content.
  *
  * Requests are streamed so slow (especially reasoning) models show progress

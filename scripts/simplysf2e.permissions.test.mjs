@@ -138,35 +138,39 @@ assert.equal(itemDirectory.children.filter((child) => child.className === "spf-d
 assert.equal(moduleRecord.api.open(), null, "a player cannot open the generator through the public API");
 assert.equal(moduleRecord.api.openItemForge(), null, "a player cannot open the item forge through the public API");
 assert.equal(moduleRecord.api.openWelcome(), null, "a player cannot open the welcome through the public API");
+assert.equal(moduleRecord.api.openShop(), null, "a player cannot open the shop through the public API");
 assert.equal(renders, 0, "denied API calls must not instantiate or render an app");
-assert.equal(notices.warn.length, 3);
+assert.equal(notices.warn.length, 4);
 assert.ok(notices.warn.every((message) => message === "SIMPLYSF2E.Errors.GMOnly"));
 
 game.user = { id: "gm", isGM: true };
 onHooks.get("renderActorDirectory")(null, actorDirectory);
 onHooks.get("renderItemDirectory")(null, itemDirectory);
-assert.equal(actorDirectory.headerActions.children.length, 1, "a GM gets one generator directory button");
+assert.equal(actorDirectory.headerActions.children.length, 2, "a GM gets the generator and shop directory buttons");
 assert.equal(itemDirectory.children.filter((child) => child.className === "spf-directory-row").length, 1,
   "a GM gets one item-forge row below the directory header");
 assert.deepEqual(itemDirectory.children.map((child) => child.className),
   ["directory-header", "spf-directory-row", "directory-list"],
   "the item-forge row sits directly below native controls and above directory content");
 assert.match(actorDirectory.headerActions.children[0].innerHTML, /SIMPLYSF2E\.Generator\.OpenButton/);
+assert.match(actorDirectory.headerActions.children[1].innerHTML, /SIMPLYSF2E\.Shop\.OpenButton/);
 assert.match(itemDirectory.children[1].children[0].innerHTML, /SIMPLYSF2E\.ItemForge\.OpenButton/);
 
 onHooks.get("renderActorDirectory")(null, actorDirectory);
 onHooks.get("renderItemDirectory")(null, itemDirectory);
-assert.equal(actorDirectory.headerActions.children.length, 1, "rerendering does not duplicate the generator button");
+assert.equal(actorDirectory.headerActions.children.length, 2, "rerendering does not duplicate the generator or shop button");
 assert.equal(itemDirectory.children.filter((child) => child.className === "spf-directory-row").length, 1,
   "rerendering does not duplicate the item-forge row");
 
 actorDirectory.headerActions.children[0].click();
 itemDirectory.children[1].children[0].click();
-assert.equal(renders, 2, "directory-button clicks render their respective apps");
+actorDirectory.headerActions.children[1].click();
+assert.equal(renders, 3, "directory-button clicks render their respective apps");
 
 assert.ok(moduleRecord.api.open(), "a GM can open the generator through the public API");
 assert.ok(moduleRecord.api.openItemForge(), "a GM retains the documented item-forge console access");
-assert.equal(renders, 4);
+assert.ok(moduleRecord.api.openShop(), "a GM can open the shop through the public API");
+assert.equal(renders, 6);
 
 game.system.id = "dnd5e";
 const wrongSystemItems = makeDirectory();
@@ -174,7 +178,7 @@ onHooks.get("renderItemDirectory")(null, wrongSystemItems);
 assert.equal(wrongSystemItems.children.filter((child) => child.className === "spf-directory-row").length, 0,
   "the item-forge button stays hidden outside SF2e");
 assert.equal(moduleRecord.api.open(), null, "the API also fails closed outside SF2e");
-assert.equal(renders, 4);
+assert.equal(renders, 6);
 assert.deepEqual(notices.error, ["SIMPLYSF2E.Errors.WrongSystem"]);
 
 console.log("simplysf2e.permissions.test.mjs: public API permission assertions passed");
