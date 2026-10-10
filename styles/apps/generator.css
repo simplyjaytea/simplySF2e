@@ -288,6 +288,38 @@
   min-width: max-content;
 }
 
+.simplysf2e .spf-party-fill {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spf-space-sm);
+  min-width: 0;
+}
+
+.simplysf2e .spf-party-note {
+  color: var(--spf-text-muted);
+  font-size: var(--spf-text-sm);
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+/* The level group keeps max-content width so its controls never squeeze;
+   with the party fill it may wrap, so the fill drops to its own line. */
+.simplysf2e .spf-level-primary .form-group:has(.spf-party-fill) {
+  flex-wrap: wrap;
+  row-gap: var(--spf-space-xs);
+}
+
+@container spf-window (max-width: 520px) {
+  .simplysf2e .spf-level-primary .form-group:has(.spf-party-fill) {
+    min-width: 0;
+  }
+
+  .simplysf2e .spf-party-fill {
+    flex: 1 1 100%;
+  }
+}
+
 .simplysf2e .spf-advanced {
   margin-top: var(--spf-space-md);
   border-top: 1px solid var(--spf-border);

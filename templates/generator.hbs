@@ -131,6 +131,12 @@
             <i aria-hidden="true" class="fa-solid fa-plus"></i>
           </button>
         </div>
+        {{#if encounterMode}}
+        <div class="spf-party-fill">
+          <button type="button" class="spf-secondary spf-use-party" data-action="useParty" data-tooltip="{{localize 'SIMPLYSF2E.Party.UseTooltip'}}" {{#if busy}}disabled{{/if}}{{#unless party}} disabled{{/unless}}><i aria-hidden="true" class="fa-solid fa-users"></i> {{localize "SIMPLYSF2E.Party.Use"}}</button>
+          <span class="spf-party-note">{{#if party}}{{localize "SIMPLYSF2E.Party.Summary" name=party.name count=party.count level=party.level}}{{else}}{{localize "SIMPLYSF2E.Party.None"}}{{/if}}</span>
+        </div>
+        {{/if}}
       </div>
     </div>
     <details class="spf-advanced">

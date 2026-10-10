@@ -352,6 +352,13 @@
     "Handout": {
       "Created": "Player handout for {name} added to the Journal."
     },
+    "Party": {
+      "Use": "Use my party",
+      "UseTooltip": "Fill party level and size from this world's party",
+      "Summary": "{name}: {count} characters, level {level}",
+      "None": "No party with characters found",
+      "Filled": "Party level and size set from {name}"
+    },
     "Threat": {
       "Trivial": "Trivial",
       "Low": "Low",
