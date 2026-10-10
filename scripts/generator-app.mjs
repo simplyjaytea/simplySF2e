@@ -1,7 +1,8 @@
 import {
-  MODULE_ID, getProviderAuthWarningKey, getProviderRequestConfig,
+  MODULE_ID, SETTINGS, getSetting, getProviderAuthWarningKey, getProviderRequestConfig,
   authorizeApiKeyForCurrentBaseUrl
 } from "./settings.mjs";
+import { rememberedInput, restoreGeneratorInput } from "./generator-memory.mjs";
 import {
   generateConcept, generateLoot, selectSpells, chooseSpellFocus, selectEquipment, selectLoot, designEncounter,
   generatePCConcept, generatePCLoot, selectAncestryBackgroundClass, selectFeats, selectCreatureFeats, selectCreatureAbilities, selectCharacterChoices,
@@ -140,6 +141,17 @@ export class GeneratorApp extends SpfApp {
   #rerollRejected = new Map();
   /** Cycles the example placeholder; starts randomly so reopening varies. */
   #exampleTick = Math.floor(Math.random() * 5);
+  /** JSON of the last remembered settings, so unchanged input is not re-saved. */
+  #savedInputJson = null;
+  constructor(...args) {
+    super(...args);
+    try {
+      this.#input = restoreGeneratorInput(getSetting(SETTINGS.generatorInput), this.#input);
+    } catch (err) {
+      console.warn(`${MODULE_ID} | could not restore generator settings`, err);
+    }
+  }
+
   /** External programmatic input update (e.g. from chat command). */
   setInput(updates = {}) {
     this.#mergeInput(updates);
@@ -157,6 +169,7 @@ export class GeneratorApp extends SpfApp {
     input.level = Number.isFinite(level) ? Math.min(levelMax, Math.max(levelMin, level)) : this.#input.level;
     this.#input = input;
     if (typeof updates.prompt === "string") this.#modePrompts[input.mode] = input.prompt;
+    this.#rememberInput();
   }
 
   /** Chat command with a prompt: fill the form and start a preview (no Create). */
@@ -600,6 +613,20 @@ export class GeneratorApp extends SpfApp {
     const rawAdj = form.querySelector('[name="adjustment"]')?.value ?? this.#input.adjustment;
     const adjustment = rawAdj === "elite" || rawAdj === "weak" ? rawAdj : null;
     this.#input = { mode, prompt, level, rarity, adjustment, allowSpellcasting, preset, partySize, threat, treasureAmount, rarityCap };
+    this.#rememberInput();
+  }
+
+  /** Save the remembered settings (never the prompt) to this browser's client setting. */
+  #rememberInput() {
+    const json = JSON.stringify(rememberedInput(this.#input));
+    if (json === this.#savedInputJson) return;
+    this.#savedInputJson = json;
+    try {
+      Promise.resolve(game.settings.set(MODULE_ID, SETTINGS.generatorInput, JSON.parse(json)))
+        .catch((err) => console.warn(`${MODULE_ID} | could not save generator settings`, err));
+    } catch (err) {
+      console.warn(`${MODULE_ID} | could not save generator settings`, err);
+    }
   }
 
   _preserveForm() {

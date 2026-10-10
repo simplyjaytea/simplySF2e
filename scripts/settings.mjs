@@ -15,7 +15,8 @@ export const SETTINGS = {
   sourcePacks: "sourcePacks",
   customPresets: "customPresets",
   freeArchetype: "freeArchetype",
-  welcomeDismissed: "welcomeDismissed"
+  welcomeDismissed: "welcomeDismissed",
+  generatorInput: "generatorInput"
 };
 
 export function registerSettings(SourcesConfigApp, ProviderSetupApp, WelcomeApp) {
@@ -65,6 +66,14 @@ export function registerSettings(SourcesConfigApp, ProviderSetupApp, WelcomeApp)
     config: false,
     type: Boolean,
     default: false
+  });
+
+  // Last Generator settings (never the prompt), restored on the next open.
+  game.settings.register(MODULE_ID, SETTINGS.generatorInput, {
+    scope: "client",
+    config: false,
+    type: Object,
+    default: {}
   });
 
   // GM-created generation presets, managed from the generator dialog.

@@ -31,6 +31,8 @@ const ref = { packId: "test.equipment", _id: "potion" };
 const mocks = {
   ...recentGenerations,
   MODULE_ID: "simplysf2e",
+  SETTINGS: { generatorInput: "generatorInput" }, getSetting: () => undefined,
+  restoreGeneratorInput: (_saved, defaults) => defaults, rememberedInput: (input) => input,
   SpfApp: class {
     _beginProgress() { abortController = new AbortController(); return abortController.signal; }
     async _setStep() {}
