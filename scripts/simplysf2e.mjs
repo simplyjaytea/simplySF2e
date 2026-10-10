@@ -277,7 +277,7 @@ Hooks.on("chatMessage", (_chatLog, message, _chatData) => {
     if (mode) update.mode = mode;
     if (level != null) update.level = level;
     if (prompt) update.prompt = prompt;
-    if (prompt) app.runFromChat?.(update);
+    if (prompt) app.runFromChat?.(update)?.catch?.((err) => console.error(`${MODULE_ID} | chat command generation failed`, err));
     else app.setInput?.(update);
   }
   return false;

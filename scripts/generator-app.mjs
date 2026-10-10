@@ -145,6 +145,8 @@ export class GeneratorApp extends SpfApp {
   #savedInputJson = null;
   constructor(...args) {
     super(...args);
+    // Isolated tests build the app without Foundry's settings.
+    if (!globalThis.game?.settings) return;
     try {
       this.#input = restoreGeneratorInput(getSetting(SETTINGS.generatorInput), this.#input);
     } catch (err) {

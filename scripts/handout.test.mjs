@@ -1,7 +1,7 @@
 // Pure player handout HTML: escaping and the player-safe field allowlist.
 // Run: node scripts/handout.test.mjs
 import assert from "node:assert/strict";
-import { handoutHtml } from "./handout.mjs";
+import { handoutHtml, inertProse } from "./handout.mjs";
 
 const hostile = `<script>alert("x")</script>'"`;
 const escaped = "&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt;&#39;&quot;";
@@ -35,3 +35,10 @@ assert.equal(handoutHtml({ name: "Vex", img: "a.webp", blurb: "", readAloud: "  
 assert.equal(handoutHtml({ name: "Vex", img: "a.webp" }), "");
 
 console.log("handout.test.mjs: player handout escaping and allowlist assertions passed");
+
+// Enricher syntax in AI prose is broken so it cannot become a macro link or roll.
+const enriched = handoutHtml({ name: "Vex", blurb: "@UUID[Macro.abc]{Click}", readAloud: "Roll [[/r 1d20]] and @Check[dc:20]" });
+assert.ok(!/@[A-Za-z]+\[/.test(enriched), "no live @Word[ enricher may survive");
+assert.ok(!enriched.includes("[["), "no live [[ inline roll may survive");
+assert.equal(inertProse("plain @ mention [one] [two]"), "plain @ mention [one] [two]");
+console.log("handout enricher tests passed");
