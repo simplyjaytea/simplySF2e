@@ -91,7 +91,7 @@ export class ItemForgeApp extends SpfApp {
       canSwitchConnection: (authState.connections?.length ?? 0) > 1,
       providerReady: !authWarningKey,
       canAuthorizeApiKey: Boolean(
-        authState.baseUrl && authState.hasConfiguredApiKey && !authState.apiKeyIsBound
+        authState.baseUrl && authState.hasConfiguredApiKey && !authState.apiKeyIsBound && !authState.apiKeyInsecure
       ),
       model: authState.model,
       minLevel: MIN_ITEM_LEVEL,

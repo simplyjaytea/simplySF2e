@@ -90,7 +90,7 @@ export class ShopApp extends SpfApp {
       canSwitchConnection: (authState.connections?.length ?? 0) > 1,
       providerReady: !authWarningKey,
       canAuthorizeApiKey: Boolean(
-        authState.baseUrl && authState.hasConfiguredApiKey && !authState.apiKeyIsBound
+        authState.baseUrl && authState.hasConfiguredApiKey && !authState.apiKeyIsBound && !authState.apiKeyInsecure
       ),
       model: authState.model,
       minLevel: SHOP_MIN_LEVEL,
