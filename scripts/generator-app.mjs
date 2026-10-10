@@ -39,6 +39,8 @@ import { SpfApp } from "./app-base.mjs";
 import { jevKeySource } from "./jev.mjs";
 import { signed, esc } from "./text.mjs";
 import { statCheckForActor, describeStatCheck, hasSpellEntry } from "./stat-check.mjs";
+import { moveToGeneratedFolder, generatedFolderId } from "./folders.mjs";
+import { createHandout } from "./handout.mjs";
 import { findRecent, forgetRecent, previewModeOf, previewNameOf, rememberRecent } from "./recent-generations.mjs";
 
 async function rollbackActor(actor, label) {
@@ -1550,12 +1552,21 @@ export class GeneratorApp extends SpfApp {
       const grounding = GeneratorApp.#completionContext(this.#manifest);
       const createdConcept = this.#concept;
       const createdResolved = this.#resolved;
+      const createdMode = this.#previewMeta?.mode;
       this.#concept = null;
       this.#resolved = null;
       this.#manifest = null;
       this.#previewMeta = null;
       this.#created = { name: actor.name, actorId: actor.id, count: 1, grounding, statCheck: null };
       committed = true;
+      await moveToGeneratedFolder(actor, createdMode === "npc" ? "npc" : "creature");
+      if (createdMode === "npc") {
+        const handout = await createHandout(actor, createdConcept);
+        if (handout) {
+          try { ui.notifications.info(game.i18n.format("SIMPLYSF2E.Handout.Created", { name: actor.name })); }
+          catch (err) { console.warn(`${MODULE_ID} | handout created, but its notice could not be shown`, err); }
+        }
+      }
       this.#created.statCheck = GeneratorApp.#statCheckContext([{ concept: createdConcept, resolved: createdResolved, actor }]);
       try {
         ui.notifications.info(game.i18n.format("SIMPLYSF2E.Generator.Created", { name: actor.name }));
@@ -1648,6 +1659,7 @@ export class GeneratorApp extends SpfApp {
       this.#created = { name: actor.name, actorId: actor.id, count: 1, grounding, statCheck: null };
       created = true;
       committed = true;
+      await moveToGeneratedFolder(actor, "character");
       try {
         let review;
         try {
@@ -1743,7 +1755,10 @@ export class GeneratorApp extends SpfApp {
     const checked = [];
     let committed = false;
     try {
-      folder = await Folder.create({ name: this.#encounter.name, type: "Actor" });
+      let parentId = null;
+      try { parentId = await generatedFolderId("Actor", "root"); }
+      catch (err) { console.warn(`${MODULE_ID} | could not find the generated folder for the encounter`, err); }
+      folder = await Folder.create({ name: this.#encounter.name, type: "Actor", folder: parentId });
       let created = 0;
       for (const member of this.#encounter.members) {
         if (member.count < 1) continue;
@@ -1906,6 +1921,7 @@ export class GeneratorApp extends SpfApp {
       this.#reskinFlavor = null;
       this.#previewMeta = null;
       this.#created = { name: actor.name, actorId: actor.id, count: 1, grounding: { total: 0, rows: [] }, statCheck: null };
+      await moveToGeneratedFolder(actor, "creature");
       try {
         ui.notifications.info(game.i18n.format("SIMPLYSF2E.Generator.Created", { name: actor.name }));
         await actor.sheet.render(true);

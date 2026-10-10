@@ -9,6 +9,7 @@ import {
   clampShopLevel, normalizeShopConcept, shopTypesFor, pickShopStock, shopStockValue, shopActorData
 } from "./shop.mjs";
 import { verifyCreatedActor } from "./post-create.mjs";
+import { moveToGeneratedFolder } from "./folders.mjs";
 import { SourcesConfigApp } from "./sources-app.mjs";
 import { gpToCredits } from "./currency.mjs";
 import { SpfApp } from "./app-base.mjs";
@@ -306,6 +307,7 @@ export class ShopApp extends SpfApp {
       verifyCreatedActor(actor, { complete: true }, items);
       const created = actor;
       actor = null;
+      await moveToGeneratedFolder(created, "shop");
       // Committed: consume the draft before presentation so a sheet error
       // cannot lead to a duplicate shop.
       this.#clearPreview();

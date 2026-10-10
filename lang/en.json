@@ -335,6 +335,16 @@
       "Remove": "Remove from recent previews",
       "RemoveAria": "Remove preview {name}"
     },
+    "Folders": {
+      "Root": "SimplySF2e",
+      "Creatures": "Creatures",
+      "Npcs": "NPCs",
+      "Characters": "Characters",
+      "Shops": "Shops"
+    },
+    "Handout": {
+      "Created": "Player handout for {name} added to the Journal."
+    },
     "Threat": {
       "Trivial": "Trivial",
       "Low": "Low",
