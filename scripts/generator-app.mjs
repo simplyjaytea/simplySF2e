@@ -140,6 +140,12 @@ export class GeneratorApp extends SpfApp {
   #exampleTick = Math.floor(Math.random() * 5);
   /** External programmatic input update (e.g. from chat command). */
   setInput(updates = {}) {
+    this.#mergeInput(updates);
+    this.render();
+  }
+
+  /** Merge external updates into #input (level clamped to the mode's range). */
+  #mergeInput(updates = {}) {
     // The chat command calls this right after render(true), which is async:
     // on first open there is no form to read yet.
     if (this.element) this.#readForm();
@@ -148,7 +154,19 @@ export class GeneratorApp extends SpfApp {
     const level = Math.round(Number(input.level));
     input.level = Number.isFinite(level) ? Math.min(levelMax, Math.max(levelMin, level)) : this.#input.level;
     this.#input = input;
-    this.render();
+    if (typeof updates.prompt === "string") this.#modePrompts[input.mode] = input.prompt;
+  }
+
+  /** Chat command with a prompt: fill the form and start a preview (no Create). */
+  async runFromChat(updates = {}) {
+    if (this.#busy || this.#createPending) {
+      this.setInput(updates);
+      ui.notifications.warn(game.i18n.localize("SIMPLYSF2E.Chat.Busy"));
+      return;
+    }
+    this.#mergeInput(updates);
+    await this.render({ force: true });
+    return this.#runGeneration(false, { create: false });   // preview only; the GM still clicks Create
   }
 
 
@@ -1819,6 +1837,11 @@ export class GeneratorApp extends SpfApp {
     let data = null;
     try { data = JSON.parse(event.dataTransfer?.getData("text/plain") || "null"); } catch { data = null; }
     const actor = data?.type === "Actor" && data.uuid ? await fromUuid(data.uuid) : null;
+    await this.#loadReskinActor(actor);
+  }
+
+  /** Make an already-resolved actor the reskin source; warns unless it is an NPC. */
+  async #loadReskinActor(actor) {
     if (actor?.documentName !== "Actor" || actor.type !== "npc") {
       ui.notifications.warn(game.i18n.localize("SIMPLYSF2E.Generator.ReskinNotNpc"));
       return;
@@ -1838,6 +1861,20 @@ export class GeneratorApp extends SpfApp {
     this.#created = null;
     this.#error = null;
     await this.render();
+  }
+
+  /** Sidebar entry point: switch to Reskin mode and load the given NPC. */
+  async reskinFromUuid(uuid) {
+    if (this.#busy || this.#createPending) {
+      ui.notifications.warn(game.i18n.localize("SIMPLYSF2E.ContextMenu.Busy"));
+      return;
+    }
+    if (this.element) this.#readForm();
+    this.#input.mode = "reskin";
+    this.#input.prompt = this.#modePrompts.reskin ?? "";
+    await this.render({ force: true });   // the form now shows Reskin, so #readForm keeps it
+    const actor = await fromUuid(uuid);
+    await this.#loadReskinActor(actor);
   }
 
   /** Source data for the dropped NPC: a compendium creature is imported the
