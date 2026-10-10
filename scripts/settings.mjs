@@ -352,7 +352,13 @@ export function isKeySafeEndpoint(value) {
   try {
     const url = new URL(normalizeApiBaseUrl(value));
     if (url.protocol === "https:") return true;
-    return url.protocol === "http:" && isLikelyKeylessLocalEndpoint(url.href);
+    if (url.protocol !== "http:") return false;
+    // Unlike the keyless heuristic, an IPv4 range only counts for a full
+    // address: a DNS name such as 10.evil.com or 192.168.1.1.nip.io resolves
+    // anywhere and must not receive a key over plain http.
+    const host = url.hostname.toLowerCase().replace(/^\[|\]$/g, "");
+    if (/^\d+\./.test(host) && !/^\d{1,3}(?:\.\d{1,3}){3}$/.test(host)) return false;
+    return isLikelyKeylessLocalEndpoint(url.href);
   } catch {
     return false;
   }

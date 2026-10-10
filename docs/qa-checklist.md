@@ -562,7 +562,7 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 
 | # | Do | Expect | Where | Pass | Notes |
 | --- | --- | --- | --- | --- | --- |
-| 13c.1 | In AI Provider Setup, set the API Base URL to `http://api.example.com/v1`, type any key and press Save & Test. | Error toast: "This AI address uses plain http, so the API key would travel unencrypted and will not be sent…". DevTools Network shows no request carrying an Authorization header. | Provider Setup, Network | | |
+| 13c.1 | In AI Provider Setup, set the API Base URL to `http://api.example.com/v1`, type any key and press Save & Test. | Warning toast: "This AI address uses plain http, so the API key would travel unencrypted and will not be sent…". DevTools Network shows no request carrying an Authorization header. | Provider Setup, Network | | |
 | 13c.2 | Open the Generator, Item Forge and Shop with that connection still active. | Each shows the same plain-http warning, has no Authorize button, and refuses to generate. | Generator, Item Forge, Shop | | |
 | 13c.3 | Switch back to an https provider (or Ollama on `http://localhost:11434/v1`) and generate a monster. | Works as before. A keyed gateway on a home-network address such as `http://192.168.1.20:4000/v1` also still works. | Generator | | |
 | 13c.4 | Reskin a creature and have the AI write a blurb containing "&" (for example "Salt & rust"). Open the created copy. | The sheet's blurb shows "&", not "&amp;". | NPC sheet | | |

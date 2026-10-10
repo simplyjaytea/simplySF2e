@@ -423,6 +423,10 @@ for (const [url, safe] of [
   ["http://172.32.0.2:4000/v1", false],
   ["http://gateway.local:4000/v1", true],
   ["http://[::1]:4000/v1", true],
+  ["http://10.evil.com/v1", false],
+  ["http://192.168.1.1.nip.io/v1", false],
+  ["http://127.0.0.1.nip.io/v1", false],
+  ["http://172.16.0.1.example.com/v1", false],
   ["ftp://api.example.com/v1", false],
   ["not a url", false]
 ]) {
