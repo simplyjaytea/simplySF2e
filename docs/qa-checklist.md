@@ -567,6 +567,43 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 | 13c.3 | Switch back to an https provider (or Ollama on `http://localhost:11434/v1`) and generate a monster. | Works as before. A keyed gateway on a home-network address such as `http://192.168.1.20:4000/v1` also still works. | Generator | | |
 | 13c.4 | Reskin a creature and have the AI write a blurb containing "&" (for example "Salt & rust"). Open the created copy. | The sheet's blurb shows "&", not "&amp;". | NPC sheet | | |
 
+## 13d. Use my party (Encounter mode)
+
+| # | Do | Expect | Where | Pass | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 13d.1 | Make a Party actor with three level-4 characters and one level-6 character. Open the Generator in Encounters. | Beside Party level: "Use my party" and "<party name>: 4 characters, level 5". | Generator | | |
+| 13d.2 | Press Use my party. | Party level becomes 5, Party size 4 (Advanced options), and a toast names the party. | Generator | | |
+| 13d.3 | Remove every character from the party and reopen Encounters. | The button is disabled and the note reads "No party with characters found". | Generator | | |
+| 13d.4 | Narrow the window to about 460 px. | The button and note drop under the level controls; no horizontal scroll. | Generator | | |
+
+## 13e. Right-click Reskin and the one-step chat command
+
+| # | Do | Expect | Where | Pass | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 13e.1 | As GM, right-click an NPC in the Actors sidebar. | The menu has "Reskin with SimplySF2e". A character or loot actor does not show it. | Actors sidebar | | |
+| 13e.2 | Pick it with the Generator closed, then again with it open in Monster mode and some prompt text typed. | The Generator opens (or switches) to Reskin with that NPC loaded. Switching back to Monster still shows the typed text. | Generator | | |
+| 13e.3 | As a player, right-click an actor you own. | No Reskin entry. | Actors sidebar | | |
+| 13e.4 | Type `/sf2e npc 3 vesk dock foreman` in chat. | The Generator opens in NPC mode at level 3 with that prompt and starts a preview at once. Nothing is created until you press Create. | Chat, Generator | | |
+| 13e.5 | Type `/sf2e npc 3` (no prompt). | The form is filled in; nothing runs. | Generator | | |
+| 13e.6 | As a player, type `/sf2e npc 3 test`. | "GM only" warning; nothing runs and no AI request is sent. | Chat, Network | | |
+
+## 13f. Tidy folders and player handouts
+
+| # | Do | Expect | Where | Pass | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 13f.1 | Create a monster, an NPC, a character, a reskin and a shop. | Actors sidebar: SimplySF2e > Creatures (monster, reskin), NPCs, Characters, Shops, each in its folder. | Actors sidebar | | |
+| 13f.2 | Rename the SimplySF2e folder, then create another monster. | It lands in the renamed folder; no second SimplySF2e folder appears. | Actors sidebar | | |
+| 13f.3 | Create an encounter. | Its folder sits inside SimplySF2e. | Actors sidebar | | |
+| 13f.4 | Create an NPC (NPC mode). | A toast says a player handout was added. Journal > SimplySF2e has an entry with the portrait, blurb and read-aloud text, and no tactics or stats. A monster made in Monster mode gets no handout. | Journal | | |
+| 13f.5 | Open the handout and use Show Players. | Players see the page; it was hidden from them before. | Journal, player client | | |
+
+## 13g. Remember Generator settings
+
+| # | Do | Expect | Where | Pass | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 13g.1 | In the Generator choose Encounters, level 7, Rare, Party size 5, Severe; type a prompt. Reload the page and reopen. | Mode, level, rarity, party size and threat come back; the prompt box is empty. | Generator | | |
+| 13g.2 | Log in as the same GM in another browser. | That browser keeps its own settings (per browser, not per world). | Generator | | |
+
 ## Failure log
 
 One row per failure, so each cluster can become one fix PR.

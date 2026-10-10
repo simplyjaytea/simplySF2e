@@ -144,6 +144,26 @@ Hooks.on("renderActorDirectory", (_directory, html) => {
   });
 });
 
+/*
+ * Right-click an NPC in the Actors sidebar to reskin it (GM only).
+ * Upstream: foundryvtt/pf2e v14-dev src/module/apps/sidebar/actor-directory.ts
+ * lines 253-257 (hook `getActorContextOptions`, args (application, entries))
+ * and lines 279-306 (entry shape: label, icon, visible(li), onClick(event, li)).
+ */
+Hooks.on("getActorContextOptions", (_directory, entries) => {
+  if (!game.user?.isGM || game.system?.id !== "sf2e" || !Array.isArray(entries)) return;
+  entries.push({
+    label: game.i18n.localize("SIMPLYSF2E.ContextMenu.Reskin"),
+    icon: "fa-solid fa-masks-theater",
+    visible: (li) => game.actors.get(li?.dataset?.entryId)?.type === "npc",
+    onClick: async (_event, li) => {
+      const actor = game.actors.get(li?.dataset?.entryId);
+      if (!actor) return;
+      await openGenerator()?.reskinFromUuid(actor.uuid);
+    }
+  });
+});
+
 /* Add an "Item Forge" button to the Items directory header (GM only). */
 Hooks.on("renderItemDirectory", (_directory, html) => {
   if (!game.user.isGM || game.system.id !== "sf2e") return;
@@ -214,6 +234,8 @@ Hooks.on("pf2e.restForTheNight", async (actor) => {
  *   /sf2e shop
  *   /sf2e welcome
  *   /sf2e [monster|npc|character|encounter] [level] [prompt]
+ * A prompt starts a preview right away (the GM still clicks Create); without
+ * one the command only fills in the form.
  */
 Hooks.on("chatMessage", (_chatLog, message, _chatData) => {
   const trimmed = message.trim();
@@ -255,7 +277,8 @@ Hooks.on("chatMessage", (_chatLog, message, _chatData) => {
     if (mode) update.mode = mode;
     if (level != null) update.level = level;
     if (prompt) update.prompt = prompt;
-    app.setInput?.(update);
+    if (prompt) app.runFromChat?.(update)?.catch?.((err) => console.error(`${MODULE_ID} | chat command generation failed`, err));
+    else app.setInput?.(update);
   }
   return false;
 });

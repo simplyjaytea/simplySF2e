@@ -91,6 +91,7 @@ export function generatorContext(mode, patch = {}) {
     treasureAmounts: Object.keys(TREASURE_AMOUNT_MULTIPLIER).map((key) => ({ value: key, label: `SIMPLYSF2E.TreasureAmount.${cap(key)}`, selected: input.treasureAmount === key })),
     preview: null,
     encounterPreview: null,
+    party: null,
     pcPreview: null,
     characterReview: null,
     created: null,
@@ -157,8 +158,16 @@ export default [
   ...["monster", "npc", "encounter", "character", "reskin"].map((mode) => ({
     id: `generator-empty-${mode}`,
     app: "generator",
-    context: generatorContext(mode, { input: { level: mode === "character" ? 3 : 4 } })
+    context: generatorContext(mode, {
+      input: { level: mode === "character" ? 3 : 4 },
+      ...(mode === "encounter" ? { party: { name: "The Drift Runners", count: 4, size: 4, level: 5 } } : {})
+    })
   })),
+  {
+    id: "generator-empty-encounter-no-party",
+    app: "generator",
+    context: generatorContext("encounter", { input: { level: 4 }, party: null })
+  },
   {
     id: "generator-empty-attention",
     app: "generator",

@@ -1,7 +1,8 @@
 import {
-  MODULE_ID, getProviderAuthWarningKey, getProviderRequestConfig,
+  MODULE_ID, SETTINGS, getSetting, getProviderAuthWarningKey, getProviderRequestConfig,
   authorizeApiKeyForCurrentBaseUrl
 } from "./settings.mjs";
+import { rememberedInput, restoreGeneratorInput } from "./generator-memory.mjs";
 import {
   generateConcept, generateLoot, selectSpells, chooseSpellFocus, selectEquipment, selectLoot, designEncounter,
   generatePCConcept, generatePCLoot, selectAncestryBackgroundClass, selectFeats, selectCreatureFeats, selectCreatureAbilities, selectCharacterChoices,
@@ -39,7 +40,10 @@ import { SpfApp } from "./app-base.mjs";
 import { jevKeySource } from "./jev.mjs";
 import { signed, esc } from "./text.mjs";
 import { statCheckForActor, describeStatCheck, hasSpellEntry } from "./stat-check.mjs";
+import { moveToGeneratedFolder, generatedFolderId } from "./folders.mjs";
+import { createHandout } from "./handout.mjs";
 import { findRecent, forgetRecent, previewModeOf, previewNameOf, rememberRecent } from "./recent-generations.mjs";
+import { activeParty } from "./party.mjs";
 
 async function rollbackActor(actor, label) {
   if (!actor) return null;
@@ -81,6 +85,7 @@ export class GeneratorApp extends SpfApp {
       levelDown: GeneratorApp.#onLevelDown,
       partyUp: GeneratorApp.#onPartyUp,
       partyDown: GeneratorApp.#onPartyDown,
+      useParty: GeneratorApp.#onUseParty,
       memberUp: GeneratorApp.#onMemberUp,
       memberDown: GeneratorApp.#onMemberDown,
       rerollLoot: GeneratorApp.#onRerollLoot,
@@ -138,17 +143,62 @@ export class GeneratorApp extends SpfApp {
   #rerollRejected = new Map();
   /** Cycles the example placeholder; starts randomly so reopening varies. */
   #exampleTick = Math.floor(Math.random() * 5);
+  /** JSON of the last remembered settings, so unchanged input is not re-saved. */
+  #savedInputJson = null;
+  /** True while a chat command is rendering the form before its run starts. */
+  #chatPending = false;
+  constructor(...args) {
+    super(...args);
+    // Isolated tests build the app without Foundry's settings.
+    if (!globalThis.game?.settings) return;
+    try {
+      this.#input = restoreGeneratorInput(getSetting(SETTINGS.generatorInput), this.#input);
+    } catch (err) {
+      console.warn(`${MODULE_ID} | could not restore generator settings`, err);
+    }
+  }
+
   /** External programmatic input update (e.g. from chat command). */
   setInput(updates = {}) {
+    this.#mergeInput(updates);
+    this.render();
+  }
+
+  /** Merge external updates into #input (level clamped to the mode's range). */
+  #mergeInput(updates = {}) {
     // The chat command calls this right after render(true), which is async:
     // on first open there is no form to read yet.
     if (this.element) this.#readForm();
     const input = { ...this.#input, ...updates };
+    // A mode switch without a prompt shows that mode's own draft, never the
+    // previous mode's text (#readForm keeps one draft per mode).
+    if (input.mode !== this.#input.mode && typeof updates.prompt !== "string") {
+      input.prompt = this.#modePrompts[input.mode] ?? "";
+    }
     const [levelMin, levelMax] = ["monster", "npc"].includes(input.mode) ? [-1, 24] : [1, 20];
     const level = Math.round(Number(input.level));
     input.level = Number.isFinite(level) ? Math.min(levelMax, Math.max(levelMin, level)) : this.#input.level;
     this.#input = input;
-    this.render();
+    if (typeof updates.prompt === "string") this.#modePrompts[input.mode] = input.prompt;
+    this.#rememberInput();
+  }
+
+  /** Chat command with a prompt: fill the form and start a preview (no Create). */
+  async runFromChat(updates = {}) {
+    if (this.#busy || this.#createPending || this.#chatPending) {
+      this.setInput(updates);
+      ui.notifications.warn(game.i18n.localize("SIMPLYSF2E.Chat.Busy"));
+      return;
+    }
+    // Held across the render so a second command cannot slip in before the run starts.
+    this.#chatPending = true;
+    try {
+      this.#mergeInput(updates);
+      await this.render({ force: true });
+    } finally {
+      this.#chatPending = false;
+    }
+    return this.#runGeneration(false, { create: false });   // preview only; the GM still clicks Create
   }
 
 
@@ -209,6 +259,7 @@ export class GeneratorApp extends SpfApp {
         selected: p.selected
       })),
       encounterMode: this.#input.mode === "encounter",
+      party: this.#input.mode === "encounter" ? activeParty() : null,
       characterMode: this.#input.mode === "character",
       monsterMode: this.#input.mode === "monster",
       npcMode: this.#input.mode === "npc",
@@ -580,6 +631,20 @@ export class GeneratorApp extends SpfApp {
     const rawAdj = form.querySelector('[name="adjustment"]')?.value ?? this.#input.adjustment;
     const adjustment = rawAdj === "elite" || rawAdj === "weak" ? rawAdj : null;
     this.#input = { mode, prompt, level, rarity, adjustment, allowSpellcasting, preset, partySize, threat, treasureAmount, rarityCap };
+    this.#rememberInput();
+  }
+
+  /** Save the remembered settings (never the prompt) to this browser's client setting. */
+  #rememberInput() {
+    const json = JSON.stringify(rememberedInput(this.#input));
+    if (json === this.#savedInputJson) return;
+    this.#savedInputJson = json;
+    try {
+      Promise.resolve(game.settings.set(MODULE_ID, SETTINGS.generatorInput, JSON.parse(json)))
+        .catch((err) => console.warn(`${MODULE_ID} | could not save generator settings`, err));
+    } catch (err) {
+      console.warn(`${MODULE_ID} | could not save generator settings`, err);
+    }
   }
 
   _preserveForm() {
@@ -717,6 +782,21 @@ export class GeneratorApp extends SpfApp {
 
   static #onPartyDown() {
     this.#stepParty(-1);
+  }
+
+  /** Fill Party level and size from the world's active party (Encounter mode). */
+  static async #onUseParty() {
+    if (this.#busy || this.#createPending) return;
+    this.#readForm();
+    const party = activeParty();
+    if (!party) {
+      ui.notifications.warn(game.i18n.localize("SIMPLYSF2E.Party.None"));
+      return;
+    }
+    this.#input.level = party.level;
+    this.#input.partySize = party.size;
+    ui.notifications.info(game.i18n.format("SIMPLYSF2E.Party.Filled", { name: party.name }));
+    await this.render();
   }
 
   #stepParty(delta) {
@@ -1550,12 +1630,21 @@ export class GeneratorApp extends SpfApp {
       const grounding = GeneratorApp.#completionContext(this.#manifest);
       const createdConcept = this.#concept;
       const createdResolved = this.#resolved;
+      const createdMode = this.#previewMeta?.mode;
       this.#concept = null;
       this.#resolved = null;
       this.#manifest = null;
       this.#previewMeta = null;
       this.#created = { name: actor.name, actorId: actor.id, count: 1, grounding, statCheck: null };
       committed = true;
+      await moveToGeneratedFolder(actor, createdMode === "npc" ? "npc" : "creature");
+      if (createdMode === "npc") {
+        const handout = await createHandout(actor, createdConcept);
+        if (handout) {
+          try { ui.notifications.info(game.i18n.format("SIMPLYSF2E.Handout.Created", { name: actor.name })); }
+          catch (err) { console.warn(`${MODULE_ID} | handout created, but its notice could not be shown`, err); }
+        }
+      }
       this.#created.statCheck = GeneratorApp.#statCheckContext([{ concept: createdConcept, resolved: createdResolved, actor }]);
       try {
         ui.notifications.info(game.i18n.format("SIMPLYSF2E.Generator.Created", { name: actor.name }));
@@ -1648,6 +1737,7 @@ export class GeneratorApp extends SpfApp {
       this.#created = { name: actor.name, actorId: actor.id, count: 1, grounding, statCheck: null };
       created = true;
       committed = true;
+      await moveToGeneratedFolder(actor, "character");
       try {
         let review;
         try {
@@ -1743,7 +1833,10 @@ export class GeneratorApp extends SpfApp {
     const checked = [];
     let committed = false;
     try {
-      folder = await Folder.create({ name: this.#encounter.name, type: "Actor" });
+      let parentId = null;
+      try { parentId = await generatedFolderId("Actor", "root"); }
+      catch (err) { console.warn(`${MODULE_ID} | could not find the generated folder for the encounter`, err); }
+      folder = await Folder.create({ name: this.#encounter.name, type: "Actor", folder: parentId });
       let created = 0;
       for (const member of this.#encounter.members) {
         if (member.count < 1) continue;
@@ -1819,6 +1912,11 @@ export class GeneratorApp extends SpfApp {
     let data = null;
     try { data = JSON.parse(event.dataTransfer?.getData("text/plain") || "null"); } catch { data = null; }
     const actor = data?.type === "Actor" && data.uuid ? await fromUuid(data.uuid) : null;
+    await this.#loadReskinActor(actor);
+  }
+
+  /** Make an already-resolved actor the reskin source; warns unless it is an NPC. */
+  async #loadReskinActor(actor) {
     if (actor?.documentName !== "Actor" || actor.type !== "npc") {
       ui.notifications.warn(game.i18n.localize("SIMPLYSF2E.Generator.ReskinNotNpc"));
       return;
@@ -1838,6 +1936,20 @@ export class GeneratorApp extends SpfApp {
     this.#created = null;
     this.#error = null;
     await this.render();
+  }
+
+  /** Sidebar entry point: switch to Reskin mode and load the given NPC. */
+  async reskinFromUuid(uuid) {
+    if (this.#busy || this.#createPending) {
+      ui.notifications.warn(game.i18n.localize("SIMPLYSF2E.ContextMenu.Busy"));
+      return;
+    }
+    if (this.element) this.#readForm();
+    this.#input.mode = "reskin";
+    this.#input.prompt = this.#modePrompts.reskin ?? "";
+    await this.render({ force: true });   // the form now shows Reskin, so #readForm keeps it
+    const actor = await fromUuid(uuid);
+    await this.#loadReskinActor(actor);
   }
 
   /** Source data for the dropped NPC: a compendium creature is imported the
@@ -1906,6 +2018,7 @@ export class GeneratorApp extends SpfApp {
       this.#reskinFlavor = null;
       this.#previewMeta = null;
       this.#created = { name: actor.name, actorId: actor.id, count: 1, grounding: { total: 0, rows: [] }, statCheck: null };
+      await moveToGeneratedFolder(actor, "creature");
       try {
         ui.notifications.info(game.i18n.format("SIMPLYSF2E.Generator.Created", { name: actor.name }));
         await actor.sheet.render(true);
