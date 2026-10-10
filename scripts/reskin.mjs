@@ -125,7 +125,9 @@ export function applyReskin(actorData, flavor = {}, { recallSkill = null, recall
   }
   data.system ??= {};
   data.system.details ??= {};
-  if (flavor.blurb) data.system.details.blurb = esc(flavor.blurb);
+  // Plain text: the v14-dev NPC sheet header renders the blurb as an escaped
+  // input value, and builder.mjs stores it the same way.
+  if (flavor.blurb) data.system.details.blurb = flavor.blurb;
   if (notes.length) data.system.details.publicNotes = notes.join("\n");
 
   const renames = new Map((flavor.renames ?? []).map((rename) => [rename.id, rename.name]));

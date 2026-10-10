@@ -182,7 +182,7 @@ export class GeneratorApp extends SpfApp {
       sourcePackCount: sources?.packCount ?? 0,
       sourceMissing: describeMissingSources(sources?.missing),
       canAuthorizeApiKey: Boolean(
-        authState.baseUrl && authState.hasConfiguredApiKey && !authState.apiKeyIsBound
+        authState.baseUrl && authState.hasConfiguredApiKey && !authState.apiKeyIsBound && !authState.apiKeyInsecure
       ),
       model: authState.model,
       rarities: [

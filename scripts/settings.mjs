@@ -343,6 +343,28 @@ export function isLikelyKeylessLocalEndpoint(value) {
 }
 
 /**
+ * True when a key may be sent to this address: https anywhere, or plain http
+ * only to this computer or a private home-network address (the same hosts
+ * `isLikelyKeylessLocalEndpoint` treats as local). Plain http to an internet
+ * host would carry the key unencrypted, so the key is withheld there.
+ */
+export function isKeySafeEndpoint(value) {
+  try {
+    const url = new URL(normalizeApiBaseUrl(value));
+    if (url.protocol === "https:") return true;
+    if (url.protocol !== "http:") return false;
+    // Unlike the keyless heuristic, an IPv4 range only counts for a full
+    // address: a DNS name such as 10.evil.com or 192.168.1.1.nip.io resolves
+    // anywhere and must not receive a key over plain http.
+    const host = url.hostname.toLowerCase().replace(/^\[|\]$/g, "");
+    if (/^\d+\./.test(host) && !/^\d{1,3}(?:\.\d{1,3}){3}$/.test(host)) return false;
+    return isLikelyKeylessLocalEndpoint(url.href);
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Compact provider metadata for the generator header. This is deliberately
  * inferred from the endpoint instead of stored as a second provider setting,
  * so custom OpenAI-compatible gateways remain first-class and cannot drift
@@ -589,14 +611,17 @@ export function getProviderRequestConfig() {
   const configuredApiKey = String(getSetting(SETTINGS.apiKey) ?? "").trim();
   const apiKeyBaseUrl = normalizeApiBaseUrl(getSetting(SETTINGS.apiKeyBaseUrl));
   const apiKeyIsBound = Boolean(configuredApiKey && baseUrl && apiKeyBaseUrl === baseUrl);
+  // A bound key is still withheld from plain http to an internet host.
+  const apiKeyInsecure = Boolean(configuredApiKey && baseUrl && !isKeySafeEndpoint(baseUrl));
   const provider = describeProvider(baseUrl, model);
   const bank = readProviderBank();
   const active = bank.connections.find((connection) => connection.id === bank.activeId) ?? null;
   return {
     baseUrl,
-    apiKey: apiKeyIsBound ? configuredApiKey : "",
+    apiKey: apiKeyIsBound && !apiKeyInsecure ? configuredApiKey : "",
     hasConfiguredApiKey: Boolean(configuredApiKey),
     apiKeyIsBound,
+    apiKeyInsecure,
     keylessLocal: isLikelyKeylessLocalEndpoint(baseUrl),
     model,
     provider,
@@ -630,6 +655,7 @@ export function getProviderAuthWarningKey(
 ) {
   if (!state.baseUrl) return "SIMPLYSF2E.Errors.NoBaseUrl";
   if (requireModel && !String(state.model ?? "").trim()) return "SIMPLYSF2E.Errors.NoModel";
+  if (state.hasConfiguredApiKey && state.apiKeyInsecure) return "SIMPLYSF2E.Errors.InsecureKeyEndpoint";
   if (state.hasConfiguredApiKey && !state.apiKeyIsBound) {
     return "SIMPLYSF2E.Generator.ApiKeyNotAuthorized";
   }

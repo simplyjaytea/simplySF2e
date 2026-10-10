@@ -77,6 +77,9 @@ assert.equal(source.items[0].name, "Jaws");
 const escaped = applyReskin(source, { description: "<script>x</script>", readAloud: "<img src=x>" });
 assert.ok(!escaped.system.details.publicNotes.includes("<script>"), "AI prose is escaped");
 assert.ok(!escaped.system.details.publicNotes.includes("<img"), "AI read-aloud is escaped");
+// The blurb is a plain-text input value that pf2e escapes itself, so escaping
+// it here would show "&amp;" on the sheet.
+assert.equal(applyReskin(source, { blurb: "Salt & rust" }).system.details.blurb, "Salt & rust");
 
 // Port parity with pf2e sluggify on names Foundry content actually uses.
 assert.equal(pf2eSluggify("Mauler's Rend"), "maulers-rend");

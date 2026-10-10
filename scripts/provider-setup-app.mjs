@@ -331,13 +331,16 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
     await upsertActiveProviderConnection({ name: connectionName });
     const provider = describeProvider(baseUrl, model);
     const state = getProviderRequestConfig();
-    const messageKey = authorized
-      ? "SIMPLYSF2E.ProviderSetup.SavedAuthorized"
-      : state.keylessLocal
-        ? "SIMPLYSF2E.ProviderSetup.Saved"
-        : "SIMPLYSF2E.ProviderSetup.SavedNeedsKey";
+    const insecure = Boolean(state.apiKeyInsecure);
+    const messageKey = insecure
+      ? "SIMPLYSF2E.Errors.InsecureKeyEndpoint"
+      : authorized
+        ? "SIMPLYSF2E.ProviderSetup.SavedAuthorized"
+        : state.keylessLocal
+          ? "SIMPLYSF2E.ProviderSetup.Saved"
+          : "SIMPLYSF2E.ProviderSetup.SavedNeedsKey";
     if (notify) {
-      const notifySaved = !authorized && !state.keylessLocal
+      const notifySaved = insecure || (!authorized && !state.keylessLocal)
         ? ui.notifications.warn.bind(ui.notifications)
         : ui.notifications.info.bind(ui.notifications);
       notifySaved(game.i18n.format(
