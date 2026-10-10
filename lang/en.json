@@ -335,6 +335,13 @@
       "Remove": "Remove from recent previews",
       "RemoveAria": "Remove preview {name}"
     },
+    "Party": {
+      "Use": "Use my party",
+      "UseTooltip": "Fill party level and size from this world's party",
+      "Summary": "{name}: {count} characters, level {level}",
+      "None": "No party with characters found",
+      "Filled": "Party level and size set from {name}"
+    },
     "Threat": {
       "Trivial": "Trivial",
       "Low": "Low",

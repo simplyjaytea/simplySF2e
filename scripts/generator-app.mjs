@@ -40,6 +40,7 @@ import { jevKeySource } from "./jev.mjs";
 import { signed, esc } from "./text.mjs";
 import { statCheckForActor, describeStatCheck, hasSpellEntry } from "./stat-check.mjs";
 import { findRecent, forgetRecent, previewModeOf, previewNameOf, rememberRecent } from "./recent-generations.mjs";
+import { activeParty } from "./party.mjs";
 
 async function rollbackActor(actor, label) {
   if (!actor) return null;
@@ -81,6 +82,7 @@ export class GeneratorApp extends SpfApp {
       levelDown: GeneratorApp.#onLevelDown,
       partyUp: GeneratorApp.#onPartyUp,
       partyDown: GeneratorApp.#onPartyDown,
+      useParty: GeneratorApp.#onUseParty,
       memberUp: GeneratorApp.#onMemberUp,
       memberDown: GeneratorApp.#onMemberDown,
       rerollLoot: GeneratorApp.#onRerollLoot,
@@ -209,6 +211,7 @@ export class GeneratorApp extends SpfApp {
         selected: p.selected
       })),
       encounterMode: this.#input.mode === "encounter",
+      party: this.#input.mode === "encounter" ? activeParty() : null,
       characterMode: this.#input.mode === "character",
       monsterMode: this.#input.mode === "monster",
       npcMode: this.#input.mode === "npc",
@@ -717,6 +720,21 @@ export class GeneratorApp extends SpfApp {
 
   static #onPartyDown() {
     this.#stepParty(-1);
+  }
+
+  /** Fill Party level and size from the world's active party (Encounter mode). */
+  static async #onUseParty() {
+    if (this.#busy) return;
+    this.#readForm();
+    const party = activeParty();
+    if (!party) {
+      ui.notifications.warn(game.i18n.localize("SIMPLYSF2E.Party.None"));
+      return;
+    }
+    this.#input.level = party.level;
+    this.#input.partySize = party.size;
+    ui.notifications.info(game.i18n.format("SIMPLYSF2E.Party.Filled", { name: party.name }));
+    await this.render();
   }
 
   #stepParty(delta) {
