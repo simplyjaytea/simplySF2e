@@ -342,6 +342,16 @@
     "Chat": {
       "Busy": "The Generator is busy, so the command only filled in the form."
     },
+    "Folders": {
+      "Root": "SimplySF2e",
+      "Creatures": "Creatures",
+      "Npcs": "NPCs",
+      "Characters": "Characters",
+      "Shops": "Shops"
+    },
+    "Handout": {
+      "Created": "Player handout for {name} added to the Journal."
+    },
     "Threat": {
       "Trivial": "Trivial",
       "Low": "Low",
