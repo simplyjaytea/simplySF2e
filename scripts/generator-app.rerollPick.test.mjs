@@ -31,6 +31,8 @@ let spellArgs = null;
 let featArgs = null;
 const mocks = {
   MODULE_ID: "simplysf2e",
+  SETTINGS: { generatorInput: "generatorInput" }, getSetting: () => undefined,
+  restoreGeneratorInput: (_saved, defaults) => defaults, rememberedInput: (input) => input,
   SpfApp: class {
     _beginProgress() { this.abort = new AbortController(); return this.abort.signal; }
     async _setStep() {}

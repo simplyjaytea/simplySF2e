@@ -27,6 +27,8 @@ const tokens = [];
 const mocks = {
   SpfApp: class { _recordTokens(label, usage) { tokens.push({ label, usage }); } },
   MODULE_ID: "simplysf2e",
+  SETTINGS: { generatorInput: "generatorInput" }, getSetting: () => undefined,
+  restoreGeneratorInput: (_saved, defaults) => defaults, rememberedInput: (input) => input,
   getFeatCandidates: async (args) => { query = args; return candidates; },
   selectCreatureFeats: async ({ signal }) => {
     calls++;
