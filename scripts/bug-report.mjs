@@ -190,6 +190,7 @@ export function gatherEnvironment({ moduleId, provider = {}, jev = {}, getSettin
       "Model": provider.model,
       "API key set": Boolean(provider.hasConfiguredApiKey),
       "API key authorized for endpoint": Boolean(provider.apiKeyIsBound),
+      "API key withheld (plain http)": Boolean(provider.apiKeyInsecure),
       "Keyless local endpoint": Boolean(provider.keylessLocal),
       "Temperature": getSetting("temperature"),
       "Max tokens": getSetting("maxTokens"),

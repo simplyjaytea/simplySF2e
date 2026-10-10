@@ -16,6 +16,7 @@ import {
   getProviderRequestConfig,
   isOfficialDeepSeekEndpoint,
   isOfficialOpenAIEndpoint,
+  isKeySafeEndpoint,
   isLikelyKeylessLocalEndpoint,
   listProviderConnections,
   modelsUrl,
@@ -405,5 +406,52 @@ await createProviderConnection({
 });
 assert.equal(getProviderAuthWarningKey(getProviderRequestConfig(), "https:"), "SIMPLYSF2E.Errors.MixedContentProvider");
 assert.equal(getProviderAuthWarningKey(getProviderRequestConfig(), "http:"), null);
+
+// A key never crosses the internet over plain http, even when bound to that
+// exact address. https anywhere, and http to this computer or a private home
+// network address, still carry it.
+for (const [url, safe] of [
+  ["https://api.example.com/v1", true],
+  ["http://api.example.com/v1", false],
+  ["http://openrouter.ai/api/v1", false],
+  ["http://8.8.8.8:8080/v1", false],
+  ["http://localhost:4000/v1", true],
+  ["http://127.0.0.1:4000/v1", true],
+  ["http://192.168.1.20:4000/v1", true],
+  ["http://10.0.0.5:4000/v1", true],
+  ["http://172.20.0.2:4000/v1", true],
+  ["http://172.32.0.2:4000/v1", false],
+  ["http://gateway.local:4000/v1", true],
+  ["http://[::1]:4000/v1", true],
+  ["http://10.evil.com/v1", false],
+  ["http://192.168.1.1.nip.io/v1", false],
+  ["http://127.0.0.1.nip.io/v1", false],
+  ["http://172.16.0.1.example.com/v1", false],
+  ["ftp://api.example.com/v1", false],
+  ["not a url", false]
+]) {
+  assert.equal(isKeySafeEndpoint(url), safe, `${url} key transport must be ${safe ? "allowed" : "refused"}`);
+}
+setAuth({
+  baseUrl: "http://api.example.com/v1",
+  apiKey: "plain-http-secret",
+  apiKeyBaseUrl: "http://api.example.com/v1"
+});
+state = getProviderRequestConfig();
+assert.equal(state.apiKeyIsBound, true);
+assert.equal(state.apiKeyInsecure, true);
+assert.equal(state.apiKey, "", "a bound key must still be withheld from plain http to an internet host");
+assert.equal(getProviderAuthWarningKey(state, "http:"), "SIMPLYSF2E.Errors.InsecureKeyEndpoint");
+setAuth({ baseUrl: "http://api.example.com/v1" });
+state = getProviderRequestConfig();
+assert.equal(state.apiKeyInsecure, false, "keyless http is not a key leak");
+setAuth({
+  baseUrl: "http://192.168.1.20:4000/v1",
+  apiKey: "lan-secret",
+  apiKeyBaseUrl: "http://192.168.1.20:4000/v1"
+});
+state = getProviderRequestConfig();
+assert.equal(state.apiKey, "lan-secret", "a bound key still works over http on a home network");
+assert.equal(getProviderAuthWarningKey(state, "http:"), null);
 
 console.log("settings.auth.test.mjs: all provider-auth assertions passed");

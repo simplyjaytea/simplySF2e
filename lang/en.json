@@ -581,6 +581,7 @@
       "NoPrompt": "Describe the creature first.",
       "NoBaseUrl": "No API base URL is configured in the module settings.",
       "NoModel": "No model identifier is configured. Set one in Module Settings → SimplySF2e before generating.",
+      "InsecureKeyEndpoint": "This AI address uses plain http, so the API key would travel unencrypted and will not be sent. Use an https address, or a provider on this computer or your home network.",
       "MixedContentProvider": "This Foundry page uses HTTPS, but the configured AI provider uses HTTP. Browsers block that mixed-content request. Serve the provider over HTTPS or open Foundry over HTTP on the same trusted local network.",
       "ApiError": "The AI provider returned an error ({status}): {detail} {hint}",
       "ProviderError": "The AI provider reported an error: {detail}",
