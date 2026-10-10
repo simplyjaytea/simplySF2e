@@ -44,7 +44,7 @@ assert.equal(restoreGeneratorInput({ mode: "character", level: -1 }, defaults).l
 assert.equal(restoreGeneratorInput({ mode: "encounter", level: 30 }, defaults).level, 20, "encounter level cap is 20");
 assert.equal(restoreGeneratorInput({ mode: "character", level: 24 }, { ...defaults, mode: "character" }).level, 20);
 assert.equal(restoreGeneratorInput({ level: 24 }, defaults).level, 24, "monster mode keeps level 24");
-assert.equal(restoreGeneratorInput({ mode: "reskin", level: -1 }, defaults).level, 1, "reskin uses the PC-style range");
+assert.equal(restoreGeneratorInput({ mode: "reskin" }, defaults).mode, defaults.mode, "reskin is never restored: its source is not remembered");
 
 // Party size is clamped to 1..8.
 assert.equal(restoreGeneratorInput({ partySize: 0 }, defaults).partySize, 1);

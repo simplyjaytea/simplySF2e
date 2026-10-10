@@ -145,6 +145,8 @@ export class GeneratorApp extends SpfApp {
   #exampleTick = Math.floor(Math.random() * 5);
   /** JSON of the last remembered settings, so unchanged input is not re-saved. */
   #savedInputJson = null;
+  /** True while a chat command is rendering the form before its run starts. */
+  #chatPending = false;
   constructor(...args) {
     super(...args);
     // Isolated tests build the app without Foundry's settings.
@@ -168,6 +170,11 @@ export class GeneratorApp extends SpfApp {
     // on first open there is no form to read yet.
     if (this.element) this.#readForm();
     const input = { ...this.#input, ...updates };
+    // A mode switch without a prompt shows that mode's own draft, never the
+    // previous mode's text (#readForm keeps one draft per mode).
+    if (input.mode !== this.#input.mode && typeof updates.prompt !== "string") {
+      input.prompt = this.#modePrompts[input.mode] ?? "";
+    }
     const [levelMin, levelMax] = ["monster", "npc"].includes(input.mode) ? [-1, 24] : [1, 20];
     const level = Math.round(Number(input.level));
     input.level = Number.isFinite(level) ? Math.min(levelMax, Math.max(levelMin, level)) : this.#input.level;
@@ -178,13 +185,19 @@ export class GeneratorApp extends SpfApp {
 
   /** Chat command with a prompt: fill the form and start a preview (no Create). */
   async runFromChat(updates = {}) {
-    if (this.#busy || this.#createPending) {
+    if (this.#busy || this.#createPending || this.#chatPending) {
       this.setInput(updates);
       ui.notifications.warn(game.i18n.localize("SIMPLYSF2E.Chat.Busy"));
       return;
     }
-    this.#mergeInput(updates);
-    await this.render({ force: true });
+    // Held across the render so a second command cannot slip in before the run starts.
+    this.#chatPending = true;
+    try {
+      this.#mergeInput(updates);
+      await this.render({ force: true });
+    } finally {
+      this.#chatPending = false;
+    }
     return this.#runGeneration(false, { create: false });   // preview only; the GM still clicks Create
   }
 
@@ -773,7 +786,7 @@ export class GeneratorApp extends SpfApp {
 
   /** Fill Party level and size from the world's active party (Encounter mode). */
   static async #onUseParty() {
-    if (this.#busy) return;
+    if (this.#busy || this.#createPending) return;
     this.#readForm();
     const party = activeParty();
     if (!party) {

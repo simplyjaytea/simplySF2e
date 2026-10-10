@@ -40,5 +40,6 @@ console.log("handout.test.mjs: player handout escaping and allowlist assertions 
 const enriched = handoutHtml({ name: "Vex", blurb: "@UUID[Macro.abc]{Click}", readAloud: "Roll [[/r 1d20]] and @Check[dc:20]" });
 assert.ok(!/@[A-Za-z]+\[/.test(enriched), "no live @Word[ enricher may survive");
 assert.ok(!enriched.includes("[["), "no live [[ inline roll may survive");
+assert.ok(!/&[A-Za-z]+\[/.test(inertProse("&Reference[frightened]")), "no live &Word[ enricher may survive");
 assert.equal(inertProse("plain @ mention [one] [two]"), "plain @ mention [one] [two]");
 console.log("handout enricher tests passed");

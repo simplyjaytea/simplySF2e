@@ -5,7 +5,8 @@ import { TREASURE_AMOUNT_MULTIPLIER } from "./tables.mjs";
 
 export const REMEMBERED_FIELDS = ["mode", "level", "rarity", "adjustment", "allowSpellcasting", "preset", "partySize", "threat", "treasureAmount", "rarityCap"];
 
-const MODES = ["monster", "npc", "encounter", "character", "reskin"];
+// Reskin is left out: its dropped source is never remembered.
+const MODES = ["monster", "npc", "encounter", "character"];
 const RARITIES = ["common", "uncommon", "rare", "unique"];
 const ADJUSTMENTS = ["elite", "weak"];
 const THREAT_KEYS = Object.keys(THREATS);

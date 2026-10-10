@@ -9,12 +9,12 @@ import { generatedFolderId } from "./folders.mjs";
  * Pure: breaks Foundry enricher syntax in AI prose. `esc` alone does not stop
  * enrichHTML, which reads decoded text: `@UUID[Macro.x]{...}` would render a
  * link that runs a macro for whoever clicks it, and `[[/r ...]]` an inline
- * roll. A zero-width space after `@` and between doubled brackets keeps the
- * text readable and inert.
+ * roll (and `&Reference[...]` a tooltip). A zero-width space after `@` or
+ * `&` and between doubled brackets keeps the text readable and inert.
  */
 export function inertProse(text) {
   return String(text ?? "")
-    .replace(/@(?=[A-Za-z]+\[)/g, "@\u200B")
+    .replace(/([@&])(?=[A-Za-z]+\[)/g, "$1\u200B")
     .replace(/\[(?=\[)/g, "[\u200B");
 }
 
