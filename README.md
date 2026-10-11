@@ -153,7 +153,7 @@ After **Create Actor** (and **Create All Actors** for an encounter), a **Stat ch
 
 ### Encounters
 
-Set **Party level**, **Party size** and **Threat**, and optionally fill **Describe the encounter theme (optional)**. The AI designs a theme and a set of roles, and SimplySF2e then builds each member through the full creature pipeline. That means one AI round per creature, so encounters cost more tokens than a single monster. Up to three creatures are built at the same time, which cuts the wait for bigger encounters. If one creature fails, the others stop and nothing is kept.
+Set **Party level**, **Party size** and **Threat**, and optionally fill **Describe the encounter theme (optional)**. The AI designs a theme and a set of roles, and SimplySF2e then builds each member through the full creature pipeline. That means one AI round per creature, so encounters cost more tokens than a single monster. Up to three creatures are built at the same time, which cuts the wait for bigger encounters. A local provider (Ollama, LM Studio, or another address on your home network) still builds them one at a time, because most local servers answer one request at a time. If one creature fails, the others stop and nothing is kept.
 
 The preview shows each member's level and role (**Boss**, **Minion**) with **Add one** / **Remove one (0 skips this creature)** counters. It also shows total treasure against the encounter's treasure budget, in credits. **Create All Actors** creates every member inside a new Actors folder named after the encounter. If any member fails, the whole batch and its folder are rolled back.
 
@@ -182,7 +182,7 @@ Reskin gives an existing NPC new fiction without touching its numbers.
 
 The AI writes a new name, a read-aloud description and Recall Knowledge text, and may rename strikes and abilities. **Create Reskinned Copy** creates a new actor. Its statistics, rules, traits and items are copied unchanged, and the original creature is not modified.
 
-**New level** re-levels the copy. Set it with the − / + buttons (−1 to 24) and a table shows each changed number at the old and new level. Every number keeps its Starfinder GM Core scale: a creature with high AC at level 3 has high AC at level 7, and one point above "high" stays one point above. HP scales by the same proportion, and each strike's main damage moves to the matching damage scale. AC, HP, Perception, saves, attribute modifiers, skills, strikes, spell DC and spell attack, and resistance and weakness values all move. Spells and their ranks, DCs or damage written into ability text, gear, and Elite/Weak stay as they are, so check those on the new sheet.
+**New level** re-levels the copy. Set it with the − / + buttons (−1 to 24) and a table shows each changed number at the old and new level. Every number keeps its Starfinder GM Core scale: a creature with high AC at level 3 has high AC at level 7, and one point above "high" stays one point above. HP scales by the same proportion, and each strike's main damage moves to the matching damage scale. AC, HP, Perception, saves, attribute modifiers, skills, strikes, spell DC and spell attack, and resistance and weakness values all move. Spells and their ranks, DCs or damage written into ability text, the ritual DC, gear, and Elite/Weak stay as they are, so check those on the new sheet. An attribute or skill lower than every GM Core scale (such as a mindless creature's Int −5) also stays as it is. An Elite or Weak creature is re-leveled from its base level.
 
 ## Using the Item Forge
 

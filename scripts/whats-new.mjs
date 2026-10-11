@@ -46,6 +46,17 @@ export function firstRunSeenIds(notes) {
   return (Array.isArray(notes) ? notes : []).map((note) => note?.id).filter(Boolean);
 }
 
+/**
+ * The seen list to start from when this browser has never stored one. A new
+ * install (the welcome window is still opening: no working AI connection and
+ * not dismissed) starts with every note seen. A GM who already set the module
+ * up is upgrading from a release before this window existed, so every note
+ * counts as unseen and they are shown once.
+ */
+export function initialSeenIds(notes, { welcomeOpening = false } = {}) {
+  return welcomeOpening ? firstRunSeenIds(notes) : [];
+}
+
 /** Seen list plus the given notes' ids, without duplicates. */
 export function markSeen(seenIds, notes) {
   return [...new Set([...idList(seenIds), ...firstRunSeenIds(notes)])];

@@ -708,7 +708,7 @@
       "Scale": "Scale",
       "AtLevel": "Level {level}",
       "Damage": "Damage: {name}",
-      "Unchanged": "Spells and their ranks, DCs or damage written in ability text, gear, and Elite/Weak stay as they are.",
+      "Unchanged": "Spells and their ranks, DCs or damage written in ability text, the ritual DC, gear, and Elite/Weak stay as they are. Attributes and skills also move, and very low ones (below every GM Core scale) stay put.",
       "Notice": "The copy is moved to level {level} with the GM Core tables. Rules, traits, spells, and items are copied unchanged. The original creature is not modified."
     },
     "Treasure": {

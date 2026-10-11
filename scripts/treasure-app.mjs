@@ -13,7 +13,7 @@ import {
 import { verifyCreatedActor } from "./post-create.mjs";
 import { moveToGeneratedFolder } from "./folders.mjs";
 import { SourcesConfigApp } from "./sources-app.mjs";
-import { gpToCredits, assembleCurrency } from "./currency.mjs";
+import { gpToCredits, assembleCurrency, splitCurrency } from "./currency.mjs";
 import { activeParty } from "./party.mjs";
 import { SpfApp } from "./app-base.mjs";
 
@@ -69,6 +69,8 @@ export class TreasureApp extends SpfApp {
   #level = null;
   #partySize = null;
   #budget = 0;
+  /** The "How much" the shown hoard was filled for (the form may change after). */
+  #amount = null;
   /** Picks dropped: not offered, unpriced, or over budget. */
   #dropped = 0;
 
@@ -132,7 +134,7 @@ export class TreasureApp extends SpfApp {
       budget: this.#budget.toLocaleString(),
       each: creditsEach(this.#budget, this.#partySize).toLocaleString(),
       partySize: this.#partySize,
-      amount: this.#input.amount,
+      amount: this.#amount,
       dropped: this.#dropped
     };
   }
@@ -282,7 +284,11 @@ export class TreasureApp extends SpfApp {
         priced.push({ ...candidate, credits: gpToCredits(priceToGp(doc.system?.price?.value)) });
       }
       const hoard = fillHoard(ids, priced, budget);
-      for (const id of hoard.unknown) console.warn(`${MODULE_ID} | treasure pick "${id}" was not on the offered list; dropped`);
+      const offered = new Set(issued.map((candidate) => candidate.id));
+      for (const id of hoard.unknown) {
+        // Issued picks whose document failed to load were warned above.
+        if (!offered.has(id)) console.warn(`${MODULE_ID} | treasure pick "${id}" was not on the offered list; dropped`);
+      }
       for (const name of hoard.overBudget) console.warn(`${MODULE_ID} | treasure pick "${name}" does not fit the budget; dropped`);
       for (const name of hoard.unpriced) console.warn(`${MODULE_ID} | treasure pick "${name}" has no price; dropped`);
 
@@ -309,6 +315,7 @@ export class TreasureApp extends SpfApp {
       this.#level = level;
       this.#partySize = partySize;
       this.#budget = budget;
+      this.#amount = amount;
       this.#dropped = hoard.unknown.length + hoard.overBudget.length + hoard.unpriced.length;
     } catch (err) {
       if (err?.cancelled) console.warn(`${MODULE_ID} | treasure generation cancelled`);
@@ -342,8 +349,13 @@ export class TreasureApp extends SpfApp {
       const items = this.#items.map((row) => foundry.utils.deepClone(row.itemData));
       // Removed rows hand their price back, so the Credstick holds whatever
       // the budget has left (cited credstick.json template, see currency.mjs).
-      const credstick = assembleCurrency("credits", hoardLeftover(this.#budget, this.#items));
-      if (credstick) items.push(credstick);
+      // One Credstick holds at most CURRENCY_ITEM_MAX credits, so a large
+      // leftover (high levels, whole level) goes on several.
+      for (const part of splitCurrency(hoardLeftover(this.#budget, this.#items))) {
+        const credstick = assembleCurrency("credits", part);
+        if (!credstick) throw new Error(game.i18n.localize("SIMPLYSF2E.Treasure.NoItems"));
+        items.push(credstick);
+      }
       if (!items.length) throw new Error(game.i18n.localize("SIMPLYSF2E.Treasure.NoItems"));
       actor = await Actor.create(treasureActorData(this.#concept, this.#level, items));
       verifyCreatedActor(actor, { complete: true }, items);
@@ -395,6 +407,7 @@ export class TreasureApp extends SpfApp {
     this.#level = null;
     this.#partySize = null;
     this.#budget = 0;
+    this.#amount = null;
     this.#dropped = 0;
   }
 }

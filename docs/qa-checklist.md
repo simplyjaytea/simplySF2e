@@ -623,6 +623,7 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 | 13i.3 | Press **Got it**, then reload. | The window closes and does not open again. | What's new | | |
 | 13i.4 | After a new update, press **Don't show for updates**, then reload after another update. | It never opens by itself again; `/sf2e whatsnew`, the settings **What's New** button and `game.modules.get("simplysf2e").api.openWhatsNew()` still open it with the newest notes. | What's new, chat, settings | | |
 | 13i.5 | Log in as a player after an update. | No What's new window and no error in the console. | Player client | | |
+| 13i.6 | On a world where the GM already used SimplySF2e before this update (AI connection working), update and log in as the GM. | What's new opens once and lists all four notes from this update. | Login | | |
 
 ## 13j. Re-level in Reskin mode
 

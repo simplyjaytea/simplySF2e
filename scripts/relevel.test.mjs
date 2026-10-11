@@ -97,6 +97,11 @@ const same = relevelActorData(source, 3);
 assert.equal(same.rows.length, 0);
 assert.deepEqual(same.data, source);
 
+// A mindless creature's Int -5 sits below every printed attribute scale and stays put.
+const mindless = relevelActorData({ system: { details: { level: { value: 1 } }, abilities: { int: { mod: -5 } }, skills: { stealth: { base: -3 } } } }, 20).data;
+assert.equal(mindless.system.abilities.int.mod, -5);
+assert.equal(mindless.system.skills.stealth.base, -3);
+
 // Helpers.
 assert.equal(nearestScale(T.AC, 3, 20), "high", "20 is nearer high (19) than extreme (22)");
 assert.equal(shiftStat(T.AC, 20, 3, 7).value, 26);

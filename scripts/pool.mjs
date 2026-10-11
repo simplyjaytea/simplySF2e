@@ -11,6 +11,16 @@
 export const ENCOUNTER_CONCURRENCY = 3;
 
 /**
+ * Encounter concurrency for the current provider. A local server (Ollama,
+ * LM Studio) often answers one request at a time; queued requests would sit
+ * silent past the stream idle timeout, so local providers build one creature
+ * at a time as before.
+ */
+export function encounterConcurrency({ local = false } = {}) {
+  return local ? 1 : ENCOUNTER_CONCURRENCY;
+}
+
+/**
  * Call `task(i)` for i = 0..count-1 with at most `limit` running at once.
  * Tasks start in index order and results come back in index order. After the
  * first failure no new task starts, `onError(err)` runs once (to abort the

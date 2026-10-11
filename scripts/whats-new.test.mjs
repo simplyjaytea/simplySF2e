@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { RELEASE_NOTES, unseenNotes, firstRunSeenIds, markSeen, manualNotes, shouldAutoOpenWhatsNew } from "./whats-new.mjs";
+import { RELEASE_NOTES, unseenNotes, firstRunSeenIds, initialSeenIds, markSeen, manualNotes, shouldAutoOpenWhatsNew } from "./whats-new.mjs";
 
 const notes = [{ id: "c" }, { id: "b" }, { id: "a" }];
 
@@ -40,4 +40,10 @@ for (const n of RELEASE_NOTES) {
   assert.match(n.title, /^SIMPLYSF2E\.WhatsNew\.Note\./);
   assert.match(n.body, /^SIMPLYSF2E\.WhatsNew\.Note\./);
 }
+// Never stored: a new install starts with everything seen; a GM already set
+// up (welcome not opening) is upgrading and sees every note once.
+assert.deepEqual(initialSeenIds(notes, { welcomeOpening: true }), firstRunSeenIds(notes));
+assert.deepEqual(initialSeenIds(notes, { welcomeOpening: false }), []);
+assert.equal(unseenNotes(notes, initialSeenIds(notes)).length, notes.length);
+
 console.log("whats-new tests passed");

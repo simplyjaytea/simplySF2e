@@ -14,13 +14,16 @@
  *   `perception.mod`, `saves.<save>.value`, `skills.<slug>.base`
  *   (`number | null`, null defers to the attribute) and `.special[].base`,
  *   `details.level.value`.
- * - actor/creature/data.ts: `attributes.resistances[]`/`weaknesses[]` `.value`.
+ * - actor/data/base.ts ActorAttributesSource: `resistances[]`/`weaknesses[]` `.value`.
  * - item/melee/data.ts: `bonus.value`, `damageRolls.<id>.damage`.
  * - item/spellcasting-entry/data.ts: `spelldc.value` (attack), `spelldc.dc`.
  * - item/lore.ts: an NPC lore item's `system.mod.value` is its skill base.
  *
  * Left unchanged (and said so in the preview): spells and their ranks, DCs
- * and damage written into ability text, items and gear, Elite/Weak.
+ * and damage written into ability text, the ritual DC, items and gear,
+ * Elite/Weak. An attribute or skill below the lowest printed scale (a
+ * mindless creature's Int -5) also stays as it is: the tables print no scale
+ * that low, so there is no step to keep.
  *
  * Pure module (no Foundry globals), node-testable.
  */
@@ -68,9 +71,19 @@ function cell(table, scale, level) {
   return value === null || value === undefined ? null : value;
 }
 
-/** Move a modifier/AC/DC by its scale's step. Returns {value, scale} or null. */
-export function shiftStat(table, value, from, to) {
+/** The lowest value any printed scale reaches at a level. */
+function floorAt(table, level) {
+  const values = SCALE_ORDER.map((scale) => cell(table, scale, level)).filter(isNumber);
+  return values.length ? Math.min(...values) : null;
+}
+
+/**
+ * Move a modifier/AC/DC by its scale's step. Returns {value, scale} or null.
+ * With `keepBelowFloor`, a value under every printed scale is left alone.
+ */
+export function shiftStat(table, value, from, to, { keepBelowFloor = false } = {}) {
   if (!isNumber(value)) return null;
+  if (keepBelowFloor && value < floorAt(table, from)) return null;
   const scale = nearestScale(table, from, value);
   const before = scale && cell(table, scale, from);
   const after = scale && cell(table, scale, to);
@@ -166,12 +179,12 @@ export function relevelActorData(actorData, level) {
   }
 
   for (const entry of Object.values(system.abilities ?? {})) {
-    const result = shiftStat(T.ABILITY_MODIFIER, entry?.mod, from, to);
+    const result = shiftStat(T.ABILITY_MODIFIER, entry?.mod, from, to, { keepBelowFloor: true });
     if (result) entry.mod = result.value;
   }
 
   for (const skill of Object.values(system.skills ?? {})) {
-    const result = shiftStat(T.SKILL, skill?.base, from, to);
+    const result = shiftStat(T.SKILL, skill?.base, from, to, { keepBelowFloor: true });
     if (!result) continue;
     const step = result.value - skill.base;
     skill.base = result.value;
@@ -202,7 +215,7 @@ export function relevelActorData(actorData, level) {
       note(`damage-${item._id}`, "SIMPLYSF2E.Relevel.Damage", damage, first?.damage, { name: item.name });
       if (damage) first.damage = damage.value;
     } else if (item.type === "lore") {
-      const result = shiftStat(T.SKILL, itemSystem.mod?.value, from, to);
+      const result = shiftStat(T.SKILL, itemSystem.mod?.value, from, to, { keepBelowFloor: true });
       if (result) itemSystem.mod.value = result.value;
     } else if (item.type === "spellcastingEntry" && itemSystem.spelldc) {
       const dc = shiftStat(T.SPELL_DC, itemSystem.spelldc.dc, from, to);

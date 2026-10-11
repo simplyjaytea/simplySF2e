@@ -1,6 +1,6 @@
 import {
   MODULE_ID, SETTINGS, getSetting, getProviderAuthWarningKey, getProviderRequestConfig,
-  authorizeApiKeyForCurrentBaseUrl
+  authorizeApiKeyForCurrentBaseUrl, isLikelyKeylessLocalEndpoint
 } from "./settings.mjs";
 import { rememberedInput, restoreGeneratorInput } from "./generator-memory.mjs";
 import {
@@ -18,7 +18,7 @@ import {
   dedupeLootAgainstEquipment, enforceNamedLootBudget, reskinActorData, narrativeHasMechanics
 } from "./builder.mjs";
 import { normalizeReskin, reskinRenameTargets } from "./reskin.mjs";
-import { runPool, ENCOUNTER_CONCURRENCY } from "./pool.mjs";
+import { runPool, encounterConcurrency } from "./pool.mjs";
 import { relevelActorData, clampRelevel, RELEVEL_MIN, RELEVEL_MAX } from "./relevel.mjs";
 import { REROLL_KINDS, rerollTarget, rerollPool, applyRerollPick, rerollKeywords } from "./reroll.mjs";
 import {
@@ -1107,7 +1107,8 @@ export class GeneratorApp extends SpfApp {
       // creatures: step N is active until N creatures are done.
       let finished = 0;
       await this._setStep("member0");
-      const built = await runPool(composition.members.length, ENCOUNTER_CONCURRENCY, async (i) => {
+      const local = isLikelyKeylessLocalEndpoint(getSetting(SETTINGS.apiBaseUrl));
+      const built = await runPool(composition.members.length, encounterConcurrency({ local }), async (i) => {
         const slot = composition.members[i];
         const signal = memberSignal;
         this._throwIfCancelled();
@@ -2009,7 +2010,11 @@ export class GeneratorApp extends SpfApp {
       uuid: actor.uuid,
       name: actor.name,
       img: actor.img ?? null,
-      level: actor.system?.details?.level?.value ?? actor.level ?? 0
+      // Source (base) level: the prepared level already includes Elite/Weak
+      // (v14-dev npc/document.ts `level.base = Math.clamp(level.value, -1, 100)`,
+      // then +/-1 or 2), while the copy is built from source data.
+      level: actor._source?.system?.details?.level?.value ?? actor.system?.details?.level?.base
+        ?? actor.system?.details?.level?.value ?? actor.level ?? 0
     };
     this.#reskinLevel = null;
     this.#reskinData = null;

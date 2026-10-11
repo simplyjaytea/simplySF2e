@@ -2,11 +2,13 @@
 // Run: node scripts/pool.test.mjs
 
 import assert from "node:assert/strict";
-import { runPool, ENCOUNTER_CONCURRENCY } from "./pool.mjs";
+import { runPool, ENCOUNTER_CONCURRENCY, encounterConcurrency } from "./pool.mjs";
 
 const tick = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 assert.ok(ENCOUNTER_CONCURRENCY >= 1);
+assert.equal(encounterConcurrency({ local: true }), 1, "local providers build one creature at a time");
+assert.equal(encounterConcurrency(), ENCOUNTER_CONCURRENCY);
 
 // Results keep index order even when later tasks finish first.
 let running = 0;

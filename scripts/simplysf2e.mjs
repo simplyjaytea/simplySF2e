@@ -8,7 +8,7 @@ import { ProviderSetupApp } from "./provider-setup-app.mjs";
 import { WelcomeApp } from "./welcome-app.mjs";
 import { shouldAutoOpenWelcome } from "./welcome.mjs";
 import { WhatsNewApp } from "./whats-new-app.mjs";
-import { RELEASE_NOTES, unseenNotes, firstRunSeenIds, shouldAutoOpenWhatsNew } from "./whats-new.mjs";
+import { RELEASE_NOTES, unseenNotes, initialSeenIds, shouldAutoOpenWhatsNew } from "./whats-new.mjs";
 
 let app = null;
 let itemForgeApp = null;
@@ -147,26 +147,27 @@ Hooks.once("ready", () => {
     console.warn(`${MODULE_ID} | could not open the welcome window`, err);
   }
 
-  // What's new: a fresh install (never run) silently marks every current note
-  // seen, since the welcome window covers new installs. Otherwise open once
-  // for notes added since, unless disabled or the welcome is opening now.
+  // What's new: open once for notes this browser has not seen, unless
+  // disabled or the welcome is opening now. With no stored list yet, a new
+  // install marks every note seen (the welcome covers it) and an upgrading
+  // GM sees them all once (whats-new.mjs initialSeenIds).
   try {
-    const seenIds = getSetting(SETTINGS.whatsNewSeen);
+    let seenIds = getSetting(SETTINGS.whatsNewSeen);
     if (!Array.isArray(seenIds)) {
-      game.settings.set(MODULE_ID, SETTINGS.whatsNewSeen, firstRunSeenIds(RELEASE_NOTES))
+      seenIds = initialSeenIds(RELEASE_NOTES, { welcomeOpening });
+      game.settings.set(MODULE_ID, SETTINGS.whatsNewSeen, seenIds)
         .catch((err) => console.warn(`${MODULE_ID} | could not save the What's new state`, err));
-    } else {
-      const unseen = unseenNotes(RELEASE_NOTES, seenIds);
-      if (shouldAutoOpenWhatsNew({
-        isGM: true,
-        systemId: game.system.id,
-        disabled: getSetting(SETTINGS.whatsNewDisabled),
-        seenIds,
-        unseenCount: unseen.length,
-        welcomeOpening
-      })) {
-        openWhatsNew(unseen);
-      }
+    }
+    const unseen = unseenNotes(RELEASE_NOTES, seenIds);
+    if (shouldAutoOpenWhatsNew({
+      isGM: true,
+      systemId: game.system.id,
+      disabled: getSetting(SETTINGS.whatsNewDisabled),
+      seenIds,
+      unseenCount: unseen.length,
+      welcomeOpening
+    })) {
+      openWhatsNew(unseen);
     }
   } catch (err) {
     console.warn(`${MODULE_ID} | could not open the What's new window`, err);
