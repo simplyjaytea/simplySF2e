@@ -18,6 +18,7 @@ import {
   dedupeLootAgainstEquipment, enforceNamedLootBudget, reskinActorData, narrativeHasMechanics
 } from "./builder.mjs";
 import { normalizeReskin, reskinRenameTargets } from "./reskin.mjs";
+import { relevelActorData, clampRelevel, RELEVEL_MIN, RELEVEL_MAX } from "./relevel.mjs";
 import { REROLL_KINDS, rerollTarget, rerollPool, applyRerollPick, rerollKeywords } from "./reroll.mjs";
 import {
   normalizePCConcept, resolvePCConcept, resolveFeatPicks, createCharacterActor, pcStartingWealthGp
@@ -82,6 +83,8 @@ export class GeneratorApp extends SpfApp {
       generateAnother: GeneratorApp.#onGenerateAnother,
       managePresets: GeneratorApp.#onManagePresets,
       levelUp: GeneratorApp.#onLevelUp,
+      reskinLevelUp: GeneratorApp.#onReskinLevelUp,
+      reskinLevelDown: GeneratorApp.#onReskinLevelDown,
       levelDown: GeneratorApp.#onLevelDown,
       partyUp: GeneratorApp.#onPartyUp,
       partyDown: GeneratorApp.#onPartyDown,
@@ -115,6 +118,9 @@ export class GeneratorApp extends SpfApp {
   /** Reskin mode: the dropped NPC ({uuid, name, img, level}) and the validated flavor. */
   #reskinSource = null;
   #reskinFlavor = null;
+  /** Reskin mode: the copy's level (re-level; null = the source's level) and the source data for its preview. */
+  #reskinLevel = null;
+  #reskinData = null;
   #busy = false;
   #busyMessage = null;
   #error = null;
@@ -265,6 +271,7 @@ export class GeneratorApp extends SpfApp {
       npcMode: this.#input.mode === "npc",
       reskinMode: this.#input.mode === "reskin",
       reskinSource: this.#reskinSource,
+      reskinRelevel: this.#input.mode === "reskin" ? this.#buildRelevelContext() : null,
       reskinPreview: this.#input.mode === "reskin" ? this.#buildReskinPreviewContext() : null,
       randomTooltipKey: {
         monster: "SIMPLYSF2E.Generator.RandomTooltip",
@@ -308,13 +315,42 @@ export class GeneratorApp extends SpfApp {
     if (!flavor || !this.#reskinSource) return null;
     return {
       name: flavor.name ?? this.#reskinSource.name,
-      level: this.#reskinSource.level,
+      level: this.#reskinTargetLevel(),
+      releveled: this.#reskinTargetLevel() !== this.#reskinSource.level,
       sourceName: this.#reskinSource.name,
       blurb: flavor.blurb,
       readAloud: flavor.readAloud,
       paragraphs: (flavor.description ?? "").split(/\n{2,}/).map((p) => p.trim()).filter(Boolean),
       recallKnowledge: flavor.recallKnowledge,
       renames: flavor.renames
+    };
+  }
+
+  /** The copy's level: the GM's re-level choice, else the source's own level. */
+  #reskinTargetLevel() {
+    return this.#reskinLevel ?? this.#reskinSource?.level ?? 0;
+  }
+
+  /** Re-level controls and the before/after rows for the loaded NPC (relevel.mjs). */
+  #buildRelevelContext() {
+    if (!this.#reskinSource) return null;
+    const level = this.#reskinTargetLevel();
+    const { rows } = this.#reskinData ? relevelActorData(this.#reskinData, level) : { rows: [] };
+    const bands = {
+      extreme: "BandExtreme", high: "BandHigh", moderate: "BandModerate", low: "BandLow", terrible: "BandTerrible"
+    };
+    return {
+      from: this.#reskinSource.level,
+      level,
+      min: RELEVEL_MIN,
+      max: RELEVEL_MAX,
+      changed: level !== this.#reskinSource.level,
+      rows: rows.map((row) => ({
+        label: row.name ? game.i18n.format(row.label, { name: row.name }) : game.i18n.localize(row.label),
+        scale: bands[row.scale] ? game.i18n.localize(`SIMPLYSF2E.StatCheck.${bands[row.scale]}`) : "",
+        from: row.from,
+        to: row.to
+      }))
     };
   }
 
@@ -630,6 +666,11 @@ export class GeneratorApp extends SpfApp {
     const rarityCap = form.querySelector('[name="rarityCap"]')?.value ?? this.#input.rarityCap;
     const rawAdj = form.querySelector('[name="adjustment"]')?.value ?? this.#input.adjustment;
     const adjustment = rawAdj === "elite" || rawAdj === "weak" ? rawAdj : null;
+    const reskinLevelEl = form.querySelector('[name="reskinLevel"]');
+    if (reskinLevelEl && this.#reskinSource) {
+      const reskinLevel = clampRelevel(reskinLevelEl.value, this.#reskinTargetLevel());
+      this.#reskinLevel = reskinLevel === this.#reskinSource.level ? null : reskinLevel;
+    }
     this.#input = { mode, prompt, level, rarity, adjustment, allowSpellcasting, preset, partySize, threat, treasureAmount, rarityCap };
     this.#rememberInput();
   }
@@ -670,6 +711,10 @@ export class GeneratorApp extends SpfApp {
         if (preset.treasureAmount) this.#input.treasureAmount = preset.treasureAmount;
       }
       this.#exampleTick++;
+      this.render();
+    });
+    this.element.querySelector('input[name="reskinLevel"]')?.addEventListener("change", () => {
+      this.#readForm();
       this.render();
     });
     const dropZone = this.element.querySelector("[data-reskin-drop]");
@@ -734,6 +779,23 @@ export class GeneratorApp extends SpfApp {
 
   static #onLevelDown() {
     this.#stepLevel(-1);
+  }
+
+  static #onReskinLevelUp() {
+    this.#stepReskinLevel(1);
+  }
+
+  static #onReskinLevelDown() {
+    this.#stepReskinLevel(-1);
+  }
+
+  /** Re-level stepper: the copy's level, within the GM Core tables' range. */
+  #stepReskinLevel(delta) {
+    if (this.#busy || !this.#reskinSource) return;
+    this.#readForm();
+    const level = clampRelevel(this.#reskinTargetLevel() + delta, this.#reskinTargetLevel());
+    this.#reskinLevel = level === this.#reskinSource.level ? null : level;
+    this.render();
   }
 
   static async #onMemberUp(_event, target) {
@@ -821,7 +883,10 @@ export class GeneratorApp extends SpfApp {
   static async #onCopyBugReport() {
     this.#readForm();
     const input = { ...this.#input };
-    if (input.mode === "reskin") input.reskinSource = this.#reskinSource?.name ?? null;
+    if (input.mode === "reskin") {
+      input.reskinSource = this.#reskinSource?.name ?? null;
+      input.reskinLevel = this.#reskinTargetLevel();
+    }
     return this._copyBugReport("Generator", input);
   }
 
@@ -1932,6 +1997,13 @@ export class GeneratorApp extends SpfApp {
       img: actor.img ?? null,
       level: actor.system?.details?.level?.value ?? actor.level ?? 0
     };
+    this.#reskinLevel = null;
+    this.#reskinData = null;
+    try {
+      this.#reskinData = await this.#reskinSourceData();
+    } catch (err) {
+      console.warn(`${MODULE_ID} | could not read the reskin source for its re-level preview`, err);
+    }
     this.#reskinFlavor = null;
     this.#created = null;
     this.#error = null;
@@ -1984,7 +2056,7 @@ export class GeneratorApp extends SpfApp {
         theme: this.#input.prompt,
         creature: {
           name: source.name,
-          level: source.system?.details?.level?.value ?? 0,
+          level: this.#reskinTargetLevel(),
           rarity: source.system?.traits?.rarity ?? "common",
           traits: source.system?.traits?.value ?? [],
           blurb: source.system?.details?.blurb ?? ""
@@ -2013,7 +2085,8 @@ export class GeneratorApp extends SpfApp {
     this.#error = null;
     await this.render();
     try {
-      const data = reskinActorData(await this.#reskinSourceData(), flavor);
+      const { data: releveled } = relevelActorData(await this.#reskinSourceData(), this.#reskinTargetLevel());
+      const data = reskinActorData(releveled, flavor);
       const actor = await Actor.create(data);
       this.#reskinFlavor = null;
       this.#previewMeta = null;
@@ -2179,7 +2252,7 @@ export class GeneratorApp extends SpfApp {
   #markPreview() {
     this.#previewMeta = {
       mode: this.#input.mode,
-      level: this.#input.mode === "reskin" ? this.#reskinSource?.level ?? null : this.#input.level,
+      level: this.#input.mode === "reskin" ? (this.#reskinSource ? this.#reskinTargetLevel() : null) : this.#input.level,
       at: Date.now()
     };
   }
@@ -2189,7 +2262,8 @@ export class GeneratorApp extends SpfApp {
     const all = {
       concept: this.#concept, resolved: this.#resolved, manifest: this.#manifest,
       encounter: this.#encounter, pcConcept: this.#pcConcept, pcResolved: this.#pcResolved,
-      reskinSource: this.#reskinSource, reskinFlavor: this.#reskinFlavor
+      reskinSource: this.#reskinSource, reskinFlavor: this.#reskinFlavor,
+      reskinLevel: this.#reskinLevel, reskinData: this.#reskinData
     };
     const mode = previewModeOf(all, this.#previewMeta?.mode ?? this.#manifest?.mode);
     if (!mode) return null;
@@ -2200,7 +2274,7 @@ export class GeneratorApp extends SpfApp {
       npc: { concept: all.concept, resolved: all.resolved, manifest: all.manifest, rerollRejected: this.#copyRerollRejected() },
       encounter: { encounter: all.encounter },
       character: { pcConcept: all.pcConcept, pcResolved: all.pcResolved, manifest: all.manifest },
-      reskin: { reskinSource: all.reskinSource, reskinFlavor: all.reskinFlavor }
+      reskin: { reskinSource: all.reskinSource, reskinFlavor: all.reskinFlavor, reskinLevel: all.reskinLevel, reskinData: all.reskinData }
     }[mode];
     return {
       id: `recent-${++this.#recentSeq}`,
@@ -2272,7 +2346,11 @@ export class GeneratorApp extends SpfApp {
     this.#pcResolved = state.pcResolved ?? null;
     this.#reskinFlavor = state.reskinFlavor ?? null;
     this.#rerollRejected = this.#copyRerollRejected(state.rerollRejected);
-    if (entry.mode === "reskin") this.#reskinSource = state.reskinSource;
+    if (entry.mode === "reskin") {
+      this.#reskinSource = state.reskinSource;
+      this.#reskinLevel = state.reskinLevel ?? null;
+      this.#reskinData = state.reskinData ?? null;
+    }
     this.#previewMeta = { mode: entry.mode, level: entry.level, at: entry.at };
     this._tokenUsage = [...entry.tokenUsage];
     this.#input.mode = entry.mode;
