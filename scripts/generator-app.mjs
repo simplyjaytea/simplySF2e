@@ -18,6 +18,7 @@ import {
   dedupeLootAgainstEquipment, enforceNamedLootBudget, reskinActorData, narrativeHasMechanics
 } from "./builder.mjs";
 import { normalizeReskin, reskinRenameTargets } from "./reskin.mjs";
+import { runPool, ENCOUNTER_CONCURRENCY } from "./pool.mjs";
 import { relevelActorData, clampRelevel, RELEVEL_MIN, RELEVEL_MAX } from "./relevel.mjs";
 import { REROLL_KINDS, rerollTarget, rerollPool, applyRerollPick, rerollKeywords } from "./reroll.mjs";
 import {
@@ -1097,9 +1098,19 @@ export class GeneratorApp extends SpfApp {
       this._recordTokens(game.i18n.localize("SIMPLYSF2E.Progress.Design"), design.usage);
 
       const members = [];
-      for (let i = 0; i < composition.members.length; i++) {
+      // Creatures are independent, so build a few at once (pool.mjs). The
+      // first failure aborts the rest instead of paying for creatures that
+      // will be thrown away.
+      const memberAbort = new AbortController();
+      const memberSignal = AbortSignal.any([signal, memberAbort.signal]);
+      // Several creatures run at once, so the progress list counts finished
+      // creatures: step N is active until N creatures are done.
+      let finished = 0;
+      await this._setStep("member0");
+      const built = await runPool(composition.members.length, ENCOUNTER_CONCURRENCY, async (i) => {
         const slot = composition.members[i];
-        await this._setStep(`member${i}`);
+        const signal = memberSignal;
+        this._throwIfCancelled();
         const { concept: raw, usage } = await generateConcept({
           prompt: `${design.briefs[i]} (Part of the encounter "${design.name}": ${theme})`,
           level: slot.level,
@@ -1127,8 +1138,11 @@ export class GeneratorApp extends SpfApp {
         await this.#refineCreatureFeats(concept, signal);
         await this.#refineEquipment(concept, signal);
         await this.#refineLoot(concept, signal);
-        members.push({ ...slot, concept });
-      }
+        finished++;
+        if (finished < composition.members.length) await this._setStep(`member${finished}`);
+        return { ...slot, concept };
+      }, { onError: () => memberAbort.abort() });
+      members.push(...built);
 
       await this._setStep("match");
       for (const member of members) {
