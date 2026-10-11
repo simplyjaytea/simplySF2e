@@ -37,7 +37,7 @@ export function registerSettings(SourcesConfigApp, ProviderSetupApp, WelcomeApp,
       name: "SIMPLYSF2E.WhatsNew.MenuName",
       label: "SIMPLYSF2E.WhatsNew.MenuLabel",
       hint: "SIMPLYSF2E.WhatsNew.MenuHint",
-      icon: "fa-solid fa-sparkles",
+      icon: "fa-solid fa-wand-magic-sparkles",
       type: WhatsNewApp,
       restricted: true
     });

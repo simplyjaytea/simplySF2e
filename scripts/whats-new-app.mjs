@@ -22,7 +22,7 @@ export class WhatsNewApp extends HandlebarsApplicationMixin(ApplicationV2) {
     classes: ["simplysf2e"],
     window: {
       title: "SIMPLYSF2E.WhatsNew.Title",
-      icon: "fa-solid fa-sparkles",
+      icon: "fa-solid fa-wand-magic-sparkles",
       resizable: true
     },
     position: { width: 520, height: "auto" },
