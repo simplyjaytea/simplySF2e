@@ -59,6 +59,7 @@ Encounter mode: `designEncounter()` picks a theme + per-role briefs once, then t
 | `builder.mjs` | NPC pipeline + shared resolve/build helpers used by both actor pipelines (`resolveEquipment`, `resolveLoot`, `resolveFocusSpells`, `buildEquipmentItems`, `buildLootItems`, `filterItemTypes`, `applyTreasureBudget`, `enrichDescription`). `reskinActorData()` builds a Reskin copy via `reskin.mjs`. |
 | `reroll.mjs` | Pure reroll-one-pick rules for the creature preview: `rerollPool` offers only issued catalog entries of the same kind that are not on the creature or already rejected for that slot (a spell keeps its cantrip/ranked slot), `applyRerollPick` swaps one slot. The AI picks one ID via `selectRerollPick` (`ai.mjs`). |
 | `reskin.mjs` | Pure Reskin validation/copy: `normalizeReskin` drops unknown/duplicate renames, `applyReskin` changes only prose and strike/ability display names, pinning each renamed item's original slug (`pf2eSluggify`, a port of v14-dev `sluggify`). |
+| `relevel.mjs` | Pure Reskin re-level: each NPC number moves by its nearest GM Core scale's step between levels (HP by ratio, first damage instance by the damage table); spells, ability text and gear unchanged. Source fields cited to v14-dev `npc/data.ts`, `melee/data.ts`, `spellcasting-entry/data.ts`, `lore.ts`. |
 | `stat-check.mjs` | Stat check after Create: reads a new NPC's prepared AC/HP/Perception/saves/strikes/spell DC (accessors cited to v14-dev), compares with `adjustedStats(computeStats())` and the GM Core band for its level. Report only; the Generator shows it in the finished panel and whispers the GM when something is off. |
 | `art.mjs` | Borrows token art/structure from the closest-matching bestiary creature (`findBestiaryScaffold`, `findBestiaryArt`). |
 | `currency.mjs` | Cited SF2e Credstick/UPB templates and gold-to-credit mapping. |
@@ -88,6 +89,7 @@ Encounter mode: `designEncounter()` picks a theme + per-role briefs once, then t
 | `progress.mjs` | Pure weighted/monotonic generation-progress math (step budgets, stream mapping). |
 | `tokens.mjs` | Token estimate + `normalizeUsage`; fallback counts are labeled estimated and coarsened on display. |
 | `encounter.mjs` | XP budget/composition math. |
+| `pool.mjs` | `runPool` bounded-concurrency runner (index-ordered, fail-fast); Encounter mode builds `ENCOUNTER_CONCURRENCY` (3, module default) creatures at once. |
 | `presets.mjs` | Six SF2e class flavor presets (Standard), four SF2e NPC archetype presets, custom preset CRUD + random briefs. |
 | `*.test.mjs` | Standalone regression checks (`node scripts/<name>.test.mjs`); CI runs every check before release. |
 

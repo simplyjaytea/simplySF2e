@@ -604,6 +604,24 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 | 13g.1 | In the Generator choose Encounters, level 7, Rare, Party size 5, Severe; type a prompt. Reload the page and reopen. | Mode, level, rarity, party size and threat come back; the prompt box is empty. | Generator | | |
 | 13g.2 | Log in as the same GM in another browser. | That browser keeps its own settings (per browser, not per world). | Generator | | |
 
+## 13j. Re-level in Reskin mode
+
+| # | Do | Expect | Where | Pass | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 13j.1 | In Reskin mode drop a level 3 bestiary NPC. | **New level** shows 3 and no table. | Generator | | |
+| 13j.2 | Press + until it shows 7. | A table lists AC, Max HP, Perception, saves, each strike and its damage, and Spell DC for casters, with the scale and the level 3 and level 7 values. | Generator | | |
+| 13j.3 | Write a theme and press **Preview Plan**, then **Create Reskinned Copy**. | The preview header says Creature 7 and the note says the copy moved to level 7. The new actor's sheet shows level 7 and the numbers from the table; the original is unchanged. | Generator, new actor sheet | | |
+| 13j.4 | On the new sheet, roll a strike and open a spell. | The attack bonus and damage match the table; spells keep their original ranks. | New actor sheet | | |
+| 13j.5 | Set the level back to the original and create a copy. | The copy keeps every number of the original (plain Reskin). | Generator | | |
+
+## 13k. Faster encounters
+
+| # | Do | Expect | Where | Pass | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 13k.1 | Generate a Severe encounter for a party of 5 with **Preview Plan** and watch the progress list. | Creatures finish in a few overlapping waves instead of one after another; the run takes noticeably less time than before. | Generator | | |
+| 13k.2 | Press Cancel while creatures are building. | Every creature stops; no preview and no actors. | Generator | | |
+| 13k.3 | Create the encounter. | Every member is created in the encounter folder, each with its own stats and gear. | Actors sidebar | | |
+
 ## 13i. What's new
 
 | # | Do | Expect | Where | Pass | Notes |
