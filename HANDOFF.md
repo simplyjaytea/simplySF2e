@@ -2,7 +2,13 @@
 
 Read this first, then CLAUDE.md. **The active plan is now [docs/next-steps.md](docs/next-steps.md)** (UI polish track U, Jev fast-picks track J, JT's decisions, and how a step thread builds, reviews and merges). The GM-ready checklist below still owns G13. HISTORY.md is the PF2e-era scaffold narrative; do not treat its v0.3.5.x release baton as simplySF2e state.
 
-## Last session — 2026-10-02 next-steps plan
+## Last session — 2026-10-11 Beta
+
+- Promoted the module from Alpha to Beta (G13, published as v0.1.0): README banner and Status, `module.json` description, CLAUDE.md current state.
+- Everything in docs/next-steps.md and feature rounds 2 and 3 is merged (#57–#65). QA rows 13a–13g are not yet checked live.
+- Merged remote branches still need deleting from JT's own machine (the cloud git proxy returns 403 on branch deletes).
+
+## Earlier session — 2026-10-02 next-steps plan
 
 - Wrote [docs/next-steps.md](docs/next-steps.md): Jev research (TypeSafe's typed decision model; only the OpenRouter route is browser-reachable, CORS probed 2026-10-02), UI track U1–U7, Jev track J1–J6 + JD1, decisions D-U1, D-U2, D-J1, D-J2.
 - Nothing in that plan is built yet. JT answered all four decisions on 2026-10-02 (Jev in the module; automatic on OpenRouter plus a separate Jev connection; polish the current UI; keep the Reskin mint + masks). U1, U2, U4 and J1a are ready.
@@ -70,7 +76,7 @@ Read this first, then CLAUDE.md. **The active plan is now [docs/next-steps.md](d
 
 ### Gate D — release
 
-- [ ] **G13 · Promote Alpha → Beta.** User decision once Gates A–C are clean: version bump, README status, release notes.
+- [x] **G13 · Promote Alpha → Beta.** Done 2026-10-11 on JT's request: README, module.json description and CLAUDE.md say Beta. JT picked "Beta as 0.1.0" on the card: the merge auto-publishes v0.0.71, then v0.1.0 is published from the same commit with Actions > Release > Run workflow, so later merges count up from 0.1.1. Release notes are GitHub's generated notes.
 
 ### Deferred (not GM-ready blockers)
 
@@ -82,7 +88,7 @@ The coordinator (Opus or Fable) owns planning, every sf2e schema verification, i
 
 **Wave 1** (parallel, no file overlap): G1 (Sonnet), G5 (Sonnet), G8 (Sonnet), G10 (Sonnet), G4 (Opus reviewer). Before Wave 1, the coordinator does the G2 and G3 verification itself.
 **Wave 2** (after G1 merges into the integration branch): G3 apply, G2 apply, G9.
-**Blocked on the user:** G13 (Alpha to Beta call) and the optional design cards JT is answering in the project chat.
+**Blocked on the user:** nothing in this checklist. G13 closed 2026-10-11.
 
 Spawn each worker with the `Agent` tool: `model: "sonnet"`, `isolation: "worktree"`, `run_in_background: true`, one checklist ID per worker. Prompt template:
 

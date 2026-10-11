@@ -2,7 +2,7 @@
 
 AI generator for Starfinder 2e in Foundry VTT. Describe a creature, NPC, encounter, player character or magic item in plain words; SimplySF2e asks an AI model for a concept, then builds it out of real content from your installed Starfinder 2e compendiums. Ported from [SimplyPF2e](https://github.com/simplyjaytea/simplyPF2e).
 
-> **Alpha.** Nothing in this module has been tested in a live Foundry world yet. Only automated node tests have run. Check every generated actor and item before you use it at the table.
+> **Beta.** The live QA checklist passed in a Foundry world on 2026-10-08, and automated node tests run on every release. Features added since then are not yet checked live. Check every generated actor and item before you use it at the table.
 
 ## Requirements
 
@@ -222,7 +222,7 @@ SimplySF2e builds from real content and **fails closed**: when it cannot match s
 - **Spells.** Review empty slots, signature spells and subclass or feat spell bonuses on casters after creation.
 - **Upgrade slots.** The number of upgrade slots on forged weapons and armor (1 for weapons and 0 for armor when the item text names none) is a module default. No published source has been cited for it, and this is on hold.
 - **Not built yet:** multiclass dedications, upgrade prerequisite checks, shields and ammunition in the Item Forge, and custom art.
-- **Elite/Weak**, equipment grades, Reskin and every other feature are **untested in a live world**. This is Alpha.
+- **Live checks.** The QA checklist passed live on 2026-10-08. The features added since then (scrolling button rows, the TypeSafe endpoint field, the http key rule, party fill, right-click Reskin, folders, handouts, remembered settings and the one-step chat command) are not yet checked live. This is Beta.
 
 ## Troubleshooting
 
@@ -252,7 +252,7 @@ When a run fails, the red error box in the Generator or Item Forge has a **Copy 
 
 ## Status
 
-**Alpha.** Identity `simplysf2e`, targeting system `sf2e` 1.5.0 or later, checked against 1.5.1 (Foundry 14.361+, verified 14.367). Live Foundry QA is still outstanding.
+**Beta.** Identity `simplysf2e`, targeting system `sf2e` 1.5.0 or later, checked against 1.5.1 (Foundry 14.361+, verified 14.367). Live Foundry QA passed on 2026-10-08 (reported by the author; no per-row log was kept).
 
 - Building Creatures and Treasure-by-Level numbers are cited against *Starfinder GM Core* pp. 116–128.
 - Character generation covers all six published classes. Level 1 class paths (including Operative's specialization skill feat and Sniper's bonus feat) are settled before creation. Solarian has no level 1 path choice.
