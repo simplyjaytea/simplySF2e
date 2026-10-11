@@ -16,10 +16,12 @@ export const SETTINGS = {
   customPresets: "customPresets",
   freeArchetype: "freeArchetype",
   welcomeDismissed: "welcomeDismissed",
+  whatsNewSeen: "whatsNewSeen",
+  whatsNewDisabled: "whatsNewDisabled",
   generatorInput: "generatorInput"
 };
 
-export function registerSettings(SourcesConfigApp, ProviderSetupApp, WelcomeApp) {
+export function registerSettings(SourcesConfigApp, ProviderSetupApp, WelcomeApp, WhatsNewApp) {
   if (WelcomeApp) {
     game.settings.registerMenu(MODULE_ID, "welcomeMenu", {
       name: "SIMPLYSF2E.Welcome.MenuName",
@@ -27,6 +29,16 @@ export function registerSettings(SourcesConfigApp, ProviderSetupApp, WelcomeApp)
       hint: "SIMPLYSF2E.Welcome.MenuHint",
       icon: "fa-solid fa-rocket",
       type: WelcomeApp,
+      restricted: true
+    });
+  }
+  if (WhatsNewApp) {
+    game.settings.registerMenu(MODULE_ID, "whatsNewMenu", {
+      name: "SIMPLYSF2E.WhatsNew.MenuName",
+      label: "SIMPLYSF2E.WhatsNew.MenuLabel",
+      hint: "SIMPLYSF2E.WhatsNew.MenuHint",
+      icon: "fa-solid fa-sparkles",
+      type: WhatsNewApp,
       restricted: true
     });
   }
@@ -62,6 +74,30 @@ export function registerSettings(SourcesConfigApp, ProviderSetupApp, WelcomeApp)
   // connection the welcome checks is itself per browser, so each GM browser
   // decides for itself.
   game.settings.register(MODULE_ID, SETTINGS.welcomeDismissed, {
+    scope: "client",
+    config: false,
+    type: Boolean,
+    default: false
+  });
+
+  // What's new: ids of release notes this browser has seen. null = never run
+  // (fresh install: ready seeds it silently). Per browser, like the welcome.
+  game.settings.register(MODULE_ID, SETTINGS.whatsNewSeen, {
+    scope: "client",
+    config: false,
+    // Nullable so "never run" (null) differs from "seen nothing" ([]).
+    type: globalThis.foundry?.data?.fields
+      ? new foundry.data.fields.ArrayField(new foundry.data.fields.StringField(), {
+        required: false,
+        nullable: true,
+        initial: null
+      })
+      : Array,
+    default: null
+  });
+
+  // "Don't show for updates" on the What's new window. Manual opens ignore it.
+  game.settings.register(MODULE_ID, SETTINGS.whatsNewDisabled, {
     scope: "client",
     config: false,
     type: Boolean,

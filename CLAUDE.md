@@ -50,6 +50,7 @@ Encounter mode: `designEncounter()` picks a theme + per-role briefs once, then t
 | File | Role |
 | --- | --- |
 | `simplysf2e.mjs` | Module entry: settings registration, app launchers, `/sf2e` / `/simplysf2e` chat command, first-run welcome auto-open. |
+| `whats-new.mjs` / `whats-new-app.mjs` | Pure release-note list (`RELEASE_NOTES`, newest first, i18n keys) + unseen/auto-open rules, and the window. Opens once per GM browser after an update with unseen notes (silently seeds on a fresh install). **Every PR with a change a GM can see adds one `RELEASE_NOTES` entry (new unique id, i18n title/body) at the top.** |
 | `welcome.mjs` / `welcome-app.mjs` | First-run welcome: pure readiness rows + auto-open rule (opens for a GM until the AI connection works or "Don't show again"), and the window over them. |
 | `ai.mjs` | All AI calls, SYSTEM_PROMPT, `pcSystemPrompt()`, `lootGuide()`. Streaming SSE, retry-once, fail-closed JSON parsing. |
 | `ai-response-validation.mjs` | Per-task required-key shape checks on parsed AI responses (`taskResponseProblem`). |

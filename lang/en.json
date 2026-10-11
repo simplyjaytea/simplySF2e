@@ -137,6 +137,35 @@
       "Recheck": "Check Again",
       "Close": "Close"
     },
+    "WhatsNew": {
+      "Title": "What's new in SimplySF2e",
+      "MenuName": "What's new",
+      "MenuLabel": "What's New",
+      "MenuHint": "See the latest changes to SimplySF2e. It also opens once by itself after an update that changes something you can see.",
+      "Intro": "SimplySF2e {version}: here is what changed since you last looked.",
+      "BrokeTitle": "Something broke?",
+      "BrokeBody": "Use Copy bug report in the Generator's error box and send it, with a line on what you were doing, to whoever gave you the module.",
+      "GotIt": "Got it",
+      "Disable": "Don't show for updates",
+      "Note": {
+        "WhatsNew": {
+          "Title": "What's new",
+          "Body": "This window. It opens once after an update that changes something you can see. Reopen it any time with /sf2e whatsnew."
+        },
+        "FasterEncounters": {
+          "Title": "Faster encounters",
+          "Body": "Encounter mode builds several creatures at the same time, so big encounters are ready sooner."
+        },
+        "Treasure": {
+          "Title": "Treasure hoards",
+          "Body": "A new Treasure window (Actors sidebar button or /sf2e treasure) fills one encounter's or a whole level's treasure budget with real Starfinder items and credits, and creates a loot actor."
+        },
+        "Relevel": {
+          "Title": "Re-level a creature",
+          "Body": "In Reskin mode, set a new level. The copy's AC, HP, attacks, saves, skills and DCs move to the Starfinder GM Core values for that level, keeping how strong each stat was."
+        }
+      }
+    },
     "Generator": {
       "Title": "SimplySF2e — Generator",
       "OpenButton": "SimplySF2e",

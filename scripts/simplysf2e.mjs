@@ -6,11 +6,14 @@ import { SourcesConfigApp } from "./sources-app.mjs";
 import { ProviderSetupApp } from "./provider-setup-app.mjs";
 import { WelcomeApp } from "./welcome-app.mjs";
 import { shouldAutoOpenWelcome } from "./welcome.mjs";
+import { WhatsNewApp } from "./whats-new-app.mjs";
+import { RELEASE_NOTES, unseenNotes, firstRunSeenIds, shouldAutoOpenWhatsNew } from "./whats-new.mjs";
 
 let app = null;
 let itemForgeApp = null;
 let shopApp = null;
 let welcomeApp = null;
+let whatsNewApp = null;
 
 function canOpenApps() {
   if (game.system?.id !== "sf2e") {
@@ -55,6 +58,15 @@ function openWelcome() {
   return welcomeApp;
 }
 
+// notes omitted = manual open: the newest notes, even when auto-open is off.
+function openWhatsNew(notes = null) {
+  if (!canOpenApps()) return null;
+  const live = foundry.applications.instances?.get?.(WhatsNewApp.DEFAULT_OPTIONS.id);
+  whatsNewApp = live ?? new WhatsNewApp({}, notes);
+  whatsNewApp.render(true);
+  return whatsNewApp;
+}
+
 function addDirectoryButton(html, { markerClass, icon, label, onClick, placement = "header" }) {
   const root = html instanceof HTMLElement ? html : html[0];
   if (!root || root.querySelector(`.${markerClass}`)) return;
@@ -85,7 +97,7 @@ function addDirectoryButton(html, { markerClass, icon, label, onClick, placement
 }
 
 Hooks.once("init", () => {
-  registerSettings(SourcesConfigApp, ProviderSetupApp, WelcomeApp);
+  registerSettings(SourcesConfigApp, ProviderSetupApp, WelcomeApp, WhatsNewApp);
   if (!Handlebars.helpers.eq) {
     Handlebars.registerHelper("eq", (a, b) => a === b);
   }
@@ -108,22 +120,47 @@ Hooks.once("ready", () => {
   // .openItemForge() for the magic item forge, .openShop() for the shop
   // generator and .openWelcome().
   const module = game.modules.get(MODULE_ID);
-  module.api = { open: openGenerator, openItemForge, openShop, openWelcome };
+  module.api = { open: openGenerator, openItemForge, openShop, openWelcome, openWhatsNew: () => openWhatsNew() };
 
   // First-run welcome ("Until ready", JT 2026-10-03). Players never read the
   // settings; a failure here must not break the rest of the module's ready.
   if (!game.user.isGM) return;
+  let welcomeOpening = false;
   try {
-    if (shouldAutoOpenWelcome({
+    welcomeOpening = shouldAutoOpenWelcome({
       isGM: true,
       systemId: game.system.id,
       dismissed: getSetting(SETTINGS.welcomeDismissed),
       providerReady: !getProviderAuthWarningKey()
-    })) {
-      openWelcome();
-    }
+    });
+    if (welcomeOpening) openWelcome();
   } catch (err) {
     console.warn(`${MODULE_ID} | could not open the welcome window`, err);
+  }
+
+  // What's new: a fresh install (never run) silently marks every current note
+  // seen, since the welcome window covers new installs. Otherwise open once
+  // for notes added since, unless disabled or the welcome is opening now.
+  try {
+    const seenIds = getSetting(SETTINGS.whatsNewSeen);
+    if (!Array.isArray(seenIds)) {
+      game.settings.set(MODULE_ID, SETTINGS.whatsNewSeen, firstRunSeenIds(RELEASE_NOTES))
+        .catch((err) => console.warn(`${MODULE_ID} | could not save the What's new state`, err));
+    } else {
+      const unseen = unseenNotes(RELEASE_NOTES, seenIds);
+      if (shouldAutoOpenWhatsNew({
+        isGM: true,
+        systemId: game.system.id,
+        disabled: getSetting(SETTINGS.whatsNewDisabled),
+        seenIds,
+        unseenCount: unseen.length,
+        welcomeOpening
+      })) {
+        openWhatsNew(unseen);
+      }
+    }
+  } catch (err) {
+    console.warn(`${MODULE_ID} | could not open the What's new window`, err);
   }
 });
 
@@ -233,6 +270,7 @@ Hooks.on("pf2e.restForTheNight", async (actor) => {
  *   /sf2e itemforge
  *   /sf2e shop
  *   /sf2e welcome
+ *   /sf2e whatsnew
  *   /sf2e [monster|npc|character|encounter] [level] [prompt]
  * A prompt starts a preview right away (the GM still clicks Create); without
  * one the command only fills in the form.
@@ -252,6 +290,11 @@ Hooks.on("chatMessage", (_chatLog, message, _chatData) => {
 
   if (/^welcome\b/i.test(args)) {
     openWelcome();
+    return false;
+  }
+
+  if (/^whats?-?new\b/i.test(args)) {
+    openWhatsNew();
     return false;
   }
 

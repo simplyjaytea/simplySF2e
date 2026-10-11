@@ -28,6 +28,8 @@ Every merge to `main` publishes the next release. See [Releases](https://github.
 
 When a GM logs in and no AI connection works yet, the **Welcome to SimplySF2e** window opens. It checks the Starfinder 2e system version, your compendium content and the AI connection, shows whether fast picks are on, and links to the window that fixes each row. It stops opening by itself once the connection works, or when you tick **Don't show this again at login**. Reopen it any time with **Open Welcome** in the module settings or `/sf2e welcome` in chat.
 
+After an update that changes something you can see, a **What's new in SimplySF2e** window opens once for the GM, listing only the new changes. **Got it** closes it; **Don't show for updates** stops it opening by itself. A fresh install does not show it. Reopen it any time with `/sf2e whatsnew` or the **What's New** button in the module settings.
+
 ### 2. Connect an AI provider
 
 Open **Configure Settings → SimplySF2e** and click **Configure Provider** (or press **Set Up AI Connection** in the welcome window). This opens the **AI Provider Setup** window.
@@ -103,8 +105,9 @@ All launchers are GM-only and only appear in an `sf2e` world.
 | Chat: `/sf2e itemforge` | The Item Forge |
 | Chat: `/sf2e shop` | The shop generator |
 | Chat: `/sf2e welcome` | The welcome and setup check |
+| Chat: `/sf2e whatsnew` | The What's new window |
 | Chat: `/sf2e [monster\|npc\|character\|encounter] [level] [description]` | The generator, pre-filled. Every part is optional, but they must come in that order, so a description that starts with a number is read as the level. Example: `/sf2e npc 4 street doc who patches up gang runners`. |
-| Macro: `game.modules.get("simplysf2e").api.open()` / `.openItemForge()` / `.openShop()` / `.openWelcome()` | The generator / the Item Forge / the shop generator / the welcome window |
+| Macro: `game.modules.get("simplysf2e").api.open()` / `.openItemForge()` / `.openShop()` / `.openWelcome()` / `.openWhatsNew()` | The generator / the Item Forge / the shop generator / the welcome window / the What's new window |
 
 The chat command is not case-sensitive. It only pre-fills the form; nothing is generated until you press a button. A level outside the mode's range is clamped (−1 to 24 for Monster and NPC, 1 to 20 for Encounters and Player Character). Reskin has no chat shortcut.
 
