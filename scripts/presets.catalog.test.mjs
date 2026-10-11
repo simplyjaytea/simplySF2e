@@ -93,7 +93,7 @@ assert.doesNotMatch(readme, /not play-ready/i);
 assert.match(readme, /`sf2e`/);
 assert.doesNotMatch(readme, /\*\*Standard\*\*.*23 Remaster/s);
 assert.doesNotMatch(readme, /complete-only still finishes \*\*Fighter\*\*/);
-assert.doesNotMatch(readme, /What's new/);
+assert.match(readme, /\/sf2e whatsnew/);
 assert.doesNotMatch(readme, /Cultivator|Fire Mage|Skill-Monkey|eighteen built-ins/i);
 
 console.log("presets.catalog.test.mjs: SF2e Standard catalog and picker grouping passed");

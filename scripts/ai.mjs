@@ -1431,6 +1431,77 @@ Pick exactly ${count} DISTINCT items (fewer only if the list is shorter) that th
 }
 
 /**
+ * Treasure hoard, step 1: flavor and search terms only. The module turns the
+ * keywords and category slugs into a real catalog; the AI never names an item,
+ * a price or a number here.
+ * @param {object} args
+ * @param {string} args.prompt  the GM's theme (may be empty)
+ * @param {number} args.level   party level (items are this level or lower)
+ * @param {string[]} args.categories  offered category slugs
+ * @returns {Promise<{concept: object, usage: object}>}
+ */
+export async function generateTreasureConcept({ prompt, level, categories, onProgress, signal }) {
+  const system = `You describe treasure hoards for a Starfinder 2e game. You write flavor only; the module fills the hoard with real published items afterwards. Never write item names, prices, numbers, or game statistics.
+
+Respond with a SINGLE JSON object and nothing else. No markdown fences, no commentary.
+
+JSON schema (all keys required):
+{
+  "name": string, // the hoard's name, e.g. "Cryo-lab salvage"
+  "description": string, // 1-2 short paragraphs: where it lies, how it was left, what the party sees
+  "keywords": string[], // 3-8 single lowercase words describing what is likely in it (item kinds, materials, themes), used to search the item catalog
+  "categories": string[] // what kinds of items fit, one or more of: ${categories.join(", ")}
+}`;
+  const user = [
+    `GM theme: ${prompt || "(none: invent a fitting mixed hoard)"}`,
+    `Party level: ${level}`
+  ].join("\n");
+  const { data, usage } = await requestJSON({
+    task: AI_TASK.TREASURE_CONCEPT, system, user, onProgress, signal
+  });
+  return { concept: data, usage };
+}
+
+/**
+ * Treasure hoard, step 2: pick items by ID from this run's real catalog.
+ * treasure.mjs fillHoard() keeps only issued IDs that fit the budget, in this
+ * order. The AI is told the budget only as a scale word, never a number.
+ * @param {object} args
+ * @param {object} args.concept  normalized treasure concept
+ * @param {{id: string, name: string, type: string, level: number}[]} args.candidates
+ * @param {number} args.count  how many distinct items to pick
+ * @param {"encounter"|"level"} args.amount  "one encounter" or "whole level" scale
+ * @returns {Promise<{ids: unknown[], usage: object}>}
+ */
+export async function selectTreasureItems({ concept, candidates, count, amount = "encounter", gmPrompt = "", onProgress, signal }) {
+  const byType = new Map();
+  for (const c of candidates) {
+    if (!byType.has(c.type)) byType.set(c.type, []);
+    byType.get(c.type).push(`${c.id} | ${c.name}${c.level > 0 ? ` (L${c.level})` : ""}`);
+  }
+  const list = [...byType.entries()].map(([type, names]) => `${type}: ${names.join("; ")}`).join("\n");
+  const scale = amount === "level"
+    ? "a whole level of adventuring (many items, a few of them notable)"
+    : "a single encounter (a few modest items; save the best for later)";
+  const system = `You fill a Starfinder 2e treasure hoard. Choose ONLY IDs from the provided list. Respond with a single JSON object and nothing else:
+{ "ids": string[] }
+Pick up to ${count} DISTINCT items this hoard would plausibly contain, matching its theme. The hoard is worth ${scale}. The module keeps your picks in the order you give, most important first, until its budget is spent, so put the items you want most first and mix cheap and valuable ones. Never repeat an ID.`;
+  const user = [
+    gmPrompt ? `GM theme: ${gmPrompt}` : null,
+    `Hoard: ${concept.name}`,
+    concept.description ? `Description: ${concept.description}` : null,
+    concept.keywords.length ? `Likely contents: ${concept.keywords.join(", ")}` : null,
+    "",
+    "Available items:",
+    list
+  ].filter((line) => line !== null).join("\n");
+  const { data, usage } = await requestJSON({
+    task: AI_TASK.TREASURE_SELECTION, system, user, onProgress, signal
+  });
+  return { ids: Array.isArray(data.ids) ? data.ids : [], usage };
+}
+
+/**
  * Send one chat completion request and return the assistant's text content.
  *
  * Requests are streamed so slow (especially reasoning) models show progress

@@ -50,6 +50,7 @@ Encounter mode: `designEncounter()` picks a theme + per-role briefs once, then t
 | File | Role |
 | --- | --- |
 | `simplysf2e.mjs` | Module entry: settings registration, app launchers, `/sf2e` / `/simplysf2e` chat command, first-run welcome auto-open. |
+| `whats-new.mjs` / `whats-new-app.mjs` | Pure release-note list (`RELEASE_NOTES`, newest first, i18n keys) + unseen/auto-open rules, and the window. Opens once per GM browser after an update with unseen notes (silently seeds on a fresh install). **Every PR with a change a GM can see adds one `RELEASE_NOTES` entry (new unique id, i18n title/body) at the top.** |
 | `welcome.mjs` / `welcome-app.mjs` | First-run welcome: pure readiness rows + auto-open rule (opens for a GM until the AI connection works or "Don't show again"), and the window over them. |
 | `ai.mjs` | All AI calls, SYSTEM_PROMPT, `pcSystemPrompt()`, `lootGuide()`. Streaming SSE, retry-once, fail-closed JSON parsing. |
 | `ai-response-validation.mjs` | Per-task required-key shape checks on parsed AI responses (`taskResponseProblem`). |
@@ -58,6 +59,7 @@ Encounter mode: `designEncounter()` picks a theme + per-role briefs once, then t
 | `builder.mjs` | NPC pipeline + shared resolve/build helpers used by both actor pipelines (`resolveEquipment`, `resolveLoot`, `resolveFocusSpells`, `buildEquipmentItems`, `buildLootItems`, `filterItemTypes`, `applyTreasureBudget`, `enrichDescription`). `reskinActorData()` builds a Reskin copy via `reskin.mjs`. |
 | `reroll.mjs` | Pure reroll-one-pick rules for the creature preview: `rerollPool` offers only issued catalog entries of the same kind that are not on the creature or already rejected for that slot (a spell keeps its cantrip/ranked slot), `applyRerollPick` swaps one slot. The AI picks one ID via `selectRerollPick` (`ai.mjs`). |
 | `reskin.mjs` | Pure Reskin validation/copy: `normalizeReskin` drops unknown/duplicate renames, `applyReskin` changes only prose and strike/ability display names, pinning each renamed item's original slug (`pf2eSluggify`, a port of v14-dev `sluggify`). |
+| `relevel.mjs` | Pure Reskin re-level: each NPC number moves by its nearest GM Core scale's step between levels (HP by ratio, first damage instance by the damage table); spells, ability text and gear unchanged. Source fields cited to v14-dev `npc/data.ts`, `melee/data.ts`, `spellcasting-entry/data.ts`, `lore.ts`. |
 | `stat-check.mjs` | Stat check after Create: reads a new NPC's prepared AC/HP/Perception/saves/strikes/spell DC (accessors cited to v14-dev), compares with `adjustedStats(computeStats())` and the GM Core band for its level. Report only; the Generator shows it in the finished panel and whispers the GM when something is off. |
 | `art.mjs` | Borrows token art/structure from the closest-matching bestiary creature (`findBestiaryScaffold`, `findBestiaryArt`). |
 | `currency.mjs` | Cited SF2e Credstick/UPB templates and gold-to-credit mapping. |
@@ -79,6 +81,7 @@ Encounter mode: `designEncounter()` picks a theme + per-role briefs once, then t
 | `generator-app.mjs` / `itemforge-app.mjs` / `manage-presets-app.mjs` / `sources-app.mjs` / `provider-setup-app.mjs` | UI apps over `app-base.mjs` (token tracking + progress). |
 | `app-base.mjs` | Shared generator/item-forge shell: connection switch, token report, monotonic progress bar. |
 | `shop.mjs` / `shop-app.mjs` | Shop generator: pure concept/pick/merchant-data rules, and the window. The AI writes flavor plus keyword/category slugs, then picks stock IDs from `getShopCandidates` (equipment of the shop's level or lower, rarity-capped); Create makes a native `loot` actor with `lootSheetType: "Merchant"` (v14-dev `actor/loot/data.ts`) of exact compendium clones. |
+| `treasure.mjs` / `treasure-app.mjs` | Treasure hoard window: pure budget/concept/fill rules, and the window. Budget in credits is only `gpToCredits` of `treasureBudget` (one encounter) or the `TREASURE_BY_LEVEL` total (whole level); the AI writes flavor + keyword/category slugs then picks IDs from `getShopCandidates`; `fillHoard` keeps issued, unique picks in AI order while each fits the remaining budget, and leftover becomes a Credstick (`assembleCurrency`). Create makes a native `loot` actor with `lootSheetType: "Loot"` filed under Treasure. |
 | `recent-generations.mjs` | Pure in-memory Recent previews list helpers (cap 5, newest first). The Generator stashes the on-screen preview there before any new run replaces it; nothing is persisted. |
 | `party.mjs` | Pure `partySummary` of the world's Party actor (`game.actors.party`, v14-dev `collection/actors.ts`) for Encounter mode's "Use my party": character count and mean level. |
 | `folders.mjs` | Files generated actors under a flagged SimplySF2e folder (Creatures, NPCs, Characters, Shops; encounter folders inside the root). Found by module flag, not name. Never fails a create. |
@@ -87,6 +90,7 @@ Encounter mode: `designEncounter()` picks a theme + per-role briefs once, then t
 | `progress.mjs` | Pure weighted/monotonic generation-progress math (step budgets, stream mapping). |
 | `tokens.mjs` | Token estimate + `normalizeUsage`; fallback counts are labeled estimated and coarsened on display. |
 | `encounter.mjs` | XP budget/composition math. |
+| `pool.mjs` | `runPool` bounded-concurrency runner (index-ordered, fail-fast); Encounter mode builds `ENCOUNTER_CONCURRENCY` (3, module default) creatures at once. |
 | `presets.mjs` | Six SF2e class flavor presets (Standard), four SF2e NPC archetype presets, custom preset CRUD + random briefs. |
 | `*.test.mjs` | Standalone regression checks (`node scripts/<name>.test.mjs`); CI runs every check before release. |
 

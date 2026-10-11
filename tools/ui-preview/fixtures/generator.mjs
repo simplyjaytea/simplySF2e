@@ -83,6 +83,7 @@ export function generatorContext(mode, patch = {}) {
     customPresets: [{ id: "custom1", label: "Vesk raider band", selected: false }],
     ...MODE_FLAGS(mode),
     reskinSource: null,
+    reskinRelevel: null,
     reskinPreview: null,
     randomTooltipKey: RANDOM_TOOLTIP[mode] ?? RANDOM_TOOLTIP.monster,
     levelMin: creatureMode ? -1 : 1,
@@ -388,7 +389,30 @@ export default [
       id: "generator-reskin-dropped",
       app: "generator",
       context: generatorContext("reskin", {
-        input: { prompt: "Make it a smuggler captain of a derelict freighter" }, reskinSource: source
+        input: { prompt: "Make it a smuggler captain of a derelict freighter" }, reskinSource: source,
+        reskinRelevel: { from: 8, level: 8, min: -1, max: 24, changed: false, rows: [] }
+      })
+    };
+  })(),
+  (() => {
+    // Real GM Core values for these scales at levels 8 and 12 (tables.mjs).
+    const source = { uuid: "Actor.abc", name: "Kasatha Warlord", img: "", level: 8 };
+    return {
+      id: "generator-reskin-relevel",
+      app: "generator",
+      context: generatorContext("reskin", {
+        input: { prompt: "Make it a smuggler captain of a derelict freighter" }, reskinSource: source,
+        reskinRelevel: {
+          from: 8, level: 12, min: -1, max: 24, changed: true,
+          rows: [
+            { label: "AC", scale: "high", from: 27, to: 33 },
+            { label: "Max HP", scale: "moderate", from: 135, to: 215 },
+            { label: "Perception", scale: "moderate", from: 16, to: 22 },
+            { label: "Fortitude", scale: "high", from: 19, to: 25 },
+            { label: "Strike: Halberd of the Seventh Lattice Remnant", scale: "high", from: 20, to: 26 },
+            { label: "Damage: Halberd of the Seventh Lattice Remnant", scale: "high", from: "2d10+11", to: "3d10+14" }
+          ]
+        }
       })
     };
   })(),
@@ -399,8 +423,9 @@ export default [
       app: "generator",
       context: generatorContext("reskin", {
         reskinSource: source, showEmptyState: false, tokenReport: TOKEN_REPORT,
+        reskinRelevel: { from: 8, level: 8, min: -1, max: 24, changed: false, rows: [] },
         reskinPreview: {
-          name: "Captain Voss of the Derelict", level: 8, sourceName: "Kasatha Warlord",
+          name: "Captain Voss of the Derelict", level: 8, releveled: false, sourceName: "Kasatha Warlord",
           blurb: "A smuggler captain who holds a dead freighter together by reputation.",
           readAloud: "The airlock groans open. Behind it, a four-armed woman in a salvaged flight coat is already smiling.",
           paragraphs: ["Voss never fires first. She talks until the other side blinks.", "Her crew would die for her, mostly because they owe her money."],

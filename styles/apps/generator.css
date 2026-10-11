@@ -727,3 +727,31 @@
   margin-left: -1.1rem;
   color: color-mix(in srgb, var(--spf-warning) 55%, #ffd2b8);
 }
+
+/* Re-level (Reskin mode): the copy's level and its before/after numbers. */
+.simplysf2e .spf-relevel {
+  display: grid;
+  gap: var(--spf-space-sm);
+}
+.simplysf2e .spf-relevel-scroll {
+  overflow-x: auto;
+}
+.simplysf2e .spf-relevel-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--spf-text-sm);
+}
+.simplysf2e .spf-relevel-table th,
+.simplysf2e .spf-relevel-table td {
+  padding: var(--spf-space-xs) var(--spf-space-md);
+  border-bottom: 1px solid var(--spf-border);
+  text-align: start;
+}
+.simplysf2e .spf-relevel-table th {
+  color: var(--spf-text-muted);
+  font-weight: 500;
+}
+.simplysf2e .spf-relevel-new {
+  color: var(--spf-mode-reskin);
+  font-weight: 600;
+}

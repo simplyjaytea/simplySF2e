@@ -2,15 +2,20 @@ import { MODULE_ID, SETTINGS, getSetting, getProviderAuthWarningKey, registerSet
 import { GeneratorApp } from "./generator-app.mjs";
 import { ItemForgeApp } from "./itemforge-app.mjs";
 import { ShopApp } from "./shop-app.mjs";
+import { TreasureApp } from "./treasure-app.mjs";
 import { SourcesConfigApp } from "./sources-app.mjs";
 import { ProviderSetupApp } from "./provider-setup-app.mjs";
 import { WelcomeApp } from "./welcome-app.mjs";
 import { shouldAutoOpenWelcome } from "./welcome.mjs";
+import { WhatsNewApp } from "./whats-new-app.mjs";
+import { RELEASE_NOTES, unseenNotes, initialSeenIds, shouldAutoOpenWhatsNew } from "./whats-new.mjs";
 
 let app = null;
 let itemForgeApp = null;
 let shopApp = null;
+let treasureApp = null;
 let welcomeApp = null;
+let whatsNewApp = null;
 
 function canOpenApps() {
   if (game.system?.id !== "sf2e") {
@@ -45,6 +50,13 @@ function openShop() {
   return shopApp;
 }
 
+function openTreasure() {
+  if (!canOpenApps()) return null;
+  treasureApp ??= new TreasureApp();
+  treasureApp.render(true);
+  return treasureApp;
+}
+
 function openWelcome() {
   if (!canOpenApps()) return null;
   // The settings menu builds its own instance with the same id; reuse
@@ -53,6 +65,15 @@ function openWelcome() {
   welcomeApp = live ?? new WelcomeApp({}, openGenerator);
   welcomeApp.render(true);
   return welcomeApp;
+}
+
+// notes omitted = manual open: the newest notes, even when auto-open is off.
+function openWhatsNew(notes = null) {
+  if (!canOpenApps()) return null;
+  const live = foundry.applications.instances?.get?.(WhatsNewApp.DEFAULT_OPTIONS.id);
+  whatsNewApp = live ?? new WhatsNewApp({}, notes);
+  whatsNewApp.render(true);
+  return whatsNewApp;
 }
 
 function addDirectoryButton(html, { markerClass, icon, label, onClick, placement = "header" }) {
@@ -85,7 +106,7 @@ function addDirectoryButton(html, { markerClass, icon, label, onClick, placement
 }
 
 Hooks.once("init", () => {
-  registerSettings(SourcesConfigApp, ProviderSetupApp, WelcomeApp);
+  registerSettings(SourcesConfigApp, ProviderSetupApp, WelcomeApp, WhatsNewApp);
   if (!Handlebars.helpers.eq) {
     Handlebars.registerHelper("eq", (a, b) => a === b);
   }
@@ -106,24 +127,50 @@ Hooks.once("ready", () => {
   }
   // Macro/console API: game.modules.get("simplysf2e").api.open(),
   // .openItemForge() for the magic item forge, .openShop() for the shop
-  // generator and .openWelcome().
+  // generator, .openTreasure() for the treasure hoard and .openWelcome().
   const module = game.modules.get(MODULE_ID);
-  module.api = { open: openGenerator, openItemForge, openShop, openWelcome };
+  module.api = { open: openGenerator, openItemForge, openShop, openTreasure, openWelcome, openWhatsNew: () => openWhatsNew() };
 
   // First-run welcome ("Until ready", JT 2026-10-03). Players never read the
   // settings; a failure here must not break the rest of the module's ready.
   if (!game.user.isGM) return;
+  let welcomeOpening = false;
   try {
-    if (shouldAutoOpenWelcome({
+    welcomeOpening = shouldAutoOpenWelcome({
       isGM: true,
       systemId: game.system.id,
       dismissed: getSetting(SETTINGS.welcomeDismissed),
       providerReady: !getProviderAuthWarningKey()
-    })) {
-      openWelcome();
-    }
+    });
+    if (welcomeOpening) openWelcome();
   } catch (err) {
     console.warn(`${MODULE_ID} | could not open the welcome window`, err);
+  }
+
+  // What's new: open once for notes this browser has not seen, unless
+  // disabled or the welcome is opening now. With no stored list yet, a new
+  // install marks every note seen (the welcome covers it) and an upgrading
+  // GM sees them all once (whats-new.mjs initialSeenIds).
+  try {
+    let seenIds = getSetting(SETTINGS.whatsNewSeen);
+    if (!Array.isArray(seenIds)) {
+      seenIds = initialSeenIds(RELEASE_NOTES, { welcomeOpening });
+      game.settings.set(MODULE_ID, SETTINGS.whatsNewSeen, seenIds)
+        .catch((err) => console.warn(`${MODULE_ID} | could not save the What's new state`, err));
+    }
+    const unseen = unseenNotes(RELEASE_NOTES, seenIds);
+    if (shouldAutoOpenWhatsNew({
+      isGM: true,
+      systemId: game.system.id,
+      disabled: getSetting(SETTINGS.whatsNewDisabled),
+      seenIds,
+      unseenCount: unseen.length,
+      welcomeOpening
+    })) {
+      openWhatsNew(unseen);
+    }
+  } catch (err) {
+    console.warn(`${MODULE_ID} | could not open the What's new window`, err);
   }
 });
 
@@ -141,6 +188,12 @@ Hooks.on("renderActorDirectory", (_directory, html) => {
     icon: "fa-store",
     label: "SIMPLYSF2E.Shop.OpenButton",
     onClick: openShop
+  });
+  addDirectoryButton(html, {
+    markerClass: "spf-treasure-directory-button",
+    icon: "fa-gem",
+    label: "SIMPLYSF2E.Treasure.OpenButton",
+    onClick: openTreasure
   });
 });
 
@@ -232,7 +285,9 @@ Hooks.on("pf2e.restForTheNight", async (actor) => {
  *   /sf2e
  *   /sf2e itemforge
  *   /sf2e shop
+ *   /sf2e treasure
  *   /sf2e welcome
+ *   /sf2e whatsnew
  *   /sf2e [monster|npc|character|encounter] [level] [prompt]
  * A prompt starts a preview right away (the GM still clicks Create); without
  * one the command only fills in the form.
@@ -255,6 +310,11 @@ Hooks.on("chatMessage", (_chatLog, message, _chatData) => {
     return false;
   }
 
+  if (/^whats?-?new\b/i.test(args)) {
+    openWhatsNew();
+    return false;
+  }
+
   if (/^itemforge\b/i.test(args)) {
     openItemForge();
     return false;
@@ -262,6 +322,11 @@ Hooks.on("chatMessage", (_chatLog, message, _chatData) => {
 
   if (/^shop\b/i.test(args)) {
     openShop();
+    return false;
+  }
+
+  if (/^treasure\b/i.test(args)) {
+    openTreasure();
     return false;
   }
 

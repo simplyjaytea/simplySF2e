@@ -5,7 +5,7 @@
 // behavior, out of scope here.) Run: node scripts/currency.test.mjs
 
 import assert from "node:assert/strict";
-import { gpToCredits, creditsToGp, toCredits, assembleCurrency, CREDSTICK_SOURCE, UPB_SOURCE } from "./currency.mjs";
+import { gpToCredits, creditsToGp, toCredits, assembleCurrency, splitCurrency, CURRENCY_ITEM_MAX, CREDSTICK_SOURCE, UPB_SOURCE } from "./currency.mjs";
 
 /* ---------------------------------------------------------------------- *
  * gpToCredits(): non-positive and non-numeric gp never becomes credits
@@ -105,5 +105,11 @@ assert.equal(assembleCurrency("bogus", 5), null, "unknown units assemble nothing
   assert.notEqual(assembleCurrency("credits", 5), null, "restored credstick template assembles again");
   assert.notEqual(assembleCurrency("upb", 5), null, "restored UPB template assembles again");
 }
+
+// Large sums split across several items, none over the per-item cap.
+assert.deepEqual(splitCurrency(0), []);
+assert.deepEqual(splitCurrency(680), [680]);
+assert.deepEqual(splitCurrency(CURRENCY_ITEM_MAX * 2 + 5), [CURRENCY_ITEM_MAX, CURRENCY_ITEM_MAX, 5]);
+assert.equal(splitCurrency(4900000).reduce((a, b) => a + b, 0), 4900000);
 
 console.log("currency.test.mjs: conversion edges and assembleCurrency fail-closed behavior passed");

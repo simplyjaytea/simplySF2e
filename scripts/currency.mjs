@@ -135,12 +135,31 @@ function cloneTemplate(template) {
 }
 
 /**
+ * Largest amount `assembleCurrency` puts on one currency item (a module
+ * sanity cap, not a game rule). Larger sums go on several items; see
+ * `splitCurrency`.
+ */
+export const CURRENCY_ITEM_MAX = 100000;
+
+/** Split an amount into whole parts of at most CURRENCY_ITEM_MAX each. */
+export function splitCurrency(quantity) {
+  let left = Math.max(Math.round(Number(quantity) || 0), 0);
+  const parts = [];
+  while (left > 0) {
+    const part = Math.min(left, CURRENCY_ITEM_MAX);
+    parts.push(part);
+    left -= part;
+  }
+  return parts;
+}
+
+/**
  * Clone the same bundled templates `addCurrency` uses. Credits store their
  * count on `system.price.value.sp` with quantity locked to 1; UPB uses
  * `system.quantity`. Fail closed if the cited template is the wrong shape.
  */
 export function assembleCurrency(unit, quantity) {
-  const n = Math.min(Math.max(Math.round(Number(quantity) || 0), 0), 100000);
+  const n = Math.min(Math.max(Math.round(Number(quantity) || 0), 0), CURRENCY_ITEM_MAX);
   if (n <= 0) return null;
   if (unit === "credits") {
     if (CREDSTICK_SOURCE?.type !== "treasure" || CREDSTICK_SOURCE?.system?.category !== "credstick") return null;

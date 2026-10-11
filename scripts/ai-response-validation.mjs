@@ -69,7 +69,13 @@ const RULES = Object.freeze({
     arrays: ["keywords", "categories"],
     nonEmptyStrings: ["name", "description"]
   },
-  [AI_TASK.SHOP_SELECTION]: { required: ["ids"], arrays: ["ids"] }
+  [AI_TASK.SHOP_SELECTION]: { required: ["ids"], arrays: ["ids"] },
+  [AI_TASK.TREASURE_CONCEPT]: {
+    required: ["name", "description", "keywords", "categories"],
+    arrays: ["keywords", "categories"],
+    nonEmptyStrings: ["name", "description"]
+  },
+  [AI_TASK.TREASURE_SELECTION]: { required: ["ids"], arrays: ["ids"] }
 });
 
 const isPlainObject = (value) => Boolean(value && typeof value === "object" && !Array.isArray(value));

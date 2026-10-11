@@ -28,7 +28,9 @@ export const AI_TASK = Object.freeze({
   RESKIN_FLAVOR: "reskinFlavor",
   REROLL_PICK: "rerollPick",
   SHOP_CONCEPT: "shopConcept",
-  SHOP_SELECTION: "shopSelection"
+  SHOP_SELECTION: "shopSelection",
+  TREASURE_CONCEPT: "treasureConcept",
+  TREASURE_SELECTION: "treasureSelection"
 });
 
 const TASK_PROFILES = Object.freeze({
@@ -53,7 +55,9 @@ const TASK_PROFILES = Object.freeze({
   // Not deterministic: a second reroll of the same slot should be free to land elsewhere.
   [AI_TASK.REROLL_PICK]: { maxTokens: 512, deterministic: false, disableReasoning: true },
   [AI_TASK.SHOP_CONCEPT]: { maxTokens: 1200, deterministic: false, disableReasoning: true },
-  [AI_TASK.SHOP_SELECTION]: { maxTokens: 1536, deterministic: true, disableReasoning: true }
+  [AI_TASK.SHOP_SELECTION]: { maxTokens: 1536, deterministic: true, disableReasoning: true },
+  [AI_TASK.TREASURE_CONCEPT]: { maxTokens: 1000, deterministic: false, disableReasoning: true },
+  [AI_TASK.TREASURE_SELECTION]: { maxTokens: 1536, deterministic: true, disableReasoning: true }
 });
 
 const finiteNumber = (value, fallback) => {

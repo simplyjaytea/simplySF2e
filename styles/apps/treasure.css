@@ -1,0 +1,103 @@
+/* ==========================================================================
+   simplySF2e — treasure window (templates/treasure.hbs only).
+   Loaded after styles/simplysf2e.css; tokens and shared kit live there.
+   ========================================================================== */
+
+.simplysf2e .spf-treasure-optionrow {
+  align-items: flex-start;
+}
+
+.simplysf2e .spf-treasure-optionrow .form-group {
+  flex: 1 1 10rem;
+}
+
+.simplysf2e .spf-treasure-optionrow .spf-hint {
+  margin: var(--spf-space-xs) 0 0;
+}
+
+/* The stock table scrolls sideways inside its own box on a narrow window,
+   so the window body never does. */
+.simplysf2e .spf-treasure-items-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--spf-border);
+  border-radius: var(--spf-radius);
+}
+
+.simplysf2e .spf-treasure-items {
+  width: 100%;
+  margin: 0;
+  border-collapse: collapse;
+  font-size: var(--spf-text-sm);
+  background: var(--spf-surface);
+}
+
+.simplysf2e .spf-treasure-items th,
+.simplysf2e .spf-treasure-items td {
+  padding: var(--spf-space-sm) var(--spf-space-md);
+  text-align: left;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--spf-grid-line);
+}
+
+.simplysf2e .spf-treasure-items thead th {
+  color: var(--spf-text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: var(--spf-text-xs);
+  background: var(--spf-surface-raised);
+  border-bottom: 1px solid var(--spf-border);
+  white-space: nowrap;
+}
+
+.simplysf2e .spf-treasure-items tbody th {
+  font-weight: 600;
+  color: var(--spf-text);
+}
+
+.simplysf2e .spf-treasure-items tbody tr:hover {
+  background: var(--spf-brand-soft);
+}
+
+.simplysf2e .spf-treasure-items .spf-num {
+  text-align: right;
+  font-family: var(--spf-font-mono);
+  white-space: nowrap;
+}
+
+.simplysf2e .spf-treasure-items td:last-child {
+  width: calc(var(--spf-icon-btn) + var(--spf-space-md) * 2);
+  text-align: right;
+}
+
+.simplysf2e .spf-treasure-rarity {
+  margin-left: var(--spf-space-xs);
+  font-size: var(--spf-text-xs);
+}
+
+.simplysf2e .spf-treasure-optionrow .spf-level-controls {
+  min-width: 0;
+}
+
+.simplysf2e .spf-treasure-budget {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--spf-space-xs) var(--spf-space-md);
+  margin: var(--spf-space-sm) 0;
+  font-family: var(--spf-font-mono);
+}
+
+.simplysf2e .spf-treasure-each {
+  color: var(--spf-text-muted);
+  font-size: var(--spf-text-sm);
+}
+
+/* The leftover Credstick row: not removable, set apart from the items. */
+.simplysf2e .spf-treasure-items .spf-treasure-credits th,
+.simplysf2e .spf-treasure-items .spf-treasure-credits td {
+  background: var(--spf-brand-soft);
+  border-top: 1px solid var(--spf-border);
+  border-bottom: 0;
+}

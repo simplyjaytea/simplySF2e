@@ -137,6 +137,35 @@
       "Recheck": "Check Again",
       "Close": "Close"
     },
+    "WhatsNew": {
+      "Title": "What's new in SimplySF2e",
+      "MenuName": "What's new",
+      "MenuLabel": "What's New",
+      "MenuHint": "See the latest changes to SimplySF2e. It also opens once by itself after an update that changes something you can see.",
+      "Intro": "SimplySF2e {version}: here is what changed since you last looked.",
+      "BrokeTitle": "Something broke?",
+      "BrokeBody": "Use Copy bug report in the Generator's error box and send it, with a line on what you were doing, to whoever gave you the module.",
+      "GotIt": "Got it",
+      "Disable": "Don't show for updates",
+      "Note": {
+        "WhatsNew": {
+          "Title": "What's new",
+          "Body": "This window. It opens once after an update that changes something you can see. Reopen it any time with /sf2e whatsnew."
+        },
+        "FasterEncounters": {
+          "Title": "Faster encounters",
+          "Body": "Encounter mode builds several creatures at the same time, so big encounters are ready sooner."
+        },
+        "Treasure": {
+          "Title": "Treasure hoards",
+          "Body": "A new Treasure window (Actors sidebar button or /sf2e treasure) fills one encounter's or a whole level's treasure budget with real Starfinder items and credits, and creates a loot actor."
+        },
+        "Relevel": {
+          "Title": "Re-level a creature",
+          "Body": "In Reskin mode, set a new level. The copy's AC, HP, attacks, saves, skills and DCs move to the Starfinder GM Core values for that level, keeping how strong each stat was."
+        }
+      }
+    },
     "Generator": {
       "Title": "SimplySF2e — Generator",
       "OpenButton": "SimplySF2e",
@@ -347,7 +376,8 @@
       "Creatures": "Creatures",
       "Npcs": "NPCs",
       "Characters": "Characters",
-      "Shops": "Shops"
+      "Shops": "Shops",
+      "Treasure": "Treasure"
     },
     "Handout": {
       "Created": "Player handout for {name} added to the Journal."
@@ -670,6 +700,57 @@
       "TypeShield": "Shield",
       "TypeGear": "Gear",
       "TypeConsumable": "Consumable"
+    },
+    "Relevel": {
+      "Label": "New level",
+      "Hint": "Change it to re-level the copy. Each number keeps its Starfinder GM Core scale (high, moderate and so on) at the new level.",
+      "Stat": "Stat",
+      "Scale": "Scale",
+      "AtLevel": "Level {level}",
+      "Damage": "Damage: {name}",
+      "Unchanged": "Spells and their ranks, DCs or damage written in ability text, the ritual DC, gear, and Elite/Weak stay as they are. Attributes and skills also move, and very low ones (below every GM Core scale) stay put.",
+      "Notice": "The copy is moved to level {level} with the GM Core tables. Rules, traits, spells, and items are copied unchanged. The original creature is not modified."
+    },
+    "Treasure": {
+      "Title": "SimplySF2e Treasure",
+      "OpenButton": "Treasure",
+      "ConceptLegend": "Describe the hoard",
+      "Level": "Party level",
+      "PartyHint": "Party size only shows an \"each\" figure. The budget is per party, so it does not change.",
+      "Amount": "How much",
+      "AmountEncounter": "One encounter",
+      "AmountLevel": "Whole level",
+      "Rarity": "Rarest item",
+      "Prompt": "Theme",
+      "PromptPlaceholder": "Abandoned corporate lab on an ice moon",
+      "SourcesDetail": "Items come only from your equipment compendiums, at their published prices.",
+      "Generate": "Generate hoard",
+      "NoEquipmentPack": "No equipment compendium is enabled. Check Compendium Sources.",
+      "NoCandidates": "No equipment of this level and rarity was found in your compendiums. Try a higher level or rarity.",
+      "NoItems": "Nothing fit the budget. Generate again.",
+      "EmptyHint": "Set the party level and how much to give out. The module sets the budget from the Starfinder GM Core Treasure by Level table; the AI themes the hoard and picks real items from your sf2e equipment compendium, and the rest is paid out as credits. Create makes a loot actor.",
+      "ProgressConcept": "Naming the hoard",
+      "ProgressCandidates": "Finding matching items",
+      "ProgressPicks": "Choosing the items",
+      "ProgressPrices": "Reading prices",
+      "HoardLevel": "Party level {level}",
+      "BudgetLabel": "Budget",
+      "BudgetEncounter": "{budget} credits (one encounter)",
+      "BudgetLevel": "{budget} credits (whole level)",
+      "Each": "about {each} credits each for {count}",
+      "ItemsHeading": "Items ({count})",
+      "ColItem": "Item",
+      "ColLevel": "Level",
+      "ColPrice": "Credits",
+      "ColRemove": "Remove",
+      "Remove": "Remove from hoard",
+      "RemoveItem": "Remove {name} from the hoard",
+      "CreditsRow": "Credits (Credstick)",
+      "AllRemoved": "Every item was removed. The whole budget is now credits.",
+      "Dropped": "{count} pick(s) were not offered, had no price, or did not fit the budget, and were left out.",
+      "Create": "Create hoard",
+      "Reroll": "Reroll",
+      "Created": "Created hoard {name}."
     },
     "StatCheck": {
       "Heading": "Stat check",

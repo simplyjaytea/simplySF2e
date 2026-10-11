@@ -99,6 +99,41 @@
         <span id="spf-reskin-drop-hint">{{localize "SIMPLYSF2E.Generator.ReskinDropHint"}}</span>
       {{/if}}
     </div>
+    {{#if reskinRelevel}}
+    <div class="spf-relevel">
+      <div class="form-group stacked">
+        <label for="spf-reskin-level">{{localize "SIMPLYSF2E.Relevel.Label"}}</label>
+        <div class="spf-level-controls">
+          <button type="button" class="spf-icon-btn" data-action="reskinLevelDown" data-tooltip="{{localize 'SIMPLYSF2E.Generator.LevelDown'}}" aria-label="{{localize 'SIMPLYSF2E.Generator.LevelDown'}}" {{#if busy}}disabled{{/if}}>
+            <i aria-hidden="true" class="fa-solid fa-minus"></i>
+          </button>
+          <input id="spf-reskin-level" type="number" name="reskinLevel" min="{{reskinRelevel.min}}" max="{{reskinRelevel.max}}" step="1" value="{{reskinRelevel.level}}" aria-describedby="spf-reskin-level-hint">
+          <button type="button" class="spf-icon-btn" data-action="reskinLevelUp" data-tooltip="{{localize 'SIMPLYSF2E.Generator.LevelUp'}}" aria-label="{{localize 'SIMPLYSF2E.Generator.LevelUp'}}" {{#if busy}}disabled{{/if}}>
+            <i aria-hidden="true" class="fa-solid fa-plus"></i>
+          </button>
+        </div>
+        <p id="spf-reskin-level-hint" class="spf-hint">{{localize "SIMPLYSF2E.Relevel.Hint"}}</p>
+      </div>
+      {{#if reskinRelevel.changed}}
+        {{#if reskinRelevel.rows.length}}
+        <div class="spf-relevel-scroll">
+          <table class="spf-relevel-table">
+            <thead><tr>
+              <th scope="col">{{localize "SIMPLYSF2E.Relevel.Stat"}}</th>
+              <th scope="col">{{localize "SIMPLYSF2E.Relevel.Scale"}}</th>
+              <th scope="col">{{localize "SIMPLYSF2E.Relevel.AtLevel" level=reskinRelevel.from}}</th>
+              <th scope="col">{{localize "SIMPLYSF2E.Relevel.AtLevel" level=reskinRelevel.level}}</th>
+            </tr></thead>
+            <tbody>
+              {{#each reskinRelevel.rows}}<tr><td>{{this.label}}</td><td>{{this.scale}}</td><td>{{this.from}}</td><td class="spf-relevel-new">{{this.to}}</td></tr>{{/each}}
+            </tbody>
+          </table>
+        </div>
+        {{/if}}
+        <p class="spf-hint">{{localize "SIMPLYSF2E.Relevel.Unchanged"}}</p>
+      {{/if}}
+    </div>
+    {{/if}}
     {{/if}}
     <div class="form-group stacked">
       {{#if encounterMode}}
@@ -672,7 +707,7 @@
     </header>
     <p class="spf-subtitle">{{reskinPreview.sourceName}}</p>
     {{#if reskinPreview.blurb}}<p class="spf-blurb"><em>{{reskinPreview.blurb}}</em></p>{{/if}}
-    <p class="notification info" role="note">{{localize "SIMPLYSF2E.Generator.ReskinUnchanged"}}</p>
+    <p class="notification info" role="note">{{#if reskinPreview.releveled}}{{localize "SIMPLYSF2E.Relevel.Notice" level=reskinPreview.level}}{{else}}{{localize "SIMPLYSF2E.Generator.ReskinUnchanged"}}{{/if}}</p>
     {{#if reskinPreview.readAloud}}
       <h3>{{localize "SIMPLYSF2E.Generator.ReskinReadAloud"}}</h3>
       <blockquote class="spf-read-aloud"><em>{{reskinPreview.readAloud}}</em></blockquote>

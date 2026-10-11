@@ -28,6 +28,8 @@ Every merge to `main` publishes the next release. See [Releases](https://github.
 
 When a GM logs in and no AI connection works yet, the **Welcome to SimplySF2e** window opens. It checks the Starfinder 2e system version, your compendium content and the AI connection, shows whether fast picks are on, and links to the window that fixes each row. It stops opening by itself once the connection works, or when you tick **Don't show this again at login**. Reopen it any time with **Open Welcome** in the module settings or `/sf2e welcome` in chat.
 
+After an update that changes something you can see, a **What's new in SimplySF2e** window opens once for the GM, listing only the new changes. **Got it** closes it; **Don't show for updates** stops it opening by itself. A fresh install does not show it. Reopen it any time with `/sf2e whatsnew` or the **What's New** button in the module settings.
+
 ### 2. Connect an AI provider
 
 Open **Configure Settings → SimplySF2e** and click **Configure Provider** (or press **Set Up AI Connection** in the welcome window). This opens the **AI Provider Setup** window.
@@ -102,9 +104,12 @@ All launchers are GM-only and only appear in an `sf2e` world.
 | Chat: `/sf2e` or `/simplysf2e` | The generator |
 | Chat: `/sf2e itemforge` | The Item Forge |
 | Chat: `/sf2e shop` | The shop generator |
+| **Treasure** button in the **Actors** sidebar header | The treasure hoard window |
+| Chat: `/sf2e treasure` | The treasure hoard window |
 | Chat: `/sf2e welcome` | The welcome and setup check |
+| Chat: `/sf2e whatsnew` | The What's new window |
 | Chat: `/sf2e [monster\|npc\|character\|encounter] [level] [description]` | The generator, pre-filled. Every part is optional, but they must come in that order, so a description that starts with a number is read as the level. Example: `/sf2e npc 4 street doc who patches up gang runners`. |
-| Macro: `game.modules.get("simplysf2e").api.open()` / `.openItemForge()` / `.openShop()` / `.openWelcome()` | The generator / the Item Forge / the shop generator / the welcome window |
+| Macro: `game.modules.get("simplysf2e").api.open()` / `.openItemForge()` / `.openShop()` / `.openTreasure()` / `.openWelcome()` / `.openWhatsNew()` | The generator / the Item Forge / the shop generator / the treasure window / the welcome window / the What's new window |
 
 The chat command is not case-sensitive. It only pre-fills the form; nothing is generated until you press a button. A level outside the mode's range is clamped (−1 to 24 for Monster and NPC, 1 to 20 for Encounters and Player Character). Reskin has no chat shortcut.
 
@@ -148,7 +153,7 @@ After **Create Actor** (and **Create All Actors** for an encounter), a **Stat ch
 
 ### Encounters
 
-Set **Party level**, **Party size** and **Threat**, and optionally fill **Describe the encounter theme (optional)**. The AI designs a theme and a set of roles, and SimplySF2e then builds each member through the full creature pipeline. That means one AI round per creature, so encounters take longer and cost more tokens than a single monster.
+Set **Party level**, **Party size** and **Threat**, and optionally fill **Describe the encounter theme (optional)**. The AI designs a theme and a set of roles, and SimplySF2e then builds each member through the full creature pipeline. That means one AI round per creature, so encounters cost more tokens than a single monster. Up to three creatures are built at the same time, which cuts the wait for bigger encounters. A local provider (Ollama, LM Studio, or another address on your home network) still builds them one at a time, because most local servers answer one request at a time. If one creature fails, the others stop and nothing is kept.
 
 The preview shows each member's level and role (**Boss**, **Minion**) with **Add one** / **Remove one (0 skips this creature)** counters. It also shows total treasure against the encounter's treasure budget, in credits. **Create All Actors** creates every member inside a new Actors folder named after the encounter. If any member fails, the whole batch and its folder are rolled back.
 
@@ -177,6 +182,8 @@ Reskin gives an existing NPC new fiction without touching its numbers.
 
 The AI writes a new name, a read-aloud description and Recall Knowledge text, and may rename strikes and abilities. **Create Reskinned Copy** creates a new actor. Its statistics, rules, traits and items are copied unchanged, and the original creature is not modified.
 
+**New level** re-levels the copy. Set it with the − / + buttons (−1 to 24) and a table shows each changed number at the old and new level. Every number keeps its Starfinder GM Core scale: a creature with high AC at level 3 has high AC at level 7, and one point above "high" stays one point above. HP scales by the same proportion, and each strike's main damage moves to the matching damage scale. AC, HP, Perception, saves, attribute modifiers, skills, strikes, spell DC and spell attack, and resistance and weakness values all move. Spells and their ranks, DCs or damage written into ability text, the ritual DC, gear, and Elite/Weak stay as they are, so check those on the new sheet. An attribute or skill lower than every GM Core scale (such as a mindless creature's Int −5) also stays as it is. An Elite or Weak creature is re-leveled from its base level.
+
 ## Using the Item Forge
 
 Pick an **Item type**, fill **Describe the magic item**, and set **Item level** (1–24) and **Rarity**. Press **Generate** (press it again for a new version). Then press **Create Item**. The item lands in the Items directory, and you drag it onto a character sheet from there. The gear in the Compendium Content row at the top opens Compendium Sources.
@@ -203,6 +210,14 @@ Fill **What does it sell, and who runs it?**, then set **Shop level** (0–20), 
 The AI writes the shop's name, keeper and description, and picks the stock from a list of real items in your equipment compendium: items of the shop's level or lower, of the kinds it sells, no rarer than your setting. It never names an item or a price itself. Each row shows the item's published level and price in credits. Consumables and ammunition are stocked 3 at a time, everything else singly. Remove any row with its **×** button.
 
 **Create merchant** makes a loot actor in Merchant mode, holding exact compendium copies of the stock. Drag it onto a scene; players buy from its sheet. Change quantities or prices there.
+
+## Using the treasure window
+
+Set **Party level** (1–20) and **Party size**, or press **Use my party** to fill both from your world's Party actor. Pick **How much**: **One encounter** (the per-encounter share of the level's treasure) or **Whole level** (the whole level's treasure). Pick the **Rarest item** (Common, Uncommon or Rare), optionally type a **Theme**, and press **Generate hoard**.
+
+The budget is a number from the *Starfinder GM Core* Treasure by Level table, shown in credits; the AI never sets it. For example, at level 4 one encounter is 680 credits and a whole level is 8,500. Party size is only used for the "about N credits each" line; it does not change the budget, because the table is already per party. The AI themes the hoard and picks real items from your equipment compendium (party level or lower, no rarer than your setting). Items are added in the AI's order while they fit the budget, one of each, at their published prices. Whatever is left becomes a **Credits** row. Remove a row with its **×** and its price goes back into Credits. **Reroll** runs it again.
+
+**Create hoard** makes a loot actor in Loot mode, filed under SimplySF2e > Treasure, holding exact compendium copies of the items plus a Credstick with the leftover credits.
 
 ## Credits and UPB
 
