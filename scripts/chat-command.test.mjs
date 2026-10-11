@@ -93,6 +93,11 @@ rendered.length = 0;
 assert.equal(handleChat("/sf2e shop"), false, "/sf2e shop intercepted");
 assert.deepEqual(rendered, ["ShopApp"], "/sf2e shop opens the shop window, not another app");
 
+// 3d. /sf2e treasure opens the treasure window
+rendered.length = 0;
+assert.equal(handleChat("/sf2e treasure"), false, "/sf2e treasure intercepted");
+assert.deepEqual(rendered, ["TreasureApp"], "/sf2e treasure opens the treasure window, not another app");
+
 // 4. Non-GM users cannot execute (command is intercepted and blocked with warning, returning false)
 game.user.isGM = false;
 assert.equal(handleChat("/sf2e"), false, "Non-GM command is intercepted and blocked");

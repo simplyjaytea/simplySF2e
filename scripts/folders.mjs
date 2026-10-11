@@ -9,7 +9,8 @@ export const FOLDER_LABELS = {
   creature: "SIMPLYSF2E.Folders.Creatures",
   npc: "SIMPLYSF2E.Folders.Npcs",
   character: "SIMPLYSF2E.Folders.Characters",
-  shop: "SIMPLYSF2E.Folders.Shops"
+  shop: "SIMPLYSF2E.Folders.Shops",
+  treasure: "SIMPLYSF2E.Folders.Treasure"
 };
 
 /** Pure: the first folder-like object with this type, kind and parent id, or null. */

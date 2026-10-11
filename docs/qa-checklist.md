@@ -604,6 +604,16 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 | 13g.1 | In the Generator choose Encounters, level 7, Rare, Party size 5, Severe; type a prompt. Reload the page and reopen. | Mode, level, rarity, party size and threat come back; the prompt box is empty. | Generator | | |
 | 13g.2 | Log in as the same GM in another browser. | That browser keeps its own settings (per browser, not per world). | Generator | | |
 
+## 13h. Treasure hoard
+
+| # | Do | Expect | Where | Pass | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 13h.1 | As GM, look at the Actors sidebar header, then type `/sf2e treasure`. | A **Treasure** button sits next to the Shop button; both it and the chat command open the SimplySF2e Treasure window. Players see no Treasure button. | Actors sidebar, chat | | |
+| 13h.2 | With a Party actor that has characters, press **Use my party**. | Party level and Party size fill from the party and a notice names it; with no party the button is disabled and the note says none was found. | Treasure window | | |
+| 13h.3 | Party level 4, One encounter, Common, theme "Abandoned corporate lab on an ice moon". Generate hoard, then Reroll, then switch to Whole level and Generate. | One encounter shows Budget 680 credits and Whole level 8,500; items are level 4 or lower and common, one of each, and item prices plus the Credits row add up to the budget. Party size changes only the "each" line, not the budget. Reroll gives a different hoard. | Preview | | |
+| 13h.4 | Remove one item row with ×. | The row goes and its price is added to the Credits row. | Preview | | |
+| 13h.5 | Press Create hoard. | A loot actor opens in Loot mode in SimplySF2e > Treasure, holding the remaining items (each linked to its compendium entry, quantity 1) and a Credstick worth the Credits row. The description shows the theme prose. | Loot sheet, Actors sidebar | | |
+
 ## Failure log
 
 One row per failure, so each cluster can become one fix PR.
