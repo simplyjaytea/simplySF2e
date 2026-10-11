@@ -104,10 +104,12 @@ All launchers are GM-only and only appear in an `sf2e` world.
 | Chat: `/sf2e` or `/simplysf2e` | The generator |
 | Chat: `/sf2e itemforge` | The Item Forge |
 | Chat: `/sf2e shop` | The shop generator |
+| **Treasure** button in the **Actors** sidebar header | The treasure hoard window |
+| Chat: `/sf2e treasure` | The treasure hoard window |
 | Chat: `/sf2e welcome` | The welcome and setup check |
 | Chat: `/sf2e whatsnew` | The What's new window |
 | Chat: `/sf2e [monster\|npc\|character\|encounter] [level] [description]` | The generator, pre-filled. Every part is optional, but they must come in that order, so a description that starts with a number is read as the level. Example: `/sf2e npc 4 street doc who patches up gang runners`. |
-| Macro: `game.modules.get("simplysf2e").api.open()` / `.openItemForge()` / `.openShop()` / `.openWelcome()` / `.openWhatsNew()` | The generator / the Item Forge / the shop generator / the welcome window / the What's new window |
+| Macro: `game.modules.get("simplysf2e").api.open()` / `.openItemForge()` / `.openShop()` / `.openTreasure()` / `.openWelcome()` / `.openWhatsNew()` | The generator / the Item Forge / the shop generator / the treasure window / the welcome window / the What's new window |
 
 The chat command is not case-sensitive. It only pre-fills the form; nothing is generated until you press a button. A level outside the mode's range is clamped (−1 to 24 for Monster and NPC, 1 to 20 for Encounters and Player Character). Reskin has no chat shortcut.
 
@@ -208,6 +210,14 @@ Fill **What does it sell, and who runs it?**, then set **Shop level** (0–20), 
 The AI writes the shop's name, keeper and description, and picks the stock from a list of real items in your equipment compendium: items of the shop's level or lower, of the kinds it sells, no rarer than your setting. It never names an item or a price itself. Each row shows the item's published level and price in credits. Consumables and ammunition are stocked 3 at a time, everything else singly. Remove any row with its **×** button.
 
 **Create merchant** makes a loot actor in Merchant mode, holding exact compendium copies of the stock. Drag it onto a scene; players buy from its sheet. Change quantities or prices there.
+
+## Using the treasure window
+
+Set **Party level** (1–20) and **Party size**, or press **Use my party** to fill both from your world's Party actor. Pick **How much**: **One encounter** (the per-encounter share of the level's treasure) or **Whole level** (the whole level's treasure). Pick the **Rarest item** (Common, Uncommon or Rare), optionally type a **Theme**, and press **Generate hoard**.
+
+The budget is a number from the *Starfinder GM Core* Treasure by Level table, shown in credits; the AI never sets it. For example, at level 4 one encounter is 680 credits and a whole level is 8,500. Party size is only used for the "about N credits each" line; it does not change the budget, because the table is already per party. The AI themes the hoard and picks real items from your equipment compendium (party level or lower, no rarer than your setting). Items are added in the AI's order while they fit the budget, one of each, at their published prices. Whatever is left becomes a **Credits** row. Remove a row with its **×** and its price goes back into Credits. **Reroll** runs it again.
+
+**Create hoard** makes a loot actor in Loot mode, filed under SimplySF2e > Treasure, holding exact compendium copies of the items plus a Credstick with the leftover credits.
 
 ## Credits and UPB
 

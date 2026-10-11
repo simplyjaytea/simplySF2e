@@ -2,6 +2,7 @@ import { MODULE_ID, SETTINGS, getSetting, getProviderAuthWarningKey, registerSet
 import { GeneratorApp } from "./generator-app.mjs";
 import { ItemForgeApp } from "./itemforge-app.mjs";
 import { ShopApp } from "./shop-app.mjs";
+import { TreasureApp } from "./treasure-app.mjs";
 import { SourcesConfigApp } from "./sources-app.mjs";
 import { ProviderSetupApp } from "./provider-setup-app.mjs";
 import { WelcomeApp } from "./welcome-app.mjs";
@@ -12,6 +13,7 @@ import { RELEASE_NOTES, unseenNotes, firstRunSeenIds, shouldAutoOpenWhatsNew } f
 let app = null;
 let itemForgeApp = null;
 let shopApp = null;
+let treasureApp = null;
 let welcomeApp = null;
 let whatsNewApp = null;
 
@@ -46,6 +48,13 @@ function openShop() {
   shopApp ??= new ShopApp();
   shopApp.render(true);
   return shopApp;
+}
+
+function openTreasure() {
+  if (!canOpenApps()) return null;
+  treasureApp ??= new TreasureApp();
+  treasureApp.render(true);
+  return treasureApp;
 }
 
 function openWelcome() {
@@ -118,9 +127,9 @@ Hooks.once("ready", () => {
   }
   // Macro/console API: game.modules.get("simplysf2e").api.open(),
   // .openItemForge() for the magic item forge, .openShop() for the shop
-  // generator and .openWelcome().
+  // generator, .openTreasure() for the treasure hoard and .openWelcome().
   const module = game.modules.get(MODULE_ID);
-  module.api = { open: openGenerator, openItemForge, openShop, openWelcome, openWhatsNew: () => openWhatsNew() };
+  module.api = { open: openGenerator, openItemForge, openShop, openTreasure, openWelcome, openWhatsNew: () => openWhatsNew() };
 
   // First-run welcome ("Until ready", JT 2026-10-03). Players never read the
   // settings; a failure here must not break the rest of the module's ready.
@@ -178,6 +187,12 @@ Hooks.on("renderActorDirectory", (_directory, html) => {
     icon: "fa-store",
     label: "SIMPLYSF2E.Shop.OpenButton",
     onClick: openShop
+  });
+  addDirectoryButton(html, {
+    markerClass: "spf-treasure-directory-button",
+    icon: "fa-gem",
+    label: "SIMPLYSF2E.Treasure.OpenButton",
+    onClick: openTreasure
   });
 });
 
@@ -269,6 +284,7 @@ Hooks.on("pf2e.restForTheNight", async (actor) => {
  *   /sf2e
  *   /sf2e itemforge
  *   /sf2e shop
+ *   /sf2e treasure
  *   /sf2e welcome
  *   /sf2e whatsnew
  *   /sf2e [monster|npc|character|encounter] [level] [prompt]
@@ -305,6 +321,11 @@ Hooks.on("chatMessage", (_chatLog, message, _chatData) => {
 
   if (/^shop\b/i.test(args)) {
     openShop();
+    return false;
+  }
+
+  if (/^treasure\b/i.test(args)) {
+    openTreasure();
     return false;
   }
 

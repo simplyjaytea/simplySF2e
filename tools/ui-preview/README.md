@@ -33,6 +33,7 @@ It also prints a `note:` line when a window scrolls sideways.
 | `fixtures/generator.mjs` | Generator: each of the five modes empty, provider attention, busy with and without progress, error, monster preview, NPC with negative modifiers, encounter, character preview and review, created, reskin empty / dropped / preview. |
 | `fixtures/itemforge.mjs` | Item Forge: each kind empty, attention, busy, error, wondrous / no-effects / augmentation / crystal / weapon / armor previews. |
 | `fixtures/shop.mjs` | Shop: empty, provider attention, busy, error, preview with real sf2e stock rows, every row removed. |
+| `fixtures/treasure.mjs` | Treasure: empty, provider attention, busy, error, preview (one encounter and whole level) with real sf2e item rows and a Credits row, every row removed. |
 | `fixtures/dialogs.mjs` | Provider setup (saved, fresh, models loaded), Sources (default, no packs), Manage presets (list, empty). |
 | `fixtures/_shared.mjs` | Shared builders. Imports the module's pure functions (`normalizeConcept`, `computeStats`, `adjustedStats`, `createProgress`) so numbers are the real ones. |
 
