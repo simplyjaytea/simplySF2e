@@ -1,0 +1,45 @@
+/* ==========================================================================
+   simplySF2e — "What's new" window (templates/whats-new.hbs only).
+   Loaded after styles/simplysf2e.css, like welcome.css.
+   ========================================================================== */
+
+.simplysf2e .simplysf2e-whats-new {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spf-space-md);
+  padding: var(--spf-space-xs);
+}
+
+.simplysf2e .spf-whats-new-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spf-space-sm);
+}
+
+.simplysf2e .spf-whats-new-note {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin: 0;
+  padding: var(--spf-space-sm) var(--spf-space-md);
+  border-left: 3px solid var(--spf-accent, currentColor);
+  background: rgba(255, 255, 255, 0.04);
+  overflow-wrap: anywhere;
+}
+
+.simplysf2e .spf-whats-new-body {
+  color: var(--spf-text-muted);
+  font-size: var(--spf-text-sm);
+}
+
+.simplysf2e .spf-whats-new-broke {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: var(--spf-text-sm);
+  color: var(--spf-text-muted);
+  overflow-wrap: anywhere;
+}

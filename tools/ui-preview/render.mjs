@@ -45,6 +45,7 @@ export const APPS = {
   "provider-setup": { template: "provider-setup.hbs", title: "SIMPLYSF2E.ProviderSetup.Title", icon: "fa-solid fa-plug-circle-check", tag: "form" },
   sources: { template: "sources.hbs", title: "SIMPLYSF2E.Sources.Title", icon: "fa-solid fa-book-atlas", tag: "form" },
   "manage-presets": { template: "manage-presets.hbs", title: "SIMPLYSF2E.Presets.ManageTitle", icon: "fa-solid fa-bookmark", tag: "div" },
+  "whats-new": { template: "whats-new.hbs", title: "SIMPLYSF2E.WhatsNew.Title", icon: "fa-solid fa-sparkles", tag: "div" },
   welcome: { template: "welcome.hbs", title: "SIMPLYSF2E.Welcome.Title", icon: "fa-solid fa-rocket", tag: "div" }
 };
 

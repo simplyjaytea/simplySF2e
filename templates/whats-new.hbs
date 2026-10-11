@@ -1,0 +1,26 @@
+<div class="spf-window-body simplysf2e-whats-new spf-hud">
+  <p class="spf-hint spf-hud-accent"><i class="fa-solid fa-sparkles" aria-hidden="true"></i> {{localize "SIMPLYSF2E.WhatsNew.Intro" version=version}}</p>
+
+  <ul class="spf-whats-new-list">
+    {{#each notes}}
+      <li class="spf-whats-new-note">
+        <strong class="spf-whats-new-title">{{title}}</strong>
+        <span class="spf-whats-new-body">{{body}}</span>
+      </li>
+    {{/each}}
+  </ul>
+
+  <div class="spf-whats-new-broke">
+    <strong><i class="fa-solid fa-bug" aria-hidden="true"></i> {{localize "SIMPLYSF2E.WhatsNew.BrokeTitle"}}</strong>
+    <span>{{localize "SIMPLYSF2E.WhatsNew.BrokeBody"}}</span>
+  </div>
+
+  <footer class="spf-actions spf-hud-actions">
+    <button type="button" class="spf-primary" data-action="gotIt">
+      <i aria-hidden="true" class="fa-solid fa-check"></i> {{localize "SIMPLYSF2E.WhatsNew.GotIt"}}
+    </button>
+    <button type="button" data-action="disable">
+      <i aria-hidden="true" class="fa-solid fa-bell-slash"></i> {{localize "SIMPLYSF2E.WhatsNew.Disable"}}
+    </button>
+  </footer>
+</div>

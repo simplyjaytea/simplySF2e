@@ -604,6 +604,16 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 | 13g.1 | In the Generator choose Encounters, level 7, Rare, Party size 5, Severe; type a prompt. Reload the page and reopen. | Mode, level, rarity, party size and threat come back; the prompt box is empty. | Generator | | |
 | 13g.2 | Log in as the same GM in another browser. | That browser keeps its own settings (per browser, not per world). | Generator | | |
 
+## 13i. What's new
+
+| # | Do | Expect | Where | Pass | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 13i.1 | On a fresh browser profile (no saved SimplySF2e client settings), log in as the GM. | The What's new window does not open (the Welcome window covers new installs). | Login | | |
+| 13i.2 | Install an update that adds a release note, then log in as the GM. | What's new opens once, titled "What's new in SimplySF2e" with the module version, and lists only the new notes plus a "Something broke?" block. | Login | | |
+| 13i.3 | Press **Got it**, then reload. | The window closes and does not open again. | What's new | | |
+| 13i.4 | After a new update, press **Don't show for updates**, then reload after another update. | It never opens by itself again; `/sf2e whatsnew`, the settings **What's New** button and `game.modules.get("simplysf2e").api.openWhatsNew()` still open it with the newest notes. | What's new, chat, settings | | |
+| 13i.5 | Log in as a player after an update. | No What's new window and no error in the console. | Player client | | |
+
 ## Failure log
 
 One row per failure, so each cluster can become one fix PR.
