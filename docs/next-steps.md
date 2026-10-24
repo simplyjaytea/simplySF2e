@@ -1,6 +1,6 @@
 # Next-steps plan — UI polish (U) and Jev fast picks (J)
 
-Written 2026-10-02 after every Claude-doable GM-ready item (G1–G10, G14) merged. This plan is complete: U1–U7 and J1a–J6 are merged (J1b is merged too), JD1 was skipped, and G11–G13 of the GM-ready checklist in [HANDOFF.md](../HANDOFF.md) are closed. Tick items (`[x]` + PR link) rather than deleting them. IDs are stable; use them in branch names and PR titles.
+Written 2026-10-02 after every Claude-doable GM-ready item (G1–G10, G14) merged. This plan is complete: U1–U6 and J1a–J6 are merged, U7 was settled as a decision with no code change, JD1 was skipped, and G11–G13 of the GM-ready checklist in [HANDOFF.md](../HANDOFF.md) are closed. Tick items (`[x]` + PR link) rather than deleting them. IDs are stable; use them in branch names and PR titles.
 
 Each step below is sized for **one Sonnet 5.5 thread** that starts cold. Read "How a step thread works" at the bottom before starting any step.
 
