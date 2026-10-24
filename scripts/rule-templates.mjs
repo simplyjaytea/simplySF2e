@@ -4,17 +4,17 @@
  * SAFETY PRINCIPLE (the reason this file exists): Rule Element JSON is never
  * hand-authored from memory of the PF2e schema. Foundry fails SILENTLY when
  * an RE has a wrong key or field name — the effect just doesn't work and
- * nobody notices. Instead, this module scans the world's actually-installed
- * Item compendiums for published items whose `system.rules` already carry
+ * nobody notices. Instead, this module scans the world's installed equipment
+ * compendiums for published items whose `system.rules` already carry
  * each kind of RE the item forge needs, and hands back a working exemplar
- * to be cloned. The forge's level-filtered catalog preserves each complete
+ * to be cloned. The forge's level-filtered catalog keeps each supported
  * rule unchanged. Ground truth from real compendium data beats recalled
  * schema — the same grounding principle as the spell/equipment candidate
  * passes in compendium.mjs.
  *
- * If a kind has no real exemplar in this world's packs, that kind is simply
- * unavailable (a console warning is logged and the concept generator never
- * offers it). There is deliberately NO hand-authored fallback.
+ * If a kind has no real exemplar in this world's packs, the catalog has no
+ * entry of that kind and the forge never offers it. There is deliberately NO
+ * hand-authored fallback.
  */
 
 import { getPacksFor, priceToGp, RARITY_RANK } from "./compendium.mjs";
@@ -48,8 +48,8 @@ export const SPEED_TYPES = new Set(["fly", "swim", "climb", "burrow"]);
  * those shapes are skipped so the forge can compare concrete magnitudes.
  *
  * The field names below are search FILTERS, not authored output: if any of
- * them were wrong, the scan would simply find no exemplar and the kind
- * would be dropped — it can never produce a malformed Rule Element.
+ * them were wrong, the catalog would match no rule for that kind and the
+ * kind would be dropped — it can never produce a malformed Rule Element.
  */
 const KIND_SPECS = {
   itemBonus: {
@@ -75,8 +75,8 @@ const KIND_SPECS = {
   sense: {
     key: "Sense",
     // acuity and range are optional on published Sense rules; allowing them
-    // means the scan can find a "complete" exemplar that already carries
-    // both, so parameterizing acuity/range copies a real shape too.
+    // lets a published rule that already carries both pass unchanged, so
+    // parameterizing acuity/range copies a real shape too.
     allowed: ["key", "selector", "acuity", "range"],
     matches: (r) => typeof r.selector === "string"
   },
@@ -87,7 +87,7 @@ const KIND_SPECS = {
   }
 };
 
-/** Every kind the exemplar scan resolves. */
+/** Every effect kind the forge knows. */
 const ALL_KINDS = Object.keys(KIND_SPECS);
 
 /** Kinds offered to the ITEM FORGE's AI schema. */
@@ -99,11 +99,6 @@ function ruleMatchesKind(rule, kind) {
   if (!rule || typeof rule !== "object" || rule.key !== spec.key) return false;
   if (!Object.keys(rule).every((k) => spec.allowed.includes(k))) return false;
   return spec.matches(rule);
-}
-
-/** An exemplar carrying every allowed field can't be improved on — stop looking. */
-function isComplete(rule, kind) {
-  return KIND_SPECS[kind].allowed.every((k) => k in rule);
 }
 
 /* -------------------- pack scanning -------------------- */
@@ -230,91 +225,4 @@ function supportedForgeTarget(rule, kind) {
   if (kind === "sense") return SENSE_TYPES.has(rule.selector)
     && (rule.acuity === undefined || ["precise", "imprecise", "vague"].includes(rule.acuity));
   return kind === "speed" && SPEED_TYPES.has(rule.selector);
-}
-
-/**
- * Packs to scan, in preference order: the configured equipment packs first
- * (magic items are the best source of item-flavored REs), then feats and
- * bestiary abilities, then every other Item pack in the world.
- */
-function scanPackOrder() {
-  const ordered = [
-    ...getPacksFor("equipment"),
-    ...getPacksFor("feats"),
-    ...getPacksFor("abilities")
-  ];
-  const seen = new Set(ordered);
-  for (const pack of game.packs) {
-    if (pack.metadata.type !== "Item") continue;
-    if (!seen.has(pack.collection)) ordered.push(pack.collection);
-  }
-  return ordered;
-}
-
-/* Resolved once per session: { [kind]: {rule, sourceName, sourceUuid} | null } */
-let exemplarPromise = null;
-
-/**
- * Find one real, published exemplar rule for every effect kind, scanning
- * packs until each kind has a "complete" exemplar (every allowed field
- * present) or the packs run out. A partial match (e.g. a Sense rule with
- * no acuity/range) is kept but can be upgraded by a later, more complete
- * one. Kinds with no exemplar at all resolve to null and are logged.
- *
- * @returns {Promise<Record<string, {rule: object, sourceName: string, sourceUuid: string}|null>>}
- */
-export async function findRuleExemplars() {
-  exemplarPromise ??= (async () => {
-    const found = Object.fromEntries(ALL_KINDS.map((k) => [k, null]));
-    const incomplete = () => ALL_KINDS.filter((k) => !found[k] || !isComplete(found[k].rule, k));
-    for (const packId of scanPackOrder()) {
-      if (!incomplete().length) break;
-      const entries = await getRulesEntries(packId);
-      for (const entry of entries) {
-        const open = incomplete();
-        if (!open.length) break;
-        for (const rule of entry.rules) {
-          for (const kind of open) {
-            if (!ruleMatchesKind(rule, kind)) continue;
-            // Keep the first match; upgrade only to a more complete shape.
-            if (found[kind] && Object.keys(rule).length <= Object.keys(found[kind].rule).length) continue;
-            found[kind] = {
-              rule: structuredClone(rule),
-              sourceName: entry.name,
-              sourceUuid: entry.uuid
-            };
-          }
-        }
-      }
-    }
-    for (const kind of ALL_KINDS) {
-      if (found[kind]) {
-        console.debug(
-          `simplysf2e | itemforge: "${kind}" rule exemplar from "${found[kind].sourceName}" (${found[kind].sourceUuid})`
-        );
-      } else {
-        console.warn(
-          `simplysf2e | itemforge: no real ${KIND_SPECS[kind].key} rule exemplar found in any installed compendium — the "${kind}" effect kind is unavailable in this world`
-        );
-      }
-    }
-    return found;
-  })();
-  return exemplarPromise;
-}
-
-/**
- * The exemplar for one effect kind, or null when this world's compendiums
- * hold no real example of it.
- * @returns {Promise<{rule: object, sourceName: string, sourceUuid: string}|null>}
- */
-export async function findRuleExemplar(kind) {
-  const exemplars = await findRuleExemplars();
-  return exemplars[kind] ?? null;
-}
-
-/** Effect kinds that actually have a real exemplar in this world. */
-export async function availableEffectKinds() {
-  const exemplars = await findRuleExemplars();
-  return EFFECT_KINDS.filter((kind) => exemplars[kind]);
 }
