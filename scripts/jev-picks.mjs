@@ -294,7 +294,7 @@ export async function jevPickCreatureAbilities({ concept, candidates, jevConfig,
   return { abilities, ms: out.ms, usage: out.usage, attempted: true };
 }
 
-/** Module default, not a rules number: half of Jev's ~64k request limit (docs/next-steps.md J5), leaving headroom. */
+/** Module default, not a rules number: half of Jev's ~64k request limit (docs/archive/next-steps.md J5), leaving headroom. */
 export const JEV_REQUEST_TOKEN_BUDGET = 32000;
 /** More requests than this sends the whole step to the chat model instead. */
 const JEV_MAX_BATCHES = 4;
@@ -424,7 +424,7 @@ export async function jevPickCharacterChoices({ concept, catalog, jevConfig, sig
   return { picks, ms, usage, attempted: true };
 }
 
-/** Scale words Jev scores each spell candidate against (docs/next-steps.md J5: 4 levels). */
+/** Scale words Jev scores each spell candidate against (docs/archive/next-steps.md J5: 4 levels). */
 export const JEV_SPELL_FIT_WORDS = Object.freeze(["poor", "fair", "good", "excellent"]);
 /** A focus spell is taken only at the top fit level, because "otherwise return []" is valid for focus spells. */
 const FOCUS_FIT_INDEX = JEV_SPELL_FIT_WORDS.length - 1;

@@ -1,21 +1,6 @@
-# HANDOFF.md — live session baton
+# GM-ready checklist (archived 2026-10-25)
 
-Read this first, then CLAUDE.md. **How work runs: [docs/playbook.md](docs/playbook.md)** (Opus plans, Haiku workers in one worktree per task, Sonnet for sf2e-schema tasks, Haiku → Sonnet → Opus review ladder). There is no active feature plan: [docs/next-steps.md](docs/next-steps.md) and the GM-ready checklist below are both complete. HISTORY.md is the PF2e-era scaffold narrative; do not treat its v0.3.5.x release baton as simplySF2e state.
-
-## Last session — 2026-10-25 review, cleanup, init, playbook
-
-- Reviewed the repo (baseline 127/127 tests, `tools/release-check.sh` green), then ran a no-behavior-change cleanup as four Haiku worktree tasks, each through the Haiku → Sonnet review ladder: removed the never-called rule exemplar scan (`rule-templates.mjs`) and the never-wired `enrichDescription` (`builder.mjs`), deleted 4 unused translation keys, fixed PF2e comment residue, and corrected stale README / next-steps / ui-audit / ui-preview docs.
-- The tier-1 review caught a blocker: `SIMPLYSF2E.Treasure.AmountEncounter` / `AmountLevel` are built at runtime by `treasure-app.mjs` and were wrongly deleted. Restored, and `treasure.test.mjs` now guards them.
-- Refreshed CLAUDE.md (Commands section, Files table, current state) and AGENTS.md, and wrote docs/playbook.md with JT's standing orchestration rules.
-
-## Open follow-ups (not started)
-
-- **Placeholder art reaches production.** `generator-app.mjs` (~L1704, ~L1926) uses `findBestiaryScaffold(...).img` as is. `findBestiaryArt`, which drops default `mystery-man` / `default-icons` art, has no production caller. This is a behavior question for JT, so it was left out of the cleanup.
-- **`console.log` diagnostics** in `generator-app.mjs` (token usage, equipment matches), `itemforge-app.mjs`, `item-builder.mjs:180` and `builder.mjs:768` were kept as intentional. If they are unwanted, demote them to `console.debug`.
-- **Merged remote branches:** all 36 non-`main` remote branches were confirmed merged on 2026-10-25 (each tip is a merged PR head or a `main` ancestor). Delete them once JT approves.
-- **Pathfinder-only code paths** remain by design: `pc-tables.mjs` Remaster PF2e caster rows and the `pc-builder.mjs` Skillful Lessons branch only match PF2e documents. Removing them changes behavior and breaks tests.
-
-## GM-ready checklist
+Complete. Kept as a record of how simplySF2e reached Beta (G1–G14). IDs are referenced in old branch names and PR titles.
 
 "GM-ready" means a GM can install from the manifest, configure a provider, and generate NPCs/encounters/PCs/items that are correct on the sheet, with known limits documented. Tick items (`[x]` + PR link) rather than deleting them. IDs are stable; reference them in branch names and PR titles.
 
@@ -76,8 +61,3 @@ Read this first, then CLAUDE.md. **How work runs: [docs/playbook.md](docs/playbo
 ### Deferred (not GM-ready blockers)
 
 Full Free Archetype prerequisite graphs; upgrade prerequisite/exclusivity validation; shields and ammunition in the forge; PF2e-only code paths (the Skillful Lessons branch in `pc-builder.mjs`, PF2e casting rows in `pc-tables.mjs`; the Champion comment was fixed on 2026-10-25).
-
-## Material limits
-
-- Live Foundry QA is not in this environment.
-- HISTORY.md is inherited from the PF2e scaffold; do not rewrite it as SF2e history.
