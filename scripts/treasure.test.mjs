@@ -1,6 +1,7 @@
 // Pure Treasure hoard rules.
 // Run: node scripts/treasure.test.mjs
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import {
   TREASURE_AMOUNTS, TREASURE_PICKS, clampTreasureLevel, clampPartySize, treasureBudgetCredits, creditsEach,
   normalizeTreasureConcept, resolveIssuedPicks, fillHoard, hoardLeftover, treasureDescriptionHtml,
@@ -14,6 +15,13 @@ assert.equal(treasureBudgetCredits(4, "level"), 8500);
 assert.equal(treasureBudgetCredits(4), 680, "one encounter is the default");
 assert.equal(treasureBudgetCredits(99, "level"), treasureBudgetCredits(20, "level"), "levels clamp to 1-20");
 assert.deepEqual([...TREASURE_AMOUNTS], ["encounter", "level"], "only two budget choices");
+// Labels are built dynamically by scripts/treasure-app.mjs from TREASURE_AMOUNTS, so lint can't see them.
+const lang = JSON.parse(readFileSync(new URL("../lang/en.json", import.meta.url), "utf8"));
+for (const value of TREASURE_AMOUNTS) {
+  const key = `SIMPLYSF2E.Treasure.Amount${value[0].toUpperCase()}${value.slice(1)}`;
+  const label = key.split(".").reduce((node, part) => node?.[part], lang);
+  assert.ok(typeof label === "string" && label.trim().length > 0, `missing or empty lang key ${key}`);
+}
 assert.ok(TREASURE_PICKS.encounter < TREASURE_PICKS.level);
 
 // Party size is display only.

@@ -1,5 +1,6 @@
 /**
- * Everything the module knows about PF2e runes, in one place.
+ * SF2e equipment grades and upgrade candidates for the forge, plus legacy PF2e
+ * rune parsing and zeroing, in one place.
  *
  * GROUNDING PRINCIPLE (the same one rule-templates.mjs applies to Rule
  * Elements): fundamental and property runes are all real Item documents in the
