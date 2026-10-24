@@ -714,6 +714,8 @@
       "Level": "Party level",
       "PartyHint": "Party size only shows an \"each\" figure. The budget is per party, so it does not change.",
       "Amount": "How much",
+      "AmountEncounter": "One encounter",
+      "AmountLevel": "Whole level",
       "Rarity": "Rarest item",
       "Prompt": "Theme",
       "PromptPlaceholder": "Abandoned corporate lab on an ice moon",
