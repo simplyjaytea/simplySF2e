@@ -1,24 +1,19 @@
 # HANDOFF.md — live session baton
 
-Read this first, then CLAUDE.md. **The active plan is now [docs/next-steps.md](docs/next-steps.md)** (UI polish track U, Jev fast-picks track J, JT's decisions, and how a step thread builds, reviews and merges). The GM-ready checklist below still owns G13. HISTORY.md is the PF2e-era scaffold narrative; do not treat its v0.3.5.x release baton as simplySF2e state.
+Read this first, then CLAUDE.md. **How work runs: [docs/playbook.md](docs/playbook.md)** (Opus plans, Haiku workers in one worktree per task, Sonnet for sf2e-schema tasks, Haiku → Sonnet → Opus review ladder). There is no active feature plan: [docs/next-steps.md](docs/next-steps.md) and the GM-ready checklist below are both complete. HISTORY.md is the PF2e-era scaffold narrative; do not treat its v0.3.5.x release baton as simplySF2e state.
 
-## Last session — 2026-10-11 Beta
+## Last session — 2026-10-25 review, cleanup, init, playbook
 
-- Promoted the module from Alpha to Beta (G13, published as v0.1.0): README banner and Status, `module.json` description, CLAUDE.md current state.
-- Everything in docs/next-steps.md and feature rounds 2 and 3 is merged (#57–#65). QA rows 13a–13g are not yet checked live.
-- Merged remote branches still need deleting from JT's own machine (the cloud git proxy returns 403 on branch deletes).
+- Reviewed the repo (baseline 127/127 tests, `tools/release-check.sh` green), then ran a no-behavior-change cleanup as four Haiku worktree tasks, each through the Haiku → Sonnet review ladder: removed the never-called rule exemplar scan (`rule-templates.mjs`) and the never-wired `enrichDescription` (`builder.mjs`), deleted 4 unused translation keys, fixed PF2e comment residue, and corrected stale README / next-steps / ui-audit / ui-preview docs.
+- The tier-1 review caught a blocker: `SIMPLYSF2E.Treasure.AmountEncounter` / `AmountLevel` are built at runtime by `treasure-app.mjs` and were wrongly deleted. Restored, and `treasure.test.mjs` now guards them.
+- Refreshed CLAUDE.md (Commands section, Files table, current state) and AGENTS.md, and wrote docs/playbook.md with JT's standing orchestration rules.
 
-## Earlier session — 2026-10-02 next-steps plan
+## Open follow-ups (not started)
 
-- Wrote [docs/next-steps.md](docs/next-steps.md): Jev research (TypeSafe's typed decision model; only the OpenRouter route is browser-reachable, CORS probed 2026-10-02), UI track U1–U7, Jev track J1–J6 + JD1, decisions D-U1, D-U2, D-J1, D-J2.
-- Nothing in that plan is built yet. JT answered all four decisions on 2026-10-02 (Jev in the module; automatic on OpenRouter plus a separate Jev connection; polish the current UI; keep the Reskin mint + masks). U1, U2, U4 and J1a are ready.
-
-## Earlier session — 2026-10-01 cleanup + GM-ready plan
-
-- Docs cleanup merged as PR #9 (`a9d5e78`): CLAUDE.md Files table, README status, PF2e audit archived to `docs/archive/pf2e/`.
-- Remote branches fully merged into `main` and still to delete by hand (the cloud git proxy returned 403 on the delete): `cursor/free-archetype-archetype-slot-validation`, `cursor/table-cites`, `integrate/wave-p0-p4`.
-- Reviewed every open item (HANDOFF, CLAUDE.md known gaps/roadmap, code scan, upstream v14-dev source) and built the **GM-ready checklist** below. Nothing in it has been started.
-- 99/99 test suites pass on `main`.
+- **Placeholder art reaches production.** `generator-app.mjs` (~L1704, ~L1926) uses `findBestiaryScaffold(...).img` as is. `findBestiaryArt`, which drops default `mystery-man` / `default-icons` art, has no production caller. This is a behavior question for JT, so it was left out of the cleanup.
+- **`console.log` diagnostics** in `generator-app.mjs` (token usage, equipment matches), `itemforge-app.mjs`, `item-builder.mjs:180` and `builder.mjs:768` were kept as intentional. If they are unwanted, demote them to `console.debug`.
+- **Merged remote branches:** all 36 non-`main` remote branches were confirmed merged on 2026-10-25 (each tip is a merged PR head or a `main` ancestor). Delete them once JT approves.
+- **Pathfinder-only code paths** remain by design: `pc-tables.mjs` Remaster PF2e caster rows and the `pc-builder.mjs` Skillful Lessons branch only match PF2e documents. Removing them changes behavior and breaks tests.
 
 ## GM-ready checklist
 
@@ -80,39 +75,7 @@ Read this first, then CLAUDE.md. **The active plan is now [docs/next-steps.md](d
 
 ### Deferred (not GM-ready blockers)
 
-Full Free Archetype prerequisite graphs; upgrade prerequisite/exclusivity validation; shields and ammunition in the forge; PF2e comment residue (Champion/Investigator comments in `pc-builder.mjs`, PF2e casting rows in `pc-tables.mjs`).
-
-## How to run this with Sonnet workers
-
-The coordinator (Opus or Fable) owns planning, every sf2e schema verification, integration, git, the PR, and this file. Sonnet workers do the mechanical edits. Full rules are in CLAUDE.md "Agent workflow".
-
-**Wave 1** (parallel, no file overlap): G1 (Sonnet), G5 (Sonnet), G8 (Sonnet), G10 (Sonnet), G4 (Opus reviewer). Before Wave 1, the coordinator does the G2 and G3 verification itself.
-**Wave 2** (after G1 merges into the integration branch): G3 apply, G2 apply, G9.
-**Blocked on the user:** nothing in this checklist. G13 closed 2026-10-11.
-
-Spawn each worker with the `Agent` tool: `model: "sonnet"`, `isolation: "worktree"`, `run_in_background: true`, one checklist ID per worker. Prompt template:
-
-```
-You are a Sonnet worker on simplySF2e (Foundry VTT module, sf2e system). Task: <ID> — <title>.
-Read CLAUDE.md (Invariants + Files) and the <ID> entry in HANDOFF.md first.
-
-Do exactly this:
-<concrete steps, files, and line anchors from the checklist entry>
-
-Cited source values you may use (do not look up or invent others):
-<quoted upstream lines pasted by the coordinator, or "none needed">
-
-Rules:
-- Do not change files outside: <file list>.
-- Never hand-author Rule Elements, invent sf2e schema, or emit AI-chosen numbers.
-- Escape AI/user text with text.mjs esc/toHtml.
-- Git identity: user.name "jt", user.email "jt_f@ymail.com". Commit in your worktree only; do NOT push or open PRs.
-- Verify: node --check every touched .mjs; `for f in scripts/*.test.mjs; do node "$f" || echo FAIL $f; done` must show no FAIL. Add a *.test.mjs for any pure logic you change.
-
-Report back: commit SHA(s), files changed, test output summary, and anything you could not do. Quote a source line for every "verified" claim, or say "unverified".
-```
-
-The coordinator then reviews each worker diff, merges the worktree commits into the session's designated branch, reruns the full test suite, and sends schema-dependent diffs (G1, G2, G3, G4 fixes) to a fresh-context reviewer agent. Then it pushes and opens one PR per wave. Cloud sessions can push only to their designated branch, so workers must not push.
+Full Free Archetype prerequisite graphs; upgrade prerequisite/exclusivity validation; shields and ammunition in the forge; PF2e-only code paths (the Skillful Lessons branch in `pc-builder.mjs`, PF2e casting rows in `pc-tables.mjs`; the Champion comment was fixed on 2026-10-25).
 
 ## Material limits
 
