@@ -1,5 +1,7 @@
 # UI audit (step U3)
 
+Historical record (2026-10-02). The bug rows were fixed in U5a/U5b and the approved design rows in U6; line numbers and counts below describe the code at that time.
+
 Audit of the five SimplySF2e windows (Generator, Item Forge, Provider Setup, Compendium Sources, Manage Presets) plus the shared kit. Written for step U3 of [next-steps.md](next-steps.md). It changes no code. U5a and U5b fix the `bug` rows; the coordinator turns the `design` rows into cards for JT, and U6 builds only the ones JT approves.
 
 State audited: `main` at U2 (PR #25, signed modifiers and localized AC/HP/DC/Per, so the old "+-2" sign bug is fixed and is not a finding here).

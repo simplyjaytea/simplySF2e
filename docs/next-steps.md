@@ -1,6 +1,6 @@
 # Next-steps plan — UI polish (U) and Jev fast picks (J)
 
-Written 2026-10-02 after every Claude-doable GM-ready item (G1–G10, G14) merged. The GM-ready checklist in [HANDOFF.md](../HANDOFF.md) still owns G11–G13 (JT's live QA, live fixes, Beta). This file owns the next two tracks. Tick items (`[x]` + PR link) rather than deleting them. IDs are stable; use them in branch names and PR titles.
+Written 2026-10-02 after every Claude-doable GM-ready item (G1–G10, G14) merged. This plan is complete: U1–U7 and J1a–J6 are merged (J1b is merged too), JD1 was skipped, and G11–G13 of the GM-ready checklist in [HANDOFF.md](../HANDOFF.md) are closed. Tick items (`[x]` + PR link) rather than deleting them. IDs are stable; use them in branch names and PR titles.
 
 Each step below is sized for **one Sonnet 5.5 thread** that starts cold. Read "How a step thread works" at the bottom before starting any step.
 
@@ -79,7 +79,7 @@ Ground rules for every J step (they extend CLAUDE.md's invariants):
   - `buildChoiceQuestion({ instructions, candidates })` → `{ type: "choice", instructions, criteria: { [id]: name } }`, rejecting more than 255 options (caller falls back).
   - `parseJevAnswers(json, questionIds)` → validates the cited response shape; returns `null` on any mismatch.
   - `requestJevDecision({ endpoint, apiKey, state, questions, signal })`: `fetch` with an `AbortSignal` combined with a timeout constant (4 s), returns `{ answers, usage, model, ms }` or `null`. Never throws to the caller. Never logs the key.
-  - A pure `normalizeJevUsage(usage)` in `tokens.mjs` (input tokens; cost from `usage.cost` when OpenRouter returns it). Nothing calls it yet; the report line itself (`app-base.mjs` `_tokenUsage`) is added in J2 and shown in J6.
+  - A pure `normalizeJevUsage(usage)` in `tokens.mjs` (input tokens; cost from `usage.cost` when OpenRouter returns it). `scripts/jev-picks.mjs` calls it (`ask`, line ~72); the report line itself (`app-base.mjs` `_tokenUsage`) is added in J2 and shown in J6.
   - Tests: `scripts/jev.test.mjs` for resolver order (inject fake `provider`/`dedicated`; an unbound OpenRouter key returns `null`), question building (keyed criteria, 255 cap), response parsing (cited example passes; missing `answers`, wrong `type`, unknown id all return `null`).
   No call sites and no UI. **Review:** independent; reviewer re-fetches the two cited doc pages and checks every field name.
 - [x] **J1b · Separate Jev key in Provider Setup (D-J2 b).** (done: PR #28) Needs J1a merged. **Before building, post JT a decision card on the section's look and wording** (attach a U1 harness screenshot if U1 has merged; the card does not wait for U1); **do not merge J1b until JT answers.** Mechanism, settled here (not part of the card):
@@ -110,6 +110,8 @@ Ground rules for every J step (they extend CLAUDE.md's invariants):
 - [~] **JD1 · (skipped: JT chose module only, 2026-10-02) Jev for the agents that work on this repo.** JT adds a TypeSafe key as an environment secret and allows `api.typesafe.ai` in the environment's network policy. Then a thread adds the chosen plugin to `.claude/settings.json` (`enabledPlugins` + marketplace) so every session has it. The thread reads the plugin's hook code in full before enabling it (third-party code runs on every Read) and says what it does in the PR. Not shipped to users.
 
 ## Order and dependencies
+
+All steps below are done. The block is kept as a record of the plan.
 
 ```
 Now (parallel):        U1   U2   U4   J1a
