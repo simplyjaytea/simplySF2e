@@ -53,7 +53,7 @@
  * lump sum is deliberately worth less than items+currency (the book says so),
  * which is the correct trade for a module that lets the buyer pick freely.
  * Modelling the recommended per-level item ladder is part of the separate
- * known equipment gap (PF2e-era HANDOFF finding #15).
+ * known equipment gap.
  *
  * Rules data used under the ORC License; see README for attribution.
  */

@@ -131,7 +131,7 @@ Every step that changes behavior adds its rows to `docs/qa-checklist.md`, becaus
 
 Sonnet 5.5 thread, one step ID, starting cold.
 
-1. Read `AGENTS.md`, `CLAUDE.md` (Invariants, Files, How to work here), this file's entry for your step, and the ground rules for your track. `git log --oneline -10`. If a step you depend on is not merged, stop and say so.
+1. Read `PLAYBOOK.md`, this file's entry for your step, and the ground rules for your track. `git log --oneline -10`. If a step you depend on is not merged, stop and say so.
 2. You are a full thread, not a worktree worker: you push your own branch and open your own PR (any subagents *you* start follow [PLAYBOOK.md](../../PLAYBOOK.md); that replaced the old CLAUDE.md "Sonnet worker recipe" on 2026-10-25). Work on your session's designated branch; name the PR `<ID>: <title>`. Git identity `jt` / `jt_f@ymail.com`.
 3. Build exactly the step. No extra features. If you hit a choice that changes look, layout, wording or flow and this file doesn't settle it, ask JT with a decision card, recommend an option, and keep building the rest.
 4. Verify: `node --check` every touched `.mjs`; `for f in scripts/*.test.mjs; do node "$f" || echo FAIL $f; done` shows no FAIL; for UI steps, run the U1 harness and attach before/after screenshots to the PR or thread.

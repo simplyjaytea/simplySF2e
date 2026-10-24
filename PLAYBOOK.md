@@ -10,14 +10,15 @@ The one file every agent (Claude, Codex, anything else) reads first. It holds wh
 2. `git log --oneline -10` and `git status`. Git is authoritative for branch state, not any file.
 3. Baseline: `for f in scripts/*.test.mjs; do node "$f" >/dev/null 2>&1 || echo FAIL $f; done` (no output = all pass).
 4. If §1 lists a review in flight, check whether its PR merged mid-review. If it did, ship fixes as a **new** PR.
+5. End every session with the tree clean or committed on a named branch, never with uncommitted work on `main`.
 
 ## 1. Where we are (rewrite each session)
 
 *Updated 2026-10-25.* Status **Beta**. Every merge to `main` publishes the next release; check GitHub Releases for the version.
 
 - **No active feature plan.** The UI polish and Jev tracks (`docs/archive/next-steps.md`) and the GM-ready checklist (`docs/archive/gm-ready-checklist.md`) are complete.
-- **Last sessions (2026-10-25):** repo review and a no-behavior-change cleanup (PR #68, v0.1.2); this playbook replaced CLAUDE.md, AGENTS.md, HANDOFF.md and HISTORY.md as the single source; creature art fix (keeps borrowed token art, drops the placeholder portrait, names the token after the new creature). All 37 merged remote branches were deleted.
-- **Live evidence:** JT reported the live run of `docs/qa-checklist.md` OK on 2026-10-08 (verbal; no versions or per-row log). Features merged after that are not live-checked: Re-level in Reskin, the Treasure hoard window, faster encounters, What's new, the creature art fix.
+- **Last sessions (2026-10-25):** repo review and a no-behavior-change cleanup (PR #68, v0.1.2); this playbook replaced CLAUDE.md, AGENTS.md, HANDOFF.md and HISTORY.md as the single source; creature art fix (keeps borrowed token art, drops the placeholder portrait, names the token after the new creature). All 37 merged remote branches were deleted on JT's OK (36 old ones plus `cleanup/repo-tidy`).
+- **Live evidence:** JT reported the live run of `docs/qa-checklist.md` OK on 2026-10-08 (verbal; no versions or per-row log). Not live-checked since: every feature in README.md "Live checks", plus the creature art fix. The three Reskin rows (compendium drop, world-actor drop, a renamed strike keeping its attack effects) were never confirmed one by one.
 - **Open follow-ups (not started):**
   - `console.log` diagnostics in `generator-app.mjs` (token usage, equipment matches), `itemforge-app.mjs`, `item-builder.mjs:180` and `builder.mjs:768` are kept as intentional. Demote them to `console.debug` if JT wants them quiet.
   - PF2e-only code paths remain by design: the Remaster PF2e caster rows in `pc-tables.mjs` and the Skillful Lessons branch in `pc-builder.mjs` only match PF2e documents.
@@ -60,17 +61,19 @@ No build step: Foundry loads `scripts/simplysf2e.mjs` and the plain ES modules i
 | Pre-release gate | `git fetch origin main && bash tools/release-check.sh` (`--no-ui` skips screenshots; bash 4.4+) |
 | UI screenshots | `cd tools/ui-preview && npm install && npm run shoot` → PNGs in `tools/ui-preview/out/` at 720 px and 460 px |
 
+- **`tools/release-check.sh`** reruns every self-checkable check: syntax, all tests, duplicate keys in `module.json`/`lang/en.json`, missing manifest/template paths, merge-conflict markers, duplicate QA row ids, `git diff --check` against `origin/main`, and the UI harness. `tools/` never ships in the release zip.
+- **Versioning:** each merge to `main` auto-publishes the next patch tag. A minor bump (as for v0.1.0) is cut by running Actions > Release > Run workflow with a `version` on the same commit; later merges count up from it.
 - **CI** (`.github/workflows/pull-request.yml`, job `verify`): `node --check` on every `scripts/**/*.mjs`, every `*.test.mjs`, `jq empty module.json lang/en.json`, `git diff --check` base..head. Merging to `main` runs `auto-release.yml`.
 - **Tests are pure logic only.** Anything that needs a live world goes into `docs/qa-checklist.md` and the PR body.
 - **Runtime-built translation keys.** `i18n-keys.test.mjs` sees only literal keys. These families are built at runtime, so a key that looks unused may be live: `Treasure.Amount*` (`treasure-app.mjs`), `TreasureAmount.*` (`generator-app.mjs`, `manage-presets-app.mjs`), `Mode.*`, `Role.*`, `Threat.*`, `StatCheck.*`, `Skills.*`, `Loadout.*`, `Rarity.*`, `Shop.Size*`/`Category*`, `Preview.*`. Grep for the prefix before deleting a key.
 - **Every PR with a GM-visible change** adds one `RELEASE_NOTES` entry (new unique `id`, i18n title/body in `lang/en.json`) at the top of `scripts/whats-new.mjs`.
-- **UI changes:** run the screenshot harness and look at both widths. Narrow-window CSS uses `@container spf-window` on `.window-content`, never viewport `@media`. Shared styles are in `styles/simplysf2e.css`; single-window rules are in `styles/apps/<app>.css`.
+- **UI changes:** run the screenshot harness and look at both widths. It has no Foundry core CSS and exits non-zero when a fixture is out of step with its template (`tools/ui-preview/README.md`). Narrow-window CSS uses `@container spf-window` on `.window-content`, never viewport `@media`. Shared styles are in `styles/simplysf2e.css`; single-window rules are in `styles/apps/<app>.css`.
 
 ## 5. Architecture and file map
 
-Three actor/item pipelines over shared compendium and table code, plus four windows.
+Three actor/item pipelines over shared compendium and table code, plus the Shop, Treasure, Reskin and setup windows.
 
-**NPC / creature** (`builder.mjs`, the most tested path): `generateConcept()` in `ai.mjs` (one call on `systemPrompt()`, scales not numbers) → `normalizeConcept()` → spells (`chooseSpellFocus` → `getSpellCandidates` → `selectSpells`) → equipment (`getEquipmentCandidates` → `selectEquipment`) → feats/abilities/loot grounded to bounded real catalogs → `resolveConcept(..., { exactContent: true })` builds a completion manifest; an unresolved required pick blocks Create → `createActor()` clones real items and verifies persisted sources. The art and token structure come from the closest bestiary creature (`art.mjs` `findBestiaryScaffold`). Encounter mode: `designEncounter()` sets a theme and per-role briefs, then runs the creature pipeline per member, 3 at a time (`pool.mjs`).
+**NPC / creature** (`builder.mjs`, the most tested path): `generateConcept()` in `ai.mjs` (one call on `systemPrompt()`, scales not numbers) → `normalizeConcept()` → spells (`chooseSpellFocus` → `getSpellCandidates` → `selectSpells`) → equipment (`getEquipmentCandidates` → `selectEquipment`) → feats/abilities/loot grounded to bounded real catalogs → `resolveConcept(..., { exactContent: true })` builds a completion manifest; an unresolved required pick blocks Create → `createActor()` clones real items and verifies persisted sources. Published picks keep their exact issued source references; custom abilities stay labeled narrative-only. After Create, `stat-check.mjs` compares the sheet with GM Core bands and only reports (it whispers the GM when something is off). Loot reroll is one small `generateLoot()` call. The art and token structure come from the closest bestiary creature (`art.mjs` `findBestiaryScaffold`). Encounter mode: `designEncounter()` sets a theme and per-role briefs, then runs the creature pipeline per member (N× the prompt cost), 3 at a time, or 1 at a time on a local provider (`pool.mjs`). Elite/Weak (Alien Core pp. 204/207) is applied once through the system's `adjustment`. **Reskin** mode: the GM drops an NPC; the AI writes new fiction and may rename strikes/abilities by id; stats, rules, traits and items are unchanged, and renamed items keep their original slug (`pf2eSluggify`).
 
 **Player character** (`pc-builder.mjs`): no math layer. It embeds real ABC/heritage/feat items with correct `system.build` data and the system derives AC/HP/saves itself. `normalizePCConcept()` → `resolvePCConcept()` → `createCharacterActor()`. Single class; no pre-create edit screen.
 
@@ -90,11 +93,11 @@ Three actor/item pipelines over shared compendium and table code, plus four wind
 | `art.mjs` | Bestiary scaffold choice (prefers mapped art) and `scaffoldArt()`. |
 | `reskin.mjs` / `relevel.mjs` / `reroll.mjs` / `stat-check.mjs` | Reskin copy, re-level by GM Core scale steps, reroll one pick, post-create stat report. |
 | `item-builder.mjs` / `rule-templates.mjs` / `runes.mjs` / `macro-templates.mjs` | Forge assembly and pricing; passive-effect catalog; grades + upgrade candidates (+ legacy rune zeroing); activation macros. |
-| `currency.mjs` + `currency/credstick.mjs`, `currency/upb.mjs` | Credits/UPB from verbatim v14-dev templates (as `.mjs`, because Firefox ESR 128 can't parse JSON import attributes); 1 gp = 10 credits. |
+| `currency.mjs` + `currency/credstick.mjs`, `currency/upb.mjs` | Credits/UPB from verbatim v14-dev templates (as `.mjs`, because Firefox ESR 128 can't parse JSON import attributes; `import-attributes.test.mjs` blocks new JSON imports); 1 gp = 10 credits. |
 | `shop.mjs`, `treasure.mjs` (+ `-app.mjs`) | Shop (`loot` actor, `lootSheetType: "Merchant"`) and Treasure hoard (`"Loot"`) windows. |
-| `welcome.mjs`, `whats-new.mjs` (+ `-app.mjs`) | First-run readiness window; release notes window (`RELEASE_NOTES`). |
+| `welcome.mjs`, `whats-new.mjs` (+ `-app.mjs`) | Welcome opens for a GM until the AI connection works or "Don't show again". What's new opens once per GM browser after an update with unseen notes, and silently seeds on a fresh install. |
 | `generator-app.mjs`, `itemforge-app.mjs`, `manage-presets-app.mjs`, `sources-app.mjs`, `provider-setup-app.mjs`, `app-base.mjs` | UI windows over the shared shell (connection switch, token report, progress bar). |
-| `presets.mjs`, `encounter.mjs`, `pool.mjs`, `party.mjs`, `folders.mjs`, `handout.mjs`, `generator-memory.mjs`, `recent-generations.mjs`, `progress.mjs`, `tokens.mjs`, `bug-report.mjs`, `text.mjs` | Presets; XP budgets; bounded concurrency; party summary; flagged folders; NPC handouts; remembered settings; recent previews; progress math; token counts; redacted bug report; slugify/escaping. |
+| `presets.mjs`, `encounter.mjs`, `pool.mjs`, `party.mjs`, `folders.mjs`, `handout.mjs`, `generator-memory.mjs`, `recent-generations.mjs`, `progress.mjs`, `tokens.mjs`, `bug-report.mjs`, `text.mjs` | Presets; XP budgets; bounded concurrency; party summary; flagged folders (Creatures, NPCs, Characters, Shops, Treasure); NPC handouts (portrait, blurb, read-aloud only); remembered settings (never the prompt); recent previews; progress math; token counts; redacted bug report; slugify/escaping. |
 | `*.test.mjs` | Standalone regression checks; CI runs all of them. |
 
 ## 6. How work runs
@@ -104,6 +107,7 @@ JT's standing rules (2026-10-25).
 | Role | Model / settings | Does |
 | --- | --- | --- |
 | Coordinator | Opus 5.5, high effort | Makes every plan; fetches and cites sf2e source; dispatches; runs the review ladder; integrates; merges; updates this file. Never hands off release/workflow `.yml` reasoning. |
+| Planner (optional) | Opus 5.5 `Plan` agent, high effort | Second opinion on a large or risky plan; the coordinator still owns it. |
 | Worker | Haiku 5.5: `model: "haiku"`, `effort: "high"`, `isolation: "worktree"`, `run_in_background: true` | One task in its own worktree. Commits there; never pushes. |
 | Schema worker | Sonnet 5.5, high effort, worktree | Any task that depends on sf2e/Foundry field names, enums, pack ids or rule shapes. Uses only the cited source pasted into its prompt. |
 | Reviewers | Tier 1 Haiku → tier 2 Sonnet → tier 3 Opus (high effort, fresh context, never the builder) | Every finished worktree gets tiers 1 and 2. Tier 3 is added for schema- or balance-sensitive diffs (`tables.mjs`, `relevel.mjs`, `stat-check.mjs`, stat math, pack ids, enums, REs, PC grants/slots). |
@@ -115,10 +119,10 @@ A reviewer that must run tests needs an agent type that can run `node` (`general
 1. **Plan:** goal, stop condition, and the files each task may touch. Do every sf2e lookup now and keep the quoted lines for the worker prompts.
 2. **Split:** one task per worktree, with no file overlap between parallel tasks. This file, CLAUDE.md and AGENTS.md belong to the coordinator.
 3. **Dispatch:** send all independent tasks in one message.
-4. **Review ladder:** tier 1 → tier 2 (→ tier 3). A finding goes back to the same worker (`SendMessage`) as a **new** commit, never an amend, and the fix climbs again from the tier that found it.
+4. **Review ladder:** tier 1 → tier 2 (→ tier 3). A finding goes back to the same worker (`SendMessage`) as a **new** commit, never an amend, and the fix climbs again from the tier that found it. Minor findings in coordinator-owned docs are fixed by the coordinator instead.
 5. **Integrate:** make one branch from `main`, `git merge --no-ff` each passed worktree branch, then run `bash tools/release-check.sh` (`--no-ui` only if no template/CSS changed).
 6. **PR and merge:** push, open **one** PR for the batch (each merge is a public release), and wait for `verify`. The coordinator may merge once an independent reviewer has no open blockers and `verify` is green on the current head.
-7. **Tidy:** `git worktree remove` each worktree and delete local `worktree-agent-*` branches. Delete a remote branch only with JT's OK: JT's merge authority covers push, PR and merge only.
+7. **Tidy:** `git worktree remove` each worktree and delete local `worktree-agent-*` branches. Ask JT before any authenticated GitHub write. JT's standing authority covers push, PR and merge only, so deleting a remote branch needs JT's OK.
 8. **Hand off:** rewrite §1; add lessons to §8.
 
 **Worker prompt template.**
@@ -144,11 +148,13 @@ Tier 2 and tier 3 prompts state what the lower tiers already checked. They then 
 
 ## 7. Verified against real source — do not re-litigate
 
+The first four bullets are PF2e-era checks inherited with the builders (re-verify if the schema area is reworked); the rest were checked against v14-dev sf2e between 2026-10-01 and 2026-10-25.
+
 - Setting all five `build.attributes.boosts` tiers regardless of level is safe (`character/document.ts` slices by `allowedBoosts`).
 - A PC spellcasting entry's `proficiency.value` is a floor, not a cap (`spellcasting-entry/document.ts` takes `Math.max` with `base-spellcasting`).
 - `details.languages.value` is not truncated; the system adds Int mod to `build.languages.max`.
 - Do not write `system.price`/`system.level` on a graded/runed item: `physical/document.ts` `computeLevelRarityPrice()` recomputes both.
-- A PC's focus pool needs no rule: `resources.focus.max` resets to 0 each prep and each embedded non-cantrip focus spell adds 1, capped at 3 (`item/spell/document.ts`, `creature/document.ts`). An NPC pool is plain actor data. Only Mystic and Witchwarper have focus spells.
+- A PC's focus pool needs no rule: `resources.focus.max` resets to 0 each prep and each embedded non-cantrip focus spell adds 1, capped at 3 (`item/spell/document.ts`, `creature/document.ts`; re-verified 2026-10-02). An NPC pool is plain actor data. Only Mystic and Witchwarper have focus spells.
 - Credits/UPB: `ActorInventory.addCurrency` clones bundled `credstick.json`/`upb.json`; the credit amount is `system.price.value`. No sf2e gold-piece UUIDs exist.
 - G1 skills: sf2e adds `computers` (int) and `piloting` (dex) (`src/scripts/config/index.ts`). NPC core skills are written to `system.skills.<slug>.base`, never as lore items (`item/lore.ts` appends `-lore`).
 - Spell consumables are spell **gems**, not scrolls (`config/spell-consumables.ts`).
@@ -189,9 +195,9 @@ Each line is a bug class that already cost a fix. The full story is in `docs/arc
 ## 9. Known gaps (by design or deferred)
 
 - **Focus:** a focus-only NPC (no tradition, so no DC) is unsupported. The NPC pool size (spell count, max 3) is a module default.
-- **Item Forge passives** exist only for kinds with a published `sf2e.equipment` exemplar: item bonus, resistance, sense. Weakness, immunity and speed are hidden.
+- **Item Forge passives** exist only for kinds with a published `sf2e.equipment` exemplar: item bonus, resistance, sense. Weakness, immunity and speed are hidden. No sf2e item uses an `etched-onto-*` usage.
 - **Upgrades:** only `installed-in-a-weapon` / `installed-in-armor` usages are offered (`runes.mjs`, cited to `usage.ts`). Upgrade slot counts are **uncited and on hiatus** (`parseUpgradeCapacity` defaults to weapon 1 / armor 0). Prerequisites and exclusivity are not validated; shields and ammo are out of scope.
-- **PC skills/feats:** unknown grant timing and missing class data are warned, not inferred. Free Archetype slot placement and ordinary prerequisites are checked (`pc-prerequisites.mjs`); a full prerequisite graph is unbuilt.
+- **PC skills/feats:** unknown grant timing and missing class data are warned, not inferred. Duplicate native feat grants and new Lore replacements stay manual; not live-tested. Class-path details (Operative specialization, Sniper; Solarian has no `item:tag` path) are in `class-paths.mjs`; Mystic/Witchwarper casting (3 slots per rank, 5 cantrips, 10th rank at 19) in `pc-tables.mjs`. Free Archetype slot placement and ordinary prerequisites are checked (`pc-prerequisites.mjs`); a full prerequisite graph is unbuilt.
 - **Rarity cap** covers ancestry/background/heritage only, by design.
 - **Multiclass** is unbuilt: sf2e has dedications for all six classes and `pc-support.mjs` maps them, but nothing calls the map.
 

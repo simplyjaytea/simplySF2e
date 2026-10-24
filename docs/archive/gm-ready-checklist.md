@@ -51,7 +51,7 @@ Complete. Kept as a record of how simplySF2e reached Beta (G1–G14). IDs are re
 
 ### Gate C — live verification (the user, on the VPS)
 
-- [x] **G11 · Run `docs/qa-checklist.md`** on Foundry 14.367 with sf2e 1.5.x. Closed on JT's verbal report that the live QA run was OK on 2026-10-08; no versions, world or per-row evidence log were recorded. Recorded under CLAUDE.md "Recorded live evidence".
+- [x] **G11 · Run `docs/qa-checklist.md`** on Foundry 14.367 with sf2e 1.5.x. Closed on JT's verbal report that the live QA run was OK on 2026-10-08; no versions, world or per-row evidence log were recorded. Recorded in PLAYBOOK.md §1.
 - [x] **G12 · Fix live findings.** No findings to fix: JT reported the live run OK on 2026-10-08; no failures or per-row log were recorded.
 
 ### Gate D — release
