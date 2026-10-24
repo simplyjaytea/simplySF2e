@@ -1747,7 +1747,9 @@ export async function createActor(concept, resolved, { img = null, scaffold = nu
       ...(focusPoolSize ? { resources: { focus: { value: focusPoolSize, max: focusPoolSize } } } : {})
     },
     prototypeToken: {
-      ...(scaffold?.prototypeToken ?? {}),
+      // Cloned so nested flags/sight/texture are not shared with the scaffold
+      // (Encounter members reuse one scaffold; document creation merges in place).
+      ...structuredClone(scaffold?.prototypeToken ?? {}),
       // The scaffold's token is named after the bestiary creature; name it for the new one.
       name: concept.name,
       displayName: CONST.TOKEN_DISPLAY_MODES.OWNER_HOVER,
