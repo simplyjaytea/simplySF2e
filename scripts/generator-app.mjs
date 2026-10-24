@@ -33,7 +33,7 @@ import { getCustomPresets, findPreset, examplePrompt, randomBrief, presetPickerG
 import { ManagePresetsApp } from "./manage-presets-app.mjs";
 import { SourcesConfigApp } from "./sources-app.mjs";
 import { composeEncounter, THREATS } from "./encounter.mjs";
-import { findBestiaryScaffold } from "./art.mjs";
+import { findBestiaryScaffold, scaffoldArt } from "./art.mjs";
 import { assertComplete, completionManifest, completionSummary } from "./completion.mjs";
 import { verifyCreatedActor } from "./post-create.mjs";
 import { supportedClassCandidates } from "./pc-support.mjs";
@@ -1701,7 +1701,7 @@ export class GeneratorApp extends SpfApp {
       // Art: borrowed from the closest-matching bestiary creature.
       const scaffold = await findBestiaryScaffold(this.#concept);
       if (!scaffold) throw new Error(game.i18n.localize("SIMPLYSF2E.Errors.NoBestiaryScaffold"));
-      const img = scaffold.img ?? null;
+      const img = scaffoldArt(scaffold);
       const created = await createActor(this.#concept, this.#resolved, { img, scaffold });
       actor = created.actor;
       verifyCreatedActor(actor, this.#manifest, created.expectedItems);
@@ -1923,7 +1923,7 @@ export class GeneratorApp extends SpfApp {
         // Identical minions share one art lookup — same creature, same portrait.
         const scaffold = await findBestiaryScaffold(member.concept);
         if (!scaffold) throw new Error(game.i18n.localize("SIMPLYSF2E.Errors.NoBestiaryScaffold"));
-        const img = scaffold.img ?? null;
+        const img = scaffoldArt(scaffold);
         for (let i = 0; i < member.count; i++) {
           const createdActor = await createActor(member.concept, member.resolved, { img, scaffold });
           const actor = createdActor.actor;
