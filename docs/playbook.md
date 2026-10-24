@@ -26,7 +26,7 @@ Reviewers are never the agent that built the change. For a tier that must run te
 5. **Review ladder.** When a worker reports back, send its worktree to tier 1, then tier 2, then tier 3 if the diff is schema- or balance-sensitive. A finding goes back to **the same worker** (`SendMessage` to its id) as a **new commit** (never an amend). The fixed branch then climbs the ladder again **from the tier that found the problem**. Minor findings in coordinator-owned docs are fixed by the coordinator later rather than sent back.
 6. **Integrate.** Create one integration branch from `main` (e.g. `cleanup/<topic>` or `feat/<topic>`) and merge every passed worktree branch into it (`git merge --no-ff <branch>`). Then rerun the full gate on the integration branch: `bash tools/release-check.sh` (add `--no-ui` only when no template or CSS changed).
 7. **PR and merge.** Push the integration branch (in a cloud session, push to the session's designated branch instead), open **one** PR for the whole batch, and wait for the `verify` check. **Each merge to `main` publishes a public release**, so batch work rather than merging one PR per task. The coordinator may merge once an independent reviewer has no open blockers and `verify` is green on the current head (AGENTS.md rule 1). If the change is visible to a GM, add one `RELEASE_NOTES` entry first (see AGENTS.md).
-8. **Tidy.** After the merge: `git worktree remove <path>` for each worker worktree, and delete the local `worktree-agent-*` branches. Delete a merged remote branch only after JT approves (AGENTS.md: ask before authenticated GitHub writes outside push → PR → merge).
+8. **Tidy.** After the merge: `git worktree remove <path>` for each worker worktree, and delete the local `worktree-agent-*` branches. Delete a merged remote branch only after JT approves (AGENTS.md asks for JT's OK before any authenticated GitHub write; JT's standing merge authority covers push, PR and merge only).
 9. **Hand off.** Overwrite HANDOFF.md with what was done, what is in flight, the exact next step, and anything unverified. Add durable lessons to HISTORY.md (newest first).
 
 ## Worker prompt template
@@ -74,7 +74,7 @@ Tier 2 and tier 3 prompts say what the lower tiers already checked and ask for t
 - **Merging to `main` is a public release.** Treat it like `gh release create`.
 - **`.github/workflows/*.yml` changes** need a real test merge; syntax checks miss trigger-chain bugs.
 - **Line endings.** The scripts are CRLF on Windows checkouts. Keep the file's existing endings, and make sure `git diff --check` is clean.
-- **Local `gh` hangs** on this machine. Use `curl https://api.github.com/repos/simplyjaytea/simplySF2e/...` for reads, and ask JT before any authenticated GitHub write that is not part of the normal push → PR → merge flow.
+- **Local `gh` hangs** on this machine. Use `curl https://api.github.com/repos/simplyjaytea/simplySF2e/...` for reads, and ask JT before any authenticated GitHub write; JT's standing merge authority (2026-10-25) covers push, PR and merge only.
 - **Squash merges** mean `git branch --merged` cannot tell which remote branches landed. Match branch tips against merged PR heads through the GitHub API instead.
 - **Nothing here runs Foundry.** Rendering, derived stats and grant chains need JT's live check. List those items in the PR body and in HANDOFF.md, and add rows to `docs/qa-checklist.md` when a new feature needs one.
 
