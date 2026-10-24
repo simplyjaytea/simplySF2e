@@ -35,6 +35,8 @@ It also prints a `note:` line when a window scrolls sideways.
 | `fixtures/shop.mjs` | Shop: empty, provider attention, busy, error, preview with real sf2e stock rows, every row removed. |
 | `fixtures/treasure.mjs` | Treasure: empty, provider attention, busy, error, preview (one encounter and whole level) with real sf2e item rows and a Credits row, every row removed. |
 | `fixtures/dialogs.mjs` | Provider setup (saved, fresh, models loaded), Sources (default, no packs), Manage presets (list, empty). |
+| `fixtures/welcome.mjs` | First-run welcome: a first run with no API key (Jev off), system, sources and provider problems, and everything ready. Shape follows `WelcomeApp._prepareContext()` (`welcome-app.mjs`) over `welcomeState()` in `welcome.mjs`. |
+| `fixtures/whats-new.mjs` | What's new: unseen notes (the first three of `RELEASE_NOTES`) and the full list. Shape follows `WhatsNewApp._prepareContext()` (`whats-new-app.mjs`). |
 | `fixtures/_shared.mjs` | Shared builders. Imports the module's pure functions (`normalizeConcept`, `computeStats`, `adjustedStats`, `createProgress`) so numbers are the real ones. |
 
 ## Adding or changing a fixture
