@@ -39,7 +39,7 @@ await createActor(concept, resolved, {
   img: null,
   scaffold: { name: "Ksarik", prototypeToken: { name: "Ksarik", texture: { src: placeholder } } }
 });
-assert.notEqual(created.img, "modules/art/portrait.webp");
+assert.equal("img" in created, false, "no img key is written, so the sf2e default applies");
 assert.deepEqual(created.prototypeToken.texture, { src: placeholder }, "scaffold token texture is kept");
 assert.equal(created.prototypeToken.name, "Vault Warden");
 console.log("builder.scaffoldArt.test.mjs: scaffold token art kept, placeholder replaced, token named for the new creature");
