@@ -15,8 +15,8 @@ This file is the tool-neutral contract for every agent (Codex, Claude, or otherw
 
 - Before a release, or when asked "is it shippable?": `tools/release-check.sh` reruns every self-checkable check in one command (syntax, all regression tests, duplicate keys in `module.json`/`lang/en.json`, missing manifest/template paths, merge-conflict markers, duplicate QA row ids, `git diff --check` against `origin/main`, and the UI harness) and exits non-zero if any fails. `--no-ui` skips the harness. Needs bash 4.4+; run `git fetch origin main` first. It lives in `tools/` so the release zip never ships it.
 - `node --check` on every touched `.mjs`.
-- Run all regression tests: `for f in scripts/*.test.mjs; do node "$f"; done` — all must pass. One test: `node scripts/<name>.test.mjs`.
-- Translation keys: `i18n-keys.test.mjs` sees only literal keys. Before deleting a key that looks unused, grep for its prefix, because many keys are built at runtime (e.g. `` `SIMPLYSF2E.Treasure.Amount${Value}` ``).
+- Run all regression tests: `for f in scripts/*.test.mjs; do node "$f" >/dev/null 2>&1 || echo FAIL $f; done` — no output means all pass. One test: `node scripts/<name>.test.mjs`.
+- Translation keys: `i18n-keys.test.mjs` sees only literal keys. Before deleting a key that looks unused, grep for its prefix, because many keys are built at runtime (e.g. `` `SIMPLYSF2E.Treasure.Amount${Value}` ``, `` `SIMPLYSF2E.TreasureAmount.${Value}` ``; CLAUDE.md "Commands" lists the families).
 - Add a `*.test.mjs` for genuinely pure logic behind any bug-shaped change.
 - UI changes: run the screenshot harness (`cd tools/ui-preview && npm install && npm run shoot`, once per fresh checkout for the install) and look at the PNGs in `tools/ui-preview/out/` at 720 px and 460 px; it exits non-zero when a fixture is out of step with its template. See `tools/ui-preview/README.md` for its caveats (no Foundry core CSS).
 - Anything schema-dependent or balance-sensitive gets an **independent second-agent review** of the diff before the PR is called done — this has caught real bugs on 3+ separate occasions (see HISTORY.md process notes).
@@ -31,7 +31,7 @@ At session **start**:
 3. If HANDOFF.md says an audit/review is in flight, check whether its PR merged mid-review; if so, ship fixes as a *new* PR.
 
 At session **end** (or before any risky long operation):
-1. Update HANDOFF.md: what you did, what is in flight, exact next step, anything unverified.
+1. Overwrite HANDOFF.md with the current baton: what you did, what is in flight, exact next step, anything unverified.
 2. If the session found bugs or made decisions worth keeping, append to HISTORY.md (newest first) and update CLAUDE.md "Current state" if it changed.
 3. Leave the working tree clean or committed on a named branch — never leave uncommitted work on `main`.
 

@@ -75,7 +75,7 @@ Read this first, then CLAUDE.md. **How work runs: [docs/playbook.md](docs/playbo
 
 ### Deferred (not GM-ready blockers)
 
-Full Free Archetype prerequisite graphs; upgrade prerequisite/exclusivity validation; shields and ammunition in the forge; PF2e comment residue (Champion/Investigator comments in `pc-builder.mjs`, PF2e casting rows in `pc-tables.mjs`).
+Full Free Archetype prerequisite graphs; upgrade prerequisite/exclusivity validation; shields and ammunition in the forge; PF2e-only code paths (the Skillful Lessons branch in `pc-builder.mjs`, PF2e casting rows in `pc-tables.mjs`; the Champion comment was fixed on 2026-10-25).
 
 ## Material limits
 

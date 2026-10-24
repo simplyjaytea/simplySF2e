@@ -13,9 +13,9 @@ How work in this repo is planned, split, built, reviewed and merged. These are J
 | Reviewer, tier 1 | Haiku 5.5 | `effort: "high"`, fresh context | First pass on every finished worktree. |
 | Reviewer, tier 2 | Sonnet 5.5 | `effort: "high"`, fresh context | Second pass on every finished worktree. |
 | Reviewer, tier 3 | Opus 5.5 | `effort: "high"`, fresh context | Only for schema- or balance-sensitive diffs (anything touching `tables.mjs`, `relevel.mjs`, `stat-check.mjs`, stat math in `builder.mjs`, pack ids, sf2e enums, Rule Elements, PC grants/slots). |
-| Extra capacity (optional) | DeepSeek Flash 4.1 (free) in opencode terminals | via the Orca `orchestration` skill | Bulk read-only sweeps or mechanical edits when Claude workers are busy. Its output goes up the same review ladder, and it gets no secrets. |
+| Extra capacity (optional) | DeepSeek Flash 4.1 (free tier, per JT) in opencode terminals | via the Orca `orchestration` skill | Bulk read-only sweeps or mechanical edits when Claude workers are busy. Its output goes up the same review ladder, and it gets no secrets. |
 
-Reviewers are never the agent that built the change. For a tier that must run tests, use an agent type that can run `node` (e.g. `general-purpose`). The `caveman:cavecrew-reviewer` type is read-only and will not run tests.
+Reviewers are never the agent that built the change. For a tier that must run tests, use an agent type that can run `node` (e.g. `general-purpose`). The `caveman:cavecrew-reviewer` type limits its shell to git read commands, so it cannot run tests (seen 2026-10-25).
 
 ## Lifecycle of a piece of work
 
@@ -25,8 +25,8 @@ Reviewers are never the agent that built the change. For a tier that must run te
 4. **Dispatch.** Send every independent task in one message so the workers run in parallel. Use the worker template below.
 5. **Review ladder.** When a worker reports back, send its worktree to tier 1, then tier 2, then tier 3 if the diff is schema- or balance-sensitive. A finding goes back to **the same worker** (`SendMessage` to its id) as a **new commit** (never an amend). The fixed branch then climbs the ladder again **from the tier that found the problem**. Minor findings in coordinator-owned docs are fixed by the coordinator later rather than sent back.
 6. **Integrate.** Create one integration branch from `main` (e.g. `cleanup/<topic>` or `feat/<topic>`) and merge every passed worktree branch into it (`git merge --no-ff <branch>`). Then rerun the full gate on the integration branch: `bash tools/release-check.sh` (add `--no-ui` only when no template or CSS changed).
-7. **PR and merge.** Push the integration branch, open **one** PR for the whole batch, and wait for the `verify` check. **Each merge to `main` publishes a public release**, so batch work rather than merging one PR per task. The coordinator may merge once an independent reviewer has no open blockers and `verify` is green on the current head (AGENTS.md rule 1). If the change is visible to a GM, add one `RELEASE_NOTES` entry first (see AGENTS.md).
-8. **Tidy.** After the merge: `git worktree remove <path>` for each worker worktree, delete the local `worktree-agent-*` branches, and delete the merged remote branch.
+7. **PR and merge.** Push the integration branch (in a cloud session, push to the session's designated branch instead), open **one** PR for the whole batch, and wait for the `verify` check. **Each merge to `main` publishes a public release**, so batch work rather than merging one PR per task. The coordinator may merge once an independent reviewer has no open blockers and `verify` is green on the current head (AGENTS.md rule 1). If the change is visible to a GM, add one `RELEASE_NOTES` entry first (see AGENTS.md).
+8. **Tidy.** After the merge: `git worktree remove <path>` for each worker worktree, and delete the local `worktree-agent-*` branches. Delete a merged remote branch only after JT approves (AGENTS.md: ask before authenticated GitHub writes outside push → PR → merge).
 9. **Hand off.** Overwrite HANDOFF.md with what was done, what is in flight, the exact next step, and anything unverified. Add durable lessons to HISTORY.md (newest first).
 
 ## Worker prompt template
@@ -69,7 +69,7 @@ Tier 2 and tier 3 prompts say what the lower tiers already checked and ask for t
 
 ## Traps this repo has already hit
 
-- **Translation keys built at runtime.** `i18n-keys.test.mjs` only sees literal keys. `treasure-app.mjs` builds `` `SIMPLYSF2E.Treasure.Amount${Value}` ``, and several other families are built the same way (see CLAUDE.md "Commands"). The 2026-10-25 cleanup nearly deleted two live keys; the tier-1 Haiku review caught it. Grep for the prefix before deleting any key.
+- **Translation keys built at runtime.** `i18n-keys.test.mjs` only sees literal keys. `treasure-app.mjs` builds `` `SIMPLYSF2E.Treasure.Amount${Value}` `` (note: `SIMPLYSF2E.TreasureAmount.*` is a different, also runtime-built family), and several other families are built the same way (see CLAUDE.md "Commands"). The 2026-10-25 cleanup nearly deleted two live keys; the tier-1 Haiku review caught it. Grep for the prefix before deleting any key.
 - **sf2e is not PF2e.** Never recall a field name or enum from PF2e memory. Fetch v14-dev source (CLAUDE.md invariant 2, HISTORY.md bug log).
 - **Merging to `main` is a public release.** Treat it like `gh release create`.
 - **`.github/workflows/*.yml` changes** need a real test merge; syntax checks miss trigger-chain bugs.

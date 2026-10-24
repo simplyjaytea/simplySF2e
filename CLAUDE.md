@@ -22,7 +22,7 @@ No build step and no package manager for the module itself: Foundry loads `scrip
 
 CI (`.github/workflows/pull-request.yml`, job `verify`) runs `node --check` on every `scripts/**/*.mjs`, every `*.test.mjs`, `jq empty module.json lang/en.json`, and `git diff --check` base..head. A merge to `main` runs `auto-release.yml`, which publishes a public release. Tests are pure-logic only: there is no Foundry runtime here, so anything that needs a live world goes in `docs/qa-checklist.md`.
 
-`scripts/i18n-keys.test.mjs` only sees literal translation keys. Several keys are built at runtime (for example `` `SIMPLYSF2E.Treasure.Amount${Value}` `` in `treasure-app.mjs`, plus the `Mode.*`, `Role.*`, `Threat.*`, `StatCheck.*`, `Skills.*`, `Loadout.*`, `Rarity.*`, `Shop.Size*`/`Category*` and `Preview.*` families), so a key that looks unused may still be live. Grep for its prefix before deleting it.
+`scripts/i18n-keys.test.mjs` only sees literal translation keys. Several keys are built at runtime (for example `` `SIMPLYSF2E.Treasure.Amount${Value}` `` in `treasure-app.mjs`, `SIMPLYSF2E.TreasureAmount.*` in `generator-app.mjs` and `manage-presets-app.mjs`, plus the `Mode.*`, `Role.*`, `Threat.*`, `StatCheck.*`, `Skills.*`, `Loadout.*`, `Rarity.*`, `Shop.Size*`/`Category*` and `Preview.*` families), so a key that looks unused may still be live. Grep for its prefix before deleting it.
 
 ## Glossary
 
@@ -128,7 +128,7 @@ Cross-tool operating rules live in [AGENTS.md](AGENTS.md); the live session bato
 - **Review ladder for every finished worktree:** Haiku reviewer, then Sonnet reviewer, plus an Opus reviewer when the diff is schema- or balance-sensitive. Every reviewer is fresh-context, never the builder. A finding goes back to the same worker as a new commit and climbs the ladder again from the tier that found it.
 - **Never delegate release/workflow `.yml` reasoning.**
 - Subagent claims of "verified" require a quoted source line; treat unquoted verification claims as recalled, i.e. unverified.
-- Optional extra capacity: the Orca `orchestration` skill can open opencode terminals running DeepSeek Flash 4.1 (free) for bulk read-only or mechanical work; its output gets the same review ladder.
+- Optional extra capacity: the Orca `orchestration` skill can open opencode terminals running DeepSeek Flash 4.1 (free tier, per JT) for bulk read-only or mechanical work; its output gets the same review ladder.
 
 ## How to work here
 
