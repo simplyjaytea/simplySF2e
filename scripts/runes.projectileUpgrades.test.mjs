@@ -90,19 +90,52 @@ try {
   const armorUpgrades = await getPropertyRuneCandidates("armor", 20);
   assert.deepEqual(armorUpgrades.map((c) => c.name), ["Shock Grid"], "armor candidates are unchanged");
 
-  // Normalize keeps a projectile upgrade for a weapon base because the base
-  // group is not on the candidate; buildRunedItem makes the real check.
-  const concept = normalizeRunedItemConcept({
-    baseItemName: "Longbow", grade: "commercial",
-    upgrades: ["Impact Enhancer (Commercial)", "Sight Module"]
-  }, {
-    kind: "weapon", rarity: "common",
-    baseCandidates: [{ name: "Longbow", level: 1, category: null, upgradeSlots: 1 }],
-    runeCandidates: weaponUpgrades,
-    grades: ["commercial"]
-  });
-  assert.deepEqual(concept.upgrades, ["Impact Enhancer (Commercial)"],
-    "normalize keeps a projectile upgrade for a weapon base and still drops a trait-constrained one");
+  // Normalize knows the base group, so it refuses a projectile upgrade on a
+  // non-projectile base before the slot cap, and the upgrade is reported as skipped.
+  const warnings = [];
+  const realWarn = console.warn;
+  console.warn = (...args) => warnings.push(args.join(" "));
+  try {
+    const normalize = (baseCandidate, upgrades) => normalizeRunedItemConcept({
+      baseItemName: baseCandidate.name, grade: "commercial", upgrades
+    }, {
+      kind: "weapon", rarity: "common",
+      baseCandidates: [baseCandidate],
+      runeCandidates: weaponUpgrades,
+      grades: ["commercial"]
+    });
+    const projectileBase = { name: "Sling", level: 0, category: null, group: "projectile", upgradeSlots: 1 };
+    const laserBase = { name: "Blaster", level: 0, category: null, group: "laser", upgradeSlots: 1 };
+    const noGroupBase = { name: "Longbow", level: 1, category: null, group: null, upgradeSlots: 1 };
+
+    const onProjectile = normalize(projectileBase, ["Impact Enhancer (Commercial)", "Sight Module"]);
+    assert.deepEqual(onProjectile.upgrades, ["Impact Enhancer (Commercial)"],
+      "a projectile base keeps its projectile upgrade and still drops a trait-constrained one");
+    assert.deepEqual(onProjectile.skippedUpgrades, [], "nothing is skipped on a projectile base that fits");
+
+    // The regression: the projectile upgrade is requested first and must not take the one slot.
+    warnings.length = 0;
+    const onLaser = normalize(laserBase, ["Impact Enhancer (Commercial)", "Hybrid Battery"]);
+    assert.deepEqual(onLaser.upgrades, ["Hybrid Battery"], "a normal upgrade installs on a laser base even when a projectile upgrade was requested first");
+    assert.deepEqual(onLaser.skippedUpgrades, ["Impact Enhancer (Commercial)"], "the wrong-group projectile upgrade is listed as skipped");
+    assert.deepEqual(onLaser.unfitUpgrades, ["Impact Enhancer (Commercial)"], "the skip is marked as a group mismatch, not a slot skip");
+    assert.ok(warnings.some((w) => w.includes("cannot be installed") && w.includes("Impact Enhancer")),
+      "the group mismatch is warned by name");
+    assert.ok(!warnings.some((w) => w.includes("no free upgrade slot")),
+      "a group mismatch is not reported as a slot problem");
+
+    const onNoGroup = normalize(noGroupBase, ["Impact Enhancer (Commercial)"]);
+    assert.deepEqual(onNoGroup.upgrades, [], "a base with no group fails closed for a projectile upgrade");
+    assert.deepEqual(onNoGroup.unfitUpgrades, ["Impact Enhancer (Commercial)"]);
+
+    // A projectile upgrade that fits but finds no free slot is a slot skip, not a group skip.
+    const slotCapped = normalize(projectileBase, ["Hybrid Battery", "Impact Enhancer (Commercial)"]);
+    assert.deepEqual(slotCapped.upgrades, ["Hybrid Battery"]);
+    assert.deepEqual(slotCapped.skippedUpgrades, ["Impact Enhancer (Commercial)"], "a fitting upgrade past the cap is a slot skip");
+    assert.deepEqual(slotCapped.unfitUpgrades, [], "a slot skip is not marked as a group mismatch");
+  } finally {
+    console.warn = realWarn;
+  }
 } finally {
   if (previousGame === undefined) delete globalThis.game;
   else globalThis.game = previousGame;

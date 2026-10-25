@@ -1,10 +1,12 @@
 # Item Forge bench report
 
-Run of `node tools/pipeline-bench/forge.mjs` on the sf2e cache pinned at foundryvtt/pf2e v14-dev `be4ab21b` (`system.sf2e.json` version 1.6.1). Branch `simplyjaytea/m-r6` (R6 commit `6b5fc3e`) on `batch/m2-m4` (`70ce787`). R6 changed the forge fixes listed below. The bench is still offline and reads only the cache.
+Run of `node tools/pipeline-bench/forge.mjs` on the sf2e cache pinned at foundryvtt/pf2e v14-dev `be4ab21b` (`system.sf2e.json` version 1.6.1). HB run on branch `simplyjaytea/fix-hb`, parent `19a52f3` (on `batch/m2-m4`). Branch `simplyjaytea/m-r6` (R6 commit `6b5fc3e`) on `batch/m2-m4` (`70ce787`). R6 changed the forge fixes listed below. The bench is still offline and reads only the cache.
 
 ## Verdict
 
-**0 FAIL, 48 WARN, 116 PASS, 4 n/a** across 14 variants × levels 1, 3, 5, 8, 13, 18 × rarity common, uncommon (168 cases).
+**0 FAIL, 48 WARN, 126 PASS, 6 n/a** across 15 variants × levels 1, 3, 5, 8, 13, 18 × rarity common, uncommon (180 cases).
+
+Before HB (parent `19a52f3`, 14 variants, 168 cases): 0 FAIL, 48 WARN, 116 PASS, 4 n/a. The HB variant `weapon-projectile-misfit-slot` is new: on the pre-HB code all 10 of its non-n/a cases FAIL (see HB below).
 
 Before R6 (`simplyjaytea/m1-t3`, `498ed23`): 0 FAIL, 80 WARN, 84 PASS, 4 n/a.
 
@@ -26,10 +28,11 @@ Before R6 (`simplyjaytea/m1-t3`, `498ed23`): 0 FAIL, 80 WARN, 84 PASS, 4 n/a.
 | weapon-projectile | n/a | n/a | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS |
 | weapon-published-grade | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS |
 | weapon-projectile-misfit | n/a | n/a | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS |
+| weapon-projectile-misfit-slot | n/a | n/a | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS |
 | armor-graded | WARN(1) | WARN(1) | WARN(1) | WARN(1) | WARN(1) | WARN(1) | WARN(1) | WARN(1) | WARN(1) | WARN(1) | WARN(1) | WARN(1) |
 | armor-top-grade | WARN(1) | WARN(1) | WARN(1) | WARN(1) | WARN(1) | WARN(1) | WARN(1) | WARN(1) | WARN(1) | WARN(1) | WARN(1) | WARN(1) |
 
-`co` = common, `un` = uncommon. The n/a cells are level 1 and level 3 for projectile variants: the first projectile-only upgrade is Impact Enhancer (Commercial), level 3 (`sf2e.equipment`).
+`co` = common, `un` = uncommon. The n/a cells are level 1 for the projectile variants: the first projectile-only upgrade is Impact Enhancer (Commercial), level 3 (`sf2e.equipment`).
 
 ## Source for the price/level decision
 
@@ -61,11 +64,25 @@ Inference, not checked live: that derived assignments do not change `_source` (D
 4. **W4, published-grade bases re-graded** (`item-builder.mjs` `buildRunedItem`). Partly fixed. A base published above commercial keeps its published grade and the build warns (`… is published at tactical grade; kept tactical instead of commercial`). The preview reports the grade actually built. A base whose level would come out above the GM's level is refused (`comes out at level N, above this item's level M`), because `normalizeRunedItemConcept` now carries `level`, which the app passes. Four unlabelled published bases are still offered to the AI: Caramel Cannon (tactical), Meme Cannon (advanced), Quantum Reaver (advanced), Reality Ripper (tactical). The index does not request `system.grade`, so the candidate list cannot exclude them. The full fix needs `system.grade` in `getEquipmentIndex` (`compendium.mjs:239`), which R6 did not change.
 5. **Dead slot-parser path** (`runes.mjs:356`, `compendium.mjs:239`). Left alone, as the brief asked. `getEquipmentIndex` never requests `system.description.value`, so `parseUpgradeCapacity` always gets `""` and returns its default: 0 for armor, 1 for weapons. The parser also matches digits only, so prose such as "one upgrade slot" would not parse. This is the reason every armor upgrade is skipped and the reason the armor WARN class exists.
 
+## HB: projectile upgrades no longer take a non-projectile weapon's slot
+
+Before: a projectile-only upgrade (Impact Enhancer, Arcane Adapter; usage `installed-in-a-weapon-that-uses-projectiles`) passed `normalizeRunedItemConcept` with the permissive candidate check. It took the one upgrade slot, and `buildRunedItem` then dropped it with only a `console.warn`. The created weapon had no upgrades, and the preview blamed the slot.
+
+Now:
+
+- `normalizeRunedItemConcept` checks the real base group (`propertyRuneFitsBase(kind, usage, base.group)`) before the slot cap. A wrong-group upgrade is listed in `skippedUpgrades` and `unfitUpgrades`, warned as `cannot be installed in weapon "<base>" (group <g>); skipped`, and takes no slot.
+- `buildRunedItem` applies the same check to a concept that skipped normalize (a fuzzy match). A drop there goes onto `preview.skippedUpgrades` and `preview.unfitUpgrades`, and is warned by name.
+- `group` is now in the equipment records (`getEquipmentIndex` requests `system.group`; `getAllEquipmentEntries` and `getBaseItemCandidates` carry it). `propertyRuneMayFitBase` is used only by the candidate listing.
+- The preview notice (`UpgradesSkipped`) now covers both causes: no free slot, or the upgrade is not made for the base's weapon group. Both reasons share one notice because `itemforge-app.mjs` builds it from `preview.skippedUpgrades` only.
+
+Bench evidence: `weapon-projectile-misfit-slot` requests a projectile upgrade first on a laser or other non-projectile base, then a fitting upgrade. It expects the fitting upgrade to be installed. On the pre-HB code it FAILs in all 10 cases at level 3 and up (the projectile upgrade took the slot, and the fitting one was lost). On this code it PASSes in all 10.
+
 ## Passes, with evidence
 
 - **Passive rules are clones.** `rule-templates.mjs` clones each rule. The bench compares each created rule with the `sf2e.equipment` rule of its `sourceUuid`. Every rule checked in every case matched.
 - **Published grades.** The grades on sf2e equipment items are the seven in `runes.mjs` `EQUIPMENT_GRADES`.
-- **Upgrade usage gate.** Projectile upgrades appear only on `system.group === "projectile"` bases. The misfit control shows the drop with its warning in every case.
+- **Upgrade usage gate.** Projectile upgrades appear only on `system.group === "projectile"` bases. The misfit controls (`weapon-projectile-misfit`, `weapon-projectile-misfit-slot`) show the skip with its warning in every case, and the slot-control shows the fitting upgrade installed.
+- **Group field is requested.** The fake pack's `getIndex` projects only the requested fields (`tools/class-bench/env.mjs`), so a missing `system.group` in `getEquipmentIndex` would fail these cases.
 - **Macro escaping.** The item name reaches the macro escaped (`&lt;img`).
 - **No AI numbers.** The stub's output contains no number in any case.
 - **Candidates.** No base offered to the AI is named for a non-commercial grade (checked per runed case).
@@ -75,6 +92,7 @@ Inference, not checked live: that derived assignments do not change `_source` (D
 - That the system derives a graded weapon's price and level from the copied base values, and that `_source` keeps them (the inference above).
 - That the Forge preview's upgrade notice reads correctly in a live Foundry window (the screenshot harness only renders it from the fixture).
 - Upgrade slot counts. No data offline (see item 5).
+- The HB notice wording (`UpgradesSkipped`) in a live Forge window. The bench does not render it.
 - Macros execute: the damage, heal and condition cards, the charge decrement, and the self-buff effect creation. The bench only compiles them.
 - `CONFIG.PF2E.equipmentTraits` is not faked, so the unknown-trait drop in `normalizeMagicItemConcept` is not exercised.
 - The cache is v14-dev `be4ab21`, with `system.sf2e.json` version 1.6.1. PLAYBOOK §2 cites the tag `sf2e-1.6.1`. Whether that tag points at `be4ab21` was not checked.
