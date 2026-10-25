@@ -423,7 +423,8 @@ export class GeneratorApp extends SpfApp {
       "native-data": "NativeData", "training-data": "TrainingData", "schedule": "Schedule",
       "grant-timing": "GrantTiming", "native-rank-rule": "NativeRule",
       "intelligence-timing": "IntelligenceTiming",
-      "unspent-training": "UnspentTraining", "unspent-increases": "UnspentIncreases"
+      "unspent-training": "UnspentTraining", "unspent-increases": "UnspentIncreases",
+      "projection-mismatch": "ProjectionMismatch"
     };
     return {
       rows: report.rows.map((row) => ({ name: row.name ?? this.#skillName(row.slug),
