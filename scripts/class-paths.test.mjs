@@ -66,6 +66,22 @@ for (const [id, name, level, prerequisite, rules] of skillFeats) {
 docs.set(featUuid("keep"), featDoc("keep", "Keep Them in Your Sights", { category: "class", level: { value: 1 }, rules: [{ key: "ActiveEffectLike", mode: "add", path: "system.custom", value: 1 }] }));
 docs.set(featUuid("scope"), featDoc("scope", "Scope Sight", { category: "class", level: { value: 1 }, rules: [] }));
 
+// sf2e-1.6.1 Mechanic Exocortex and Technomancer Programming Language: same
+// ChoiceSet item:tag filter + templated GrantItem as Soldier Fighting Style;
+// every option below has rules [] (real ids from packs/sf2e/class-features).
+docs.set(uuid("Exocortex"), doc("Exocortex", "Exocortex", { rules: [
+  { choices: { filter: ["item:tag:mechanic-exocortex"] }, flag: "exocortex", key: "ChoiceSet" },
+  { key: "GrantItem", uuid: "{item|flags.system.rulesSelections.exocortex}" }
+] }));
+docs.set(uuid("Programming Language"), doc("Programming Language", "Programming Language", { rules: [
+  { choices: { filter: ["item:tag:technomancer-programming-language"] }, flag: "programmingLanguage", key: "ChoiceSet" },
+  { key: "GrantItem", uuid: "{item|flags.system.rulesSelections.programmingLanguage}" }
+] }));
+const exocortexOptions = [["UCilslXlrd7ihsgY", "Drone"], ["peXRQKUzkAGqduHP", "Mine"], ["V7LMvEnxI7hN1n8Z", "Turret"]];
+const languageOptions = [["msU9FRYDZwkYvLNH", "DPS++"], ["7yxVnWzTynBvFVjr", "FORTRUN"], ["KVc89RjerouF0wo1", "Servoshell"], ["KWVSfZLZIW4zCW7K", "Viper"]];
+for (const [id, name] of exocortexOptions) docs.set(uuid(id), doc(id, name, { category: "classfeature", traits: { otherTags: ["mechanic-exocortex"] }, rules: [] }));
+for (const [id, name] of languageOptions) docs.set(uuid(id), doc(id, name, { category: "classfeature", traits: { otherTags: ["technomancer-programming-language"] }, rules: [] }));
+
 const classFeatureEntry = (id, name, tag) => ({ _id: id, name, type: "feat", system: { category: "classfeature", level: { value: 1 }, traits: { value: [], otherTags: [tag] } } });
 const pack = {
   async getIndex() {
@@ -76,7 +92,9 @@ const pack = {
       classFeatureEntry("hero", "Action Hero", "soldier-fighting-style"),
       classFeatureEntry("ghost", "Ghost", "operative-specialization"),
       classFeatureEntry("sniper", "Sniper", "operative-specialization"),
-      classFeatureEntry("striker", "Striker", "operative-specialization")
+      classFeatureEntry("striker", "Striker", "operative-specialization"),
+      ...exocortexOptions.map(([id, name]) => classFeatureEntry(id, name, "mechanic-exocortex")),
+      ...languageOptions.map(([id, name]) => classFeatureEntry(id, name, "technomancer-programming-language"))
     ];
   },
   getDocument: async (id) => docs.get(uuid(id)) ?? null
@@ -97,7 +115,7 @@ globalThis.game = {
 globalThis.CONFIG = { PF2E: {} };
 globalThis.fromUuid = async (id) => docs.get(id) ?? null;
 
-const { stageClassPaths } = await import("./class-paths.mjs");
+const { planClassPaths, stageClassPaths } = await import("./class-paths.mjs");
 const classData = { system: { items: { bridge: { level: 1, uuid: uuid("bridge") }, ordinary: { level: 1, uuid: "Compendium.sf2e.class-features.Item.NotAPath" } } } };
 const calls = [];
 const staged = await stageClassPaths(classData, "class-id", {
@@ -195,5 +213,39 @@ const envoyBridge = await stageClassPaths({ name: "Envoy", system: { items: { sp
 });
 assert.deepEqual(envoyBridge.items[0].system.rules[0].choices, [{ value: uuid("ghost"), label: "Ghost" }],
   "Sniper's class:operative-gated choice is only closed when the staged class is Operative");
+
+// Mechanic: the Exocortex bridge offers Drone, Mine and Turret; the selection
+// is staged and the granted option is verified after create. Class entries use
+// name-based uuids in the real pack ("...Item.Exocortex").
+const mechanicClass = () => ({ name: "Mechanic", system: { slug: null, items: { exo: { level: 1, uuid: uuid("Exocortex") }, mod: { level: 1, uuid: uuid("Modify") } } } });
+for (const [id, name] of exocortexOptions) {
+  const staged = await stageClassPaths(mechanicClass(), "mechanic-id", {
+    context: { names: [name] }, selectChoices: async (groups) => ({ picks: [{ choice: groups[0].id, option: groups[0].options.find((o) => o.label === name).id }] })
+  });
+  assert.equal(staged.items.length, 1);
+  assert.equal(staged.items[0].name, "Exocortex");
+  assert.deepEqual(staged.items[0].system.rules[0].choices.map((c) => c.label).sort(), ["Drone", "Mine", "Turret"]);
+  assert.equal(staged.items[0].system.rules[0].selection, uuid(id));
+  assert.deepEqual(staged.expectedPaths, [{ name, type: "feat", _stats: { compendiumSource: uuid(id) } }]);
+}
+const mechanicPlan = await planClassPaths(mechanicClass(), { context: { names: ["Mine"] }, selectChoices: async (groups) => ({ picks: [{ choice: groups[0].id, option: groups[0].options.find((o) => o.label === "Mine").id }] }) });
+assert.deepEqual(Object.keys(mechanicPlan), ["mechanic-exocortex"]);
+assert.equal(mechanicPlan["mechanic-exocortex"].uuid, uuid("peXRQKUzkAGqduHP"));
+const plannedMechanic = await stageClassPaths(mechanicClass(), "mechanic-id", { context: {}, pathPlan: mechanicPlan });
+assert.equal(plannedMechanic.items[0].system.rules[0].selection, uuid("peXRQKUzkAGqduHP"), "the planned exocortex is staged without a callback");
+
+// Technomancer: Programming Language bridge, four options.
+const technomancerClass = () => ({ name: "Technomancer", system: { slug: null, items: { lang: { level: 1, uuid: uuid("Programming Language") } } } });
+for (const [id, name] of languageOptions) {
+  const staged = await stageClassPaths(technomancerClass(), "technomancer-id", { context: { names: [name] } });
+  assert.equal(staged.items[0].name, "Programming Language");
+  assert.equal(staged.items[0].system.rules[0].selection, uuid(id), `${name} is selected by concept name`);
+  assert.deepEqual(staged.items[0].system.rules[0].choices.map((c) => c.label).sort(), ["DPS++", "FORTRUN", "Servoshell", "Viper"]);
+  assert.deepEqual(staged.expectedPaths, [{ name, type: "feat", _stats: { compendiumSource: uuid(id) } }]);
+}
+const languagePlan = await planClassPaths(technomancerClass(), { context: { names: ["Viper"] } });
+assert.equal(languagePlan["technomancer-programming-language"].uuid, uuid("KWVSfZLZIW4zCW7K"));
+await assert.rejects(stageClassPaths(technomancerClass(), "technomancer-id", { context: {} }), /was not selected/,
+  "an unanswered Programming Language blocks before Actor.create");
 
 console.log("class-paths.test.mjs: exact closed class-path staging passed");
