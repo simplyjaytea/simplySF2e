@@ -8,3 +8,4 @@
 # OS metadata.
 .DS_Store
 /tools/class-bench/cache/
+/tools/pipeline-bench/out/

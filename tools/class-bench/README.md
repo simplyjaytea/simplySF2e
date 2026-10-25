@@ -33,3 +33,13 @@ Node 22+. No install step, no Foundry.
 - `CONFIG.PF2E` has only `skills`; that is the only config path any sf2e ChoiceSet reads.
 - The AI never runs. Feat picks are "first candidate not already taken", spells are the first eligible per rank, not what a model would choose. A different pick order can change which slots collide, but not a pool that has fewer distinct feats than slots.
 - One ancestry / heritage / background per run, no equipment, loot, focus spells or languages, and no rarity cap.
+
+## Shop and Treasure bench (`tools/pipeline-bench/market.mjs`)
+
+The same cache and Foundry fake, pointed at the shop and hoard pipeline. It runs the real `scripts/shop.mjs`, `treasure.mjs`, `currency.mjs` and `compendium.mjs` (`getShopCandidates`, `getCandidateDocument`, `toItemData`, `priceToGp`) on the sf2e equipment pack, with a deterministic AI stub that offers the first valid candidates plus one invented id and one repeat. The app flows in `shop-app.mjs` and `treasure-app.mjs` are ApplicationV2 classes and do not load offline, so the bench mirrors their steps and cites each line.
+
+```
+node tools/pipeline-bench/market.mjs [--verbose]   # after fetch.mjs; 240 runs in under a second; exits 1 on any failing run
+```
+
+It checks, per run: no throw; stock count equals the smaller of the size and the offered list; every stocked item is in the cache, at or below the level and rarity cap, and in the category's types; the invented id is reported as dropped; hoard budgets match `tables.mjs` (party level 4: 680 one encounter, 8,500 whole level, the QA rows in `docs/qa-checklist.md` 13h.3); items plus the Credstick line equal the budget; Credsticks use the credstick template with the amount in `system.price.value`; shop actors are `Merchant` loot and hoard actors are `Loot` loot. Findings and their causes are in `tools/pipeline-bench/MARKET-REPORT.md`. The output is in `tools/pipeline-bench/out/` (gitignored).
