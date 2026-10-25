@@ -397,16 +397,20 @@ export class GeneratorApp extends SpfApp {
     };
   }
 
-  /** PC feat rows. An empty slot (no legal feat left) is shown as empty, not as a miss. */
+  /** PC feat rows. An empty slot (no legal feat left) is shown as empty, not as a miss;
+   * a rejected fill is still a miss. */
   static #pcFeatRows(list) {
     return (list ?? []).map((feat) => feat.entry
       ? { name: feat.entry.name ?? feat.name, found: true }
-      : { name: GeneratorApp.#featSlotLabel(feat), found: false, empty: true });
+      : { name: GeneratorApp.#featSlotLabel(feat), found: false, empty: feat.placement !== "rejected" });
   }
 
-  /** Labels such as "general 19" for character feat slots left empty. */
+  /** Labels such as "general 19" for character feat slots left empty. A
+   * rejected fill is unresolved, not empty, so it is not listed here. */
   static #emptyFeatSlots(resolved) {
-    return (resolved?.feats ?? []).filter((feat) => !feat.entry).map((feat) => GeneratorApp.#featSlotLabel(feat));
+    return (resolved?.feats ?? [])
+      .filter((feat) => !feat.entry && feat.placement !== "rejected")
+      .map((feat) => GeneratorApp.#featSlotLabel(feat));
   }
 
   static #featSlotLabel(feat) {
@@ -1336,8 +1340,11 @@ export class GeneratorApp extends SpfApp {
         // archetype trait at or below the slot level. Candidate time already
         // proved ordinary prerequisites against the staged actor; placement
         // here runs without skill data, so it checks slot fit only. A
-        // rejected fill keeps its name but loses its entry, becoming an
-        // unresolved manifest record that blocks creation (fail-closed).
+        // rejected fill keeps its name but loses its entry and is marked
+        // placement "rejected": completion treats it as an unresolved line
+        // that blocks creation, because other legal candidates may have fit
+        // the slot (fail-closed). A slot that never had a fill keeps a plain
+        // null entry, which is an empty, non-blocking slot.
         const archetypePositions = [];
         resolved.featSlots.forEach((slot, index) => {
           if (slot?.archetype === true) archetypePositions.push(index);
@@ -1353,7 +1360,8 @@ export class GeneratorApp extends SpfApp {
             resolved.feats[position] = {
               ...resolved.feats[position],
               name: name ?? resolved.feats[position]?.name ?? "archetype feat",
-              entry: null
+              entry: null,
+              placement: "rejected"
             };
           }
         }

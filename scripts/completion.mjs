@@ -42,12 +42,16 @@ function spellLines(concept, resolved, character) {
 
 /** A character feat slot with a null entry has no legal feat left. It stays
  * empty on the sheet and is warned about, never blocking, and no illegal feat
- * is placed to fill it. NPC feats keep the blocking resolver rule. */
+ * is placed to fill it. A fill rejected by Free Archetype placement had other
+ * legal candidates, so it stays a blocking unresolved line. NPC feats keep the
+ * blocking resolver rule. */
 function featLines(feats, character) {
   if (!character) return resolvedLines("feat", feats);
-  return (Array.isArray(feats) ? feats : []).map((feat) => feat?.entry
-    ? line("feat", feat.name, "compendium")
-    : line("feat", `${feat?.type ?? "feat"} feat (level ${feat?.level ?? "?"}): no legal feat available`, "empty", false));
+  return (Array.isArray(feats) ? feats : []).map((feat) => {
+    if (feat?.entry) return line("feat", feat.name, "compendium");
+    if (feat?.placement === "rejected") return line("feat", feat.name, "unresolved");
+    return line("feat", `${feat?.type ?? "feat"} feat (level ${feat?.level ?? "?"}): no legal feat available`, "empty", false);
+  });
 }
 
 /** Spellcasting entries are module-built infrastructure, but a completed
