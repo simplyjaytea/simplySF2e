@@ -41,7 +41,7 @@ class App {
   }
 }
 const context = vm.createContext({
-  console: { log() {}, warn() {}, error() {} },
+  console: { log() {}, debug() {}, warn() {}, error() {} },
   game: {
     i18n: { localize: (key) => key, format: (key) => key },
     actors: { get: (id) => id === actor?.id ? actor : null },

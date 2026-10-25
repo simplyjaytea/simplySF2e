@@ -15,7 +15,7 @@ if (!vm.SourceTextModule) {
 const source = (await readFile(new URL("./generator-app.mjs", import.meta.url), "utf8"))
   .replace(/#(input|concept|resolved|manifest|error|busy|generateEncounter|readForm|runGeneration|assertGenerationReady|refineEquipment)\b/g, "_test_$1");
 const context = vm.createContext({
-  console: { warn() {}, error() {}, log() {} },
+  console: { warn() {}, error() {}, log() {}, debug() {} },
   game: { i18n: { localize: (key) => key } }
 });
 let providerFailure;

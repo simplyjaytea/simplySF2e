@@ -1041,10 +1041,10 @@ export class GeneratorApp extends SpfApp {
       const eq = this.#resolved.equipment;
       const misses = (this.#resolved.skippedGear ?? []).filter((g) => g.category === "equipment").map((g) => g.name);
       if (eq.length || misses.length) {
-        console.log(`${MODULE_ID} | equipment matches: ${eq.length}/${eq.length + misses.length}`,
+        console.debug(`${MODULE_ID} | equipment matches: ${eq.length}/${eq.length + misses.length}`,
           misses.length ? { skipped: misses } : "");
       }
-      console.log(`${MODULE_ID} | token usage`, this._tokenUsage);
+      console.debug(`${MODULE_ID} | token usage`, this._tokenUsage);
     } catch (err) {
       this.#noteGenerationFailure(err, "generation");
       this.#concept = null;
@@ -1165,7 +1165,7 @@ export class GeneratorApp extends SpfApp {
       const misses = members.flatMap((m) => m.resolved.skippedGear ?? [])
         .filter((g) => g.category === "equipment").map((g) => g.name);
       if (allEq.length || misses.length) {
-        console.log(`${MODULE_ID} | equipment matches: ${allEq.length}/${allEq.length + misses.length}`,
+        console.debug(`${MODULE_ID} | equipment matches: ${allEq.length}/${allEq.length + misses.length}`,
           misses.length ? { skipped: misses } : "");
       }
       this._throwIfCancelled();
@@ -1178,7 +1178,7 @@ export class GeneratorApp extends SpfApp {
         members
       };
       this.#markPreview();
-      console.log(`${MODULE_ID} | token usage`, this._tokenUsage);
+      console.debug(`${MODULE_ID} | token usage`, this._tokenUsage);
     } catch (err) {
       this.#noteGenerationFailure(err, "encounter generation");
       this.#encounter = null;
@@ -1436,7 +1436,7 @@ export class GeneratorApp extends SpfApp {
       this.#pcConcept = concept;
       this.#pcResolved = resolved;
       this.#markPreview();
-      console.log(`${MODULE_ID} | token usage`, this._tokenUsage);
+      console.debug(`${MODULE_ID} | token usage`, this._tokenUsage);
     } catch (err) {
       this.#noteGenerationFailure(err, "character generation");
       this.#pcConcept = null;
