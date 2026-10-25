@@ -76,7 +76,7 @@ export function generatorContext(mode, patch = {}) {
     rarities: RARITIES,
     promptPlaceholder: `${localize("SIMPLYSF2E.Generator.PromptExample")} a cult of solar-bleached smugglers...`,
     nonePresetSelected: true,
-    standardPresets: ["envoy", "mystic", "operative", "solarian", "soldier", "witchwarper"].map((id) => ({
+    standardPresets: ["envoy", "mechanic", "mystic", "operative", "solarian", "soldier", "technomancer", "witchwarper"].map((id) => ({
       id, label: cap(id), selected: false
     })),
     archetypePresets: [{ id: "brute", label: "Brute", selected: false }, { id: "sneak", label: "Sneak", selected: false }],
@@ -94,6 +94,7 @@ export function generatorContext(mode, patch = {}) {
     encounterPreview: null,
     party: null,
     pcPreview: null,
+    multiclassPicker: null,
     characterReview: null,
     created: null,
     recent: null,
@@ -155,8 +156,19 @@ const RICH = {
   loot: [named("Credstick (120 credits)"), named("Scroll of Mage Armor (Rank 1)")]
 };
 
+/** Multiclass picker shown only with Free Archetype on: None, Let the AI decide, then each supported class. */
+const MULTICLASS_SLUGS = ["envoy", "mechanic", "mystic", "operative", "solarian", "soldier", "technomancer", "witchwarper"];
+function multiclassPicker(selected) {
+  const options = [
+    { value: "none", label: localize("SIMPLYSF2E.Generator.MulticlassNone") },
+    { value: "ai", label: localize("SIMPLYSF2E.Generator.MulticlassAI") },
+    ...MULTICLASS_SLUGS.map((slug) => ({ value: slug, label: cap(slug) }))
+  ];
+  return { options: options.map((option) => ({ ...option, selected: option.value === selected })) };
+}
+
 /** Character preview window; #buildPCPreviewContext() supplies the feat rows and emptyFeatNotice. */
-function characterPreview(id, { feats, emptyFeatNotice = null }) {
+function characterPreview(id, { feats, emptyFeatNotice = null, multiclass = null }) {
   const pcConcept = { name: "Kess Vandrel", level: 3, blurb: "A disgraced envoy who still believes in the mission.", spellcasting: { tradition: "occult" }, backstory: "Kess left the Pact Worlds diplomatic corps after a treaty she negotiated was used as cover for a raid." };
   return {
     id,
@@ -175,7 +187,8 @@ function characterPreview(id, { feats, emptyFeatNotice = null }) {
         spells: [spell("Telepathic Bond", 2, true, true), spell("Soothe", 1, false)],
         equipment: [named("Tactical Pistol (commercial)"), named("Explorer's Clothing", false)],
         loot: [named("Credstick (300 credits)")],
-        matchSummary: { matched: 7, total: 10, text: localize("SIMPLYSF2E.Preview.MatchSummary", { matched: 7, total: 10 }) }
+        matchSummary: { matched: 7, total: 10, text: localize("SIMPLYSF2E.Preview.MatchSummary", { matched: 7, total: 10 }) },
+        multiclass
       }
     })
   };
@@ -308,6 +321,22 @@ export default [
   characterPreview("generator-character-preview", {
     feats: [{ ...named("Nimble Dodge"), empty: false }, { ...named("Hobnobber", false), empty: false }]
   }),
+  characterPreview("generator-character-multiclass-preview", {
+    feats: [{ ...named("Mystic Dedication"), empty: false }, { ...named("Nimble Dodge"), empty: false }],
+    multiclass: { name: "Mystic", dedication: "Mystic Dedication" }
+  }),
+  characterPreview("generator-character-multiclass-unplaced", {
+    feats: [{ ...named("Nimble Dodge"), empty: false }],
+    multiclass: { name: "Mystic", dedication: null }
+  }),
+  {
+    id: "generator-character-empty-free-archetype",
+    app: "generator",
+    context: generatorContext("character", {
+      input: { level: 3, multiclass: "ai" },
+      multiclassPicker: multiclassPicker("ai")
+    })
+  },
   characterPreview("generator-character-empty-slot", {
     feats: [{ ...named("Nimble Dodge"), empty: false }, { name: "general 3", found: false, empty: true }],
     emptyFeatNotice: localize("SIMPLYSF2E.PC.EmptyFeatSlots", { count: 1, slots: "general 3" })

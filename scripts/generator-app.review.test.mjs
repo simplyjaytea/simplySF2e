@@ -8,8 +8,11 @@ import * as recentGenerations from "./recent-generations.mjs";
 import { reviewUnresolvedChoices } from "./choice-set.mjs";
 import { normalizeSkillPriorities, skillPriorityOrder } from "./pc-skills.mjs";
 import { assertComplete, completionManifest, completionSummary } from "./completion.mjs";
-import { freeArchetypeNeedsPrerequisiteValidation, manualNotesContent } from "./pc-support.mjs";
-import { validateArchetypeSlotPlacement } from "./pc-prerequisites.mjs";
+import {
+  freeArchetypeNeedsPrerequisiteValidation, manualNotesContent, isCompletePCClass, COMPLETE_PC_CLASS_SLUGS, getMulticlassDedicationSlug
+} from "./pc-support.mjs";
+import { validateArchetypeSlotPlacement, stagedActorContext } from "./pc-prerequisites.mjs";
+import { capitalized } from "./text.mjs";
 
 if (!vm.SourceTextModule) {
   const run = spawnSync(process.execPath, ["--experimental-vm-modules", import.meta.filename], { stdio: "inherit" });
@@ -62,6 +65,9 @@ const mocks = {
   verifyCreatedActor: () => { if (verifyFailure) throw verifyFailure; },
   moveToGeneratedFolder: async () => {}, generatedFolderId: async () => "root", createHandout: async () => null,
   freeArchetypeNeedsPrerequisiteValidation, manualNotesContent, validateArchetypeSlotPlacement, jevKeySource: () => "connection",
+  isCompletePCClass, COMPLETE_PC_CLASS_SLUGS, getMulticlassDedicationSlug, capitalized, stagedActorContext,
+  ABILITY_KEYS: ["str", "dex", "con", "int", "wis", "cha"], initialSkillTraining: () => ({ ranks: {} }),
+  projectAttributeModifiers: () => null, projectSkillRanks: () => null,
   supportedClassCandidates: (candidates) => candidates,
   getProviderRequestConfig: () => ({}), getProviderAuthWarningKey: () => null,
   BUILT_IN_PRESETS: [], getCustomPresets: () => [], findPreset: () => null, examplePrompt: () => "",

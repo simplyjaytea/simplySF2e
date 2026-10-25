@@ -56,6 +56,14 @@ for (const treasureAmount of Object.keys(TREASURE_AMOUNT_MULTIPLIER)) {
   assert.equal(restoreGeneratorInput({ treasureAmount }, defaults).treasureAmount, treasureAmount);
 }
 
+// Multiclass picker: "none", "ai" and each supported class slug are remembered; anything else keeps the default.
+assert.equal(restoreGeneratorInput({ multiclass: "ai" }, { ...defaults, multiclass: "none" }).multiclass, "ai");
+assert.equal(restoreGeneratorInput({ multiclass: "mystic" }, { ...defaults, multiclass: "none" }).multiclass, "mystic");
+for (const bad of ["wizard", "Mystic", "mystic-dedication", 3, null]) {
+  assert.equal(restoreGeneratorInput({ multiclass: bad }, { ...defaults, multiclass: "none" }).multiclass, "none", `multiclass ${JSON.stringify(bad)} keeps the default`);
+}
+assert.equal(rememberedInput({ ...defaults, multiclass: "soldier" }).multiclass, "soldier", "the multiclass pick is remembered");
+
 // Prompt is ignored even when present in saved data.
 assert.equal(restoreGeneratorInput({ prompt: "saved text" }, defaults).prompt, "");
 

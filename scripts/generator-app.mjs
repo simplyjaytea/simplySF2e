@@ -26,7 +26,8 @@ import {
 } from "./pc-builder.mjs";
 import { pcSpellcastingProfile, pcSpellPlan } from "./pc-tables.mjs";
 import { reviewUnresolvedChoices } from "./choice-set.mjs";
-import { normalizeSkillPriorities, skillPriorityOrder } from "./pc-skills.mjs";
+import { normalizeSkillPriorities, skillPriorityOrder, initialSkillTraining } from "./pc-skills.mjs";
+import { ABILITY_KEYS, projectAttributeModifiers, projectSkillRanks } from "./pc-projection.mjs";
 import { treasureBudget, TREASURE_AMOUNT_MULTIPLIER } from "./tables.mjs";
 import { gpToCredits } from "./currency.mjs";
 import { getCustomPresets, findPreset, examplePrompt, randomBrief, presetPickerGroups } from "./presets.mjs";
@@ -36,11 +37,13 @@ import { composeEncounter, THREATS } from "./encounter.mjs";
 import { findBestiaryScaffold, scaffoldArt } from "./art.mjs";
 import { assertComplete, completionManifest, completionSummary } from "./completion.mjs";
 import { verifyCreatedActor } from "./post-create.mjs";
-import { manualNotesContent, supportedClassCandidates } from "./pc-support.mjs";
-import { validateArchetypeSlotPlacement } from "./pc-prerequisites.mjs";
+import {
+  manualNotesContent, supportedClassCandidates, isCompletePCClass, COMPLETE_PC_CLASS_SLUGS, getMulticlassDedicationSlug
+} from "./pc-support.mjs";
+import { validateArchetypeSlotPlacement, stagedActorContext } from "./pc-prerequisites.mjs";
 import { SpfApp } from "./app-base.mjs";
 import { jevKeySource } from "./jev.mjs";
-import { signed, esc } from "./text.mjs";
+import { signed, esc, capitalized } from "./text.mjs";
 import { statCheckForActor, describeStatCheck, hasSpellEntry } from "./stat-check.mjs";
 import { moveToGeneratedFolder, generatedFolderId } from "./folders.mjs";
 import { createHandout } from "./handout.mjs";
@@ -113,7 +116,7 @@ export class GeneratorApp extends SpfApp {
   #input = {
     mode: "monster", prompt: "", level: 1, rarity: "common",
     allowSpellcasting: true, preset: "", partySize: 4, threat: "moderate",
-    treasureAmount: "standard", rarityCap: "unique"
+    treasureAmount: "standard", rarityCap: "unique", multiclass: "none"
   };
   #modePrompts = { monster: "", npc: "", encounter: "", character: "", reskin: "" };
   /** Reskin mode: the dropped NPC ({uuid, name, img, level}) and the validated flavor. */
@@ -297,6 +300,7 @@ export class GeneratorApp extends SpfApp {
       preview: ["monster", "npc"].includes(this.#input.mode) ? this.#buildPreviewContext() : null,
       encounterPreview: this.#input.mode === "encounter" ? this.#buildEncounterPreviewContext() : null,
       pcPreview: this.#input.mode === "character" ? this.#buildPCPreviewContext() : null,
+      multiclassPicker: this.#input.mode === "character" && this.#freeArchetypeOn() ? this.#multiclassPickerContext() : null,
       characterReview: this.#characterReview,
       created: this.#created,
       recent: this.#buildRecentContext(),
@@ -355,6 +359,84 @@ export class GeneratorApp extends SpfApp {
     };
   }
 
+  /** Free Archetype is the campaign rule multiclass depends on; read it live, and treat an unreadable setting as off. */
+  #freeArchetypeOn() {
+    try {
+      return Boolean(getSetting(SETTINGS.freeArchetype));
+    } catch (err) {
+      console.warn(`${MODULE_ID} | could not read the Free Archetype setting; multiclass stays off`, err);
+      return false;
+    }
+  }
+
+  /** Multiclass picker options: None, Let the AI decide, then each supported class. */
+  #multiclassPickerContext() {
+    const options = [
+      { value: "none", label: game.i18n.localize("SIMPLYSF2E.Generator.MulticlassNone") },
+      { value: "ai", label: game.i18n.localize("SIMPLYSF2E.Generator.MulticlassAI") },
+      ...[...COMPLETE_PC_CLASS_SLUGS].map((slug) => ({ value: slug, label: capitalized(slug) }))
+    ];
+    return { options: options.map((option) => ({ ...option, selected: option.value === this.#input.multiclass })) };
+  }
+
+  /** Preview line for a multiclass pick; the dedication counts only when it was placed on a real feat. */
+  #multiclassPreview(concept, resolved) {
+    if (!concept.multiclass) return null;
+    const dedicationSlug = getMulticlassDedicationSlug(concept.multiclass);
+    const placed = (resolved.feats ?? []).find((feat) => feat?.entry && feat.placement !== "rejected"
+      && feat.name && slugify(feat.name) === dedicationSlug);
+    return { name: capitalized(concept.multiclass), dedication: placed?.name ?? null };
+  }
+
+  /**
+   * Staged context for the archetype placement check: what the PC already has
+   * at its level (ABC, class path, heritage) plus the projected ability
+   * modifiers and skill ranks that resolvePCConcept proved candidates against.
+   * The projection repeats pc-builder's inputs because its helpers are private.
+   * Ranks and modifiers only grow with level, so the final-level context is
+   * never stricter than a slot's own candidate-time context.
+   */
+  #archetypePlacementContext(resolved, concept) {
+    const { ancestryDoc, heritageDoc, backgroundDoc, classDoc, pathPlan } = resolved;
+    const keyOptions = Array.isArray(classDoc.system?.keyAbility?.value) ? classDoc.system.keyAbility.value : [];
+    const keyAbility = keyOptions.includes(concept.keyAbility) ? concept.keyAbility
+      : keyOptions[0] ?? (ABILITY_KEYS.includes(concept.keyAbility) ? concept.keyAbility : "str");
+    const modsAt = (level) => projectAttributeModifiers({
+      ancestrySystem: ancestryDoc.system, backgroundSystem: backgroundDoc.system,
+      keyAbility, preferences: concept.abilityPriorities, level
+    });
+    const levelMods = modsAt(concept.level);
+    const initialMods = modsAt(1);
+    const { ranks: provenSkills } = initialSkillTraining(classDoc.system, backgroundDoc.system);
+    for (const planned of Object.values(pathPlan ?? {})) {
+      for (const [slug, rank] of Object.entries(planned?.skills ?? {})) {
+        provenSkills[slug] = Math.max(provenSkills[slug] ?? 0, rank);
+      }
+    }
+    const projection = levelMods && initialMods ? projectSkillRanks({
+      classSystem: classDoc.system, backgroundSystem: backgroundDoc.system, provenSkills,
+      intelligence: levelMods.int, initialIntelligence: initialMods.int, keyAbility,
+      priorities: concept.skillPriorities, level: concept.level
+    }) : null;
+    const loreSkills = Object.fromEntries((Array.isArray(backgroundDoc.system?.trainedSkills?.lore)
+      ? backgroundDoc.system.trainedSkills.lore : [])
+      .filter((name) => typeof name === "string" && name.trim())
+      .map((name) => [slugify(name), 1]));
+    const features = [];
+    for (const [tag, planned] of Object.entries(pathPlan ?? {})) {
+      if (!planned?.name) continue;
+      features.push({ name: planned.name });
+      if (tag === "mechanic-exocortex") features.push({ name: `${planned.name} exocortex` });
+      if (tag === "technomancer-programming-language") features.push({ name: `${planned.name} programming language` });
+    }
+    if (heritageDoc) features.push({ name: `${heritageDoc.name} heritage` });
+    return stagedActorContext({
+      level: concept.level, ancestry: ancestryDoc, heritage: heritageDoc, background: backgroundDoc, class: classDoc,
+      features, skills: { ...(projection ? projection.ranksAt(concept.level) : provenSkills), ...loreSkills },
+      abilities: levelMods ?? {}
+    });
+  }
+
   #buildPCPreviewContext() {
     if (!this.#pcConcept) return null;
     const concept = this.#pcConcept;
@@ -375,6 +457,7 @@ export class GeneratorApp extends SpfApp {
     const loot = GeneratorApp.#mapGear(resolved.loot, resolved.skippedGear, "loot");
     return {
       concept,
+      multiclass: this.#multiclassPreview(concept, resolved),
       ancestry,
       heritage,
       background,
@@ -692,6 +775,7 @@ export class GeneratorApp extends SpfApp {
     const threat = form.querySelector('[name="threat"]')?.value ?? this.#input.threat;
     const treasureAmount = form.querySelector('[name="treasureAmount"]')?.value ?? this.#input.treasureAmount;
     const rarityCap = form.querySelector('[name="rarityCap"]')?.value ?? this.#input.rarityCap;
+    const multiclass = form.querySelector('[name="multiclass"]')?.value ?? this.#input.multiclass;
     const rawAdj = form.querySelector('[name="adjustment"]')?.value ?? this.#input.adjustment;
     const adjustment = rawAdj === "elite" || rawAdj === "weak" ? rawAdj : null;
     const reskinLevelEl = form.querySelector('[name="reskinLevel"]');
@@ -699,7 +783,7 @@ export class GeneratorApp extends SpfApp {
       const reskinLevel = clampRelevel(reskinLevelEl.value, this.#reskinTargetLevel());
       this.#reskinLevel = reskinLevel === this.#reskinSource.level ? null : reskinLevel;
     }
-    this.#input = { mode, prompt, level, rarity, adjustment, allowSpellcasting, preset, partySize, threat, treasureAmount, rarityCap };
+    this.#input = { mode, prompt, level, rarity, adjustment, allowSpellcasting, preset, partySize, threat, treasureAmount, rarityCap, multiclass };
     this.#rememberInput();
   }
 
@@ -1251,10 +1335,15 @@ export class GeneratorApp extends SpfApp {
     ]);
     try {
       await this._setStep("concept");
-      const { concept: raw, usage } = await generatePCConcept({
+      // Multiclass needs Free Archetype. The AI is asked for a second class only
+      // when the GM left the picker on "Let the AI decide"; a GM pick never asks it.
+      const freeArchetype = this.#freeArchetypeOn();
+      const multiclassChoice = freeArchetype ? this.#input.multiclass : "none";
+      const { concept: raw, multiclass: aiMulticlass, usage } = await generatePCConcept({
         prompt: isRandom ? randomBrief(this.#input.mode) : this.#input.prompt,
         level: this.#input.level,
         allowSpellcasting: this.#input.allowSpellcasting,
+        allowMulticlass: multiclassChoice === "ai",
         // Stable preset slot, PC flavor: the guidance steers class/style
         // choice only (generatePCConcept tells the model to ignore any
         // numeric scale wording — a PC's numbers come from the system).
@@ -1263,6 +1352,9 @@ export class GeneratorApp extends SpfApp {
       });
       this._recordTokens(game.i18n.localize("SIMPLYSF2E.Progress.PCConcept"), usage);
       const concept = normalizePCConcept(raw, { level: this.#input.level });
+      concept.multiclass = null;
+      if (isCompletePCClass(multiclassChoice)) concept.multiclass = slugify(multiclassChoice);
+      else if (multiclassChoice === "ai") concept.multiclass = aiMulticlass;
 
       await this._setStep("abc");
       // Rarity cap: excludes ancestries/backgrounds/heritages rarer than the
@@ -1303,6 +1395,11 @@ export class GeneratorApp extends SpfApp {
       };
       let resolved = await resolvePCConcept(concept, { selectChoices: choiceSelector });
       concept.traits = [slugify(resolved.ancestryDoc.name), slugify(resolved.classDoc.name)];
+      // A second class equal to the main class is no multiclass: drop it and warn, never substitute.
+      if (concept.multiclass && slugify(resolved.classDoc.name) === concept.multiclass) {
+        console.warn(`${MODULE_ID} | multiclass "${concept.multiclass}" is the main class — no second class`);
+        concept.multiclass = null;
+      }
 
       // The real class document owns the casting mode and base slot plan.
       // Variable traditions still need the selected bloodline/patron checked.
@@ -1353,7 +1450,7 @@ export class GeneratorApp extends SpfApp {
           const { dropped } = validateArchetypeSlotPlacement(
             archetypePositions.map((index) => resolved.featSlots[index]),
             archetypePositions.map((index) => resolved.feats[index]),
-            null
+            this.#archetypePlacementContext(resolved, concept)
           );
           for (const { index, name } of dropped) {
             const position = archetypePositions[index];
