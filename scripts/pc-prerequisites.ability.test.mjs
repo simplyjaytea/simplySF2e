@@ -1,6 +1,6 @@
-// Ability-modifier prerequisites (remaster "Charisma +2"), the legacy PF2e
-// score form ("Strength 14"), and " or " disjunctions over ability or
-// skill-rank clauses. Fail closed when the staged context lacks an ability.
+// Ability-modifier prerequisites (sf2e "Charisma +2") and " or " disjunctions
+// over ability or skill-rank clauses. The legacy score form ("Strength 14")
+// is not an ability clause. Fail closed when the staged context lacks an ability.
 // Run: node scripts/pc-prerequisites.ability.test.mjs
 import assert from "node:assert/strict";
 import { featPrerequisitesMet, stagedActorContext } from "./pc-prerequisites.mjs";
@@ -21,11 +21,11 @@ assert.equal(met("Charisma +0", withAbilities({ cha: 0 })), true, "a zero modifi
 assert.equal(met("Charisma +2", withAbilities({ cha: "2" })), false,
   "a non-numeric modifier is dropped by stagedActorContext and fails closed");
 
-assert.equal(met("Strength 14", withAbilities({ str: 2 })), true,
-  "legacy score 14 converts to modifier +2 and passes at +2");
-assert.equal(met("Strength 14", withAbilities({ str: 1 })), false,
-  "legacy score 14 converts to modifier +2 and blocks at +1");
-assert.equal(met("Strength 14", withAbilities({})), false, "a legacy score without a modifier fails closed");
+assert.equal(met("Strength 14", withAbilities({ str: 5 })), false,
+  "the legacy score form is not an ability clause, so a high modifier does not meet it");
+assert.equal(met("Strength 14", withAbilities({ str: 2 })), false,
+  "the legacy score form is not converted to a modifier");
+assert.equal(met("Strength 14", withAbilities({})), false, "the legacy score form fails closed");
 
 assert.equal(met("Intelligence +2 or Charisma +2", withAbilities({ int: 2 })), true,
   "a disjunction passes when the first ability is met");

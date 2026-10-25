@@ -127,15 +127,13 @@ function nameClauseMet(text, context) {
 
 /**
  * Ability requirement from one clause, or null when it is not an ability
- * clause. Remaster text is the modifier form ("Charisma +2"). The legacy PF2e
- * score form ("Strength 14") is converted to the modifier that score grants,
- * floor((score - 10) / 2), because `context.abilities` holds modifiers.
+ * clause. The sf2e form is the modifier ("Charisma +2"; tag sf2e-1.6.1 Envoy
+ * Dedication). No sf2e prerequisite uses a score form ("Strength 14"), so
+ * that text is not an ability clause and falls through to name matching.
  */
 function abilityRequirement(text) {
   const modifier = /^(strength|dexterity|constitution|intelligence|wisdom|charisma)\s+\+(\d+)$/i.exec(text);
   if (modifier) return { key: ABILITY[modifier[1].toLowerCase()], required: Number(modifier[2]) };
-  const score = /^(strength|dexterity|constitution|intelligence|wisdom|charisma)\s+(\d+)$/i.exec(text);
-  if (score) return { key: ABILITY[score[1].toLowerCase()], required: Math.floor((Number(score[2]) - 10) / 2) };
   return null;
 }
 

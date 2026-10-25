@@ -102,6 +102,36 @@ Before W7 the first three rows were FAIL (the empty slots blocked Create). The F
 
 Allocation policy was not changed (it is a design choice for JT). W7 accepts the empty slots (owner decision, 2026-10-25): the Athlete Mystic at L20 is created with them empty and the GM is warned. To fill them instead, the options are the increase policy (spread increases beyond the top three priorities), the class-training policy, or a different background.
 
+## Path coverage (`--path`, Operative specializations)
+
+The default matrix takes the first class-path candidate, which for Operative is Ghost. `run.mjs --path <Name>` makes the path choice select that option instead, and fails the run (FAIL) if the plan does not select it. Other classes' paths are not covered by this section.
+
+Measured against the same source (`be4ab21`, sf2e 1.6.1), Athlete background, Human / Urbanite Human:
+
+| specialization (trained skill) | command | FA off | FA on |
+| --- | --- | --- | --- |
+| Striker (Athletics) | `--path Striker --levels 1,5,10,20` | L1 PASS, L5 WARN(2), L10 WARN(2), L20 WARN(2) | same as off |
+| Ghost (Deception) | `--path Ghost --levels 5` | PASS | PASS |
+| Infiltrator (Computers) | `--path Infiltrator --levels 5` | PASS | PASS |
+| Skirmisher (Acrobatics) | `--path Skirmisher --levels 5` | PASS | PASS |
+| Sniper (Stealth) | `--path Sniper --levels 5` | WARN(2) | WARN(2) |
+
+Sniper was also run at L10 and L20 (not requested): WARN(2) at both, with the same empty slots as Striker. Of the paths measured here, only Striker and Sniper are non-PASS.
+
+**Empty slots, both WARN (empty feat slot, not FAIL, as W7 intends):**
+
+- Striker: `skill-3` at L5; `skill-3`, `skill-7` at L10; `skill-3`, `skill-7`, `skill-15` at L20.
+- Sniper: `skill-3` at L5; `skill-3`, `skill-7` at L10; `skill-3`, `skill-7`, `skill-15` at L20.
+
+**Known data limit (confirmed, not a code fix):** `pc-builder.mjs` restricts the Specialized Skill Set slots (levels 3, 7, 15, when the class has that feature) to feats that prove the specialization's trained skill (`allowedSkillFeats`). In the cache, each such skill has exactly one skill feat at level 15 or below, and the path reserves it through its own level-one skill feat (`reservedFeatUuids`, `class-paths.mjs`):
+
+- Athletics: Deadlift (level 1, `trained in Athletics`), reserved by Striker.
+- Stealth: Without a Trace (level 1, `trained in Deception, Stealth, or Underworld Lore`), reserved by Sniper.
+
+No other skill-category feat at level 15 or below names Athletics or Stealth, so the restricted slots have no candidate. The module does not borrow a feat for another skill; the slot stays empty. Ghost, Infiltrator and Skirmisher are not restricted this way: their skills have several unreserved skill feats at levels 1 to 3, so they pass.
+
+**Claim scope:** "every class builds cleanly" is measured on each class's default path (Ghost for Operative), in the default matrix (80 runs: 78 PASS, 2 WARN, 0 FAIL), plus the path coverage above. Other specializations of other classes are not measured. The prerequisite change (legacy score form removed from `pc-prerequisites.mjs`) left the default matrix unchanged, and its result is the same 78 PASS / 2 WARN.
+
 ## Stubs that weaken this result
 
 - No Rule Elements run; `doc.system` is raw source (not prepared). The projection (`projectAttributeModifiers`, `projectSkillRanks`) is computed from source, not from Foundry's prepared data; the fake `Actor` still has Int 0 and ranks from class and background only.
