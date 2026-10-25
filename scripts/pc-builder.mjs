@@ -12,8 +12,8 @@ import { CORE_SKILLS, normalizeSkillPriorities, initialSkillTraining, allocateCh
 import { ABILITY_KEYS, normalizeAbilityPriorities, assignAbilityBoosts, assignItemBoosts, projectAttributeModifiers, projectSkillRanks } from "./pc-projection.mjs";
 import { applyCharacterLoadout } from "./pc-loadout.mjs";
 import { planClassPaths, stageClassPaths } from "./class-paths.mjs";
-import { classManualNotes, technomancerInitialHack, withInitialFocusSpell } from "./pc-support.mjs";
-import { stagedActorContext } from "./pc-prerequisites.mjs";
+import { COMPLETE_PC_CLASS_SLUGS, classManualNotes, getMulticlassDedicationSlug, technomancerInitialHack, withInitialFocusSpell } from "./pc-support.mjs";
+import { archetypeOfFeat, stagedActorContext } from "./pc-prerequisites.mjs";
 import { gpToCredits } from "./currency.mjs";
 
 /**
@@ -26,6 +26,19 @@ import { gpToCredits } from "./currency.mjs";
  * Spell slots/repertoire plans are supplied separately by verified class
  * profiles: class items expose spell proficiency, not automatic slot counts.
  */
+
+/**
+ * Second class of a multiclass PC: a complete class slug other than the main
+ * class, or null. "ai" is the AI's choice before it resolves, so it is null
+ * here. Anything else is dropped with a warning (fail closed).
+ */
+function normalizeMulticlass(raw, mainClass) {
+  if (!raw || raw === "ai") return null;
+  const slug = typeof raw === "string" ? slugify(raw) : "";
+  if (COMPLETE_PC_CLASS_SLUGS.has(slug) && slug !== slugify(mainClass)) return slug;
+  console.warn(`simplysf2e | dropped invalid multiclass "${String(raw).slice(0, 40)}"`);
+  return null;
+}
 
 /**
  * Coerce the AI's raw PC concept JSON into a well-formed object. Guarantees
@@ -69,6 +82,8 @@ export function normalizePCConcept(raw, { level }) {
     heritage: c.heritage ? String(c.heritage).slice(0, 80) : null,
     background: String(c.background || "Follower").slice(0, 80),
     class: String(c.class || "Soldier").slice(0, 80),
+    // Null unless Free Archetype is on at resolve time (resolvePCConcept ignores it otherwise).
+    multiclass: normalizeMulticlass(c.multiclass, c.class || "Soldier"),
     keyAbility: ABILITY_KEYS.includes(c.keyAbility) ? c.keyAbility : "str",
     abilityPriorities,
     skillPriorities,
@@ -236,6 +251,28 @@ async function resolveInitialMagicHack(stagedItems) {
 }
 
 /**
+ * Candidates for a later archetype slot of a multiclass PC, follow-ups of the
+ * pinned archetype first. Membership comes from prerequisite text
+ * (archetypeOfFeat); each follow-up found joins `archetypeMembers`, so a
+ * follow-up of a follow-up still counts. Preferred, not exclusive: other
+ * candidates keep their order after them.
+ */
+function archetypeFollowUpsFirst(candidates, archetypeMembers) {
+  const followUps = [];
+  const others = [];
+  for (const candidate of candidates) {
+    const owner = archetypeOfFeat(candidate, archetypeMembers);
+    if (owner === null) {
+      others.push(candidate);
+      continue;
+    }
+    archetypeMembers.set(slugify(candidate.name), owner);
+    followUps.push(candidate);
+  }
+  return [...followUps, ...others];
+}
+
+/**
  * Resolve every compendium reference in a PC concept — the PC counterpart of
  * builder.mjs's resolveConcept(). Assumes concept.ancestry/heritage/
  * background/class already carry GROUNDED real names (i.e. generator-app has
@@ -379,11 +416,22 @@ export async function resolvePCConcept(concept, { exactContent = false, pathPlan
   const classTrait = slugify(classDoc.name);
   const featSlots = [];
   const freeArchetype = Boolean(getSetting(SETTINGS.freeArchetype));
+  // Multiclass (Free Archetype only): the first archetype slot takes the second
+  // class's dedication as its only candidate, when that dedication is provable
+  // there. Later archetype slots list that archetype's follow-ups first.
+  const secondClass = freeArchetype && concept.multiclass && concept.multiclass !== classTrait ? concept.multiclass : null;
+  const dedicationSlug = secondClass ? getMulticlassDedicationSlug(secondClass) : null;
+  const archetypeMembers = new Map(); // feat slug -> dedication slug of its archetype
+  let multiclass = null;
+  let firstArchetypeSlotSeen = false;
   for (const slot of buildFeatSlots(concept.level, { freeArchetype, classSystem: classDoc.system })) {
     const isSpecializedSlot = hasSpecializedSkillSet && slot.type === "skill" && [3, 7, 15].includes(slot.level);
     const prerequisiteContext = stagedActorContext({
       level: slot.level, ancestry: ancestryDoc, heritage: heritageDoc,
       background: backgroundDoc, class: classDoc, features: pathFeatures,
+      // The pinned dedication fills the first archetype slot, so its follow-ups
+      // ("Envoy Dedication" in their prerequisites) are provable from the next slot on.
+      feats: multiclass ? [{ name: multiclass.dedication }] : [],
       skills: { ...(projection ? projection.ranksAt(slot.level) : provenSkills), ...loreSkills },
       abilities: modsAt(slot.level) ?? {},
       allowedSkillFeats: isSpecializedSlot ? (operativeSkill ? [operativeSkill] : []) : null
@@ -402,6 +450,24 @@ export async function resolvePCConcept(concept, { exactContent = false, pathPlan
         level: slot.level, category, preferredNames: concept.feats,
         excludeUuids: slotExclusions, prerequisiteContext
       });
+    }
+    if (slot.archetype && dedicationSlug && !firstArchetypeSlotSeen) {
+      firstArchetypeSlotSeen = true;
+      // preferredNames keeps the exact dedication inside the bounded candidate list.
+      const dedications = (await getFeatCandidates({
+        level: slot.level, category, traits,
+        preferredNames: [`${capitalized(secondClass)} Dedication`],
+        excludeUuids: slotExclusions, prerequisiteContext
+      })).filter((candidate) => slugify(candidate.name) === dedicationSlug);
+      if (dedications.length) {
+        candidates = dedications;
+        multiclass = { class: secondClass, dedication: dedications[0].name };
+        archetypeMembers.set(dedicationSlug, dedicationSlug);
+      } else {
+        console.warn(`simplysf2e | multiclass ${secondClass} dedication not legal for this character — using ordinary archetype candidates`);
+      }
+    } else if (slot.archetype && multiclass) {
+      candidates = archetypeFollowUpsFirst(candidates, archetypeMembers);
     }
     if (candidates.length) featSlots.push({ ...slot, candidates });
     else {
@@ -428,7 +494,7 @@ export async function resolvePCConcept(concept, { exactContent = false, pathPlan
   // pcStartingWealthGp()) is what actually fills it with coins.
   const loot = await resolveLoot(concept, { exactContent, skipped: skippedGear });
 
-  return { ancestryDoc, heritageDoc, backgroundDoc, classDoc, featSlots, spells, focusSpells, equipment, loot, skippedGear, pathPlan, skillPlan: projection?.plan ?? null };
+  return { ancestryDoc, heritageDoc, backgroundDoc, classDoc, featSlots, spells, focusSpells, equipment, loot, skippedGear, pathPlan, skillPlan: projection?.plan ?? null, multiclass };
 }
 
 /**

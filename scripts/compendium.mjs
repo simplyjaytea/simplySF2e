@@ -971,7 +971,12 @@ export async function getFeatCandidates({
       if (traits.length && !traits.some((t) => entryTraits.includes(t))) continue;
       if (seen.has(entry.normalized)) continue;
       seen.add(entry.normalized);
-      candidates.push(candidateRecord(entry, { name: entry.name, level: entry.system?.level?.value ?? 0, traits: entryTraits }));
+      // Prerequisite text rides on the record so Free Archetype placement can
+      // read archetype membership (validateArchetypeSlotPlacement) without the
+      // full document. The AI never sees it (encodeFeatCandidateSlots: name, ref).
+      const clauses = Array.isArray(entry.system?.prerequisites?.value) ? entry.system.prerequisites.value : [];
+      const prerequisites = clauses.map((clause) => clause?.value).filter((text) => typeof text === "string");
+      candidates.push(candidateRecord(entry, { name: entry.name, level: entry.system?.level?.value ?? 0, traits: entryTraits, prerequisites }));
     }
   }
   candidates.sort((a, b) => a.level - b.level || a.name.localeCompare(b.name));

@@ -5,7 +5,7 @@
 // class x level x Free Archetype findings matrix. Run fetch.mjs first.
 //   node tools/class-bench/run.mjs [--classes soldier,mystic] [--levels 1,5]
 //        [--ancestry Human] [--heritage "Versatile Human"] [--background Athlete]
-//        [--priorities athletics,medicine,nature] [--path Striker] [--verbose]
+//        [--priorities athletics,medicine,nature] [--abilities wis] [--path Striker] [--multiclass envoy] [--verbose]
 import { readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -22,8 +22,14 @@ const HERITAGE = flag("heritage", "Urbanite Human");
 const BACKGROUND = flag("background", "Athlete");
 // Skill slugs as the AI's concept.skillPriorities carries them; none means the key-ability default.
 const PRIORITIES = (flag("priorities", "")).split(",").map((s) => s.trim()).filter(Boolean);
+// Ability keys as the AI's concept.abilityPriorities carries them (free-boost preference); none means the class key only.
+const ABILITIES = (flag("abilities", "")).split(",").map((s) => s.trim()).filter(Boolean);
 // Class path (e.g. Operative specialization "Striker") the path choice must select; none means the first candidate.
 const PATH = flag("path", "").trim();
+// Second class (complete slug, not the main class): pins its dedication to the first archetype slot.
+// Multiclass needs Free Archetype, so the run uses Free Archetype on only.
+const MULTICLASS = flag("multiclass", "").trim().toLowerCase();
+const MODES = MULTICLASS ? [true] : [false, true];
 const ONLY = flag("classes")?.split(",");
 const VERBOSE = args.includes("--verbose");
 
@@ -91,7 +97,7 @@ async function runOne(classData, level, freeArchetype) {
   const rec = {
     class: classData.name, level, freeArchetype, complete: pcSupport.isCompletePCClass(classData.name),
     stages: {}, throws: null, throwStage: null, slotsTotal: 0, unresolvedSlots: [], zeroCandidateSlots: [],
-    pathPlan: null, pathBypassed: false, casting: null, choiceSets: [], nativePrompts: [], skill: null, warnings: []
+    pathPlan: null, pathBypassed: false, casting: null, choiceSets: [], nativePrompts: [], skill: null, warnings: [], multiclass: null
   };
   const stage = async (name, fn) => {
     try { const value = await fn(); rec.stages[name] = "ok"; return value; }
@@ -107,7 +113,8 @@ async function runOne(classData, level, freeArchetype) {
   const keyAbility = classData.system.keyAbility.value[0];
   const concept = await stage("normalize", async () => pcBuilder.normalizePCConcept({
     name: `Bench ${classData.name} ${level}`, ancestry: ANCESTRY, heritage: HERITAGE, background: BACKGROUND,
-    class: classData.name, keyAbility, abilityPriorities: [], skillPriorities: PRIORITIES, feats: []
+    class: classData.name, keyAbility, abilityPriorities: ABILITIES, skillPriorities: PRIORITIES, feats: [],
+    multiclass: MULTICLASS || null
   }, { level }));
   if (!concept) return rec;
 
@@ -134,6 +141,8 @@ async function runOne(classData, level, freeArchetype) {
   }
   if (!resolved) { rec.warnings = warnings; return rec; }
   rec.pathPlan = Object.fromEntries(Object.entries(resolved.pathPlan ?? {}).map(([tag, p]) => [tag, p.name]));
+  // The pinned dedication, or "not pinned" when --multiclass was asked for and the dedication is not provable here.
+  rec.multiclass = MULTICLASS ? (resolved.multiclass ? `${resolved.multiclass.class}: ${resolved.multiclass.dedication}` : "not pinned") : null;
   // Fail closed: a requested path that the choice did not select is a FAIL, not a silent first-candidate run.
   if (PATH && !Object.values(rec.pathPlan).some((name) => slugify(name) === slugify(PATH))) {
     rec.throws = `--path "${PATH}" was not selected (plan: ${Object.values(rec.pathPlan).join(", ") || "none"})`;
@@ -241,7 +250,7 @@ async function runOne(classData, level, freeArchetype) {
 const SKILL_NOISE = new Set(["grant-timing", "unspent-training", "unspent-increases", "projection-mismatch"]);
 const results = [];
 for (const classData of classes) {
-  for (const freeArchetype of [false, true]) {
+  for (const freeArchetype of MODES) {
     for (const level of LEVELS) results.push(await runOne(classData, level, freeArchetype));
   }
 }
@@ -257,6 +266,7 @@ function classify(rec) {
     empty.push(`${rec.unresolvedSlots.length} empty feat slot(s), no legal feat available: ${rec.unresolvedSlots.join(", ")}`);
     emptyTags.push(...kinds.map((k) => `empty ${k} feat slot`));
   }
+  if (rec.multiclass === "not pinned") issues.push("multiclass dedication not pinned (not provable for this character)");
   if (rec.casting?.isCaster && !rec.casting.profile) issues.push("caster class has no casting profile (legacy spontaneous fallback)");
   for (const s of rec.casting?.shortfall ?? []) issues.push(`spell shortfall rank ${s.rank}: want ${s.want}, have ${s.have}`);
   for (const w of rec.skill?.warnings ?? []) if (!SKILL_NOISE.has(w)) issues.push(`skill review: ${w}`);
@@ -276,13 +286,13 @@ for (const rec of results) Object.assign(rec, { verdict: classify(rec) });
 const cell = (rec) => (rec.verdict.status === "WARN" ? `WARN(${rec.verdict.n})` : rec.verdict.status);
 const header = ["class", "FA", ...LEVELS.map((l) => `L${l}`), "complete?"];
 const rows = [];
-for (const classData of classes) for (const fa of [false, true]) {
+for (const classData of classes) for (const fa of MODES) {
   const recs = results.filter((r) => r.class === classData.name && r.freeArchetype === fa);
   rows.push([classData.name, fa ? "on" : "off", ...LEVELS.map((l) => cell(recs.find((r) => r.level === l))), recs[0].complete ? "yes" : "no"]);
 }
 const table = [header, header.map(() => "---"), ...rows].map((r) => `| ${r.join(" | ")} |`).join("\n");
 const tally = results.reduce((t, r) => ((t[r.verdict.status] = (t[r.verdict.status] ?? 0) + 1), t), {});
-const summary = `source ${source} (sf2e ${system.version}); ${ANCESTRY} / ${HERITAGE} / ${BACKGROUND}${PRIORITIES.length ? ` / priorities ${PRIORITIES.join(",")}` : ""}; ${results.length} runs: ${Object.entries(tally).map(([k, v]) => `${v} ${k}`).join(", ")}`;
+const summary = `source ${source} (sf2e ${system.version}); ${ANCESTRY} / ${HERITAGE} / ${BACKGROUND}${PRIORITIES.length ? ` / priorities ${PRIORITIES.join(",")}` : ""}${MULTICLASS ? ` / multiclass ${MULTICLASS} (Free Archetype on)` : ""}; ${results.length} runs: ${Object.entries(tally).map(([k, v]) => `${v} ${k}`).join(", ")}`;
 
 const tagCounts = {};
 for (const rec of results) for (const tag of rec.verdict.tags) (tagCounts[`${rec.verdict.status} ${tag}`] ??= []).push(`${rec.class} L${rec.level}${rec.freeArchetype ? " FA" : ""}`);
