@@ -275,12 +275,27 @@ function reservedFeatUuids(rules) {
 }
 
 /**
+ * Slugified names of reserved feats, so slot planning excludes them by name
+ * too. Name-form uuids (`Compendium.<pack>.Item.<Name>`) are matched by the
+ * loaded source's name; an unloaded uuid contributes nothing.
+ */
+async function reservedFeatNameSlugs(uuids) {
+  const slugs = [];
+  for (const uuid of uuids) {
+    const slug = slugify((await sourceFromUuid(uuid))?.name);
+    if (slug && !slugs.includes(slug)) slugs.push(slug);
+  }
+  return slugs;
+}
+
+/**
  * Plan the level-one class paths from real compendium candidates BEFORE
  * feat-slot planning, so granted skills and specialization identity are
  * known and can constrain restricted skill slots (e.g. Operative Specialized Skill Set).
  * @param {object} classData
  * @param {object} [options]
- * @returns {Promise<Record<string, { tag: string, uuid: string, name: string, skills: Record<string, number>, trainedSkill: string|null, reservedFeats: string[] }>>}
+ * @returns {Promise<Record<string, { tag: string, uuid: string, name: string, skills: Record<string, number>, trainedSkill: string|null, reservedFeats: string[], reservedFeatNames: string[] }>>}
+ *   `reservedFeatNames` holds the slugified names of `reservedFeats`.
  */
 export async function planClassPaths(classData, {
   context, config = globalThis.CONFIG?.PF2E ?? {}, selectChoices = null, excludeFeats = []
@@ -332,7 +347,8 @@ export async function planClassPaths(classData, {
       name: selected.name,
       skills,
       trainedSkill,
-      reservedFeats
+      reservedFeats,
+      reservedFeatNames: await reservedFeatNameSlugs(reservedFeats)
     };
   }
   return plan;
