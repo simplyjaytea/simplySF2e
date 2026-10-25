@@ -121,6 +121,14 @@ Each task touches separate files.
 - Forge passives beyond item bonus, resistance and sense.
 - A light theme, custom art, TypeSafe direct (CORS), and languages other than English.
 
+## JT's decisions so far (2026-10-25)
+
+- **Too few legal feats** (for example, a level 20 Mystic with an Athlete background has 13 provable feats for 15 general and skill slots): create the character with those slots empty and warn the GM. Never place an illegal feat.
+- **Release flow:** merge first, then JT tests live; fixes go in a follow-up PR. There is no release-candidate install step.
+- **Multiclass must be in 1.0.** M3 cannot be cut.
+- **sf2e 1.6 gaps:** build both the object-valued ChoiceSets (SRO, Living Hologram) and the projectile-weapon upgrades in M2.
+- **Theme:** always dark.
+
 ## 4. JT decisions needed (Fable's recommendation in brackets)
 
 1. Install a release candidate before each merge? [Yes. Every merge updates every install.]
