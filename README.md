@@ -4,7 +4,7 @@
 
 AI generator for Starfinder 2e in Foundry VTT. Describe a creature, NPC, encounter, player character or magic item in plain words; SimplySF2e asks an AI model for a concept, then builds it out of real content from your installed Starfinder 2e compendiums. Ported from [SimplyPF2e](https://github.com/simplyjaytea/simplyPF2e).
 
-> **Beta.** The live QA checklist passed in a Foundry world on 2026-10-08, and automated node tests run on every release. Features added since then are not yet checked live. Check every generated actor and item before you use it at the table.
+> **Beta.** Automated tests and offline benches (every class at levels 1 to 20, creatures, the Item Forge, shops and treasure) run against the real Starfinder 2e data before each release. Live checks in Foundry are logged in [`docs/live-log.md`](docs/live-log.md); the last full live pass was on 2026-10-08, so most newer features are not yet checked live. Check every generated actor and item before you use it at the table.
 
 ## Requirements
 
@@ -47,13 +47,20 @@ Open **Configure Settings → SimplySF2e** and click **Configure Provider** (or 
    | Button | API Base URL | Suggested model |
    | --- | --- | --- |
    | DeepSeek | `https://api.deepseek.com/v1` | `deepseek-v4-flash` |
-   | OpenAI | `https://api.openai.com/v1` | `gpt-5.6-luna` |
-   | OpenRouter | `https://openrouter.ai/api/v1` | (enter one) |
+   | OpenAI | `https://api.openai.com/v1` | `gpt-6-luna` |
+   | OpenRouter | `https://openrouter.ai/api/v1` | `deepseek/deepseek-v4.1-flash` |
    | Ollama | `http://localhost:11434/v1` | (enter one) |
    | LM Studio | `http://localhost:1234/v1` | (enter one) |
    | Custom | (enter your own) | (enter one) |
 
    The API Base URL can be the API root (normally ending in `/v1`) or a full `/chat/completions` address.
+
+   **Which model?** We recommend two:
+
+   - **DeepSeek V4.1 Flash** is our first choice: fast, cheap and good at the structured answers SimplySF2e needs. On OpenRouter its ID is `deepseek/deepseek-v4.1-flash`. On DeepSeek's own API it is `deepseek-v4.1-flash`: press **Load Models** to check that your account lists it. Until it does, the DeepSeek button fills `deepseek-v4-flash`, which also works well.
+   - **GPT-6 Luna** from OpenAI (`gpt-6-luna`, or `openai/gpt-6-luna` on OpenRouter) is the alternative if you already use OpenAI.
+
+   An **OpenRouter** key reaches both with one account, and it shows each request's cost. Local models (Ollama, LM Studio) work too, but small ones often fail the structured steps; if a run keeps failing with "not valid JSON" or "incomplete", switch to one of the models above.
 2. Give the connection a **Connection name** (for example "DeepSeek" or "local GPU").
 3. Enter the **Model**. **Load Models** saves the connection and then fills the Model field's suggestions from the provider's model list. You can also type an exact model ID by hand.
 4. For a hosted provider, paste your key into **API key (this browser only)**. Leave it blank for a keyless local server.
@@ -171,6 +178,12 @@ Fill **Describe the character** and set **Level** (1–20). Character generation
 
 SimplySF2e picks a real ancestry, heritage, background and class, plus feats, skills, equipment, starting wealth and (for Mystic, Technomancer and Witchwarper) spells. It puts them on a character actor, and the sf2e system works out AC, HP, saves and proficiencies itself. The preview shows **Skill priorities** and the picks with their match marks.
 
+- **Feats** are checked against what the character will have at each level: its attributes (for example "Charisma +2"), skill ranks, heritage and class path. General feat slots can also hold skill feats, as in the system. If no legal feat exists for a slot, the character is still created with that slot empty, and the GM gets a whisper naming the slots to fill by hand. An illegal feat is never placed.
+- **Multiclass** (only with the **Free Archetype** setting on): pick a second class in **Multiclass**, choose **Let the AI decide** to let your description settle it (for example "a soldier who dabbles in mysticism"), or leave it at **None**. The dedication goes in the level 2 archetype slot, and later archetype slots favor that archetype's feats. A second dedication only appears after two feats of the first, as the rules require. Mystic, Witchwarper and Technomancer dedications get their own spell list: two cantrips, then the basic, expert and master spellcasting slots as you take those feats.
+- **Technomancer** characters get a full spell database (10 cantrips, five 1st-rank spells, two more spells each level, and their programming language's cache spells) and prepare their slots from it. Their programming language's magic hack is added as a focus spell.
+- **Living Hologram and SRO** characters get their size choice answered for you.
+- **Mechanic** characters who pick the Drone exocortex get a whisper reminding you to set up the drone companion by hand; SimplySF2e does not create companion actors.
+
 During creation, the system may open its own **choice dialogs** for options the module could not answer safely. Complete them to continue. Afterwards the generator shows **Character created — review**. It lists:
 
 - the resulting skill proficiencies;
@@ -209,7 +222,8 @@ Notes:
 - Passive effects come only from real published items. If none survive the checks, the preview says the item will be flavor-only and suggests regenerating. If some effect kinds have no published source at your chosen level and rarity, the Forge lists them as not offered.
 - An activated power is a pre-written script macro named "Activate: *item name*", stored in a **SimplySF2e Item Forge** macro folder and linked from the item's description by an **Activate** link. The item is limited to once per day, and its uses refill when the owner uses the system's Rest for the Night. Deleting the last copy of a forged item also deletes its macro.
 - Prices preview in credits. The system recalculates the final price and level of graded weapons and armor itself.
-- Only upgrades that install into any weapon or any armor are used. Upgrades restricted to particular weapon or armor traits are skipped.
+- Upgrades that install into any weapon or any armor are used, plus upgrades made for projectile weapons when the base weapon is in the projectile group. Upgrades restricted to other weapon or armor traits are skipped. The preview names any requested upgrade that did not fit, either because no slot was free or because it is not made for that weapon.
+- A created item keeps one grade label, and a base item that already has a published grade keeps it.
 
 ## Using the shop generator
 
@@ -231,21 +245,22 @@ The budget is a number from the *Starfinder GM Core* Treasure by Level table, sh
 
 Generated loot and character wealth use Starfinder currency: **Credits** (as a Credstick item) and **UPB**. Both are copied from the templates bundled with the sf2e system. If the AI talks about gold, silver, copper or platinum, the amount is converted to credits at the system's rate (1 gp = 10 credits; 1 credit = 1 UPB = 1 sp). Treasure budgets and starting wealth are shown in credits.
 
-Treasure per level follows the *Starfinder GM Core* Party Treasure table. Player-character starting wealth reuses the PF2e lump-sum table, converted to credits.
+Treasure per level follows the *Starfinder GM Core* Party Treasure table. Player-character starting wealth follows the *Starfinder GM Core* Character Wealth table (Lump Sum column).
 
 ## What you still review by hand
 
 SimplySF2e builds from real content and **fails closed**: when it cannot match something, it stops or leaves it out. It does not guess. That leaves some work for you:
 
-- **Blocked creation.** Every required pick (feat, spell, ancestry, background, class, heritage) must match a real compendium entry. If any does not, creation stops with "Generation is incomplete; resolve required compendium content before creation", followed by the unmatched items. Nothing is created. Generate again, or check Compendium Sources. Abilities marked **Narrative only** do not block creation.
+- **Blocked creation.** Every required pick (feat, spell, ancestry, background, class, heritage) must match a real compendium entry. If any does not, creation stops with "Generation is incomplete; resolve required compendium content before creation", followed by the unmatched items. Nothing is created. Generate again, or check Compendium Sources. Abilities marked **Narrative only** do not block creation. A Player Character feat slot with no legal feat at all does not block: the slot is left empty and the GM is told which one.
 - **Skipped gear.** Equipment and loot are optional. An item with no published match is left off: the preview shows it struck through with a warning icon, the completion card counts it under "Skipped gear", and the console logs `skipped equipment "<name>": no published compendium match`. Skipped loot's value is made up in credits, so treasure stays on budget.
 - **Choice dialogs.** The module answers the simpler system choices itself (for example, an option the concept already settles). Choices it cannot answer safely are left to the system's own prompts during or after creation.
 - **Skills.** Skills use your concept's preferences first, then key-ability defaults. The review panel flags anything it could not settle safely: unclear grant timing, overlapping feat grants, native rules that change ranks, missing class data, or leftover training and increases. Duplicate feat grants are not reassigned automatically. This is not full prerequisite validation and not a level-by-level replay.
-- **Feat prerequisites.** Ordinary prerequisites are checked conservatively. Free Archetype slot placement is checked, but the full archetype prerequisite chain is not.
+- **Feat prerequisites.** Prerequisites are checked against the character's planned attributes and skill ranks at each level, and archetype feats against the dedication rule and the feats taken before them. The plan can differ slightly from the finished sheet; if a feat may now lack a skill rank it needs, the skill review says so. Each level also offers only a limited number of candidates, so a Free Archetype slot is occasionally left empty.
 - **Spells.** Review empty slots, signature spells and subclass or feat spell bonuses on casters after creation.
 - **Upgrade slots.** The number of upgrade slots on forged weapons and armor (1 for weapons and 0 for armor when the item text names none) is a module default. No published source has been cited for it, and this is on hold.
 - **Not built yet:** upgrade prerequisite checks, shields and ammunition in the Item Forge, companion actors (a Mechanic's drone is set up by hand), and custom art.
-- **Live checks.** The QA checklist passed live on 2026-10-08. The features added since then (scrolling button rows, the TypeSafe endpoint field, the http key rule, party fill, right-click Reskin, folders, handouts, remembered settings, the one-step chat command, Re-level in Reskin, the Treasure hoard window, faster encounters and the What's new window) are not yet checked live. This is Beta.
+- **Big hoards.** One Credstick holds at most 100,000 credits, so a large hoard (high level, whole level) carries several.
+- **Live checks.** The last full live pass was on 2026-10-08. Live results since then are logged in [`docs/live-log.md`](docs/live-log.md), and [`docs/release-pass.md`](docs/release-pass.md) is the checklist for the next full pass. This is Beta.
 
 ## Troubleshooting
 
@@ -275,13 +290,21 @@ When a run fails, the red error box in the Generator or Item Forge has a **Copy 
 
 ## Status
 
-**Beta.** Identity `simplysf2e`, targeting system `sf2e` 1.6.0 or later, checked against 1.6.1 (Foundry 14.361+, verified 14.369). Live Foundry QA passed on 2026-10-08 on sf2e 1.5.x (reported by the author; no per-row log was kept).
+**Beta.** Identity `simplysf2e`, targeting system `sf2e` 1.6.0 or later, checked against 1.6.1 (Foundry 14.361+, verified 14.369). Releases come in two channels: **stable** (the default manifest) and **beta** (every change, tested less); see [Install and enable](#1-install-and-enable). Live Foundry QA passed on 2026-10-08 on sf2e 1.5.x (reported by the author; no per-row log was kept); newer live results are in [`docs/live-log.md`](docs/live-log.md).
 
 - Building Creatures and Treasure-by-Level numbers are cited against *Starfinder GM Core* pp. 116–128.
 - Character generation covers all eight published classes. Level 1 class paths (including Operative's specialization skill feat and Sniper's bonus feat) are settled before creation. Solarian has no level 1 path choice.
 - Mystic, Technomancer and Witchwarper use cited SF2e spell-slot tables (5 cantrips, 10th-rank spell at level 19). Mystic and Witchwarper cast spontaneously with 3 slots per rank; Technomancer prepares arcane spells, with 2 slots in a new rank and 3 after that.
 - Item Forge weapons and armor use SF2e equipment grades and installed upgrades. Grade names follow published `sf2e.equipment` names. Grade and upgrade assembly is unverified live.
 - Forged items' daily uses refill when the owner uses Rest for the Night.
+
+## License and legal
+
+- **Code:** MIT License. See [`LICENSE`](LICENSE).
+- **Game rules:** the Starfinder Second Edition rules numbers this module ships (creature, treasure, wealth and spell slot tables) are used under the ORC License. The ORC Notice and the full attribution are in [`LICENSES.md`](LICENSES.md). Everything else (feats, spells, items, creatures) comes from the `sf2e` system you install.
+- **Paizo:** SimplySF2e uses trademarks and/or copyrights owned by Paizo Inc., used under Paizo's Community Use Policy (paizo.com/licenses/communityuse). We are expressly prohibited from charging you to use or access this content. SimplySF2e is not published, endorsed, or specifically approved by Paizo. For more information about Paizo Inc. and Paizo products, visit paizo.com.
+- **Foundry:** SimplySF2e is not made or endorsed by Foundry Gaming LLC.
+- **Contact:** [GitHub issues](https://github.com/simplyjaytea/simplySF2e/issues).
 
 ## Links
 
