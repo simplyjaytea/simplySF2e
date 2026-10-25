@@ -125,17 +125,44 @@ function nameClauseMet(text, context) {
   return Boolean(slug) && context.names.has(slug);
 }
 
+/**
+ * Ability requirement from one clause, or null when it is not an ability
+ * clause. Remaster text is the modifier form ("Charisma +2"). The legacy PF2e
+ * score form ("Strength 14") is converted to the modifier that score grants,
+ * floor((score - 10) / 2), because `context.abilities` holds modifiers.
+ */
+function abilityRequirement(text) {
+  const modifier = /^(strength|dexterity|constitution|intelligence|wisdom|charisma)\s+\+(\d+)$/i.exec(text);
+  if (modifier) return { key: ABILITY[modifier[1].toLowerCase()], required: Number(modifier[2]) };
+  const score = /^(strength|dexterity|constitution|intelligence|wisdom|charisma)\s+(\d+)$/i.exec(text);
+  if (score) return { key: ABILITY[score[1].toLowerCase()], required: Math.floor((Number(score[2]) - 10) / 2) };
+  return null;
+}
+
+/** Missing or non-finite modifiers fail closed. */
+function abilityClauseMet(requirement, context) {
+  const modifier = context.abilities?.[requirement.key];
+  return Number.isFinite(modifier) && modifier >= requirement.required;
+}
+
+const SKILL_RANK_CLAUSE = /^(trained|expert|master|legendary)\s+in\s+(.+)$/i;
+
 function clauseMet(entry, context) {
   if (!isObject(entry) || typeof entry.value !== "string") return false;
   const text = entry.value.trim();
   if (!text) return false;
-  const skill = /^(trained|expert|master|legendary)\s+in\s+(.+)$/i.exec(text);
-  if (skill) return skillClauseMet(RANK[skill[1].toLowerCase()], skill[2], context);
-  const ability = /^(strength|dexterity|constitution|intelligence|wisdom|charisma)\s+(\d+)$/i.exec(text);
-  if (ability) {
-    const score = context.abilities[ABILITY[ability[1].toLowerCase()]];
-    return Number.isFinite(score) && score >= Number(ability[2]);
+  // "A or B" is met when either part is met, but only when every part is an
+  // ability or skill-rank clause. Otherwise the text may be a name with "or".
+  if (/\s+or\s+/i.test(text)) {
+    const parts = text.split(/\s+or\s+/i).map((part) => part.trim());
+    if (parts.every((part) => abilityRequirement(part) || SKILL_RANK_CLAUSE.test(part))) {
+      return parts.some((part) => clauseMet({ value: part }, context));
+    }
   }
+  const skill = SKILL_RANK_CLAUSE.exec(text);
+  if (skill) return skillClauseMet(RANK[skill[1].toLowerCase()], skill[2], context);
+  const ability = abilityRequirement(text);
+  if (ability) return abilityClauseMet(ability, context);
   return nameClauseMet(text, context);
 }
 
