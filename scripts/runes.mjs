@@ -99,12 +99,38 @@ export function parseUpgradeCapacity(desc, kind = "weapon") {
  */
 export const WEAPON_UPGRADE_USAGES = new Set(["installed-in-a-weapon"]);
 export const ARMOR_UPGRADE_USAGES = new Set(["installed-in-armor"]);
-const WEAPON_RUNE_USAGE = WEAPON_UPGRADE_USAGES;
+
+/* Projectile-only weapon upgrades: Impact Enhancer (commercial, tactical,
+ * advanced) and Arcane Adapter (commercial, tactical) in sf2e 1.6.1
+ * packs/sf2e/equipment/weapon-upgrades/. Their system.usage.value is listed in
+ * src/scripts/config/usage.ts:10 (WEAPON_UPGRADES, tag sf2e-1.6.1). They fit
+ * only a base whose system.group is "projectile" (15 weapons in the pack).
+ * This is a separate set so WEAPON_UPGRADE_USAGES keeps its meaning.
+ */
+export const PROJECTILE_UPGRADE_USAGE = "installed-in-a-weapon-that-uses-projectiles";
+export const PROJECTILE_WEAPON_GROUP = "projectile";
+const WEAPON_RUNE_USAGE = new Set([...WEAPON_UPGRADE_USAGES, PROJECTILE_UPGRADE_USAGE]);
 const ARMOR_RUNE_USAGE = ARMOR_UPGRADE_USAGES;
 
-/** Whether an upgrade (by its real usage string) may be installed in a base item of this kind. */
-export function propertyRuneFitsBase(kind, usage) {
-  return (kind === "armor" ? ARMOR_UPGRADE_USAGES : WEAPON_UPGRADE_USAGES).has(usage);
+/**
+ * Whether an upgrade (by its real usage string) may be installed in a base item of this kind.
+ * `baseGroup` is the base weapon's real system.group; only the projectile usage reads it.
+ * Fails closed: a projectile upgrade needs baseGroup === "projectile".
+ */
+export function propertyRuneFitsBase(kind, usage, baseGroup = null) {
+  if (kind === "armor") return ARMOR_UPGRADE_USAGES.has(usage);
+  if (WEAPON_UPGRADE_USAGES.has(usage)) return true;
+  return usage === PROJECTILE_UPGRADE_USAGE && baseGroup === PROJECTILE_WEAPON_GROUP;
+}
+
+/**
+ * Whether an upgrade may fit a weapon whose group is not known yet. The candidate
+ * list is built before the AI picks a base, and the equipment index does not
+ * request system.group, so this only drops what can never fit. buildRunedItem
+ * then checks the real base group with propertyRuneFitsBase.
+ */
+export function propertyRuneMayFitBase(kind, usage) {
+  return propertyRuneFitsBase(kind, usage, PROJECTILE_WEAPON_GROUP);
 }
 
 /* -------------------- parsing runes out of a name -------------------- */
@@ -341,7 +367,10 @@ function fundamentalRuneNames(kind) {
 
 /**
  * Real upgrade items a graded base of this kind accepts (see
- * WEAPON_UPGRADE_USAGES / ARMOR_UPGRADE_USAGES) at or below a target level.
+ * WEAPON_UPGRADE_USAGES / ARMOR_UPGRADE_USAGES, plus PROJECTILE_UPGRADE_USAGE
+ * for weapons) at or below a target level. Projectile upgrades are listed for
+ * every weapon here and are only installed by buildRunedItem on a
+ * system.group === "projectile" base (see propertyRuneFitsBase).
  * `usage` is the item's real system.usage.value.
  * @returns {Promise<{name: string, level: number, usage: string}[]>}
  */

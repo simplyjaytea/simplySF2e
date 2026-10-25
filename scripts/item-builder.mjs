@@ -16,7 +16,7 @@ import {
 } from "./compendium.mjs";
 import { slugify, capitalized, esc } from "./text.mjs";
 import {
-  RUNED_ITEM_KINDS, SECONDARY_ADJECTIVE, SECONDARY_RUNE_FIELD, propertyRuneKey, propertyRuneFitsBase,
+  RUNED_ITEM_KINDS, SECONDARY_ADJECTIVE, SECONDARY_RUNE_FIELD, propertyRuneKey, propertyRuneFitsBase, propertyRuneMayFitBase,
   findFundamentalRune, getBaseItemCandidates, getPropertyRuneCandidates, getFundamentalRuneTiers,
   EQUIPMENT_GRADES, GRADE_LEVELS, GRADE_CREDITS_DELTA, parseUpgradeCapacity, getGradeTiers, getUpgradeCandidates
 } from "./runes.mjs";
@@ -240,7 +240,7 @@ export function normalizeRunedItemConcept(raw, {
       if (name) console.warn(`simplysf2e | itemforge: dropped unmatched upgrade/rune "${name}"`);
       continue;
     }
-    if (!propertyRuneFitsBase(kind, match.usage)) {
+    if (!propertyRuneMayFitBase(kind, match.usage)) {
       console.warn(`simplysf2e | itemforge: dropped upgrade "${match.name}" (${match.usage}) — not installable in ${kind} "${base.name}"`);
       continue;
     }
@@ -288,7 +288,7 @@ export async function buildRunedItem(concept) {
     const doc = await getDocument(entry);
     // The fuzzy match may land on a different item; install it only if the
     // graded base would accept it.
-    if (doc && !propertyRuneFitsBase(concept.kind, doc.system?.usage?.value)) {
+    if (doc && !propertyRuneFitsBase(concept.kind, doc.system?.usage?.value, baseDoc.system?.group)) {
       console.warn(`simplysf2e | itemforge: upgrade "${doc.name}" (${doc.system?.usage?.value}) cannot be installed in a ${concept.kind} — dropped`);
       continue;
     }
