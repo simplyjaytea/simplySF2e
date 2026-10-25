@@ -294,7 +294,7 @@ export async function jevPickCreatureAbilities({ concept, candidates, jevConfig,
   return { abilities, ms: out.ms, usage: out.usage, attempted: true };
 }
 
-/** Module default, not a rules number: half of Jev's ~64k request limit (docs/next-steps.md J5), leaving headroom. */
+/** Module default, not a rules number: half of Jev's ~64k request limit (docs/archive/next-steps.md J5), leaving headroom. */
 export const JEV_REQUEST_TOKEN_BUDGET = 32000;
 /** More requests than this sends the whole step to the chat model instead. */
 const JEV_MAX_BATCHES = 4;
@@ -351,7 +351,7 @@ async function askBatches({ jevConfig, state, batches, signal, request }) {
  * takes its highest-probability id not already used, still at JEV_MIN_CONFIDENCE.
  * A slot with more than 255 ids, a failed request, or no confident unused id sends
  * the whole call to the chat model, because a feat slot must not end up empty
- * (CLAUDE.md invariant 5). Returns `{ picks: {slot,id}[]|null, ms, usage, attempted? }`.
+ * (PLAYBOOK.md §3 invariant 5). Returns `{ picks: {slot,id}[]|null, ms, usage, attempted? }`.
  */
 export async function jevPickFeats({ concept, encoded, jevConfig, signal, request = requestJevDecision }) {
   const none = { picks: null, ms: 0, usage: null };
@@ -424,7 +424,7 @@ export async function jevPickCharacterChoices({ concept, catalog, jevConfig, sig
   return { picks, ms, usage, attempted: true };
 }
 
-/** Scale words Jev scores each spell candidate against (docs/next-steps.md J5: 4 levels). */
+/** Scale words Jev scores each spell candidate against (docs/archive/next-steps.md J5: 4 levels). */
 export const JEV_SPELL_FIT_WORDS = Object.freeze(["poor", "fair", "good", "excellent"]);
 /** A focus spell is taken only at the top fit level, because "otherwise return []" is valid for focus spells. */
 const FOCUS_FIT_INDEX = JEV_SPELL_FIT_WORDS.length - 1;
