@@ -78,6 +78,9 @@ assert.deepEqual(withInitialFocusSpell([{ name: "amplify vulnerability", entry: 
   "AI picks of the same hack dedupe by name or id");
 assert.equal(withInitialFocusSpell(["a", "b", "c"].map((name) => ({ name, entry: { _id: name } })), hack).length, 3,
   "the focus list stays at the pool ceiling of 3");
+assert.deepEqual(withInitialFocusSpell([{ name: "Unresolved", entry: null }, { name: "A", entry: { _id: "a" } },
+  { name: "B", entry: { _id: "b" } }, { name: "C", entry: { _id: "c" } }], hack).map((s) => s.name),
+["Amplify Vulnerability", "A", "B"], "entry-less AI picks are dropped before the cap, so resolved picks keep their slots");
 const aiOnly = [{ name: "Z", entry: null }];
 assert.equal(withInitialFocusSpell(aiOnly, null), aiOnly, "no hack leaves the list untouched");
 

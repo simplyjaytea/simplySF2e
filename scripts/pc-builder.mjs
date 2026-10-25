@@ -11,7 +11,7 @@ import { SETTINGS, getSetting } from "./settings.mjs";
 import { CORE_SKILLS, SKILL_ATTRIBUTES, normalizeSkillPriorities, initialSkillTraining, allocateCharacterSkills, characterSkillSnapshot } from "./pc-skills.mjs";
 import { applyCharacterLoadout } from "./pc-loadout.mjs";
 import { planClassPaths, stageClassPaths } from "./class-paths.mjs";
-import { classManualNotes, manualNotesContent, technomancerInitialHack, withInitialFocusSpell } from "./pc-support.mjs";
+import { classManualNotes, technomancerInitialHack, withInitialFocusSpell } from "./pc-support.mjs";
 import { stagedActorContext } from "./pc-prerequisites.mjs";
 import { gpToCredits } from "./currency.mjs";
 
@@ -1247,15 +1247,6 @@ export async function createCharacterActor(concept, resolved, { img = null, sele
   } catch { skillWarnings.push("native-data"); }
   const warnings = [...new Set([...skillWarnings, ...(skillPlan?.warnings ?? [])])];
   for (const warning of warnings) console.warn(`simplysf2e | character skill review: ${warning}`);
-  if (manualNotes.length) {
-    // Chat whisper (as the NPC stat check does) so the note outlives the window.
-    try {
-      ChatMessage.create({
-        content: manualNotesContent(actor.name, manualNotes, (key) => game.i18n.localize(key)),
-        whisper: game.users.filter((user) => user.isGM).map((user) => user.id)
-      }).catch((err) => console.warn("simplysf2e | could not whisper the manual follow-up", err));
-    } catch (err) { console.warn("simplysf2e | could not whisper the manual follow-up", err); }
-  }
   return { actor, manualNotes, expectedItems: [...safeItems, ...stagedClassPaths.expectedPaths], skillReport: { rows, warnings, loadoutWarnings, automatic: skillPlan?.automatic ?? !normalizeSkillPriorities(concept.skillPriorities).length,
     trainingBudget: skillPlan?.trainingBudget ?? null, unspentTraining: skillPlan?.unspentTraining ?? null,
     unspentIncreases: skillPlan?.unspentIncreases ?? null } };

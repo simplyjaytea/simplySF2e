@@ -8,7 +8,7 @@ import * as recentGenerations from "./recent-generations.mjs";
 import { reviewUnresolvedChoices } from "./choice-set.mjs";
 import { normalizeSkillPriorities, skillPriorityOrder } from "./pc-skills.mjs";
 import { assertComplete, completionManifest, completionSummary } from "./completion.mjs";
-import { freeArchetypeNeedsPrerequisiteValidation } from "./pc-support.mjs";
+import { freeArchetypeNeedsPrerequisiteValidation, manualNotesContent } from "./pc-support.mjs";
 import { validateArchetypeSlotPlacement } from "./pc-prerequisites.mjs";
 
 if (!vm.SourceTextModule) {
@@ -17,6 +17,7 @@ if (!vm.SourceTextModule) {
 }
 
 let actor, createFailure, verifyFailure, deleteFailure, skillReport, creates = 0, deleted = 0, sheetCalls = 0;
+let manualNotes = [], whispers = [];
 let conceptCalls = 0, generatorLevel = 1, freeArchetype = false;
 let previewLoot = [];
 let budgetPending = null, budgetStarted = null;
@@ -45,8 +46,10 @@ const context = vm.createContext({
   game: {
     i18n: { localize: (key) => key, format: (key) => key },
     actors: { get: (id) => id === actor?.id ? actor : null },
-    settings: { get: () => freeArchetype }
+    settings: { get: () => freeArchetype },
+    users: [{ id: "gm", isGM: true }, { id: "player", isGM: false }]
   },
+  ChatMessage: { create: async (data) => { whispers.push(data); return data; } },
   ui: { notifications: Object.fromEntries(["info", "warn"].map((kind) => [kind, (text) => notices.push([kind, text])])) }
 });
 const resolved = () => ({ ancestryDoc: { name: "Dwarf" }, classDoc: { name: "Fighter" },
@@ -58,7 +61,7 @@ const mocks = {
   assertComplete, completionManifest, completionSummary,
   verifyCreatedActor: () => { if (verifyFailure) throw verifyFailure; },
   moveToGeneratedFolder: async () => {}, generatedFolderId: async () => "root", createHandout: async () => null,
-  freeArchetypeNeedsPrerequisiteValidation, validateArchetypeSlotPlacement, jevKeySource: () => "connection",
+  freeArchetypeNeedsPrerequisiteValidation, manualNotesContent, validateArchetypeSlotPlacement, jevKeySource: () => "connection",
   supportedClassCandidates: (candidates) => candidates,
   getProviderRequestConfig: () => ({}), getProviderAuthWarningKey: () => null,
   BUILT_IN_PRESETS: [], getCustomPresets: () => [], findPreset: () => null, examplePrompt: () => "",
@@ -74,7 +77,7 @@ const mocks = {
   applyTreasureBudget: async (loot) => { budgetStarted?.(); if (budgetPending) await budgetPending; return loot; },
   pcStartingWealthGp: () => 0, equipmentValueGp: () => 0, lootValueGp: () => 0, parseCoins: () => null,
   describeMissingSources: (missing = []) => missing.join(", "),
-  createCharacterActor: async () => { creates++; if (createFailure) throw createFailure; return { actor, skillReport }; }
+  createCharacterActor: async () => { creates++; if (createFailure) throw createFailure; return { actor, skillReport, manualNotes, expectedItems: [] }; }
 };
 const source = await readFile(new URL("./generator-app.mjs", import.meta.url), "utf8");
 const appModule = new vm.SourceTextModule(source, { context });
@@ -232,6 +235,25 @@ assert.equal(unverified.context.error, verifyFailure.message, "post-create verif
 assert.ok(unverified.context.pcPreview, "an unverified actor leaves the retryable plan intact");
 assert.equal(deleted, 1, "an unverified newly created character is rolled back before commit");
 verifyFailure = undefined;
+
+// The Drone manual whisper names the actor, so it is sent only after the
+// actor is verified and committed. A failed verify must leave no whisper.
+setActor();
+manualNotes = ["SIMPLYSF2E.PC.DroneManual"];
+const noted = await generate();
+await actions.createActor.call(noted);
+assert.equal(noted.context.error, null);
+assert.equal(whispers.length, 1, "a committed character with manual notes sends one whisper");
+assert.equal(whispers[0].content, manualNotesContent("<img src=x>", manualNotes, (key) => key));
+assert.ok(!whispers[0].content.includes("<img"), "the actor name is escaped in the whisper");
+assert.deepEqual(whispers[0].whisper, ["gm"], "the whisper goes only to GM users");
+setActor();
+verifyFailure = new Error("expected embedded feat was dropped");
+const noteUnverified = await generate();
+await actions.createActor.call(noteUnverified);
+assert.equal(whispers.length, 1, "an unverified character sends no manual whisper");
+verifyFailure = undefined;
+manualNotes = [];
 
 setActor();
 verifyFailure = new Error("expected embedded feat was dropped");
