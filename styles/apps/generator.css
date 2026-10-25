@@ -93,7 +93,6 @@
 
 .simplysf2e .spf-mode-toggle label.spf-mode-active > i {
   color: var(--spf-brand-accent);
-  text-shadow: var(--spf-neon-glow);
 }
 
 .simplysf2e .spf-mode-toggle input[type="radio"] {
@@ -488,12 +487,6 @@
   display: flex;
   flex-direction: column;
   gap: var(--spf-space-md);
-}
-
-/* Member cards (.spf-card) show the scanline texture as a full repeating
-   layer over the plain surface, without the shared card's tile sizing. */
-.simplysf2e .spf-encounter-member {
-  background: repeating-linear-gradient(0deg, transparent 0 3px, var(--spf-scan) 3px 4px) var(--spf-surface);
 }
 
 .simplysf2e .spf-member-head {
