@@ -271,7 +271,7 @@ When a run fails, the red error box in the Generator or Item Forge has a **Copy 
 
 - Building Creatures and Treasure-by-Level numbers are cited against *Starfinder GM Core* pp. 116–128.
 - Character generation covers all eight published classes. Level 1 class paths (including Operative's specialization skill feat and Sniper's bonus feat) are settled before creation. Solarian has no level 1 path choice.
-- Mystic, Technomancer and Witchwarper use cited SF2e spell-slot tables (3 base slots per rank, 5 cantrips, 10th-rank spell at level 19).
+- Mystic, Technomancer and Witchwarper use cited SF2e spell-slot tables (5 cantrips, 10th-rank spell at level 19). Mystic and Witchwarper cast spontaneously with 3 slots per rank; Technomancer prepares arcane spells, with 2 slots in a new rank and 3 after that.
 - Item Forge weapons and armor use SF2e equipment grades and installed upgrades. Grade names follow published `sf2e.equipment` names. Grade and upgrade assembly is unverified live.
 - Forged items' daily uses refill when the owner uses Rest for the Night.
 
