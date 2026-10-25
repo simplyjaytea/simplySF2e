@@ -9,6 +9,11 @@
 /** Newest first. title/body are i18n keys in lang/en.json. */
 export const RELEASE_NOTES = [
   {
+    id: "2026-10-25-class-fixes",
+    title: "SIMPLYSF2E.WhatsNew.Note.ClassFixes.Title",
+    body: "SIMPLYSF2E.WhatsNew.Note.ClassFixes.Body"
+  },
+  {
     id: "2026-10-25-tech-core",
     title: "SIMPLYSF2E.WhatsNew.Note.TechCore.Title",
     body: "SIMPLYSF2E.WhatsNew.Note.TechCore.Body"
