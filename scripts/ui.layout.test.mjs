@@ -206,10 +206,20 @@ for (const [name, template, createAction] of [
   ["generator", generator, "createActor"],
   ["item forge", itemForge, "createItem"]
 ]) {
+  const previewStates = name === "generator"
+    ? ["preview", "encounterPreview", "pcPreview", "reskinPreview"]
+    : ["preview"];
+  const generateClass = '{{#if preview}}spf-secondary'
+    + previewStates.slice(1).map((state) => `{{else if ${state}}}spf-secondary`).join("")
+    + '{{else}}spf-primary{{/if}}';
+  assert.ok(
+    template.includes(`class="${generateClass}" data-action="generate"`),
+    `${name} Generate must be primary only before a preview, and secondary for every preview type`
+  );
   assert.match(
     template,
-    /class="spf-primary" data-action="generate"/,
-    `${name} generate must be the styled primary action`
+    /SIMPLYSF2E\.Generator\.GenerateAnotherVersion/,
+    `${name} preview must label Generate as another version`
   );
   assert.match(
     template,
