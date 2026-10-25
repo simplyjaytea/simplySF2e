@@ -13,7 +13,7 @@ const source = (await readFile(new URL("./generator-app.mjs", import.meta.url), 
   .replace(/#refineCreatureFeats\b/g, "_test_refineCreatureFeats");
 const warnings = [];
 const context = vm.createContext({
-  console: { warn: (...args) => warnings.push(args) },
+  console: { warn: (...args) => warnings.push(args), debug() {} },
   game: { i18n: { localize: (key) => key } }
 });
 const candidate = { id: "F0", name: "Sudden Charge", ref: { packId: "pf2e.feats-srd", _id: "charge" } };

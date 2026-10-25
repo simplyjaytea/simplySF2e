@@ -15,7 +15,7 @@ const source = (await readFile(new URL("./generator-app.mjs", import.meta.url), 
   .replace(/#(concept|resolved|manifest|error|busy|rerollRejected|buildPreviewContext|stashPreview|readForm|recent)\b/g, "_test_$1");
 const warnings = [];
 const context = vm.createContext({
-  console: { warn() {}, error() {}, log() {} },
+  console: { warn() {}, error() {}, log() {}, debug() {} },
   game: { i18n: { localize: (key) => key, format: (key, data) => `${key}:${JSON.stringify(data)}` } },
   ui: { notifications: { warn: (message) => warnings.push(message) } }
 });
