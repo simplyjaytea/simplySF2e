@@ -6,7 +6,9 @@ Pack list from `system.sf2e.json` 1.6.1 (`packs[].name:type`; ids are `sf2e.<nam
 
 ## Headline
 
-**Default matrix after W7: 78 PASS / 2 WARN / 0 FAIL.** The two WARNs are the same Mystic L20 pair (cause A, below). W7 changed what an empty feat slot means: a slot with no legal feat left is created empty and the GM is warned, so it no longer blocks Create and no longer counts as FAIL. Mystic L20 shows WARN(3) without Free Archetype and WARN(7) with it; each count includes the empty-slot finding plus the repair and greedy-pick findings listed in the breakdown. The W6 change that matters is cause B: Mystic L20 with Free Archetype on and the Bounty Hunter background fills its slot chain (WARN(4), see "Resolved causes" 8).
+**Default matrix after R1: 55 PASS / 25 WARN / 0 FAIL.** R1 (dedication-rule-aware feat picking, see "What R1 changed") stops every Free Archetype build from being blocked by a rejected dedication: 24 of 24 runs that had a rejected row (Create blocked) now have none. The 24 Free Archetype runs at level 5 and above still each leave at least one archetype slot empty, because the candidate lists for later archetype slots hold no follow-ups of an earlier dedication (cause D, below). A clean HEAD (`b21a96d`) run on the same cache also gives 55 PASS / 25 WARN, so the 78 / 2 figure in the history below is not reproduced from this HEAD.
+
+**Before R1 (W7 run):** 78 PASS / 2 WARN / 0 FAIL. The two WARNs were the same Mystic L20 pair (cause A, below). W7 changed what an empty feat slot means: a slot with no legal feat left is created empty and the GM is warned, so it no longer blocks Create and no longer counts as FAIL. Mystic L20 shows WARN(3) without Free Archetype and WARN(7) with it; each count includes the empty-slot finding plus the repair and greedy-pick findings listed in the breakdown. The W6 change that matters is cause B: Mystic L20 with Free Archetype on and the Bounty Hunter background fills its slot chain (WARN(4), see "Resolved causes" 8).
 
 **History (same bench, same pinned source):**
 
@@ -20,6 +22,63 @@ Pack list from `system.sf2e.json` 1.6.1 (`packs[].name:type`; ids are `sf2e.<nam
 Every class passes levels 1 to 10 in both Free Archetype modes and every class passes level 20 except Mystic. Level 15 and 19 general slots now fill because general slots also draw from the `skill` category (cause 2, resolved).
 
 Run: `node tools/class-bench/fetch.mjs && node tools/class-bench/run.mjs` (source `be4ab21be8ffed44385c0038c05d41b61dceb68b`, sf2e 1.6.1, Human / Urbanite Human / Athlete).
+
+## What R1 changed (dedication rule in feat picking)
+
+**Cause C, found by this bench.** Each archetype slot was resolved on its own, so a later archetype slot could take a second dedication before the first archetype had two follow-ups. generator-app's `validateArchetypeSlotPlacement` then dropped that row as `placement: "rejected"`, and a rejected row blocked Create (`completion.mjs`). On clean HEAD this hit 24 of the 40 Free Archetype runs, every one at level 5 or above.
+
+What changed (all in `scripts/pc-builder.mjs` `resolveFeatPicks` and `repairUnfilledFeatSlots`, plus the shared helpers below):
+
+- **Shared rule.** `scripts/pc-prerequisites.mjs` exports `createDedicationRuleState`, `dedicationRuleBlock` and `recordDedicationRulePlacement`. `validateArchetypeSlotPlacement` runs on the same helpers, so the rule is written once and its drop messages are unchanged. Archetype membership still comes from `archetypeOfFeat`, which reads candidate prerequisite text.
+- **Walk.** Archetype slots are walked in order with that state. An AI pick (or default) that the rule forbids is skipped. While an open dedication needs follow-ups, that dedication's follow-ups are tried first. An archetype slot with no legal feat is left empty (`entry: null`), not marked rejected.
+- **Warnings.** One `console.warn` per skipped pick, emitted when the slot's outcome is known: `... skipped: dedication rule: ...; took "<feat>"` or `...; no legal feat left, slot left empty`.
+- **Repair.** `repairUnfilledFeatSlots` keeps an augmenting move only when the archetype slots, replayed in slot order, still pass the rule (`archetypeSequenceLegal`). Disabling that check fails the test's scenario 2 and scenario 5, so the check is load-bearing.
+- **Tests.** `scripts/pc-builder.dedicationPicking.test.mjs` (new): two dedications in a row take a follow-up; no legal candidate leaves the slot empty, not rejected; a completed dedication (two follow-ups) allows the next one; the default prefers the open archetype's follow-up; repair never gives a blocked dedication to an empty slot. Scenario 1 fails against clean HEAD.
+
+### Result
+
+Default matrix, Free Archetype on, before (clean HEAD `b21a96d`) and after R1. Each cell is the run's finding count:
+
+| class | L5 before | L5 after | L10 before | L10 after | L20 before | L20 after |
+| --- | --- | --- | --- | --- | --- | --- |
+| Envoy | WARN(2) | WARN(2) | WARN(5) | WARN(5) | WARN(9) | WARN(10) |
+| Mechanic | WARN(2) | WARN(2) | WARN(5) | WARN(5) | WARN(10) | WARN(10) |
+| Mystic | WARN(2) | WARN(2) | WARN(5) | WARN(5) | WARN(15) | WARN(12) |
+| Operative | WARN(2) | WARN(2) | WARN(5) | WARN(5) | WARN(10) | WARN(10) |
+| Solarian | WARN(2) | WARN(2) | WARN(5) | WARN(5) | WARN(10) | WARN(10) |
+| Soldier | WARN(2) | WARN(2) | WARN(5) | WARN(5) | WARN(10) | WARN(10) |
+| Technomancer | WARN(2) | WARN(2) | WARN(5) | WARN(5) | WARN(10) | WARN(10) |
+| Witchwarper | WARN(2) | WARN(2) | WARN(5) | WARN(5) | WARN(9) | WARN(10) |
+
+Free Archetype-off cells are unchanged (Mystic L20 off stays WARN(3), the W7 empty-slot finding). Counts move because each skipped pick adds a warning line and a rejected row no longer does. The L5 and L10 counts are the same before and after; at L20 they change by one to three.
+
+Run-level effect, from `results.json`:
+
+| | clean HEAD | after R1 |
+| --- | --- | --- |
+| Free Archetype runs with a rejected row (Create blocked) | 24 | 0 |
+| Free Archetype runs with an unresolved archetype slot (the same 24 runs; blocking on clean HEAD, empty and non-blocking after) | 24 | 24 |
+| Free Archetype runs at L5 or above with a rule skip | 0 | 24 (108 skip lines in total) |
+| `validateArchetypeSlotPlacement` drops in the bench | 24 runs | 0 runs |
+
+The 24 Free Archetype runs at L5+ are the 8 classes times L5, L10 and L20.
+
+### Multiclass (`--multiclass`, Free Archetype on)
+
+All eight REPORT rows (`--levels 2,6,10`) run PASS with the second class's dedication pinned, as before. Witchwarper with Envoy was checked directly: `multiclass` reads `envoy: Envoy Dedication` at each level.
+
+### Remaining WARNs and what they mean
+
+- **Empty archetype slot, 24 runs (all FA L5+).** Cause D, below. The slot is created empty and the GM is warned. It no longer blocks Create.
+- **`skipped: dedication rule` lines, 108 across 24 runs.** One per skipped pick, as required. These are not failures. They are the only lines that still contain "dedication rule", so the "no dedication rule WARNs" target is not met literally. Each one names the pick and says whether a substitute was taken.
+- **`took "Iomedae's Barrage"` substitutes.** Its sf2e 1.6.1 record (`tools/class-bench/cache/feats/archetype/knight-of-golarion/iomedaes-barrage.json`) has the archetype trait and no prerequisite text, so it is legal under the rule as written and cannot be attributed to an archetype. Whether an unattributed archetype feat should count as a substitute in an open archetype slot is a rules question for JT.
+- **`feat pick "<X>" ... did not resolve`, a few runs.** The bench picks the first unused candidate per slot without the rule, so a later bench pick can collide with an earlier substitute. The walk then falls back, as it always has.
+
+### Cause D (not fixed here, out of R1 scope): later archetype slots never see follow-ups
+
+`resolvePCConcept` (`scripts/pc-builder.mjs`, feat-slot build around `prerequisiteContext`) builds every slot's candidate list before any pick. Its prerequisite context names only the staged ABC, path features and the multiclass pin, so the dedication placed in an earlier archetype slot is not in it. A follow-up's prerequisite text names that dedication, so it is never offered to a later slot. The candidate list for archetype slot 4 in the Soldier L5 run holds 8 dedications and no follow-up (`results.json`, `slots`).
+
+Result: after the first dedication, a Free Archetype build has no legal follow-up to place, and later archetype slots go empty even though the game has legal feats there. R1 makes that outcome honest and non-blocking; it does not make the slots fill. The fix is a change to candidate generation (thread earlier archetype placements into later slots' context, which needs picks before those candidate lists, or a second candidate pass per slot). It needs a decision from the coordinator and JT, because it is outside the R1 brief.
 
 ## Matrix after F4 (same results as W7; the two Mystic L20 runs are WARN, not FAIL)
 

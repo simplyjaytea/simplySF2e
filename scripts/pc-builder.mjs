@@ -16,7 +16,9 @@ import { ABILITY_KEYS, normalizeAbilityPriorities, assignAbilityBoosts, assignIt
 import { applyCharacterLoadout } from "./pc-loadout.mjs";
 import { planClassPaths, stageClassPaths } from "./class-paths.mjs";
 import { COMPLETE_PC_CLASS_SLUGS, archetypeTraditionFor, classManualNotes, getMulticlassDedicationSlug, technomancerCacheSpells, technomancerInitialHack, withInitialFocusSpell } from "./pc-support.mjs";
-import { archetypeOfFeat, stagedActorContext } from "./pc-prerequisites.mjs";
+import {
+  archetypeOfFeat, createDedicationRuleState, dedicationRuleBlock, recordDedicationRulePlacement, stagedActorContext
+} from "./pc-prerequisites.mjs";
 import { gpToCredits } from "./currency.mjs";
 
 /**
@@ -562,12 +564,31 @@ export async function resolveFeatPicks(featSlots, picks, { exactContent = false 
     );
   };
 
+  /** The candidate record behind a resolved entry; a full compendium entry (permissive path) is its own evidence. */
+  const evidenceOf = (slot, entry) => (slot.candidates ?? []).find((candidate) => candidate?.ref === entry) ?? entry;
+
+  // Archetype slots also obey the dedication rule in slot order: a dedication
+  // is skipped while an earlier one still needs follow-ups, and a slot with no
+  // legal feat stays empty (entry null) rather than taking an illegal one.
+  const archetypeRule = createDedicationRuleState();
   const aiPicked = [];
+  const evidence = [];
   for (let i = 0; i < featSlots.length; i++) {
     const slot = featSlots[i];
+    const archetypeSlot = slot.archetype === true;
     const pick = bySlot.get(i + 1) ?? null;
     let name = pick?.name ?? null;
     let entry = name ? await resolveFor(slot, name, pick?.candidate) : null;
+    // One warning per skipped pick, emitted once the slot's outcome is known.
+    let skipped = null;
+    if (entry && archetypeSlot) {
+      const blocked = dedicationRuleBlock(archetypeRule, evidenceOf(slot, entry));
+      if (blocked) {
+        skipped = { name, reason: blocked };
+        entry = null;
+        name = null;
+      }
+    }
     aiPicked[i] = Boolean(entry);
     if (name && !entry) {
       console.warn(`simplysf2e | feat pick "${name}" for slot ${i + 1} (${slot.type}, level ${slot.level}) did not resolve to an unused feat for this slot`);
@@ -575,11 +596,16 @@ export async function resolveFeatPicks(featSlots, picks, { exactContent = false 
     if (!entry) {
       // Fallback: walk this slot's own candidate list (real, already
       // level/category/trait-filtered) for the first one not already taken.
-      for (const candidate of slot.candidates ?? []) {
+      // An archetype slot skips what the dedication rule forbids right now.
+      const candidates = archetypeSlot
+        ? dedicationRuleOrder(slot.candidates ?? [], archetypeRule)
+        : slot.candidates ?? [];
+      for (const candidate of candidates) {
+        if (archetypeSlot && dedicationRuleBlock(archetypeRule, candidate)) continue;
         entry = await resolveFor(slot, candidate.name, candidate.ref);
         if (entry) {
           name = candidate.name;
-          console.warn(`simplysf2e | slot ${i + 1} (${slot.type}, level ${slot.level}) had no usable AI pick — defaulted to "${name}"`);
+          if (!skipped) console.warn(`simplysf2e | slot ${i + 1} (${slot.type}, level ${slot.level}) had no usable AI pick — defaulted to "${name}"`);
           break;
         }
       }
@@ -591,7 +617,13 @@ export async function resolveFeatPicks(featSlots, picks, { exactContent = false 
       // desirable on the strict path.
       name = (slot.candidates ?? []).find((candidate) => candidate?.ref === entry)?.name ?? entry.name ?? name;
       taken.add(slugify(name));
+      if (archetypeSlot) recordDedicationRulePlacement(archetypeRule, slugify(name), evidenceOf(slot, entry));
     }
+    if (skipped) {
+      const outcome = entry ? `took "${name}"` : "no legal feat left, slot left empty";
+      console.warn(`simplysf2e | feat pick "${skipped.name}" for slot ${i + 1} (archetype, level ${slot.level}) skipped: ${skipped.reason}; ${outcome}`);
+    }
+    evidence[i] = entry ? evidenceOf(slot, entry) : null;
     // entry can still be null when every candidate for this slot is already
     // taken (a sparse category at low levels); the name is kept so the preview
     // can still show intent, and the slot is simply left empty on the sheet.
@@ -600,8 +632,36 @@ export async function resolveFeatPicks(featSlots, picks, { exactContent = false 
       name: name ?? `${slot.type} feat`, entry
     });
   }
-  repairUnfilledFeatSlots(featSlots, resolved, aiPicked);
+  repairUnfilledFeatSlots(featSlots, resolved, aiPicked, evidence);
   return resolved;
+}
+
+/**
+ * Candidate order for an archetype slot while a dedication is open and still
+ * needs follow-ups: that dedication's follow-ups first, the rest in their own
+ * order. The caller drops what the dedication rule forbids. Unchanged otherwise.
+ */
+function dedicationRuleOrder(candidates, rule) {
+  const open = rule.openDedication;
+  if (open === null || (rule.archetypeCounts.get(open) ?? 0) >= 2) return candidates;
+  const followUps = candidates.filter((candidate) => archetypeOfFeat(candidate, rule.archetypeFeats) === open);
+  return [...followUps, ...candidates.filter((candidate) => !followUps.includes(candidate))];
+}
+
+/**
+ * Whether the archetype slots, in slot order, pass the dedication rule. `assigned[k]`
+ * is `{ slug, evidence }` for a filled slot and null for an empty one; empty and
+ * non-archetype slots take no part.
+ */
+function archetypeSequenceLegal(featSlots, assigned) {
+  const rule = createDedicationRuleState();
+  for (let k = 0; k < featSlots.length; k++) {
+    const placement = assigned[k];
+    if (featSlots[k]?.archetype !== true || !placement) continue;
+    if (dedicationRuleBlock(rule, placement.evidence)) return false;
+    recordDedicationRulePlacement(rule, placement.slug, placement.evidence);
+  }
+  return true;
 }
 
 /**
@@ -614,12 +674,15 @@ export async function resolveFeatPicks(featSlots, picks, { exactContent = false 
  * qualify, the same rule resolveFor applies. A default-filled slot moves
  * first; an AI-picked slot moves only when no other path fills an empty slot,
  * and only as part of that augmenting path. Each moved slot warns.
- * Mutates `resolved` in place (name and entry only).
+ * Mutates `resolved` in place (name and entry only). A move is kept only when the
+ * archetype slots still pass the dedication rule in slot order (archetypeSequenceLegal),
+ * so a repair never creates an illegal dedication.
  * @param {{candidates?: {name: string, ref?: object}[]}[]} featSlots
  * @param {{name: string, entry: object|null}[]} resolved
  * @param {boolean[]} aiPicked true where the slot's own AI pick was kept
+ * @param {(object|null)[]} evidence per slot, the candidate record or entry that resolved it (null when empty)
  */
-function repairUnfilledFeatSlots(featSlots, resolved, aiPicked) {
+function repairUnfilledFeatSlots(featSlots, resolved, aiPicked, evidence) {
   const allowedPacks = getPacksFor("feats");
   const usable = featSlots.map((slot) => {
     const keys = new Set();
@@ -636,6 +699,11 @@ function repairUnfilledFeatSlots(featSlots, resolved, aiPicked) {
   resolved.forEach((row, i) => { if (row.entry) holder.set(slugify(row.name), i); });
   const originalKeys = resolved.map((row) => (row.entry ? slugify(row.name) : null));
   const chosen = new Map(); // slot index -> candidate it now holds
+  /** The archetype placements as they stand, with `chosen` applied. */
+  const placements = () => resolved.map((row, k) => {
+    if (chosen.has(k)) return { slug: slugify(chosen.get(k).name), evidence: chosen.get(k) };
+    return row.entry ? { slug: originalKeys[k], evidence: evidence[k] } : null;
+  });
 
   /** Try to give slot i one of its candidates, re-homing any holder on the way. */
   const place = (i, allowAiMoves, visited) => {
@@ -657,7 +725,15 @@ function repairUnfilledFeatSlots(featSlots, resolved, aiPicked) {
 
   for (let i = 0; i < resolved.length; i++) {
     if (resolved[i].entry || !usable[i].length) continue;
-    if (!place(i, false, new Set())) place(i, true, new Set());
+    const savedHolder = new Map(holder);
+    const savedChosen = new Map(chosen);
+    for (const allowAiMoves of [false, true]) {
+      if (place(i, allowAiMoves, new Set()) && archetypeSequenceLegal(featSlots, placements())) break;
+      holder.clear();
+      for (const [key, owner] of savedHolder) holder.set(key, owner);
+      chosen.clear();
+      for (const [index, candidate] of savedChosen) chosen.set(index, candidate);
+    }
   }
 
   for (const [i, candidate] of chosen) {

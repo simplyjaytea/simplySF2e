@@ -282,6 +282,47 @@ export function archetypeOfFeat(evidence, acceptedArchetypeFeats) {
   return null;
 }
 
+/**
+ * Dedication rule state for one chronological walk of archetype slots (sf2e-1.6.1
+ * journals/archetypes.json: "Once you take a dedication feat, you can't select a
+ * different dedication feat until you complete your dedication by taking two other
+ * feats from your current archetype."). `openDedication` is the most recently
+ * placed dedication slug, `archetypeFeats` maps placed archetype feat slug to its
+ * dedication slug, and `archetypeCounts` counts follow-ups per dedication.
+ */
+export function createDedicationRuleState() {
+  return { openDedication: null, archetypeFeats: new Map(), archetypeCounts: new Map() };
+}
+
+/**
+ * The dedication rule's reason when `evidence` (a candidate record or a full feat
+ * entry) may not be placed next, or null when it may be. Only a dedication can be
+ * blocked, and only while an earlier dedication has fewer than two follow-ups.
+ */
+export function dedicationRuleBlock(state, evidence) {
+  if (!isDedicationFeat(evidence) || state.openDedication === null) return null;
+  if ((state.archetypeCounts.get(state.openDedication) ?? 0) >= 2) return null;
+  return "dedication rule: finish the current dedication with two more of its feats first";
+}
+
+/**
+ * Record an accepted archetype placement in the rule state. Call only after
+ * dedicationRuleBlock() has passed the same evidence.
+ */
+export function recordDedicationRulePlacement(state, slug, evidence) {
+  if (isDedicationFeat(evidence)) {
+    state.openDedication = slug;
+    state.archetypeFeats.set(slug, slug);
+    state.archetypeCounts.set(slug, 0);
+    return;
+  }
+  const owner = archetypeOfFeat(evidence, state.archetypeFeats);
+  if (owner !== null) {
+    state.archetypeFeats.set(slug, owner);
+    state.archetypeCounts.set(owner, (state.archetypeCounts.get(owner) ?? 0) + 1);
+  }
+}
+
 function readableFeatLevel(value) {
   const raw = Number.isInteger(value?.system?.level?.value)
     ? value.system.level.value
@@ -344,11 +385,7 @@ export function validateArchetypeSlotPlacement(slots, feats, context = null) {
     console.warn(`simplysf2e | Free Archetype placement lists diverge (${slots.length} slots, ${feats.length} fills) — validating their overlap only`);
   }
   const accepted = new Set();
-  // Dedication rule state: the most recently placed dedication, the placed
-  // archetype feats (slug -> dedication slug), and per-archetype follow-up counts.
-  let openDedication = null;
-  const archetypeFeats = new Map();
-  const archetypeCounts = new Map();
+  const rule = createDedicationRuleState();
   let names = context?.names instanceof Set ? new Set(context.names) : null;
   if (context && names === null) {
     console.warn("simplysf2e | Free Archetype placement given an unusable staged context — checking placement only");
@@ -402,9 +439,9 @@ export function validateArchetypeSlotPlacement(slots, feats, context = null) {
       drop(index, name, "already placed in an earlier archetype slot");
       continue;
     }
-    const dedication = isDedicationFeat(evidence);
-    if (dedication && openDedication !== null && (archetypeCounts.get(openDedication) ?? 0) < 2) {
-      drop(index, name, "dedication rule: finish the current dedication with two more of its feats first");
+    const blocked = dedicationRuleBlock(rule, evidence);
+    if (blocked) {
+      drop(index, name, blocked);
       continue;
     }
     const prerequisites = featPrerequisiteClauses(evidence);
@@ -417,17 +454,7 @@ export function validateArchetypeSlotPlacement(slots, feats, context = null) {
     }
     accepted.add(slug);
     if (names !== null) names.add(slug);
-    if (dedication) {
-      openDedication = slug;
-      archetypeFeats.set(slug, slug);
-      archetypeCounts.set(slug, 0);
-    } else {
-      const owner = archetypeOfFeat(evidence, archetypeFeats);
-      if (owner !== null) {
-        archetypeFeats.set(slug, owner);
-        archetypeCounts.set(owner, (archetypeCounts.get(owner) ?? 0) + 1);
-      }
-    }
+    recordDedicationRulePlacement(rule, slug, evidence);
     placed.push(index);
   }
   return { placed, dropped };
