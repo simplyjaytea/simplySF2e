@@ -71,9 +71,9 @@ No build step: Foundry loads `scripts/simplysf2e.mjs` and the plain ES modules i
 
 ## 5. Architecture and file map
 
-Three actor/item pipelines over shared compendium and table code, plus the Shop, Treasure, Reskin and setup windows.
+Three actor/item pipelines over shared compendium and table code, plus the Shop, Treasure and setup windows. Reskin is a Generator mode, not a separate window.
 
-**NPC / creature** (`builder.mjs`, the most tested path): `generateConcept()` in `ai.mjs` (one call on `systemPrompt()`, scales not numbers) → `normalizeConcept()` → spells (`chooseSpellFocus` → `getSpellCandidates` → `selectSpells`) → equipment (`getEquipmentCandidates` → `selectEquipment`) → feats/abilities/loot grounded to bounded real catalogs → `resolveConcept(..., { exactContent: true })` builds a completion manifest; an unresolved required pick blocks Create → `createActor()` clones real items and verifies persisted sources. Published picks keep their exact issued source references; custom abilities stay labeled narrative-only. After Create, `stat-check.mjs` compares the sheet with GM Core bands and only reports (it whispers the GM when something is off). Loot reroll is one small `generateLoot()` call. The art and token structure come from the closest bestiary creature (`art.mjs` `findBestiaryScaffold`). Encounter mode: `designEncounter()` sets a theme and per-role briefs, then runs the creature pipeline per member (N× the prompt cost), 3 at a time, or 1 at a time on a local provider (`pool.mjs`). Elite/Weak (Alien Core pp. 204/207) is applied once through the system's `adjustment`. **Reskin** mode: the GM drops an NPC; the AI writes new fiction and may rename strikes/abilities by id; stats, rules, traits and items are unchanged, and renamed items keep their original slug (`pf2eSluggify`).
+**NPC / creature** (`builder.mjs`, the most tested path): `generateConcept()` in `ai.mjs` (one call on `systemPrompt()`, scales not numbers) → `normalizeConcept()` → spells (`chooseSpellFocus` → `getSpellCandidates` → `selectSpells`) → equipment (`getEquipmentCandidates` → `selectEquipment`) → feats/abilities/loot grounded to bounded real catalogs → `resolveConcept(..., { exactContent: true })` builds a completion manifest; an unresolved required pick blocks Create → `createActor()` clones real items and verifies persisted sources. Published picks keep their exact issued source references; custom abilities stay labeled narrative-only. After Create, `stat-check.mjs` compares the sheet with GM Core bands and only reports (it whispers the GM when something is off). Loot reroll is one small `generateLoot()` call. The art and token structure come from the closest bestiary creature (`art.mjs` `findBestiaryScaffold`). Encounter mode: `designEncounter()` sets a theme and per-role briefs, then runs the creature pipeline per member (N× the prompt cost), 3 at a time, or 1 at a time on a local provider (`pool.mjs`). Elite/Weak (Alien Core pp. 204/207) is applied once through the system's `adjustment`. **Reskin** mode: the GM drops an NPC; the AI writes new fiction and may rename strikes/abilities by id; stats, rules, traits and items are unchanged unless the GM re-levels the copy (`relevel.mjs`), and renamed items keep their original slug (`pf2eSluggify`).
 
 **Player character** (`pc-builder.mjs`): no math layer. It embeds real ABC/heritage/feat items with correct `system.build` data and the system derives AC/HP/saves itself. `normalizePCConcept()` → `resolvePCConcept()` → `createCharacterActor()`. Single class; no pre-create edit screen.
 
@@ -113,7 +113,7 @@ JT's standing rules (2026-10-25).
 | Reviewers | Tier 1 Haiku → tier 2 Sonnet → tier 3 Opus (high effort, fresh context, never the builder) | Every finished worktree gets tiers 1 and 2. Tier 3 is added for schema- or balance-sensitive diffs (`tables.mjs`, `relevel.mjs`, `stat-check.mjs`, stat math, pack ids, enums, REs, PC grants/slots). |
 | Extra capacity (optional) | DeepSeek Flash 4.1 (free tier, per JT) in opencode terminals via the Orca `orchestration` skill | Bulk read-only sweeps or mechanical edits. Same review ladder; never given secrets. |
 
-A reviewer that must run tests needs an agent type that can run `node` (`general-purpose`). `caveman:cavecrew-reviewer` restricts its shell to git read commands. Treat any "verified" claim without a quoted source line as unverified.
+A reviewer that must run tests needs an agent type that can run `node` (`general-purpose`). `caveman:cavecrew-reviewer` is told to use only git read commands, so it will not run tests. Treat any "verified" claim without a quoted source line as unverified.
 
 **Lifecycle.**
 1. **Plan:** goal, stop condition, and the files each task may touch. Do every sf2e lookup now and keep the quoted lines for the worker prompts.
@@ -159,7 +159,7 @@ The first four bullets are PF2e-era checks inherited with the builders (re-verif
 - G1 skills: sf2e adds `computers` (int) and `piloting` (dex) (`src/scripts/config/index.ts`). NPC core skills are written to `system.skills.<slug>.base`, never as lore items (`item/lore.ts` appends `-lore`).
 - Spell consumables are spell **gems**, not scrolls (`config/spell-consumables.ts`).
 - The rest hook is still `pf2e.restForTheNight` in v14-dev; no `sf2e.` variant exists.
-- Module art: the system's own `moduleArt` map (`system/module-art.ts`) only registers `pf2e.*` packs, so sf2e creatures get art-module art through Foundry core `CompendiumArt`. Core injects that art into compendium documents, so a scaffold's `img`/`prototypeToken.texture` already carry it. The system default actor art is `systems/sf2e/icons/default-icons/<type>.svg` (`actor/base.ts` `getDefaultArtwork`), which is also what every sf2e NPC ships.
+- Module art: the system's own `moduleArt` map (`system/module-art.ts`) only registers `pf2e.*` packs, so sf2e creatures get art-module art through Foundry core `CompendiumArt`. Core `CompendiumArt` injects that art into compendium documents, so a scaffold's `img`/`prototypeToken.texture` already carry it. This is inferred from core's type docs (core JS isn't public); if it ever fails, the creature falls back to the sf2e default art. The system default actor art is `systems/sf2e/icons/default-icons/<type>.svg` (`actor/base.ts` `getDefaultArtwork`), which is also what every sf2e NPC ships.
 - Creature data snaps to published values: speeds and sense ranges to the 452 NPCs of the seven creature packs; generated casters get 3 slots per rank (`NPC_SLOTS_PER_RANK`); Recall Knowledge follows GM Core pg. 54; narrative abilities with dice/DC/HP text are dropped; a strike named after a carried weapon takes that weapon's damage, traits and range.
 
 ## 8. Traps and lessons
@@ -190,6 +190,7 @@ Each line is a bug class that already cost a fix. The full story is in `docs/arc
 - Fresh-context review has caught real bugs many times; a builder's self-report is not verification.
 - Parallel workers need one worktree each and disjoint files; shared worktrees collided before. Inline `git -c user.name=...` flags misparse in this shell; set identity with `git config` in the worktree.
 - JT sometimes merges while a review is still running. Say when one is in flight; fixes for a merged PR go in a new PR.
+- Scripts are CRLF on Windows checkouts. Keep each file's existing endings; `git diff --check` must stay clean.
 - Squash merges hide merged branches from `git branch --merged`; match branch tips to merged PR heads through the GitHub API.
 
 ## 9. Known gaps (by design or deferred)

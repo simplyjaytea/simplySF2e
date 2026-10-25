@@ -351,7 +351,7 @@ async function askBatches({ jevConfig, state, batches, signal, request }) {
  * takes its highest-probability id not already used, still at JEV_MIN_CONFIDENCE.
  * A slot with more than 255 ids, a failed request, or no confident unused id sends
  * the whole call to the chat model, because a feat slot must not end up empty
- * (CLAUDE.md invariant 5). Returns `{ picks: {slot,id}[]|null, ms, usage, attempted? }`.
+ * (PLAYBOOK.md §3 invariant 5). Returns `{ picks: {slot,id}[]|null, ms, usage, attempted? }`.
  */
 export async function jevPickFeats({ concept, encoded, jevConfig, signal, request = requestJevDecision }) {
   const none = { picks: null, ms: 0, usage: null };
