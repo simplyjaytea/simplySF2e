@@ -5,9 +5,10 @@ import {
 import { AI_TASK, completionOptionsFor } from "./ai-task-profiles.mjs";
 import { estimateTokens, normalizeUsage } from "./tokens.mjs";
 import { encodeFeatCandidateSlots, resolveEncodedFeatPicks } from "./ai-candidate-format.mjs";
-import { taskResponseProblem } from "./ai-response-validation.mjs";
+import { normalizeMulticlassPick, taskResponseProblem } from "./ai-response-validation.mjs";
 import { validateChoicePicks } from "./choice-set.mjs";
 import { CORE_SKILLS } from "./pc-skills.mjs";
+import { COMPLETE_PC_CLASS_SLUGS } from "./pc-support.mjs";
 import { resolveJevConfig } from "./jev.mjs";
 import { jevPickEquipment, jevPickLoot, jevPickCreatureFeats, jevPickCreatureAbilities, jevPickFeats, jevPickCharacterChoices, jevPickSpells, mergeUsage } from "./jev-picks.mjs";
 
@@ -377,7 +378,10 @@ export async function generateConcept({ prompt, level, rarity, allowSpellcasting
  * real Ancestry/Background/Class items once those are embedded; this module's
  * job is picking grounded, real choices, not doing that math.
  */
-function pcSystemPrompt() {
+function pcSystemPrompt({ allowMulticlass = false } = {}) {
+  const multiclassLine = allowMulticlass
+    ? `  "multiclass": ${[...COMPLETE_PC_CLASS_SLUGS].map((slug) => `"${slug}"`).join("|")}|null, // optional second class for a multiclass dedication: pick one slug from this list ONLY when the concept clearly implies a second calling (e.g. "a soldier who dabbles in mysticism"); otherwise null. Never the main class\n`
+    : "";
   return `You are an expert Starfinder 2e player character designer. You choose names and flavor only; the game system computes AC, HP, saves and proficiencies once real ancestry/background/class items are attached, so never invent numeric statistics.
 
 Respond with a SINGLE JSON object only. No markdown fences, no commentary.
@@ -415,7 +419,7 @@ JSON schema (all keys required unless marked optional):
     "spells": [ { "name": string, "rank": number } ] // rank 0 = cantrip; real Starfinder 2e spell names as a first draft (${REMASTER_NOTE}; the final list is chosen from the compendium in a second step)
   }, // null if the class you chose isn't a caster, or spellcasting is disallowed
   "focusSpells": string[], // EXACT published Starfinder 2e focus spell names (they carry the "focus" trait) granted by this character's class/subclass, 1-3 names, [] if none apply — first draft, grounded against the real compendium afterward. Independent of "spellcasting": include focus spells when the class grants them, even if the class has no spell slots
-  "equipment": [ { "name": string, "quantity": number, "value": number } ] // 4-8 first-draft carried items with EXACT Starfinder 2e item names (${REMASTER_NOTE}) fitting the class, level and concept — include starting armor appropriate to the class's armor proficiency when they would wear armor, a weapon, useful mundane gear, AND at least 1-2 level-appropriate magic items (a potion or elixir) when the character's level plausibly affords them; lightly-armored casters may deliberately carry no armor. When the level affords it, pick a published graded item whose catalog name already includes the grade; do not invent a rune prefix or unpublished grade suffix. Also include skill-supporting gear matching the character's likely trained skills, plus general utility items. Inspiration only, the final picks are chosen from the compendium in a second step
+${multiclassLine}  "equipment": [ { "name": string, "quantity": number, "value": number } ] // 4-8 first-draft carried items with EXACT Starfinder 2e item names (${REMASTER_NOTE}) fitting the class, level and concept — include starting armor appropriate to the class's armor proficiency when they would wear armor, a weapon, useful mundane gear, AND at least 1-2 level-appropriate magic items (a potion or elixir) when the character's level plausibly affords them; lightly-armored casters may deliberately carry no armor. When the level affords it, pick a published graded item whose catalog name already includes the grade; do not invent a rune prefix or unpublished grade suffix. Also include skill-supporting gear matching the character's likely trained skills, plus general utility items. Inspiration only, the final picks are chosen from the compendium in a second step
 }
 
 Design guidance:
@@ -433,9 +437,12 @@ Design guidance:
  * heritage, background, class, key ability, personality/backstory prose, and
  * first-draft (ungrounded) feat/spell/equipment wishlists — the PC
  * counterpart of generateConcept().
- * @returns {Promise<{concept: object, usage: object}>} parsed concept JSON + token usage
+ * `allowMulticlass` asks for an optional second class (only when the GM left
+ * the Multiclass picker on "Let the AI decide").
+ * @returns {Promise<{concept: object, multiclass: string|null, usage: object}>} parsed concept JSON,
+ *   the validated AI multiclass slug (null unless requested and listed), and token usage
  */
-export async function generatePCConcept({ prompt, level, allowSpellcasting, preset, onProgress, signal }) {
+export async function generatePCConcept({ prompt, level, allowSpellcasting, preset, allowMulticlass = false, onProgress, signal }) {
   const userPrompt = [
     `Character level: ${level}`,
     `Spellcasting allowed: ${allowSpellcasting ? "yes, if the class you choose casts spells" : "NO - choose a non-caster class, or a caster with spellcasting set to null"}`,
@@ -449,11 +456,12 @@ export async function generatePCConcept({ prompt, level, allowSpellcasting, pres
 
   const { data, usage } = await requestJSON({
     task: AI_TASK.PC_CONCEPT,
-    system: pcSystemPrompt(),
+    system: pcSystemPrompt({ allowMulticlass }),
     user: userPrompt,
     onProgress, signal
   });
-  return { concept: data, usage };
+  const multiclass = allowMulticlass ? normalizeMulticlassPick(data?.multiclass, COMPLETE_PC_CLASS_SLUGS) : null;
+  return { concept: data, multiclass, usage };
 }
 
 /**

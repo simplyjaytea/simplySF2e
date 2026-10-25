@@ -233,6 +233,16 @@
           </select>
         </div>
       {{/if}}
+      {{#if multiclassPicker}}
+        <div class="form-group">
+          <label for="spf-generator-multiclass" data-tooltip="{{localize 'SIMPLYSF2E.Generator.MulticlassTooltip'}}">{{localize "SIMPLYSF2E.Generator.Multiclass"}}</label>
+          <select id="spf-generator-multiclass" name="multiclass">
+            {{#each multiclassPicker.options}}
+              <option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
+            {{/each}}
+          </select>
+        </div>
+      {{/if}}
       {{! Elite/Weak applies to a single Monster/NPC only; encounter members ignore it. }}
       {{#unless characterMode}}{{#unless encounterMode}}
       <div class="form-group">
@@ -593,6 +603,13 @@
       {{#if pcPreview.matchSummary}}<span class="spf-level spf-match-summary" data-tooltip="{{localize 'SIMPLYSF2E.Preview.Found'}}"><i aria-hidden="true" class="fa-solid fa-circle-check"></i> {{pcPreview.matchSummary.text}}</span>{{/if}}
     </header>
     {{#if pcPreview.concept.blurb}}<p class="spf-blurb"><em>{{pcPreview.concept.blurb}}</em></p>{{/if}}
+    {{#if pcPreview.multiclass}}
+      {{#if pcPreview.multiclass.dedication}}
+      <p class="spf-multiclass" role="status">{{localize "SIMPLYSF2E.Preview.MulticlassLine" class=pcPreview.multiclass.name dedication=pcPreview.multiclass.dedication}}</p>
+      {{else}}
+      <p class="notification warning" role="status">{{localize "SIMPLYSF2E.Preview.MulticlassNotPlaced" class=pcPreview.multiclass.name}}</p>
+      {{/if}}
+    {{/if}}
 
     <div class="spf-statline">
       <span><strong>{{localize "SIMPLYSF2E.Preview.Ancestry"}}</strong>

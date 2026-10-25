@@ -80,6 +80,19 @@ const RULES = Object.freeze({
 
 const isPlainObject = (value) => Boolean(value && typeof value === "object" && !Array.isArray(value));
 
+/**
+ * The AI's optional second class for a PC: a slug from `allowed` or null.
+ * Anything else (a number, an unlisted class, a name the list lacks) becomes
+ * null with a warning, so an unsupported pick never reaches the builder.
+ */
+export function normalizeMulticlassPick(value, allowed) {
+  if (value === null || value === undefined) return null;
+  const slug = typeof value === "string" ? value.trim().toLowerCase() : "";
+  if (slug && allowed.has(slug)) return slug;
+  console.warn(`simplysf2e | dropped unsupported multiclass pick ${JSON.stringify(value)} — no second class`);
+  return null;
+}
+
 /** Return concise structural problem text, or null when required shape exists. */
 export function taskResponseProblem(task, data) {
   const rule = RULES[task];
