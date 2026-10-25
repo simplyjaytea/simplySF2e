@@ -576,7 +576,7 @@
       "SourcesDetail": "Draws from the packs chosen in Compendium Sources.",
       "OpenButton": "Item Forge",
       "ConceptLegend": "Item concept",
-      "Prompt": "Describe the item.",
+      "Prompt": "Describe the item",
       "PromptPlaceholder": "e.g. A scorched visor that shields the wearer's mind and lets them see in the dark...",
       "Level": "Item level",
       "Item": "Item",

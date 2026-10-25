@@ -1,6 +1,6 @@
 # SimplySF2e live QA checklist
 
-Run this in a real Foundry v14 world (14.367 or later) with the `sf2e` system 1.5.x and the module enabled. Nothing here is self-checkable by node tests. Labels are the UI text from `lang/en.json`.
+Run this in a real Foundry v14 world (14.367 or later) with the `sf2e` system 1.6.x and the module enabled. Nothing here is self-checkable by node tests. Labels are the UI text from `lang/en.json`.
 
 How to use: work the sections in order (Section 0 first). For every step fill **Result** with `PASS`, `FAIL` or `N/A`, and **Evidence** with a screenshot filename, a copied value, or a console line. Keep the browser console (F12) open throughout and paste any `simplysf2e |` warning or error into Evidence. Use a scratch world: the checks create actors, items, folders and macros. When something fails, note it in the Failure log at the end and continue.
 
@@ -162,17 +162,19 @@ Open the Forge from the Items tab **Item Forge** button. Pick the **Item type**,
 | 6e.2 | **Create Item**; open the sheet. | `system.grade` set; no installed subitems; legacy runes zeroed; the base's analog/tech classification preserved. | Item sheet | | |
 | 6e.3 | Embed on a character and equip. | AC reflects the armor; no errors. | Character sheet | | |
 
-## 7. Player Characters (all six classes)
+## 7. Player Characters (all eight classes)
 
-Run each class at **level 1** and at one higher level (use **5**; record the level used). Mode **Player Character**. Pick the class preset (Envoy, Mystic, Operative, Solarian, Soldier, Witchwarper) or name the class in the prompt, set Level, click **Generate Character**. Leave the Free Archetype setting off.
+Run each class at **level 1** and at one higher level (use **5**; record the level used). Mode **Player Character**. Pick the class preset (Envoy, Mystic, Operative, Solarian, Soldier, Witchwarper) or name the class in the prompt (Mechanic and Technomancer have no preset), set Level, click **Generate Character**. Leave the Free Archetype setting off.
 
 | Class | L1 PASS/FAIL | L5 PASS/FAIL | Notes / evidence |
 |-------|--------------|--------------|------------------|
 | Envoy | | | |
+| Mechanic | | | |
 | Mystic | | | |
 | Operative | | | |
 | Solarian | | | |
 | Soldier | | | |
+| Technomancer | | | |
 | Witchwarper | | | |
 
 Per class and level:
@@ -208,6 +210,13 @@ Per class and level:
 |---|------|----------|---------------|--------|----------|
 | 7b.1 | Envoy, Operative, Soldier, Solarian: Spellcasting tab. | No spellcasting entry unless a class feature grants one. | Spellcasting tab | | |
 | 7b.2 | Solarian: Actions. | Solar Manifestations present; no unanswered prompt. | Actions | | |
+
+### 7c. Tech Core classes
+
+| # | Step | Expected | Where to look | Result | Evidence |
+|---|------|----------|---------------|--------|----------|
+| 7c.1 | Create a level 5 Technomancer. | A prepared arcane spellcasting entry with 5 cantrips and rank 1-3 slots; a focus entry holding the magic hack for its programming language (e.g. Viper -> Amplify Vulnerability); focus pool 1. | Spellcasting tab | | |
+| 7c.2 | Create a level 1 Mechanic until one picks the Drone exocortex. | After Create, the GM gets a whisper: 'Drone exocortex: set up the drone companion by hand; SimplySF2e does not create companion actors.' Mine or Turret Mechanics get no whisper. | Chat (GM whisper) | | |
 
 ## 8. Skills: Computers and Piloting
 

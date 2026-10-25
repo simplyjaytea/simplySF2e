@@ -6,7 +6,7 @@ AI generator for Starfinder 2e in Foundry VTT. Describe a creature, NPC, encount
 
 ## Requirements
 
-- Foundry VTT v14 (minimum 14.361, verified 14.367).
+- Foundry VTT v14 (minimum 14.361, verified 14.369).
 - The **Starfinder Second Edition** game system (`sf2e`) 1.6.0 or later. Checked against 1.6.1.
 - An AI provider that speaks the OpenAI-compatible Chat Completions API. This can be a hosted service (DeepSeek, OpenAI, OpenRouter, or another compatible gateway) or a model running on your own machine (Ollama, LM Studio).
 - A GM account. Players cannot open the generator, the Item Forge or provider setup.
@@ -161,7 +161,7 @@ The preview shows each member's level and role (**Boss**, **Minion**) with **Add
 
 Fill **Describe the character** and set **Level** (1–20). Character generation is **complete-only**: it supports only the eight published Starfinder 2e classes (Envoy, Mechanic, Mystic, Operative, Solarian, Soldier, Technomancer, Witchwarper). If none of them is available in your enabled packs, the generator says so.
 
-SimplySF2e picks a real ancestry, heritage, background and class, plus feats, skills, equipment, starting wealth and (for Mystic and Witchwarper) spells. It puts them on a character actor, and the sf2e system works out AC, HP, saves and proficiencies itself. The preview shows **Skill priorities** and the picks with their match marks.
+SimplySF2e picks a real ancestry, heritage, background and class, plus feats, skills, equipment, starting wealth and (for Mystic, Technomancer and Witchwarper) spells. It puts them on a character actor, and the sf2e system works out AC, HP, saves and proficiencies itself. The preview shows **Skill priorities** and the picks with their match marks.
 
 During creation, the system may open its own **choice dialogs** for options the module could not answer safely. Complete them to continue. Afterwards the generator shows **Character created — review**. It lists:
 
@@ -186,7 +186,7 @@ The AI writes a new name, a read-aloud description and Recall Knowledge text, an
 
 ## Using the Item Forge
 
-Pick an **Item type**, fill **Describe the item.**, and set **Item level** (1–24) and **Rarity**. Press **Generate** (press it again for a new version). Then press **Create Item**. The item lands in the Items directory, and you drag it onto a character sheet from there. The gear in the Compendium Content row at the top opens Compendium Sources.
+Pick an **Item type**, fill **Describe the item**, and set **Item level** (1–24) and **Rarity**. Press **Generate** (press it again for a new version). Then press **Create Item**. The item lands in the Items directory, and you drag it onto a character sheet from there. The gear in the Compendium Content row at the top opens Compendium Sources.
 
 | Item type | What you get |
 | --- | --- |
@@ -270,8 +270,8 @@ When a run fails, the red error box in the Generator or Item Forge has a **Copy 
 **Beta.** Identity `simplysf2e`, targeting system `sf2e` 1.6.0 or later, checked against 1.6.1 (Foundry 14.361+, verified 14.369). Live Foundry QA passed on 2026-10-08 on sf2e 1.5.x (reported by the author; no per-row log was kept).
 
 - Building Creatures and Treasure-by-Level numbers are cited against *Starfinder GM Core* pp. 116–128.
-- Character generation covers all six published classes. Level 1 class paths (including Operative's specialization skill feat and Sniper's bonus feat) are settled before creation. Solarian has no level 1 path choice.
-- Mystic and Witchwarper use cited SF2e spell-slot tables (3 base slots per rank, 5 cantrips, 10th-rank spell at level 19).
+- Character generation covers all eight published classes. Level 1 class paths (including Operative's specialization skill feat and Sniper's bonus feat) are settled before creation. Solarian has no level 1 path choice.
+- Mystic, Technomancer and Witchwarper use cited SF2e spell-slot tables (3 base slots per rank, 5 cantrips, 10th-rank spell at level 19).
 - Item Forge weapons and armor use SF2e equipment grades and installed upgrades. Grade names follow published `sf2e.equipment` names. Grade and upgrade assembly is unverified live.
 - Forged items' daily uses refill when the owner uses Rest for the Night.
 
