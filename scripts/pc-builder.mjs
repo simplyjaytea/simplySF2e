@@ -469,6 +469,8 @@ export async function resolvePCConcept(concept, { exactContent = false, pathPlan
  * different same-named feat through a post-selection lookup. The entitlement
  * fallback remains, but it too uses that slot's exact candidate reference.
  * Legacy/pre-selection callers retain the former name-lookup behavior.
+ * A slot still empty after this pass gets an augmenting-path repair
+ * (repairUnfilledFeatSlots), which may move an earlier slot to another of its own candidates.
  * @param {{type: string, level: number, candidates: {name: string, ref?: object}[]}[]} featSlots
  * @param {{slot: number, name: string, candidate?: object}[]} picks
  * @param {{exactContent?: boolean}} [options]
@@ -505,11 +507,13 @@ export async function resolveFeatPicks(featSlots, picks, { exactContent = false 
     );
   };
 
+  const aiPicked = [];
   for (let i = 0; i < featSlots.length; i++) {
     const slot = featSlots[i];
     const pick = bySlot.get(i + 1) ?? null;
     let name = pick?.name ?? null;
     let entry = name ? await resolveFor(slot, name, pick?.candidate) : null;
+    aiPicked[i] = Boolean(entry);
     if (name && !entry) {
       console.warn(`simplysf2e | feat pick "${name}" for slot ${i + 1} (${slot.type}, level ${slot.level}) did not resolve to an unused feat for this slot`);
     }
@@ -541,7 +545,76 @@ export async function resolveFeatPicks(featSlots, picks, { exactContent = false 
       name: name ?? `${slot.type} feat`, entry
     });
   }
+  repairUnfilledFeatSlots(featSlots, resolved, aiPicked);
   return resolved;
+}
+
+/**
+ * Cause B repair for resolveFeatPicks. The greedy pass above never gives a feat
+ * back, so a later slot whose candidates were all taken can stay empty even
+ * when a full assignment exists. Treat the resolved slots as a matching of
+ * slots to feats (keyed by slugified name) and augment from each empty slot
+ * (Kuhn's algorithm): a feat held by another slot is freed only when that slot
+ * moves to another of ITS OWN offered candidates. Only exact issued references
+ * qualify, the same rule resolveFor applies. A default-filled slot moves
+ * first; an AI-picked slot moves only when no other path fills an empty slot,
+ * and only as part of that augmenting path. Each moved slot warns.
+ * Mutates `resolved` in place (name and entry only).
+ * @param {{candidates?: {name: string, ref?: object}[]}[]} featSlots
+ * @param {{name: string, entry: object|null}[]} resolved
+ * @param {boolean[]} aiPicked true where the slot's own AI pick was kept
+ */
+function repairUnfilledFeatSlots(featSlots, resolved, aiPicked) {
+  const allowedPacks = getPacksFor("feats");
+  const usable = featSlots.map((slot) => {
+    const keys = new Set();
+    return (slot.candidates ?? []).filter((candidate) => {
+      const key = slugify(candidate?.name ?? "");
+      if (!key || keys.has(key) || !isIssuedCandidate(candidate.ref, allowedPacks)) return false;
+      keys.add(key);
+      return true;
+    });
+  });
+  if (!resolved.some((row, i) => !row.entry && usable[i].length)) return;
+
+  const holder = new Map(); // feat key -> index of the slot holding it
+  resolved.forEach((row, i) => { if (row.entry) holder.set(slugify(row.name), i); });
+  const originalKeys = resolved.map((row) => (row.entry ? slugify(row.name) : null));
+  const chosen = new Map(); // slot index -> candidate it now holds
+
+  /** Try to give slot i one of its candidates, re-homing any holder on the way. */
+  const place = (i, allowAiMoves, visited) => {
+    for (const candidate of usable[i]) {
+      const key = slugify(candidate.name);
+      if (visited.has(key)) continue;
+      visited.add(key);
+      const owner = holder.get(key);
+      if (owner !== undefined) {
+        if (!allowAiMoves && aiPicked[owner]) continue;
+        if (!place(owner, allowAiMoves, visited)) continue;
+      }
+      holder.set(key, i);
+      chosen.set(i, candidate);
+      return true;
+    }
+    return false;
+  };
+
+  for (let i = 0; i < resolved.length; i++) {
+    if (resolved[i].entry || !usable[i].length) continue;
+    if (!place(i, false, new Set())) place(i, true, new Set());
+  }
+
+  for (const [i, candidate] of chosen) {
+    const key = slugify(candidate.name);
+    if (key === originalKeys[i]) continue;
+    const slot = featSlots[i];
+    const where = `slot ${i + 1} (${slot.type}, level ${slot.level})`;
+    if (originalKeys[i]) console.warn(`simplysf2e | ${where} moved to "${candidate.name}" to free a feat for an empty slot`);
+    else console.warn(`simplysf2e | ${where} filled with "${candidate.name}" by moving an earlier slot`);
+    resolved[i].name = candidate.name;
+    resolved[i].entry = candidate.ref;
+  }
 }
 
 /**

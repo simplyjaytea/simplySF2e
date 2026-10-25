@@ -4,7 +4,8 @@
 // pc-prerequisites.mjs) against the cached real sf2e packs and prints a
 // class x level x Free Archetype findings matrix. Run fetch.mjs first.
 //   node tools/class-bench/run.mjs [--classes soldier,mystic] [--levels 1,5]
-//        [--ancestry Human] [--heritage "Versatile Human"] [--background Athlete] [--verbose]
+//        [--ancestry Human] [--heritage "Versatile Human"] [--background Athlete]
+//        [--priorities athletics,medicine,nature] [--verbose]
 import { readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -19,6 +20,8 @@ const LEVELS = (flag("levels", "1,2,5,10,20")).split(",").map(Number);
 const ANCESTRY = flag("ancestry", "Human");
 const HERITAGE = flag("heritage", "Urbanite Human");
 const BACKGROUND = flag("background", "Athlete");
+// Skill slugs as the AI's concept.skillPriorities carries them; none means the key-ability default.
+const PRIORITIES = (flag("priorities", "")).split(",").map((s) => s.trim()).filter(Boolean);
 const ONLY = flag("classes")?.split(",");
 const VERBOSE = args.includes("--verbose");
 
@@ -97,7 +100,7 @@ async function runOne(classData, level, freeArchetype) {
   const keyAbility = classData.system.keyAbility.value[0];
   const concept = await stage("normalize", async () => pcBuilder.normalizePCConcept({
     name: `Bench ${classData.name} ${level}`, ancestry: ANCESTRY, heritage: HERITAGE, background: BACKGROUND,
-    class: classData.name, keyAbility, abilityPriorities: [], skillPriorities: [], feats: []
+    class: classData.name, keyAbility, abilityPriorities: [], skillPriorities: PRIORITIES, feats: []
   }, { level }));
   if (!concept) return rec;
 
@@ -124,6 +127,9 @@ async function runOne(classData, level, freeArchetype) {
   }
   if (!resolved) { rec.warnings = warnings; return rec; }
   rec.pathPlan = Object.fromEntries(Object.entries(resolved.pathPlan ?? {}).map(([tag, p]) => [tag, p.name]));
+  // The module's own projection (what the feat prerequisites see). The fake Actor's final ranks are not used: its clone/update merge by Math.max.
+  const projected = resolved.skillPlan;
+  rec.skillPlan = projected ? { training: projected.training, events: projected.events, source: projected.sourceRanks } : null;
   rec.slotsTotal = resolved.featSlots.length;
   rec.zeroCandidateSlots = resolved.featSlots.filter((s) => !s.candidates.length).map((s) => `${s.archetype ? "archetype-" : ""}${s.type}-${s.level}`);
   rec.slots = resolved.featSlots.map((s) => ({ slot: `${s.archetype ? "archetype-" : ""}${s.type}-${s.level}`, candidates: s.candidates.length, names: s.candidates.map((c) => c.name) }));
@@ -257,7 +263,7 @@ for (const classData of classes) for (const fa of [false, true]) {
 }
 const table = [header, header.map(() => "---"), ...rows].map((r) => `| ${r.join(" | ")} |`).join("\n");
 const tally = results.reduce((t, r) => ((t[r.verdict.status] = (t[r.verdict.status] ?? 0) + 1), t), {});
-const summary = `source ${source} (sf2e ${system.version}); ${ANCESTRY} / ${HERITAGE} / ${BACKGROUND}; ${results.length} runs: ${Object.entries(tally).map(([k, v]) => `${v} ${k}`).join(", ")}`;
+const summary = `source ${source} (sf2e ${system.version}); ${ANCESTRY} / ${HERITAGE} / ${BACKGROUND}${PRIORITIES.length ? ` / priorities ${PRIORITIES.join(",")}` : ""}; ${results.length} runs: ${Object.entries(tally).map(([k, v]) => `${v} ${k}`).join(", ")}`;
 
 const tagCounts = {};
 for (const rec of results) for (const tag of rec.verdict.tags) (tagCounts[`${rec.verdict.status} ${tag}`] ??= []).push(`${rec.class} L${rec.level}${rec.freeArchetype ? " FA" : ""}`);
