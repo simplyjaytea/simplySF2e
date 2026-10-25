@@ -139,6 +139,9 @@
           {{/each}}
         {{/unless}}
       </ul>
+      {{#if preview.skippedNote}}
+        <p class="notification warning" role="status">{{preview.skippedNote}}</p>
+      {{/if}}
     {{else}}
       <div class="spf-statline">
         <span><strong>{{localize "SIMPLYSF2E.ItemForge.Usage"}}</strong> {{preview.usage}}{{#if preview.invested}} ({{localize "SIMPLYSF2E.ItemForge.Invested"}}){{/if}}</span>

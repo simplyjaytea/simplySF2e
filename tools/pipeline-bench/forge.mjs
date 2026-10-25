@@ -70,7 +70,7 @@ const { KIND_USAGE, AUGMENTATION_CATEGORIES, GRADE_LEVELS, normalizeMagicItemCon
 const { getForgeEffectCatalog } = await load("rule-templates.mjs");
 const { getBaseItemCandidates, getPropertyRuneCandidates, getFundamentalRuneTiers, getGradeTiers,
   EQUIPMENT_GRADES, WEAPON_UPGRADE_USAGES, ARMOR_UPGRADE_USAGES, PROJECTILE_UPGRADE_USAGE, PROJECTILE_WEAPON_GROUP,
-  propertyRuneFitsBase } = await load("runes.mjs");
+  propertyRuneFitsBase, trailingGradeLabel } = await load("runes.mjs");
 const { createActivationMacro } = await load("macro-templates.mjs");
 const { RARITY_RANK } = await load("compendium.mjs");
 
@@ -80,6 +80,10 @@ async function load(name) { return import(pathToFileURL(join(SCRIPTS, name)).hre
 let warnings = [];
 const realWarn = console.warn;
 console.warn = (...parts) => warnings.push(parts.map((p) => (p instanceof Error ? p.message : String(p))).join(" ").replace(/^simplysf2e \| /, ""));
+// The slot-cap drop is a deliberate skip (capacity uncited, PLAYBOOK §9); it is surfaced, so it is classed separately.
+const SURFACED_SLOT_DROP = /no free upgrade slot/;
+// A base published above commercial keeps its published grade, with a notice (buildRunedItem): expected.
+const KEPT_PUBLISHED_GRADE = /is published at \w+ grade; kept/;
 const out = (...parts) => process.stdout.write(`${parts.join(" ")}\n`);
 console.log = console.info = console.debug = () => {};
 
@@ -199,7 +203,7 @@ const VARIANTS = [
   },
   {
     // First base that is itself published at a non-commercial grade (e.g. "Caramel Cannon", tactical), at the first grade.
-    id: "weapon-published-grade", family: "runed", kind: "weapon", label: "weapon already published at a grade",
+    id: "weapon-published-grade", family: "runed", kind: "weapon", label: "weapon already published at a grade (grade must stay published)",
     stub: ({ baseCandidates, grades }) => {
       const base = baseCandidates.find((c) => {
         const grade = docFor("weapon", c.name)?.system?.grade;
@@ -340,10 +344,22 @@ async function runRuned(v, level, rarity, rec, check, step) {
   check(numberLeaves(plan.raw).length === 0, `stub emitted numbers at ${numberLeaves(plan.raw).join(", ")} (bench bug)`);
   step("assemble");
   const concept = normalizeRunedItemConcept(plan.raw, {
-    kind, rarity, baseCandidates, runeCandidates, grades: gradeTiers.grades,
+    kind, rarity, level, baseCandidates, runeCandidates, grades: gradeTiers.grades,
     potencyTiers: tiers.potencyTiers, secondaryTiers: tiers.secondaryTiers
   });
-  const built = await buildRunedItem(concept);
+  // A base published above commercial that comes out above the GM's level is refused at build: an expected outcome.
+  let built;
+  try {
+    built = await buildRunedItem(concept);
+  } catch (err) {
+    const pre = docFor(kind, concept.baseItemName);
+    const published = [trailingGradeLabel(pre?.name), pre?.system?.grade].find((g) => g && g !== "commercial");
+    if (published && /comes out at level/.test(err.message)) {
+      rec.detail.push(`refused above level ${level}: ${err.message}`);
+      return { refused: true };
+    }
+    throw err;
+  }
   const { itemData: data, preview } = built;
   const baseDoc = docFor(kind, concept.baseItemName);
   const baseGroup = baseDoc?.system?.group ?? null;
@@ -358,27 +374,28 @@ async function runRuned(v, level, rarity, rec, check, step) {
   check(preview.level <= level, `preview level ${preview.level} > ${level}`);
   // Runes are zeroed: the grade replaces them and the system derives price/level.
   check(data.system.runes.potency === 0 && data.system.runes.property.length === 0, "legacy runes not zeroed");
-  // Module-written price/level: none are assigned here, but toItemData copies the base's values onto the item.
-  if (data.system.price !== undefined || data.system.level !== undefined) {
-    rec.warns.push("system.price and system.level copied from base item onto graded item (item-builder.mjs:299 toItemData); PLAYBOOK §7 says never write them");
-  }
+  // Price/level are copied from the base on purpose: the system recomputes both from that stored base
+  // (physical/document.ts prepareDerivedData 355-358; helpers.ts computePrice line 38). Copy must match the base.
+  check(canon(data.system.price) === canon(baseDoc?.system?.price) && canon(data.system.level) === canon(baseDoc?.system?.level),
+    "copied system.price/system.level differ from the base document (the system recomputes from them)");
   // Installed upgrades: only usages the forge offers, only where the real base accepts them.
   const slots = baseCandidate?.upgradeSlots ?? 0;
   const subs = data.system.subitems ?? [];
   check(subs.length <= slots, `${subs.length} upgrades installed, forge slot count ${slots}`);
-  // The slot cap in normalizeRunedItemConcept breaks without a warning: a requested upgrade past the cap vanishes.
+  // Slot cap: a requested upgrade past the base's slots is skipped, warned, and reported on the preview.
   const requested = plan.raw.upgrades ?? [];
-  if (requested.length > concept.upgrades.length && !warnings.some((w) => /dropped/.test(w))) {
-    rec.warns.push("upgrade requested beyond the base's slot count is dropped with no warning (item-builder.mjs:237)");
+  const skipped = preview.skippedUpgrades ?? [];
+  if (skipped.length) {
+    check(warnings.some((w) => SURFACED_SLOT_DROP.test(w)), "skipped upgrades are not warned");
+    rec.warns.push(`upgrade past the base's ${baseCandidate?.upgradeSlots ?? 0} slot(s) skipped and surfaced (item-builder.mjs:258; capacity uncited, PLAYBOOK §9)`);
   }
-  // A base published at a non-commercial grade (runes.mjs getBaseItemCandidates lists it as an ordinary base) is re-graded.
-  if (baseDoc?.system?.grade && baseDoc.system.grade !== "commercial") {
-    rec.warns.push("base item is itself published at a non-commercial grade; the forge overwrites system.grade (item-builder.mjs:301)");
-  }
-  // A base whose published name already carries a grade label gets a second one from the forge.
-  if (grade !== "commercial" && GRADE_LABEL.test(baseDoc?.name ?? "")) {
-    rec.warns.push("base name already has a grade label and the forge adds another (item-builder.mjs:327-337)");
-  }
+  check(concept.upgrades.length + skipped.length <= requested.length, "more upgrades kept and skipped than were requested");
+  // Names: one grade label at most, and the base's name is not doubled.
+  const labels = (data.name.match(new RegExp(GRADE_LABEL.source, "gi")) ?? []).length;
+  check(labels <= 1, `item name "${data.name}" carries ${labels} grade labels`);
+  // No base offered to the AI is published above commercial; those are refused at build instead.
+  check(!baseCandidates.some((c) => /\((Tactical|Advanced|Superior|Elite|Ultimate|Paragon)\)$/i.test(c.name)),
+    "a base named for a non-commercial grade was offered to the AI");
   rec.detail.push(`name "${data.name}"`);
   for (const sub of subs) {
     const usage = sub.system?.usage?.value;
@@ -389,7 +406,15 @@ async function runRuned(v, level, rarity, rec, check, step) {
     check(runeCandidates.some((c) => c.name === sub.name), `upgrade "${sub.name}" was not an offered candidate`);
     rec.detail.push(`upgrade "${sub.name}" (${usage}) on ${baseDoc?.name} [group ${baseGroup}]`);
   }
-  check(data.name.includes(baseDoc?.name ?? "?"), `item name "${data.name}" lost its base name`);
+  // The commercial label is replaced by the grade, so compare against the name without it.
+  const bareName = (baseDoc?.name ?? "?").replace(new RegExp(`\\s*${GRADE_LABEL.source}$`, "i"), "");
+  check(data.name.includes(bareName), `item name "${data.name}" lost its base name`);
+  // A base published above commercial keeps its published grade (buildRunedItem), not the requested one.
+  const publishedGrade = [trailingGradeLabel(baseDoc?.name), baseDoc?.system?.grade].find((g) => g && g !== "commercial");
+  if (publishedGrade) {
+    check(grade === publishedGrade, `base published at ${publishedGrade} was built at grade "${grade}"`);
+    check(warnings.some((w) => KEPT_PUBLISHED_GRADE.test(w)) || publishedGrade === concept.grade, "a kept published grade is not noticed");
+  }
   check(!/<b>/.test(data.system.description.value) && /&lt;b&gt;/.test(data.system.description.value), "AI description not escaped");
   rec.detail.push(`grade ${data.system.grade}, ${subs.length} upgrade(s), preview level ${preview.level}`);
   return { data, concept };
@@ -409,7 +434,7 @@ async function runCase(v, level, rarity) {
     rec.fails.push(`throw@${rec.stage}: ${err.message}`);
     if (VERBOSE) realWarn(`[${v.id} L${level} ${rarity}]`, err.stack);
   }
-  const unexpected = warnings.filter((w) => !(v.expectWarn && v.expectWarn.test(w)));
+  const unexpected = warnings.filter((w) => !(v.expectWarn && v.expectWarn.test(w)) && !SURFACED_SLOT_DROP.test(w) && !KEPT_PUBLISHED_GRADE.test(w));
   if (v.expectWarn && !warnings.some((w) => v.expectWarn.test(w)) && !rec.na && !rec.fails.length) {
     rec.fails.push("expected the forge to drop the misfit upgrade with a warning; no warning was raised");
   }

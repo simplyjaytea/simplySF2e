@@ -18,7 +18,8 @@ import { slugify, capitalized, esc } from "./text.mjs";
 import {
   RUNED_ITEM_KINDS, SECONDARY_ADJECTIVE, SECONDARY_RUNE_FIELD, propertyRuneKey, propertyRuneFitsBase, propertyRuneMayFitBase,
   findFundamentalRune, getBaseItemCandidates, getPropertyRuneCandidates, getFundamentalRuneTiers,
-  EQUIPMENT_GRADES, GRADE_LEVELS, GRADE_CREDITS_DELTA, parseUpgradeCapacity, getGradeTiers, getUpgradeCandidates
+  EQUIPMENT_GRADES, GRADE_LEVELS, GRADE_CREDITS_DELTA, parseUpgradeCapacity, getGradeTiers, getUpgradeCandidates,
+  trailingGradeLabel, stripTrailingGradeLabel
 } from "./runes.mjs";
 
 /* Re-exported: the item forge UI imports its whole surface from this module. */
@@ -201,7 +202,7 @@ export async function priceForLevel(level, rarity = "common") {
  */
 export function normalizeRunedItemConcept(raw, {
   kind, rarity, baseCandidates, runeCandidates = [],
-  potencyTiers = [], secondaryTiers = [], grades = []
+  potencyTiers = [], secondaryTiers = [], grades = [], level = null
 }) {
   const c = typeof raw === "object" && raw !== null ? raw : {};
   const findByName = (list, name) => list.find((x) => slugify(x.name) === slugify(name)) ?? null;
@@ -229,12 +230,12 @@ export function normalizeRunedItemConcept(raw, {
   // Upgrade slots come from the base candidate (see runes.parseUpgradeCapacity).
   const maxSlots = base.upgradeSlots ?? 0;
   const propertyRunes = [];
+  const skippedUpgrades = [];
   const seen = new Set();
   const requestedUpgrades = Array.isArray(c.upgrades) ? c.upgrades
     : Array.isArray(c.propertyRunes) ? c.propertyRunes : [];
 
   for (const name of requestedUpgrades) {
-    if (propertyRunes.length >= maxSlots) break;
     const match = findByName(runeCandidates, name);
     if (!match) {
       if (name) console.warn(`simplysf2e | itemforge: dropped unmatched upgrade/rune "${name}"`);
@@ -247,7 +248,15 @@ export function normalizeRunedItemConcept(raw, {
     const key = slugify(match.name);
     if (seen.has(key)) continue;
     seen.add(key);
+    // Slot capacity is uncited (PLAYBOOK §9), so the cap stays. The skip is kept and shown.
+    if (propertyRunes.length >= maxSlots) {
+      skippedUpgrades.push(match.name);
+      continue;
+    }
     propertyRunes.push(match.name);
+  }
+  if (skippedUpgrades.length) {
+    console.warn(`simplysf2e | itemforge: no free upgrade slot on "${base.name}" (${maxSlots} slot${maxSlots === 1 ? "" : "s"}); not installed: ${skippedUpgrades.join(", ")}`);
   }
 
   return {
@@ -256,6 +265,8 @@ export function normalizeRunedItemConcept(raw, {
     grade,
     propertyRunes,
     upgrades: propertyRunes,
+    skippedUpgrades,
+    level,
     rarity: RARITIES.has(rarity) ? rarity : RARITIES.has(c.rarity) ? c.rarity : "common",
     description: String(c.description ?? "").slice(0, 800)
   };
@@ -280,7 +291,14 @@ export async function buildRunedItem(concept) {
     throw new Error(`Base ${concept.kind} "${concept.baseItemName}" could not be resolved against the compendium.`);
   }
 
-  const grade = concept.grade ?? "commercial";
+  // A base already published above commercial keeps its published grade. The
+  // system grades it from its own published data, so re-grading would pair its
+  // level and price with a different grade.
+  const publishedGrade = [trailingGradeLabel(baseDoc.name), baseDoc.system?.grade].find((g) => g && g !== "commercial");
+  const grade = publishedGrade ?? concept.grade ?? "commercial";
+  if (publishedGrade && publishedGrade !== concept.grade) {
+    console.warn(`simplysf2e | itemforge: "${baseDoc.name}" is published at ${publishedGrade} grade; kept ${publishedGrade} instead of ${concept.grade ?? "commercial"}`);
+  }
   const upgradeDocs = [];
   const upgradeNames = concept.upgrades ?? concept.propertyRunes ?? [];
   for (const name of upgradeNames) {
@@ -297,6 +315,11 @@ export async function buildRunedItem(concept) {
   }
 
   const data = toItemData(baseDoc);
+  // Base price and level are copied on purpose. The system recomputes both on
+  // every derived prep: physical/document.ts prepareDerivedData (lines 355-358)
+  // calls computeLevelRarityPrice, which starts from this stored base price
+  // (helpers.ts line 38, when no material or rune value applies) and adds the
+  // grade's credits itself (line 39). Do not add grade credits here.
   // Set native SF2e equipment grade (CTASEUP)
   data.system.grade = grade;
   // Zero runes per SF2e Migration942EquipmentGrade standard
@@ -323,18 +346,24 @@ export async function buildRunedItem(concept) {
   // level. Installed upgrades do not raise the item's level.
   const gradeLevel = (GRADE_LEVELS[concept.kind] && GRADE_LEVELS[concept.kind][grade]) ?? 0;
   const level = Math.max(data.system.level?.value ?? 0, gradeLevel);
-
-  // SF2e published naming convention: "{Base Name} ({Grade})" or with upgrades
-  const gradeLabel = capitalized(grade);
-  const nameParts = [baseDoc.name];
-  if (grade !== "commercial") {
-    nameParts.push(`(${gradeLabel})`);
+  // A base published above commercial keeps its own grade, which can put it
+  // above the GM's level even though its stored level is lower. Fail closed.
+  if (concept.level != null && level > concept.level) {
+    throw new Error(`${baseDoc.name} comes out at level ${level}, above this item's level ${concept.level}. Generate a new plan.`);
   }
+
+  // SF2e published naming convention: "{Base Name} ({Grade})" or with upgrades.
+  // A commercial base is published as "{Name} (Commercial)", so its label is
+  // stripped before the chosen grade is added: never two grade labels.
+  const gradeLabel = capitalized(grade);
+  const baseName = stripTrailingGradeLabel(baseDoc.name);
   if (upgradeDocs.length) {
     const upgradeSummary = upgradeDocs.map((d) => d.name).join(", ");
-    data.name = `${baseDoc.name} (${gradeLabel}: ${upgradeSummary})`;
+    data.name = `${baseName} (${gradeLabel}: ${upgradeSummary})`;
+  } else if (grade !== "commercial") {
+    data.name = `${baseName} (${gradeLabel})`;
   } else {
-    data.name = nameParts.join(" ");
+    data.name = baseDoc.name;
   }
 
   const baseRarity = data.system.traits?.rarity ?? "common";
@@ -363,7 +392,8 @@ export async function buildRunedItem(concept) {
       priceCredits: totalCredits,
       level,
       grade,
-      upgrades: upgradeDocs.map((d) => d.name)
+      upgrades: upgradeDocs.map((d) => d.name),
+      skippedUpgrades: concept.skippedUpgrades ?? []
     }
   };
 }
