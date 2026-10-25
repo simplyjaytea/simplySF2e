@@ -165,20 +165,22 @@ try {
 // Static wiring is not live ApplicationV2 QA. Guard the ownership and fallback
 // boundary while provider and builder tests exercise the real functions.
 const generator = readFileSync(new URL("./generator-app.mjs", import.meta.url), "utf8");
+// The grounded spell pass moved to creature-pipeline.mjs with the creature chain.
+const pipeline = readFileSync(new URL("./creature-pipeline.mjs", import.meta.url), "utf8");
 const template = readFileSync(new URL("../templates/generator.hbs", import.meta.url), "utf8");
 const locale = JSON.parse(readFileSync(new URL("../lang/en.json", import.meta.url), "utf8"));
 assert.match(generator, /pcSpellcastingProfile\(resolved\.classDoc\)/);
-assert.match(generator, /plannedPicks: selectionPicks/);
-assert.match(generator, /selectionPicks = spellcasting\.selectionPicks \?\? spellcasting\.plannedPicks/);
-assert.match(generator, /database: spellcasting\.database === true/);
-assert.match(generator, /preparationMode: spellcasting\.preparationMode/);
-assert.match(generator, /signatureRanks: spellcasting\.signatureRanks/);
-assert.match(generator, /const \{ spells, focusSpells, usage, timing \} = await selectSpells\(/,
+assert.match(pipeline, /plannedPicks: selectionPicks/);
+assert.match(pipeline, /selectionPicks = spellcasting\.selectionPicks \?\? spellcasting\.plannedPicks/);
+assert.match(pipeline, /database: spellcasting\.database === true/);
+assert.match(pipeline, /preparationMode: spellcasting\.preparationMode/);
+assert.match(pipeline, /signatureRanks: spellcasting\.signatureRanks/);
+assert.match(pipeline, /const \{ spells, focusSpells, usage, timing \} = await ctx\.ai\.selectSpells\(/,
   "the generator must retain grounded focus spells returned by the shared selector");
 assert.match(generator, /plannedPicks = plan\.picks/);
 assert.match(template, /role="status">\{\{pcPreview\.signatureSummary\}\}/);
 assert.match(template, /\{\{#if this\.signature\}\}/);
-assert.match(generator, /if \(spellcasting\.plannedPicks\) return;[\s\S]*?concept\.spellcasting = null;/,
+assert.match(pipeline, /if \(spellcasting\.plannedPicks\) return;[\s\S]*?concept\.spellcasting = null;/,
   "a failed known spell plan must remain empty for completion validation, never fall back to draft names");
 assert.match(template, /role="status">\{\{pcPreview\.spellcastingNotice\}\}/, "escaped, accessible review notice");
 for (const key of ["PCBaseSpellPlan", "PCVariableSpellPlan", "PCApproximateSpellPlan", "Signature", "PCSignaturePlan"]) {

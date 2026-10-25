@@ -87,14 +87,20 @@ const mocks = {
   createCharacterActor: async () => { creates++; if (createFailure) throw createFailure; return { actor, skillReport, manualNotes, expectedItems: [] }; }
 };
 const source = await readFile(new URL("./generator-app.mjs", import.meta.url), "utf8");
-const appModule = new vm.SourceTextModule(source, { context });
-await appModule.link((specifier) => {
-  const imports = [...source.matchAll(/import\s*\{([^}]+)\}\s*from\s*"([^"]+)"/g)]
+const pipelineSource = await readFile(new URL("./creature-pipeline.mjs", import.meta.url), "utf8");
+// creature-pipeline.mjs is linked from the same mocks, so the shared step chain runs against them.
+const pipelineModule = new vm.SourceTextModule(pipelineSource, { context });
+const linkWith = (text) => (specifier) => {
+  if (specifier === "./creature-pipeline.mjs") return pipelineModule;
+  const imports = [...text.matchAll(/import\s*\{([^}]+)\}\s*from\s*"([^"]+)"/g)]
     .filter((match) => match[2] === specifier).flatMap((match) => match[1].split(",").map((name) => name.trim()));
   return new vm.SyntheticModule(imports, function () {
     for (const name of imports) this.setExport(name, mocks[name] ?? (() => { throw new Error(`Unexpected dependency: ${name}`); }));
   }, { context });
-});
+};
+await pipelineModule.link(linkWith(pipelineSource));
+const appModule = new vm.SourceTextModule(source, { context });
+await appModule.link(linkWith(source));
 await appModule.evaluate();
 const { GeneratorApp } = appModule.namespace;
 const actions = GeneratorApp.DEFAULT_OPTIONS.actions;
