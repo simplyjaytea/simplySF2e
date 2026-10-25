@@ -238,7 +238,7 @@ async function runOne(classData, level, freeArchetype) {
 }
 
 // ---------------------------------------------------------------- run + classify
-const SKILL_NOISE = new Set(["grant-timing", "unspent-training", "unspent-increases"]);
+const SKILL_NOISE = new Set(["grant-timing", "unspent-training", "unspent-increases", "projection-mismatch"]);
 const results = [];
 for (const classData of classes) {
   for (const freeArchetype of [false, true]) {
@@ -262,7 +262,7 @@ function classify(rec) {
   for (const w of rec.skill?.warnings ?? []) if (!SKILL_NOISE.has(w)) issues.push(`skill review: ${w}`);
   const seen = new Set();
   for (const w of rec.warnings) {
-    if (/^character skill review: (grant-timing|unspent-training|unspent-increases)$/.test(w)) continue;
+    if (/^character skill review: (grant-timing|unspent-training|unspent-increases|projection-mismatch)$/.test(w)) continue;
     const key = w.replace(/\d+/g, "#");
     if (!seen.has(key)) { seen.add(key); issues.push(`warn: ${w}`); }
   }

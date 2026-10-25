@@ -29,7 +29,7 @@ Node 22+. No install step, no Foundry.
 
 - No live Foundry: **no Rule Element ever runs**, there are no derived stats (AC, HP, saves, modifiers), and no real item preparation. `doc.system` is the raw pack source, not Foundry's prepared data.
 - Native ABC grants are not expanded the way `ABCItemPF2e.createGrantedItems` does. The bench walks the class and ancestry `system.items` grants itself and lists open ChoiceSets, but it does not run them.
-- The fake `Actor` has no data preparation: Intelligence is 0, HP max is 1, and native skill ranks come only from the class and background `trainedSkills.value`. Skill review warnings that depend on that (`grant-timing`, `unspent-training`, `unspent-increases`) are therefore ignored.
+- The fake `Actor` has no data preparation: Intelligence is 0, HP max is 1, and native skill ranks come only from the class and background `trainedSkills.value`. Skill review warnings that depend on that (`grant-timing`, `unspent-training`, `unspent-increases`) are therefore ignored. `projection-mismatch` is ignored for the same reason: the fake actor's native ranks come only from `trainedSkills.value`, so the projected-rank check against the created actor cannot match a real Foundry preparation.
 - `CONFIG.PF2E` has only `skills`; that is the only config path any sf2e ChoiceSet reads.
 - The AI never runs. Feat picks are "first candidate not already taken", spells are the first eligible per rank, not what a model would choose. A different pick order can change which slots collide, but not a pool that has fewer distinct feats than slots.
 - One ancestry / heritage / background per run, no equipment, loot, focus spells or languages, and no rarity cap.

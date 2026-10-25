@@ -15,12 +15,13 @@ Pack list from `system.sf2e.json` 1.6.1 (`packs[].name:type`; ids are `sf2e.<nam
 - After W5 (`pc-builder.mjs` wiring plus wave-1 modules): **78 PASS / 0 WARN / 2 FAIL**.
 - After W6 (cause B repair in `resolveFeatPicks`): **78 PASS / 0 WARN / 2 FAIL** on the default matrix. Bounty Hunter Mystic L20, Free Archetype on: FAIL -> WARN(4).
 - After W7 (empty feat slots warn instead of block): **78 PASS / 2 WARN / 0 FAIL** on the default matrix. The same two Mystic L20 runs are now WARN(3) and WARN(7).
+- After F1 and F4 (`projection-mismatch` is fake-actor noise, filtered in `run.mjs`): **78 PASS / 2 WARN / 0 FAIL**, unchanged. With the filter reverted the same code reads **28 PASS / 52 WARN**: the fake actor's native ranks come only from `trainedSkills.value`, so the projected-rank check fires on most runs.
 
 Every class passes levels 1 to 10 in both Free Archetype modes and every class passes level 20 except Mystic. Level 15 and 19 general slots now fill because general slots also draw from the `skill` category (cause 2, resolved).
 
 Run: `node tools/class-bench/fetch.mjs && node tools/class-bench/run.mjs` (source `be4ab21be8ffed44385c0038c05d41b61dceb68b`, sf2e 1.6.1, Human / Urbanite Human / Athlete).
 
-## Matrix after W7 (feat picks identical to W6; the two Mystic L20 runs are WARN, not FAIL)
+## Matrix after F4 (same results as W7; the two Mystic L20 runs are WARN, not FAIL)
 
 | class | FA | L1 | L2 | L5 | L10 | L20 | in `COMPLETE_PC_CLASS_SLUGS`? |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -110,17 +111,20 @@ Measured against the same source (`be4ab21`, sf2e 1.6.1), Athlete background, Hu
 
 | specialization (trained skill) | command | FA off | FA on |
 | --- | --- | --- | --- |
-| Striker (Athletics) | `--path Striker --levels 1,5,10,20` | L1 PASS, L5 WARN(2), L10 WARN(2), L20 WARN(2) | same as off |
+| Striker (Athletics), Athlete background | `--path Striker --levels 1,5,10,20` | FAIL at every level: `--path "Striker" was not selected (plan: Ghost)` | same |
+| Striker (Athletics), Clansworn background | `--path Striker --levels 1,5,10,20 --background Clansworn` | L1 PASS, L5 WARN(2), L10 WARN(2), L20 WARN(2) | same as off |
 | Ghost (Deception) | `--path Ghost --levels 5` | PASS | PASS |
 | Infiltrator (Computers) | `--path Infiltrator --levels 5` | PASS | PASS |
 | Skirmisher (Acrobatics) | `--path Skirmisher --levels 5` | PASS | PASS |
-| Sniper (Stealth) | `--path Sniper --levels 5` | WARN(2) | WARN(2) |
+| Sniper (Stealth) | `--path Sniper --levels 5,10,20` | WARN(2) at L5, L10, L20 | WARN(2) at L5, L10, L20 |
 
-Sniper was also run at L10 and L20 (not requested): WARN(2) at both, with the same empty slots as Striker. Of the paths measured here, only Striker and Sniper are non-PASS.
+Athlete grants Deadlift (`system.items`, `Compendium.sf2e.feats.Item.Deadlift`). After F1 the path reserves Deadlift, so Striker is unselectable with the Athlete background (FAIL above). The Striker rows therefore use Clansworn (trains Athletics; its `system.items` grants Hefty Hauler, not Deadlift). Striker's empty slots are the same with either background.
+
+The other rows were rerun after F1 with the Athlete background and match the table. Of the paths measured here, Striker (Clansworn) and Sniper are non-PASS, and Striker (Athlete) FAILs.
 
 **Empty slots, both WARN (empty feat slot, not FAIL, as W7 intends):**
 
-- Striker: `skill-3` at L5; `skill-3`, `skill-7` at L10; `skill-3`, `skill-7`, `skill-15` at L20.
+- Striker (Clansworn background): `skill-3` at L5; `skill-3`, `skill-7` at L10; `skill-3`, `skill-7`, `skill-15` at L20.
 - Sniper: `skill-3` at L5; `skill-3`, `skill-7` at L10; `skill-3`, `skill-7`, `skill-15` at L20.
 
 **Known data limit (confirmed, not a code fix):** `pc-builder.mjs` restricts the Specialized Skill Set slots (levels 3, 7, 15, when the class has that feature) to feats that prove the specialization's trained skill (`allowedSkillFeats`). In the cache, each such skill has exactly one skill feat at level 15 or below, and the path reserves it through its own level-one skill feat (`reservedFeatUuids`, `class-paths.mjs`):
