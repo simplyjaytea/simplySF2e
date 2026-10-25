@@ -121,7 +121,7 @@ A reviewer that must run tests needs an agent type that can run `node` (`general
 3. **Dispatch:** send all independent tasks in one message.
 4. **Review ladder:** tier 1 → tier 2 (→ tier 3). A finding goes back to the same worker (`SendMessage`) as a **new** commit, never an amend, and the fix climbs again from the tier that found it. Minor findings in coordinator-owned docs are fixed by the coordinator instead.
 5. **Integrate:** make one branch from `main`, `git merge --no-ff` each passed worktree branch, then give the combined diff its own tier 1 + tier 2 review and run `bash tools/release-check.sh` (`--no-ui` only if no template/CSS changed).
-6. **PR and merge:** push, open **one** PR for the batch (each merge is a public release), and wait for `verify`. The coordinator may merge once an independent reviewer has no open blockers and `verify` is green on the current head.
+6. **PR and merge:** push, open **one** PR for the batch (each merge is a public release), and wait for `verify`. The PR body lists the QA ids JT must run live. JT's results go into `docs/live-log.md`; a feature is live-verified only when it has a logged PASS there. The coordinator may merge once an independent reviewer has no open blockers and `verify` is green on the current head.
 7. **Tidy:** `git worktree remove` each worktree and delete local `worktree-agent-*` branches. Ask JT before any authenticated GitHub write. JT's standing authority covers push, PR and merge only, so deleting a remote branch needs JT's OK.
 8. **Hand off:** rewrite §1; add lessons to §8.
 

@@ -9,7 +9,7 @@
 #                    and every templates/*.hbs path a script names, is
 #                    committed under a folder the release zip ships
 #   5. leftovers     no merge-conflict markers in any tracked file
-#   6. qa-rows       no duplicate row ids in docs/qa-checklist.md
+#   6. qa-rows       no duplicate row ids in docs/qa-checklist.md; pass docs cite only real ids
 #   7. whitespace    git diff --check against origin/main (CI fails on this)
 #   8. ui            the UI preview harness renders every fixture at both
 #                    widths (tools/ui-preview, npm ci + npm run shoot)
@@ -194,6 +194,16 @@ else
   if [[ -n "$dups" ]]; then fail qa-rows "duplicate QA row ids: $dups"
   elif (( count == 0 )); then fail qa-rows "no QA rows found in $QA (has the table format changed?)"
   else pass qa-rows "$count QA row ids, all unique"; fi
+  # Pass documents cite qa-checklist ids in their "QA id" column (third
+  # pipe field, comma separated). A cited id that does not exist is a typo
+  # or a renamed row, and the tester would run the wrong step.
+  for pass_doc in docs/live-pass.md docs/release-pass.md; do
+    [[ -f "$pass_doc" ]] || continue
+    cited=$(awk -F'|' '/^\|[[:space:]]*[0-9]+[[:space:]]*\|/ { print $3 }' "$pass_doc" | tr ',' '\n' | sed 's/[[:space:]]//g' | grep -E '^[0-9]+[a-z]*\.[0-9]+$' | sort -u)
+    missing=$(comm -23 <(printf '%s\n' "$cited") <(sort -u <<<"$rows") | paste -sd' ')
+    if [[ -n "$missing" ]]; then fail qa-rows "$pass_doc cites QA ids missing from $QA: $missing"
+    else pass qa-rows "$pass_doc cites only existing QA ids"; fi
+  done
 fi
 
 # 7. whitespace --------------------------------------------------------------
