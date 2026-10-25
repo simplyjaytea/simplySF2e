@@ -8,7 +8,7 @@ The one file every agent (Claude, Codex, anything else) reads first. It holds wh
 
 1. **Coordinator:** read §1 to §3 and §6, then other sections as the task needs. **Worker or reviewer:** follow your prompt and read §3, §4 and §8.
 2. `git log --oneline -10` and `git status`. Git is authoritative for branch state, not any file.
-3. Baseline: run the all-tests command in §4 (bash only; on Windows use Git Bash, not PowerShell)..
+3. Baseline: run the all-tests command in §4 (bash only; on Windows use Git Bash, not PowerShell).
 4. If §1 lists a review in flight, check whether its PR merged mid-review. If it did, ship fixes as a **new** PR.
 5. End every session with the tree clean or committed on a named branch, never with uncommitted work on `main`.
 

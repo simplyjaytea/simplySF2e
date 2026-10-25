@@ -150,7 +150,7 @@
       "Note": {
         "CreatureArt": {
           "Title": "Creature art keeps its token",
-          "Body": "With an art module installed, a generated creature now keeps the token art and scale of the similar bestiary creature it borrows from, instead of reusing its portrait. Its token is named after the new creature."
+          "Body": "With an art module installed, a generated creature now keeps the token art and scale of the similar bestiary creature it borrows from, instead of reusing its portrait. Its token is named after the new creature, and encounter copies are numbered in their token name too."
         },
         "WhatsNew": {
           "Title": "What's new",
