@@ -150,7 +150,7 @@
       "Note": {
         "Multiclass": {
           "Title": "Multiclass, Tech Core ancestries and more",
-          "Body": "With Free Archetype on, a player character can take a second class: pick it in the new Multiclass field or let the AI choose from your prompt. The dedication goes in the first archetype slot, and later slots favor its feats. Mystic, Witchwarper and Technomancer dedications get their own spell list. A Technomancer now has a full spell database. Living Hologram and SRO characters get their size chosen for you, and the Item Forge can install projectile-weapon upgrades. Mechanic and Technomancer have Standard presets, shops and hoards skip items with no price, and the windows have a calmer look."
+          "Body": "With Free Archetype on, a player character can take a second class: pick it in the new Multiclass field or let the AI choose from your prompt. The dedication goes in the first archetype slot, and later slots favor its feats. Mystic, Witchwarper and Technomancer dedications get their own spell list. A Technomancer now has a full spell database. Living Hologram and SRO characters get their size chosen for you, and the Item Forge can install projectile-weapon upgrades. The Item Forge keeps one grade label per item, keeps a base's published grade, and says which requested upgrades did not fit. Mechanic and Technomancer have Standard presets, shops and hoards skip items with no price, and the windows have a calmer look."
         },
         "ClassFixes": {
           "Title": "Every class builds cleanly",
