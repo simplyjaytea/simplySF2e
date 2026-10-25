@@ -155,6 +155,32 @@ const RICH = {
   loot: [named("Credstick (120 credits)"), named("Scroll of Mage Armor (Rank 1)")]
 };
 
+/** Character preview window; #buildPCPreviewContext() supplies the feat rows and emptyFeatNotice. */
+function characterPreview(id, { feats, emptyFeatNotice = null }) {
+  const pcConcept = { name: "Kess Vandrel", level: 3, blurb: "A disgraced envoy who still believes in the mission.", spellcasting: { tradition: "occult" }, backstory: "Kess left the Pact Worlds diplomatic corps after a treaty she negotiated was used as cover for a raid." };
+  return {
+    id,
+    app: "generator",
+    context: generatorContext("character", {
+      input: { level: 3 }, showEmptyState: false, tokenReport: TOKEN_REPORT,
+      pcPreview: {
+        concept: pcConcept,
+        ancestry: named("Human"), heritage: named("Skilled Heritage Human", false), background: named("Diplomatic Attaché"), class: named("Envoy"),
+        skillPriorities: [{ name: "Diplomacy" }, { name: "Society" }, { name: "Intimidation" }],
+        automaticSkills: false,
+        spellcastingNotice: "Spellcasting data for this class is incomplete in the installed system; spells were picked best-effort.",
+        signatureSummary: localize("SIMPLYSF2E.Preview.PCSignaturePlan", { selected: 1, total: 2 }),
+        feats,
+        emptyFeatNotice,
+        spells: [spell("Telepathic Bond", 2, true, true), spell("Soothe", 1, false)],
+        equipment: [named("Tactical Pistol (commercial)"), named("Explorer's Clothing", false)],
+        loot: [named("Credstick (300 credits)")],
+        matchSummary: { matched: 7, total: 10, text: localize("SIMPLYSF2E.Preview.MatchSummary", { matched: 7, total: 10 }) }
+      }
+    })
+  };
+}
+
 export default [
   ...["monster", "npc", "encounter", "character", "reskin"].map((mode) => ({
     id: `generator-empty-${mode}`,
@@ -276,29 +302,16 @@ export default [
       })
     };
   })(),
-  (() => {
-    const pcConcept = { name: "Kess Vandrel", level: 3, blurb: "A disgraced envoy who still believes in the mission.", spellcasting: { tradition: "occult" }, backstory: "Kess left the Pact Worlds diplomatic corps after a treaty she negotiated was used as cover for a raid." };
-    return {
-      id: "generator-character-preview",
-      app: "generator",
-      context: generatorContext("character", {
-        input: { level: 3 }, showEmptyState: false, tokenReport: TOKEN_REPORT,
-        pcPreview: {
-          concept: pcConcept,
-          ancestry: named("Human"), heritage: named("Skilled Heritage Human", false), background: named("Diplomatic Attaché"), class: named("Envoy"),
-          skillPriorities: [{ name: "Diplomacy" }, { name: "Society" }, { name: "Intimidation" }],
-          automaticSkills: false,
-          spellcastingNotice: "Spellcasting data for this class is incomplete in the installed system; spells were picked best-effort.",
-          signatureSummary: localize("SIMPLYSF2E.Preview.PCSignaturePlan", { selected: 1, total: 2 }),
-          feats: [named("Nimble Dodge"), named("Hobnobber", false)],
-          spells: [spell("Telepathic Bond", 2, true, true), spell("Soothe", 1, false)],
-          equipment: [named("Tactical Pistol (commercial)"), named("Explorer's Clothing", false)],
-          loot: [named("Credstick (300 credits)")],
-          matchSummary: { matched: 7, total: 10, text: localize("SIMPLYSF2E.Preview.MatchSummary", { matched: 7, total: 10 }) }
-        }
-      })
-    };
-  })(),
+  // Character preview. Feat rows and the empty-slot notice follow #pcFeatRows() and
+  // the emptyFeatNotice build in #buildPCPreviewContext(): a found feat has no empty
+  // flag set; an empty slot is { found: false, empty: true } and the notice lists it.
+  characterPreview("generator-character-preview", {
+    feats: [{ ...named("Nimble Dodge"), empty: false }, { ...named("Hobnobber", false), empty: false }]
+  }),
+  characterPreview("generator-character-empty-slot", {
+    feats: [{ ...named("Nimble Dodge"), empty: false }, { name: "general 3", found: false, empty: true }],
+    emptyFeatNotice: localize("SIMPLYSF2E.PC.EmptyFeatSlots", { count: 1, slots: "general 3" })
+  }),
   {
     id: "generator-character-review",
     app: "generator",
