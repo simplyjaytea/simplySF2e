@@ -14,7 +14,7 @@ import { SETTINGS, getSetting } from "./settings.mjs";
 import { CORE_SKILLS, normalizeSkillPriorities, initialSkillTraining, allocateCharacterSkills, characterSkillSnapshot } from "./pc-skills.mjs";
 import { ABILITY_KEYS, normalizeAbilityPriorities, assignAbilityBoosts, assignItemBoosts, projectAttributeModifiers, projectSkillRanks } from "./pc-projection.mjs";
 import { applyCharacterLoadout } from "./pc-loadout.mjs";
-import { planClassPaths, stageClassPaths } from "./class-paths.mjs";
+import { pickDedicationBridge, planClassPaths, stageClassPaths } from "./class-paths.mjs";
 import { COMPLETE_PC_CLASS_SLUGS, archetypeTraditionFor, classManualNotes, getMulticlassDedicationSlug, technomancerCacheSpells, technomancerInitialHack, withInitialFocusSpell } from "./pc-support.mjs";
 import {
   archetypeOfFeat, createDedicationRuleState, dedicationRuleBlock, recordDedicationRulePlacement, stagedActorContext
@@ -1127,7 +1127,8 @@ export function archetypeCasterPlan(concept, resolved) {
     expert: placedSlugs.has(`expert-${classSlug}-spellcasting`),
     master: placedSlugs.has(`master-${classSlug}-spellcasting`)
   };
-  const tradition = archetypeTraditionFor(dedication, null);
+  // The tradition comes from the option the bridge pre-answered (resolveArchetypeBridges).
+  const tradition = archetypeTraditionFor(dedication, resolved?.archetypeBridges?.[dedication]?.option?.source ?? null);
   if (!tradition) return null;
   const ability = profile.ability ?? witchwarperArchetypeAbility(resolved.abilityMods);
   if (!ability) {
@@ -1145,6 +1146,35 @@ export function archetypeCasterPlan(concept, resolved) {
     counts,
     maxRank: Math.max(0, ...Object.keys(archetype.slots).map(Number))
   };
+}
+
+/**
+ * Pre-answer the bridge of each placed Mystic or Witchwarper Dedication
+ * (Connection, Paradox) so its tradition is proven before the spell plan. Runs
+ * after feats are picked and before archetypeCasterPlan. Result:
+ * `{[dedicationSlug]: {dedication, choice, choiceType, grantUuid, preselectChoices, option}}`,
+ * stored on `resolved.archetypeBridges`. `option` is null when the bridge could
+ * not be pre-answered (warned; createCharacterActor adds a GM note). Technomancer
+ * has its own tradition and gets no record.
+ * @param {object} concept
+ * @param {object} resolved resolvePCConcept result with picked `feats`
+ * @param {{selectChoices?: Function|null}} [options]
+ * @returns {Promise<Record<string, object>>}
+ */
+export async function resolveArchetypeBridges(concept, resolved, { selectChoices = null } = {}) {
+  const bridges = {};
+  const context = { names: conceptChoiceNames(concept ?? {}, resolved) };
+  for (const feat of resolved?.feats ?? []) {
+    const slug = slugify(feat?.name ?? "");
+    if (!feat?.entry || !Object.hasOwn(ARCHETYPE_CASTER_DEDICATIONS, slug) || !ARCHETYPE_CASTER_DEDICATIONS[slug].traditionFrom) continue;
+    const source = await getDocument(feat.entry).then((doc) => (doc ? toItemData(doc) : null));
+    const bridge = source ? await pickDedicationBridge(source, { context, selectChoices }) : null;
+    bridges[slug] = {
+      dedication: source?.name ?? feat.name, choice: bridge?.choice ?? null, choiceType: bridge?.choiceType ?? null,
+      grantUuid: bridge?.grantUuid ?? null, preselectChoices: bridge?.preselectChoices ?? null, option: bridge?.option ?? null
+    };
+  }
+  return bridges;
 }
 
 /**
@@ -1270,6 +1300,13 @@ export async function createCharacterActor(concept, resolved, { img = null, sele
       data.system.location = location;
       data.system.level = { ...(data.system.level ?? {}), taken: level };
     }
+    // Caster dedication bridge: the same native GrantItem preselect a class path uses.
+    const bridge = resolved.archetypeBridges?.[slugify(data.name)];
+    if (bridge?.preselectChoices) {
+      for (const rule of data.system?.rules ?? []) {
+        if (rule?.key === "GrantItem" && rule.uuid === bridge.grantUuid) rule.preselectChoices = structuredClone(bridge.preselectChoices);
+      }
+    }
     items.push(data);
   }
 
@@ -1311,6 +1348,14 @@ export async function createCharacterActor(concept, resolved, { img = null, sele
       picks: resolved.archetypeSpells ?? []
     });
     items.push(built.entry, ...built.sources);
+  }
+  // A caster dedication whose bridge could not be pre-answered gets no entry
+  // (archetypeTraditionFor warns); the GM adds it by hand.
+  const bridges = Object.values(resolved.archetypeBridges ?? {});
+  if (concept.archetypeSpellcasting) {
+    for (const bridge of bridges.filter((entry) => !entry.option)) {
+      manualNotes.push(game.i18n.format("SIMPLYSF2E.PC.ArchetypeSpellsManual", { dedication: bridge.dedication, choice: bridge.choice ?? "bridge choice" }));
+    }
   }
 
   // Focus spells: a separate `prepared.value: "focus"` entry — how the real
@@ -1642,7 +1687,12 @@ export async function createCharacterActor(concept, resolved, { img = null, sele
   } catch { skillWarnings.push("native-data"); }
   const warnings = [...new Set([...skillWarnings, ...(skillPlan?.warnings ?? [])])];
   for (const warning of warnings) console.warn(`simplysf2e | character skill review: ${warning}`);
-  return { actor, manualNotes, expectedItems: [...safeItems, ...stagedClassPaths.expectedPaths], skillReport: { rows, warnings, loadoutWarnings, automatic: skillPlan?.automatic ?? !normalizeSkillPriorities(concept.skillPriorities).length,
+  // Bridge picks are native items too: verify the Connection/Paradox and its option survived.
+  const bridgeExpected = bridges.filter((bridge) => bridge.option).flatMap((bridge) => [
+    { name: bridge.choice, type: bridge.choiceType, _stats: { compendiumSource: bridge.grantUuid } },
+    { name: bridge.option.name, type: bridge.option.type, _stats: { compendiumSource: bridge.option.uuid } }
+  ]);
+  return { actor, manualNotes, expectedItems: [...safeItems, ...stagedClassPaths.expectedPaths, ...bridgeExpected], skillReport: { rows, warnings, loadoutWarnings, automatic: skillPlan?.automatic ?? !normalizeSkillPriorities(concept.skillPriorities).length,
     trainingBudget: skillPlan?.trainingBudget ?? null, unspentTraining: skillPlan?.unspentTraining ?? null,
     unspentIncreases: skillPlan?.unspentIncreases ?? null } };
 }

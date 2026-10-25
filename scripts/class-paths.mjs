@@ -456,3 +456,74 @@ export async function stageClassPaths(classData, classId, {
   }
   return { items: staged, expectedPaths };
 }
+
+/** No AI callback: the first offered option of each group (deterministic). */
+const FIRST_OFFERED_OPTION = async (groups) => ({
+  picks: groups.map((group) => ({ choice: group.id, option: group.options[0].id }))
+});
+
+/**
+ * Pre-answer a caster dedication's granted bridge (Mystic Connection,
+ * Witchwarper Paradox) with the same proof and bounded chooser as a class path.
+ * The option pool is the bridge's own single `item:tag` query, closed the same
+ * way (resolvePathCandidate). The AI callback picks when given; otherwise the
+ * first offered option. Nothing is authored: `preselectChoices` is the native
+ * GrantItem record, copied from the same preselect a class path uses.
+ * Mutates nothing; the caller writes `preselectChoices` onto the dedication's
+ * GrantItem whose uuid is `grantUuid`.
+ * @param {object} dedicationSource plain item source of the dedication
+ * @param {object} [options]
+ * @returns {Promise<null|{choice: string, choiceType: string, grantUuid: string,
+ *   preselectChoices: Record<string, string>|null,
+ *   option: {uuid: string, name: string, type: string, source: object}|null}>}
+ *   null when the dedication grants no single-tag bridge. `option` is null when
+ *   the bridge cannot be pre-answered (fail closed).
+ */
+export async function pickDedicationBridge(dedicationSource, { context = {}, config = CONFIG?.PF2E ?? {}, selectChoices = null } = {}) {
+  const rules = dedicationSource?.system?.rules;
+  if (!Array.isArray(rules)) return null;
+  const names = Array.isArray(context.names) ? context.names : [];
+  for (const rule of rules) {
+    const grantUuid = staticGrantUuid(rule);
+    if (!grantUuid) continue;
+    const document = await documentFromUuid(grantUuid);
+    const bridge = document?.toObject?.();
+    const selector = bridge && isEnabledClassFeature(document) ? singlePathTag(bridge) : null;
+    if (!selector) continue;
+
+    const choice = bridge.name;
+    const choiceType = bridge.type ?? "feat";
+    const flag = normalizeChoiceFlag(bridge.system.rules[selector.ruleIndex].flag);
+    const unresolved = { choice, choiceType, grantUuid, preselectChoices: null, option: null };
+    const closed = [];
+    const resolvedByUuid = new Map();
+    for (const candidate of await getClassFeatureCandidates(selector.tag)) {
+      const resolved = await resolvePathCandidate(candidate, { config, classSlug: null, names, excluded: exclusionSet([]) });
+      if (!resolved) continue;
+      closed.push(candidate);
+      resolvedByUuid.set(candidate.uuid, resolved);
+    }
+    if (!closed.length) {
+      console.warn(`simplysf2e | ${dedicationSource.name}: no fully resolvable ${choice} options — pre-answer skipped`);
+      return unresolved;
+    }
+
+    bridge.system.rules[selector.ruleIndex].choices = closed.map((candidate) => ({ value: candidate.uuid, label: candidate.name }));
+    const grant = { name: choice, system: { rules: [{ key: "GrantItem", uuid: grantUuid }] } };
+    await preselectChoiceSets([grant], { names }, config,
+      async (uuid) => (uuid === grantUuid ? structuredClone(bridge) : sourceFromUuid(uuid)),
+      selectChoices ?? FIRST_OFFERED_OPTION);
+    const preselectChoices = grant.system.rules[0].preselectChoices ?? null;
+    const chosen = closed.find((candidate) => candidate.uuid === preselectChoices?.[flag]);
+    if (!chosen) {
+      console.warn(`simplysf2e | ${dedicationSource.name}: ${choice} not pre-answered — archetype spellcasting skipped`);
+      return unresolved;
+    }
+    const option = resolvedByUuid.get(chosen.uuid).source;
+    return {
+      choice, choiceType, grantUuid, preselectChoices,
+      option: { uuid: chosen.uuid, name: chosen.name, type: option.type ?? "feat", source: option }
+    };
+  }
+  return null;
+}
