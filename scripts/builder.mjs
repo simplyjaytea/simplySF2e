@@ -766,7 +766,7 @@ export async function applyTreasureBudget(loot, targetGp) {
       excess -= removable * unit;
     }
     if (excess > targetGp * 0.2) {
-      console.log(`simplysf2e | loot is ~${gpToCredits(excess)} credits over the treasure budget with no coins left to trim — named items are never removed to hit a budget`);
+      console.debug(`simplysf2e | loot is ~${gpToCredits(excess)} credits over the treasure budget with no coins left to trim — named items are never removed to hit a budget`);
     }
     // Drop coin lines trimmed all the way to zero.
     return loot.filter((l) => !(parseCoins(l.name) && (Number(l.quantity) || 0) <= 0));

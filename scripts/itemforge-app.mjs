@@ -298,7 +298,7 @@ export class ItemForgeApp extends SpfApp {
       });
       this.#price = await priceForLevel(this.#concept.level, this.#concept.rarity);
       this._throwIfCancelled();
-      console.log(`${MODULE_ID} | token usage`, this._tokenUsage);
+      console.debug(`${MODULE_ID} | token usage`, this._tokenUsage);
     } catch (err) {
       if (err?.cancelled) console.warn(`${MODULE_ID} | item generation cancelled`);
       else console.error(`${MODULE_ID} | item generation failed`, err);
@@ -368,7 +368,7 @@ export class ItemForgeApp extends SpfApp {
       this._throwIfCancelled();
       this.#itemData = built.itemData;
       this.#runedPreview = built.preview;
-      console.log(`${MODULE_ID} | token usage`, this._tokenUsage);
+      console.debug(`${MODULE_ID} | token usage`, this._tokenUsage);
     } catch (err) {
       if (err?.cancelled) console.warn(`${MODULE_ID} | runed item generation cancelled`);
       else console.error(`${MODULE_ID} | runed item generation failed`, err);

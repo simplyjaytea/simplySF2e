@@ -177,7 +177,7 @@ export async function priceForLevel(level, rarity = "common") {
       if (inWindow.length >= MIN_PRICE_SAMPLES) {
         base = median(inWindow);
         if (window > 2) {
-          console.log(`simplysf2e | itemforge: few priced items near level ${lv}; price benchmark widened to ±${window} levels`);
+          console.debug(`simplysf2e | itemforge: few priced items near level ${lv}; price benchmark widened to ±${window} levels`);
         }
         break;
       }
