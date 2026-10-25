@@ -39,8 +39,8 @@ export function createEnvironment() {
 }
 
 export const APPS = {
-  generator: { template: "generator.hbs", title: "SIMPLYSF2E.Generator.Title", icon: "fa-solid fa-dragon", tag: "form" },
-  itemforge: { template: "itemforge.hbs", title: "SIMPLYSF2E.ItemForge.Title", icon: "fa-solid fa-hammer", tag: "form" },
+  generator: { template: "generator.hbs", title: "SIMPLYSF2E.Generator.Title", icon: "fa-solid fa-microchip", tag: "form" },
+  itemforge: { template: "itemforge.hbs", title: "SIMPLYSF2E.ItemForge.Title", icon: "fa-solid fa-gears", tag: "form" },
   shop: { template: "shop.hbs", title: "SIMPLYSF2E.Shop.Title", icon: "fa-solid fa-store", tag: "form" },
   treasure: { template: "treasure.hbs", title: "SIMPLYSF2E.Treasure.Title", icon: "fa-solid fa-gem", tag: "form" },
   "provider-setup": { template: "provider-setup.hbs", title: "SIMPLYSF2E.ProviderSetup.Title", icon: "fa-solid fa-plug-circle-check", tag: "form" },

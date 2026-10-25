@@ -407,7 +407,7 @@ JSON schema (all keys required unless marked optional):
   "allies": string, // 1-2 sentences naming allies, mentors, or loyal companions (can be "" if none fit)
   "enemies": string, // 1-2 sentences naming rivals, enemies, or things the character is hunted by (can be "" if none fit)
   "organizations": string, // 1-2 sentences naming factions, guilds, or organizations the character belongs to (can be "" if none fit)
-  "languages": string[], // EXACT Starfinder 2e language names beyond the ancestry's automatic ones, fitting the character's background/culture — lowercase is fine, [] if none fit. A character learns bonus languages equal to their Intelligence modifier ON TOP of the ancestry's own, so size this to the concept: 1-2 for an average character, but 4-6 for a high-Intelligence class (Witchwarper, Mystic, Envoy) or a well-travelled scholar/diplomat
+  "languages": string[], // EXACT Starfinder 2e language names beyond the ancestry's automatic ones, fitting the character's background/culture — lowercase is fine, [] if none fit. A character learns bonus languages equal to their Intelligence modifier ON TOP of the ancestry's own, so size this to the concept: 1-2 for an average character, but 4-6 for a high-Intelligence class (Technomancer, Mechanic, Witchwarper) or a well-travelled scholar/diplomat
   "feats": string[], // 3-6 EXACT published Starfinder 2e feat names fitting the concept as a first draft wishlist — inspiration only, the final picks are chosen from real compendium lists per level in a second step
   "skillPriorities": string[], // optional ordered core-skill preferences, most important first; choose unique slugs from: ${CORE_SKILLS.join(", ")}. Match the concept and intended role. Never provide ranks, counts, scores, or new Lore skills; the module allocates legal training and increases
   "spellcasting": null | {
@@ -422,7 +422,7 @@ Design guidance:
 - Pick an ancestry, background and class that together tell a coherent, thematic character matching the GM's concept.
 - Default to common ancestries unless the concept specifically calls for something exotic — use rare or uncommon ancestries sparingly, only when they genuinely fit.
 - "keyAbility" MUST be a legal key ability for the Starfinder 2e class you chose. Classes are Envoy, Mechanic, Mystic, Operative, Solarian, Soldier, Technomancer, and Witchwarper only — never Pathfinder classes.
-- Only include "spellcasting" for classes that actually cast spells (Mystic, Witchwarper) and only when spellcasting is allowed.
+- Only include "spellcasting" for classes that actually cast spells (Mystic, Technomancer, Witchwarper) and only when spellcasting is allowed.
 - "focusSpells": name 1-3 published Starfinder 2e focus spells that plausibly fit this build when the class grants them; leave [] if the class/concept doesn't have any.
 - Give the character real personality texture, not just combat stats: mannerisms, likes/dislikes, and at least one named ally, enemy, or organization tying them into a wider world — a blank or generic answer for these is a worse answer than a specific, concept-fitting one.
 - feats/spells/equipment are first drafts only — write plausible real Starfinder 2e names; a later grounding step selects the actual final picks from the real compendium.`;
