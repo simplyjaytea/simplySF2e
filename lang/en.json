@@ -609,6 +609,7 @@
       "CreatedPresentationFailed": "The item was created, but its sheet could not be displayed. Open it from the Items directory; do not create it again.",
       "NoPrompt": "Describe the item first.",
       "KindsUnavailable": "No supported published passive effects match this level and rarity for: {kinds}. These effect kinds are not offered.",
+      "UpgradesSkipped": "No free upgrade slot on this base, so these were not installed: {upgrades}.",
       "ProgressTemplates": "Finding published passive effects",
       "ProgressConcept": "Item concept",
       "ProgressAssemble": "Pricing & validation",

@@ -116,12 +116,13 @@ export default [
     context: itemforgeContext(kind, {
       showEmptyState: false, tokenReport: TOKEN_REPORT,
       preview: {
-        concept: { name: kind === "weapon" ? "Plasma Rifle (Advanced: Flaming Module, Ghost Touch Module)" : "Fortress Plate (Advanced: Hardened Plating, Servo Assist)", level: 5, description: "Grade-native gear with installed upgrade modules." },
+        concept: { name: kind === "weapon" ? "Plasma Rifle (Advanced: Flaming Module, Ghost Touch Module)" : "Fortress Plate (Advanced: Hardened Plating)", level: 5, description: "Grade-native gear with installed upgrade modules." },
         traits: ["uncommon", "tech"],
         price: "1,350 credits",
         runed: true,
         grade: "advanced",
-        upgrades: kind === "weapon" ? ["Flaming Module", "Ghost Touch Module"] : ["Hardened Plating", "Servo Assist"],
+        upgrades: kind === "weapon" ? ["Flaming Module", "Ghost Touch Module"] : ["Hardened Plating"],
+        skippedNote: kind === "armor" ? "No free upgrade slot on this base, so these were not installed: Servo Assist." : null,
         potency: 0,
         secondary: null,
         propertyRunes: []

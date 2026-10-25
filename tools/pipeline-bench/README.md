@@ -46,8 +46,8 @@ The stub picks the first valid offered candidate: first base, first grade, the f
 - **Escaping:** raw AI markup (`<b>`) in the description becomes `&lt;b&gt;`.
 - **Price and level:** price is `priceForLevel`; `system.level` equals the GM level.
 - **Augmentation and crystal:** one category trait on augmentations; usages `implanted` and `other`.
-- **Runed items:** the grade is a grade on some `sf2e.equipment` item, offered at this level and no higher than the level; legacy runes are zeroed; each installed upgrade's usage is an offered usage and fits the base group (`propertyRuneFitsBase`); each upgrade's level is at most the GM level; and the item name keeps the base name.
-- **Warnings:** every `console.warn` is kept as a WARN, except the misfit control's drop message, which must appear.
+- **Runed items:** the grade is a grade on some `sf2e.equipment` item, offered at this level and no higher than the level; legacy runes are zeroed; each installed upgrade's usage is an offered usage and fits the base group (`propertyRuneFitsBase`); each upgrade's level is at most the GM level; the item name keeps the base name and carries at most one grade label; a copied `system.price`/`system.level` equals the base's (the system recomputes both from them, `physical/document.ts`); no base named for a non-commercial grade is offered; a base published above commercial keeps its published grade, or is refused when it would come out above the GM level.
+- **Warnings:** every `console.warn` is kept as a WARN, except the misfit control's drop message, which must appear. An upgrade skipped by the slot cap (`no free upgrade slot`) is a WARN, listed as "skipped and surfaced", because the requested upgrade is not installed. A kept published grade (`is published at … kept`) is an expected notice, not a WARN, and must appear whenever it applies.
 
 Status is `FAIL` for any failed assertion, `WARN` for a forge warning or a silent drop, `PASS` otherwise, and `n/a` when nothing can be tested at that level.
 

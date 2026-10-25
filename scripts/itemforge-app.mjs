@@ -163,7 +163,9 @@ export class ItemForgeApp extends SpfApp {
     const preview = this.#runedPreview;
     const priceCredits = preview.priceCredits ?? gpToCredits(preview.priceGp);
     const priceText = `${priceCredits.toLocaleString()} credits`;
+    const skipped = preview.skippedUpgrades ?? [];
     return {
+      skippedNote: skipped.length ? game.i18n.format("SIMPLYSF2E.ItemForge.UpgradesSkipped", { upgrades: skipped.join(", ") }) : null,
       concept: { name: data.name, level: preview.level, description: this.#concept?.description ?? "" },
       traits: [data.system.traits?.rarity !== "common" ? data.system.traits?.rarity : null, ...(data.system.traits?.value ?? [])].filter(Boolean),
       price: priceText,
@@ -360,7 +362,7 @@ export class ItemForgeApp extends SpfApp {
       // item's preview IS its final data, there is no separate build step.
       await this._setStep("assemble");
       this.#concept = normalizeRunedItemConcept(raw, {
-        kind, rarity: this.#input.rarity, baseCandidates, runeCandidates,
+        kind, rarity: this.#input.rarity, level: this.#input.level, baseCandidates, runeCandidates,
         grades: gradeTiers.grades,
         potencyTiers: tiers.potencyTiers, secondaryTiers: tiers.secondaryTiers
       });

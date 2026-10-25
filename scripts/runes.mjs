@@ -53,6 +53,18 @@ export const EQUIPMENT_GRADES = [
   "commercial", "tactical", "advanced", "superior", "elite", "ultimate", "paragon"
 ];
 
+/* A grade label ending a published item name, e.g. "Blast Knife (Superior)" or
+ * "Lock (Commercial)". Some sf2e items are published this way with system.grade
+ * left at commercial (the grenade and Stun Stick families). */
+const TRAILING_GRADE = new RegExp(`\\s*\\((${EQUIPMENT_GRADES.join("|")})\\)$`, "i");
+export const trailingGradeLabel = (name) => String(name ?? "").match(TRAILING_GRADE)?.[1].toLowerCase() ?? null;
+export const stripTrailingGradeLabel = (name) => String(name ?? "").replace(TRAILING_GRADE, "");
+/** A base already published at a non-commercial grade is a finished item, not a commercial base to grade. */
+export const isPublishedAboveCommercial = (name) => {
+  const grade = trailingGradeLabel(name);
+  return grade !== null && grade !== "commercial";
+};
+
 export const GRADE_LEVELS = {
   weapon: {
     commercial: 0, tactical: 2, advanced: 4, superior: 10,
@@ -347,7 +359,7 @@ export async function runeGp(runes, kind) {
 export async function getBaseItemCandidates(kind, maxLevel) {
   const entries = await getAllEquipmentEntries();
   return entries
-    .filter((e) => e.type === kind && !e.specific && e.level <= maxLevel)
+    .filter((e) => e.type === kind && !e.specific && e.level <= maxLevel && !isPublishedAboveCommercial(e.name))
     .sort((a, b) => a.level - b.level || a.name.localeCompare(b.name))
     .map((e) => ({
       name: e.name,
