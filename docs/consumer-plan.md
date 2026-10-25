@@ -1,6 +1,6 @@
 # Consumer-ready plan (after 1.0)
 
-Planned by Fable on 2026-10-25. Status: **proposal; JT has not decided §4 yet.** This builds on `docs/roadmap-1.0.md` (M0-M4) and adds M5-M9. The goal, in JT's words: "other people can use it ... no bugs, it just works flawlessly. We just give it the API key and it just goes to town."
+Planned by Fable on 2026-10-25. Status: **accepted with JT's decisions (2026-10-25), recorded in §4.** This builds on `docs/roadmap-1.0.md` (M0-M4) and adds M5-M9. The goal, in JT's words: "other people can use it ... no bugs, it just works flawlessly. We just give it the API key and it just goes to town."
 
 ## 1. Bars a consumer release must meet
 
@@ -16,7 +16,7 @@ Planned by Fable on 2026-10-25. Status: **proposal; JT has not decided §4 yet.*
 | R8 Compatibility | Green on Foundry 14 min/verified × sf2e 1.6.x. A newer sf2e warns but never blocks. A pack-id change is caught |
 | R9 Support loop | A bug report reaches the maintainer in one click, with versions and redacted settings |
 
-**Exit:** all nine bars are green on one stable build, after a beta soak of at least 14 days with at least 5 outside GMs and no open blocker.
+**Exit:** all nine bars are green on one stable build, after a 14-day beta soak on JT's worlds with no open blocker. JT decided against outside testers and a smoke bot.
 
 ## 2. Milestones
 
@@ -100,3 +100,11 @@ Planned by Fable on 2026-10-25. Status: **proposal; JT has not decided §4 yet.*
 - D9 Player handouts GM-only by default, with a Share button? [Yes]
 - D10 Foundry package listing at beta or stable? [Stable only]
 - D11 Cost: manual price fields, OpenRouter cost, or both? [Both]
+
+### JT's decisions (2026-10-25)
+
+- **D2 Channels:** yes, before the next merge. The M2-M4 batch ships to beta, not to every install.
+- **D4 Providers:** OpenRouter and DeepSeek are both first-class defaults on the Welcome screen.
+- **D1 Smoke bot:** no. Live testing stays manual.
+- **D7 Beta cohort:** no. The exit criteria change: R1/R2 are measured by the golden replay suite plus JT's logged passes, and the 14-day soak runs on JT's own worlds.
+- D3, D5, D6, D8, D9, D10, D11: Fable's recommendations stand until JT says otherwise.
