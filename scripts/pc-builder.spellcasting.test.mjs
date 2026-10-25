@@ -31,7 +31,7 @@ const common = {
 const resolved = {
   ancestryDoc: doc("ancestry", { boosts: {}, additionalLanguages: {}, languages: { value: [] } }),
   backgroundDoc: doc("background", { boosts: {}, trainedSkills: { value: [] } }),
-  classDoc: doc("class", { slug: "wizard", publication: { title: "Pathfinder Player Core", remaster: true }, keyAbility: { value: ["int"] }, trainedSkills: { value: [], additional: 0 } }, "Wizard"),
+  classDoc: doc("class", { slug: "technomancer", publication: { title: "Starfinder Tech Core", remaster: true }, keyAbility: { value: ["int"] }, trainedSkills: { value: [], additional: 0 } }, "Technomancer"),
   heritageDoc: null, feats: [], focusSpells: [], equipment: [], loot: [],
   spells: [
     { spell: { rank: 1 }, entry: entry("magic-missile") }, { spell: { rank: 1 }, entry: entry("magic-missile") },
@@ -53,9 +53,9 @@ assert.equal(embedded.filter((item) => item.type === "spell" && item.name === "d
 assert.ok(embedded.filter((item) => item.type === "spell").every((item) => item.system.location.value === casting._id && item.system.location.heightenedLevel === undefined),
   "prepared spell sources discard stale entry and heightening locations");
 
-const wizardClass = resolved.classDoc;
-resolved.classDoc = doc("class", { slug: "sorcerer", publication: { title: "Pathfinder Player Core 2", remaster: true }, keyAbility: { value: ["cha"] }, trainedSkills: { value: [], additional: 0 } }, "Sorcerer");
-const sorcererClass = resolved.classDoc;
+const technomancerClass = resolved.classDoc;
+resolved.classDoc = doc("class", { slug: "witchwarper", publication: { title: "Starfinder Player Core", remaster: true }, keyAbility: { value: ["cha"] }, trainedSkills: { value: [], additional: 0 } }, "Witchwarper");
+const witchwarperClass = resolved.classDoc;
 resolved.spells = [
   { spell: { rank: 3 }, entry: entry("fireball") }, { spell: { rank: 4 }, entry: entry("fireball") }
 ];
@@ -70,7 +70,7 @@ assert.equal(spontaneous.system.ability.value, "cha");
 
 const pick = (id, rank) => ({ spell: { name: id, rank }, entry: entry(id) });
 for (let i = 0; i < 6; i++) docs.set(`cantrip-${i}`, spellDoc(`cantrip-${i}`, 1, ["cantrip"]));
-resolved.classDoc = wizardClass;
+resolved.classDoc = technomancerClass;
 resolved.spells = [
   ...Array.from({ length: 5 }, () => pick("magic-missile", 1)),
   pick("magic-missile", 2), pick("fireball", 3),
@@ -138,7 +138,7 @@ assert.notEqual(crossPack[0].id, crossPack[1].id, "different real document UUIDs
 
 const marked = (id, rank, signature = true) => ({ ...pick(id, rank), spell: { name: id, rank, signature } });
 const actualSpells = () => embedded.filter((item) => item.type === "spell");
-resolved.classDoc = sorcererClass;
+resolved.classDoc = witchwarperClass;
 resolved.spells = [marked("magic-missile", 1)];
 await createCharacterActor({ ...common, level: 2, spellcasting: { tradition: "arcane", signatureRanks: [1] } }, resolved);
 assert.ok(!actualSpells()[0].system.location.signature, "forged upstream eligibility and stale source signature cannot bypass class level");
@@ -178,11 +178,11 @@ assert.equal(actualSpells().length, 2);
 assert.equal(actualSpells()[0].system.location.heightenedLevel, 10, "common lower-base spells can be learned heightened at ten");
 assert.equal(actualSpells()[0].system.location.signature, true);
 
-resolved.classDoc = wizardClass;
+resolved.classDoc = technomancerClass;
 resolved.spells = [marked("magic-missile", 1)];
 await createCharacterActor({ ...common, spellcasting: { tradition: "arcane" } }, resolved);
 assert.ok(!actualSpells()[0].system.location.signature, "ordinary prepared casting never gains signatures");
-resolved.classDoc = doc("class", { ...sorcererClass.system, publication: { title: "Core Rulebook", remaster: false } }, "Sorcerer");
+resolved.classDoc = doc("class", { ...witchwarperClass.system, publication: { title: "Core Rulebook", remaster: false } }, "Witchwarper");
 await createCharacterActor({ ...common, spellcasting: { tradition: "arcane", signatureRanks: [1] } }, resolved);
 assert.ok(!actualSpells()[0].system.location.signature, "unsupported/legacy profiles do not gain guessed signature features");
 console.log("pc-builder spellcasting: prepared IDs, ranks, source validation, caps and native empty plans passed");

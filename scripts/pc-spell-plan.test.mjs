@@ -1,14 +1,14 @@
 import assert from "node:assert/strict";
 import { pcSpellcastingProfile, pcSpellPlan } from "./pc-tables.mjs";
 
-// Class publication metadata from PF2e 8.4.1 class documents. Feature texts:
-// class-features/signature-spells.json; magnum-opus.json;
-// oracular-clarity.json; bloodline-paragon.json (both master and 8.4.1).
+// Class publication metadata from sf2e v14-dev class documents (packs/sf2e/classes/).
+// Feature texts: sf2e class-features/shared/signature-spells.json,
+// mystic/transcendence.json and witchwarper/quantum-thesis.json.
 const profile = (name, title) => pcSpellcastingProfile({ name, system: {
   slug: null, publication: { title, remaster: true }
 } });
 for (const [name, title] of [
-  ["Bard", "Pathfinder Player Core"], ["Sorcerer", "Pathfinder Player Core 2"], ["Oracle", "Pathfinder Player Core 2"]
+  ["Mystic", "Starfinder Player Core"], ["Witchwarper", "Starfinder Player Core"]
 ]) {
   const caster = profile(name, title);
   for (const level of [1, 2]) assert.deepEqual(pcSpellPlan(level, caster).signatureRanks, [], `${name} before Signature Spells`);
@@ -24,11 +24,10 @@ for (const [name, title] of [
     assert.notEqual(plan.slots[1], 99, "repertoire capacity cannot mutate native slot capacity");
   }
 }
-for (const name of ["Wizard", "Cleric", "Druid", "Witch"]) {
-  const plan = pcSpellPlan(20, profile(name, "Pathfinder Player Core"));
-  assert.deepEqual(plan.signatureRanks, []);
-  assert.deepEqual(plan.picks, plan.slots, "ordinary prepared picks are daily slots, not a repertoire");
-}
+const technomancer = profile("Technomancer", "Starfinder Tech Core");
+const preparedPlan = pcSpellPlan(20, technomancer);
+assert.deepEqual(preparedPlan.signatureRanks, []);
+assert.deepEqual(preparedPlan.picks, preparedPlan.slots, "ordinary prepared picks are daily slots, not a repertoire");
 const unknown = pcSpellPlan(20, null);
 assert.equal(unknown.picks[10], 1, "legacy approximation is not silently granted a qualified class feature");
 assert.deepEqual(unknown.signatureRanks, []);

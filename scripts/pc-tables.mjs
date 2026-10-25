@@ -126,26 +126,17 @@ export function spontaneousSpellSlots(level) {
   return pcSpellSlots(level, null);
 }
 
-// Provenance split: the seven Pathfinder rows below (bard…wizard) are PF2e
-// Player Core legacy fallback — PF2e-compatible pending SF2e equivalents, do
-// not treat as SF2e published. The two Starfinder rows (mystic, witchwarper)
-// are SF2e-cited: packs/sf2e/classes/{mystic,witchwarper}.json on
+// The three sf2e casters are cited to their published class documents:
+// packs/sf2e/classes/{mystic,witchwarper}.json on
 // https://github.com/foundryvtt/pf2e/tree/v14-dev (publication "Starfinder Player
 // Core", remaster: true, no system.slug, so name matching applies). Casting ability:
 // mystic-spellcasting.json says Wisdom; witchwarper-spellcasting.json says Charisma
 // or Intelligence "depending on which you chose for your key attribute" (class
 // keyAbility.value ["cha","int"]), so null leaves ability to the chosen key attribute.
 // Tradition comes from connection or paradox. Both features grant "three 1st-rank spells".
-const REMASTER_SPELLCASTERS = [
-  // PF2e legacy fallback rows (Pathfinder Player Core / Player Core 2):
-  { slug: "bard", name: "Bard", title: "Pathfinder Player Core", mode: "spontaneous", ability: "cha", tradition: "occult", baseSlots: 2 },
-  { slug: "sorcerer", name: "Sorcerer", title: "Pathfinder Player Core 2", mode: "spontaneous", ability: "cha", tradition: null, baseSlots: 3 },
-  { slug: "oracle", name: "Oracle", title: "Pathfinder Player Core 2", mode: "spontaneous", ability: "cha", tradition: "divine", baseSlots: 3 },
-  { slug: "cleric", name: "Cleric", title: "Pathfinder Player Core", mode: "prepared", ability: "wis", tradition: "divine", baseSlots: 2 },
-  { slug: "druid", name: "Druid", title: "Pathfinder Player Core", mode: "prepared", ability: "wis", tradition: "primal", baseSlots: 2 },
-  { slug: "witch", name: "Witch", title: "Pathfinder Player Core", mode: "prepared", ability: "int", tradition: null, baseSlots: 2 },
-  { slug: "wizard", name: "Wizard", title: "Pathfinder Player Core", mode: "prepared", ability: "int", tradition: "arcane", baseSlots: 2 },
-  // SF2e-cited rows (Starfinder Player Core):
+// PF2e casters never match: sf2e class documents are Compendium.sf2e.* and the
+// Pathfinder titles are not sf2e publications.
+export const REMASTER_SPELLCASTERS = [
   { slug: "mystic", name: "Mystic", title: "Starfinder Player Core", mode: "spontaneous", ability: "wis", tradition: null, baseSlots: 3 },
   { slug: "witchwarper", name: "Witchwarper", title: "Starfinder Player Core", mode: "spontaneous", ability: null, tradition: null, baseSlots: 3 },
   // sf2e-1.6.1 packs/sf2e/classes/technomancer.json (spellcasting 1, key Int):
@@ -155,9 +146,9 @@ const REMASTER_SPELLCASTERS = [
   { slug: "technomancer", name: "Technomancer", title: "Starfinder Tech Core", mode: "prepared", ability: "int", tradition: "arcane", baseSlots: 2 }
 ];
 
-/** Conservative Remaster class profile. Class data itself contains only spell
+/** Conservative sf2e Remaster class profile. Class data itself contains only spell
  * proficiency (PF2e class/data.ts), so the published source title qualifies
- * this small verified profile table and prevents legacy lookalikes applying. */
+ * this small verified profile table. */
 export function pcSpellcastingProfile(classDoc) {
   const slug = String(classDoc?.system?.slug ?? "");
   const name = String(classDoc?.name ?? "");
@@ -167,11 +158,9 @@ export function pcSpellcastingProfile(classDoc) {
   return profile ? { mode: profile.mode, ability: profile.ability, tradition: profile.tradition, baseSlots: profile.baseSlots } : null;
 }
 
-/** Base slots only: nine class tables verified at every level against
- * https://raw.githubusercontent.com/foundryvtt/pf2e/pf2e-8.4.1/packs/pf2e/journals/classes.json,
- * master packs/journals/classes.json, and (Mystic/Witchwarper Spells per Day)
+/** Base slots only: Mystic/Witchwarper Spells per Day verified at every level against
  * https://raw.githubusercontent.com/foundryvtt/pf2e/v14-dev/packs/sf2e/journals/classes.json.
- * Font/curriculum/feat bonuses are NOT
+ * Technomancer's base 2 is cited on its row above. Font/curriculum/feat bonuses are NOT
  * unrestricted base slots. Missing profiles retain the old 2/3 approximation. */
 export function pcSpellSlots(level, profile) {
   const baseSlots = profile?.baseSlots === 3 ? 3 : 2;
@@ -189,7 +178,7 @@ export function pcSpellSlots(level, profile) {
 /** Spell-list capacity is distinct from native casting slots for spontaneous
  * Remaster casters: their 10th-rank repertoire has two common picks at 19–20
  * while the entry still has one slot. Signature eligibility starts at level 3.
- * Only the five qualified spontaneous profiles above use this policy.
+ * Only the qualified spontaneous profiles above (Mystic, Witchwarper) use this policy.
  * Sources (master agrees under packs/classfeatures/):
  * https://raw.githubusercontent.com/foundryvtt/pf2e/pf2e-8.4.1/packs/pf2e/class-features/signature-spells.json
  * Same directory: magnum-opus.json, oracular-clarity.json, bloodline-paragon.json.
