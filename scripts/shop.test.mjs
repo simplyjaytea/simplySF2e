@@ -2,7 +2,7 @@
 // Run: node scripts/shop.test.mjs
 import assert from "node:assert/strict";
 import {
-  SHOP_SIZES, SHOP_STACK, clampShopLevel, shopTypesFor, withinShopRarity, normalizeShopConcept,
+  SHOP_SIZES, SHOP_STACK, clampShopLevel, shopTypesFor, withinShopRarity, hasPositivePrice, normalizeShopConcept,
   pickShopStock, shopStockValue, shopDescriptionHtml, shopActorData
 } from "./shop.mjs";
 
@@ -27,6 +27,21 @@ assert.ok(withinShopRarity(undefined, "common"), "missing rarity counts as commo
 assert.ok(!withinShopRarity("uncommon", "common"));
 assert.ok(withinShopRarity("uncommon", "rare"));
 assert.ok(!withinShopRarity("unique", "rare"));
+
+// Price: an item is stocked only with a positive amount in some denomination.
+// sf2e 1.6.1 lists 15 equipment items as `{}` (no price); those must never be stocked at 0 credits.
+assert.equal(hasPositivePrice({}), false, "no price is unpriced");
+assert.equal(hasPositivePrice({ per: 1, value: {} }), false, "a per-wrapped empty value is unpriced");
+assert.equal(hasPositivePrice(undefined), false);
+assert.equal(hasPositivePrice(null), false);
+assert.equal(hasPositivePrice("500 credits"), false, "a string is not a price");
+assert.equal(hasPositivePrice({ gp: 0, sp: 0 }), false, "zero is unpriced, not free");
+assert.equal(hasPositivePrice({ gp: -4 }), false, "a negative price is unpriced");
+assert.equal(hasPositivePrice({ gp: Number.NaN }), false);
+assert.equal(hasPositivePrice({ sp: 50 }), true);
+assert.equal(hasPositivePrice({ credits: 3 }), true);
+assert.equal(hasPositivePrice({ upb: 1 }), true);
+assert.equal(hasPositivePrice({ pp: 0, cp: 7 }), true);
 
 // Concept: flavor only, trimmed, keywords deduped, categories validated.
 const concept = normalizeShopConcept({
