@@ -6,9 +6,9 @@ The one file every agent (Claude, Codex, anything else) reads first. It holds wh
 
 ## 0. Start here
 
-1. Read §1 to §3 and §6. Look at other sections when the task touches them.
+1. **Coordinator:** read §1 to §3 and §6, then other sections as the task needs. **Worker or reviewer:** follow your prompt and read §3, §4 and §8.
 2. `git log --oneline -10` and `git status`. Git is authoritative for branch state, not any file.
-3. Baseline: `for f in scripts/*.test.mjs; do node "$f" >/dev/null 2>&1 || echo FAIL $f; done` (no output = all pass).
+3. Baseline: run the all-tests command in §4 (bash only; on Windows use Git Bash, not PowerShell)..
 4. If §1 lists a review in flight, check whether its PR merged mid-review. If it did, ship fixes as a **new** PR.
 5. End every session with the tree clean or committed on a named branch, never with uncommitted work on `main`.
 
@@ -17,10 +17,10 @@ The one file every agent (Claude, Codex, anything else) reads first. It holds wh
 *Updated 2026-10-25.* Status **Beta**. Every merge to `main` publishes the next release; check GitHub Releases for the version.
 
 - **No active feature plan.** The UI polish and Jev tracks (`docs/archive/next-steps.md`) and the GM-ready checklist (`docs/archive/gm-ready-checklist.md`) are complete.
-- **Last sessions (2026-10-25):** repo review and a no-behavior-change cleanup (PR #68, v0.1.2); this playbook replaced CLAUDE.md, AGENTS.md, HANDOFF.md and HISTORY.md as the single source; creature art fix (keeps borrowed token art, drops the placeholder portrait, names the token after the new creature). All 37 merged remote branches were deleted on JT's OK (36 old ones plus `cleanup/repo-tidy`).
+- **Last sessions (2026-10-25):** cleanup PR #68 (v0.1.2); then this playbook replaced CLAUDE.md, AGENTS.md, HANDOFF.md and HISTORY.md, and the creature art fix landed (borrowed token art and scale kept, placeholder portrait dropped, token named after the new creature, numbered for encounter copies). All 37 merged remote branches were deleted on JT's OK.
 - **Live evidence:** JT reported the live run of `docs/qa-checklist.md` OK on 2026-10-08 (verbal; no versions or per-row log). Not live-checked since: every feature in README.md "Live checks", plus the creature art fix. The three Reskin rows (compendium drop, world-actor drop, a renamed strike keeping its attack effects) were never confirmed one by one.
 - **Open follow-ups (not started):**
-  - `console.log` diagnostics in `generator-app.mjs` (token usage, equipment matches), `itemforge-app.mjs`, `item-builder.mjs:180` and `builder.mjs:768` are kept as intentional. Demote them to `console.debug` if JT wants them quiet.
+  - `console.log` diagnostics in `generator-app.mjs` (token usage, equipment matches), `itemforge-app.mjs`, `item-builder.mjs` and `builder.mjs` (grep `console.log`) are kept as intentional. Demote them to `console.debug` if JT wants them quiet.
   - PF2e-only code paths remain by design: the Remaster PF2e caster rows in `pc-tables.mjs` and the Skillful Lessons branch in `pc-builder.mjs` only match PF2e documents.
   - Deferred past GM-ready: multiclass in the PC pipeline (`pc-support.mjs` map is unwired), full Free Archetype prerequisite graphs, upgrade prerequisite/exclusivity validation, shields and ammunition in the forge.
 - **Environment:** no Foundry here; JT runs live QA on a VPS. `gh` works on JT's machine as of 2026-10-25 (it used to hang; fall back to `curl https://api.github.com/repos/simplyjaytea/simplySF2e/...` if it does). Claude Code cloud sessions have no `gh` (use the GitHub MCP tools) and can push only to their designated branch. Git identity: `user.name "jt"`, `user.email "jt_f@ymail.com"`.
@@ -42,12 +42,12 @@ Foundry VTT module `simplysf2e`. An AI generates Starfinder 2e NPCs/monsters, en
 ## 3. Invariants (never break)
 
 1. **Clone a real Rule Element from a published item; never hand-author one.** No hand-written fallback exists, by design.
-2. **Fetch real v14-dev sf2e source when a field name or shape matters.** Never recall PF2e shapes. This has bitten the project repeatedly.
+2. **Use real v14-dev sf2e source when a field name or shape matters.** Never recall PF2e shapes. The coordinator fetches it and pastes the quoted lines into worker prompts; workers use only those; reviewers spot-check the citation. This has bitten the project repeatedly.
 3. **The in-module AI never emits a number or writes code.** It picks scale words and enum slugs; the module supplies values from tables, real documents or pre-written macro bodies.
 4. **Escape AI text before HTML** with `text.mjs` `esc`/`toHtml` (descriptions, actor notes, macro chat).
 5. **Fail closed.** Drop an unresolved pick with `console.warn`; never guess. Exceptions: a PC feat slot or a PC caster's spell list, where empty is worse than approximate. Skill completion may use labeled key-ability defaults; budgets, schedules and unsupported mechanics are never guessed.
 6. **Never push or merge to `main` directly.** Branch + PR. A merge to `main` auto-publishes a public release to every install.
-7. **Design choices go to JT first.**
+7. **Design choices go to JT first:** UX, scope, balance numbers, and anything this file does not already decide.
 
 ## 4. Commands
 
@@ -120,7 +120,7 @@ A reviewer that must run tests needs an agent type that can run `node` (`general
 2. **Split:** one task per worktree, with no file overlap between parallel tasks. This file, CLAUDE.md and AGENTS.md belong to the coordinator.
 3. **Dispatch:** send all independent tasks in one message.
 4. **Review ladder:** tier 1 → tier 2 (→ tier 3). A finding goes back to the same worker (`SendMessage`) as a **new** commit, never an amend, and the fix climbs again from the tier that found it. Minor findings in coordinator-owned docs are fixed by the coordinator instead.
-5. **Integrate:** make one branch from `main`, `git merge --no-ff` each passed worktree branch, then run `bash tools/release-check.sh` (`--no-ui` only if no template/CSS changed).
+5. **Integrate:** make one branch from `main`, `git merge --no-ff` each passed worktree branch, then give the combined diff its own tier 1 + tier 2 review and run `bash tools/release-check.sh` (`--no-ui` only if no template/CSS changed).
 6. **PR and merge:** push, open **one** PR for the batch (each merge is a public release), and wait for `verify`. The coordinator may merge once an independent reviewer has no open blockers and `verify` is green on the current head.
 7. **Tidy:** `git worktree remove` each worktree and delete local `worktree-agent-*` branches. Ask JT before any authenticated GitHub write. JT's standing authority covers push, PR and merge only, so deleting a remote branch needs JT's OK.
 8. **Hand off:** rewrite §1; add lessons to §8.
