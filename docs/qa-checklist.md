@@ -39,6 +39,7 @@ Conventions: "Generator" = the **SimplySF2e — Generator** window. "Forge" = th
 | 1.3 | Duplicate it, then open **Manage Presets**. | "QA Test (copy)" exists. **Manage Custom Presets** lists both with edit and export buttons. | Manage window | | |
 | 1.4 | **Export All**, delete both presets, then **Import** the exported JSON. | "Presets imported: 2 added, 0 skipped." Both are back. | Manage window | | |
 | 1.5 | Delete "QA Test" and the copy (confirm dialog). | "Preset … deleted." Gone from the dropdown; Manage window shows "No custom presets yet." | Notification | | |
+| 1.6 | Generator → Preset dropdown → open the **Standard classes** group. | Lists Envoy, Mechanic, Mystic, Operative, Solarian, Soldier, Technomancer and Witchwarper. Mechanic and Technomancer select like the other standard presets. | Preset dropdown | | |
 
 ## 2. NPC generation at GM Core levels
 
@@ -153,6 +154,7 @@ Open the Forge from the Items tab **Item Forge** button. Pick the **Item type**,
 | 6d.4 | Price. | In credits; compare to the preview estimate (the sheet's prepared value is authoritative; record both). | Item sheet | | |
 | 6d.5 | Embed on a character and make a Strike. | Strike appears with native attack/damage; no console errors. | Strikes, chat | | |
 | 6d.6 | Repeat at levels 3, 13 and 18. | Grade rises with level; still priced in credits. If nothing fits, a clear message appears (e.g. "No … items were found in this world's compendiums…"). | Forge | | |
+| 6d.7 | Item type **Weapon (upgrades)**, level 8. **Generate** a projectile weapon (prompt: "a heavy projectile rifle"), then a laser weapon (prompt: "a laser rifle") at the same level. **Create Item** on the projectile one. | Projectile preview's "Grade & Upgrades" lists an **Impact Enhancer** or **Arcane Adapter** upgrade when one fits. The laser preview lists neither. On the created projectile weapon the upgrade is installed (`system.subitems`). | Forge preview, item sheet | | |
 
 ### 6e. Armor with grade (no upgrade)
 
@@ -218,6 +220,27 @@ Per class and level:
 | 7c.1 | Create a level 5 Technomancer. | A prepared arcane spellcasting entry with 5 cantrips and rank 1-3 slots; a focus entry holding the magic hack for its programming language (e.g. Viper -> Amplify Vulnerability); focus pool 1. | Spellcasting tab | | |
 | 7c.2 | Create a level 1 Mechanic until one picks the Drone exocortex. | After Create, the GM gets a whisper: 'Drone exocortex: set up the drone companion by hand; SimplySF2e does not create companion actors.' Mine or Turret Mechanics get no whisper. | Chat (GM whisper) | | |
 | 7c.3 | Create a level 5 Mechanic with default settings and open the skill review in the preview/after Create. | No 'Some feat prerequisites were planned with skill ranks the created character did not get' warning appears. | Preview / skill review | | |
+| 7c.4 | Create a level 5 Technomancer. On the Spellcasting tab, count every spell in the prepared entry's spell database (known spells, not only the prepared ones). | Database holds 10 cantrips; 5 first-rank arcane spells plus the programming language's 1st-rank cache spell; and two spells per spell rank after 1st. Record: cantrips `__`, rank 1 `__`, rank 2 `__`, rank 3 `__`. | Spellcasting tab | | |
+
+### 7d. Living Hologram and SRO ancestries (size choice)
+
+| # | Step | Expected | Where to look | Result | Evidence |
+|---|------|----------|---------------|--------|----------|
+| 7d.1 | Level 1 **Living Hologram** PC. Player Character mode; name the ancestry in the prompt (e.g. "a living hologram courier"). Generate Character, then Create Actor. | No native size prompt appears. The module answers the size choice. The sheet shows the creature size it chose. | Dialogs, sheet | | |
+| 7d.2 | Level 1 **SRO** PC (SRO Frame). Same steps, naming the SRO ancestry in the prompt. | As 7d.1. | Dialogs, sheet | | |
+
+### 7e. Multiclass (Free Archetype on only)
+
+Turn on **Free Archetype variant rule** (Module Settings → SimplySF2e) for 7e.2–7e.6. The Multiclass picker must not appear with it off (7e.1). The picker label and the Basic Spellcasting slot ranks in 7e.5 come from the plan, not from `lang/en.json` or a cited journal page yet. Check them against the build and `journals/archetypes.json` (Basic Spellcasting) before you rely on them.
+
+| # | Step | Expected | Where to look | Result | Evidence |
+|---|------|----------|---------------|--------|----------|
+| 7e.1 | With **Free Archetype variant rule** off, open the Generator in Player Character mode. Turn the setting on and reopen it. | Off: no **Multiclass** picker. On: a Multiclass picker appears, blank by default. | Generator | | |
+| 7e.2 | Free Archetype on. Class Soldier, level 5. Multiclass picker: Mystic. Generate Character, then Create Actor. | The Mystic Dedication fills the level-2 archetype slot. Preview and sheet agree. | Preview, Feats tab | | |
+| 7e.3 | Same character. Read the archetype feats at levels 4 and later. | Where a legal follow-up exists, later archetype slots take Mystic archetype feats (their prerequisites name the Mystic Dedication or an earlier Mystic feat). | Feats tab | | |
+| 7e.4 | Free Archetype on. Multiclass picker left empty. Prompt: "a soldier who dabbles in mysticism", level 5. Generate Character, then Create Actor. | The AI picks a dedication from the prompt. That dedication fills the level-2 archetype slot; the picker stays empty. | Preview, Feats tab | | |
+| 7e.5 | Free Archetype on. Soldier with Multiclass picker: Mystic, created at level 4, then again at level 6 and at level 8. After each Create Actor, read the Spellcasting tab. | A separate Mystic archetype spellcasting entry appears with 2 cantrips. A rank 1 slot appears at level 4, rank 2 at level 6, rank 3 at level 8 (Player Core p. 174, basic spellcasting). Record slots per rank: `__`. Repeat once with Witchwarper or Technomancer as the picker. | Spellcasting tab | | |
+| 7e.6 | Free Archetype on. Multiclass picker: Mystic, level 6. Prompt: "a mystic who also trained as an operative". Generate Character, then read the archetype feats at levels 2 to 6. | Only the Mystic dedication appears. No second dedication (for example Operative Dedication) appears before two Mystic archetype feats are placed. | Preview, Feats tab | | |
 
 ## 8. Skills: Computers and Piloting
 
