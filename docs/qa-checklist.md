@@ -217,6 +217,7 @@ Per class and level:
 |---|------|----------|---------------|--------|----------|
 | 7c.1 | Create a level 5 Technomancer. | A prepared arcane spellcasting entry with 5 cantrips and rank 1-3 slots; a focus entry holding the magic hack for its programming language (e.g. Viper -> Amplify Vulnerability); focus pool 1. | Spellcasting tab | | |
 | 7c.2 | Create a level 1 Mechanic until one picks the Drone exocortex. | After Create, the GM gets a whisper: 'Drone exocortex: set up the drone companion by hand; SimplySF2e does not create companion actors.' Mine or Turret Mechanics get no whisper. | Chat (GM whisper) | | |
+| 7c.3 | Create a level 5 Mechanic with default settings and open the skill review in the preview/after Create. | No 'Some feat prerequisites were planned with skill ranks the created character did not get' warning appears. | Preview / skill review | | |
 
 ## 8. Skills: Computers and Piloting
 

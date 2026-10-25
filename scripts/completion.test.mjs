@@ -83,6 +83,29 @@ const npcEmptyFeat = completionManifest({ mode: "npc", concept: {}, resolved: {
 assert.equal(npcEmptyFeat.complete, false, "NPC feat slots still block Create when unresolved");
 assert.throws(() => assertComplete(npcEmptyFeat), /feat: Unplaced Feat/);
 
+// A character archetype fill rejected by Free Archetype placement had other
+// legal candidates, so it blocks Create. A plain null slot still does not.
+const rejectedFill = completionManifest({ mode: "character", concept: {}, resolved: {
+  ancestryDoc: { name: "Human" }, backgroundDoc: { name: "Soldier" }, classDoc: { name: "Soldier" },
+  spells: [], focusSpells: [], equipment: [], loot: [],
+  feats: [
+    { type: "general", level: 19, archetype: true, name: "Rejected Feat", entry: null, placement: "rejected" }
+  ]
+} });
+assert.equal(rejectedFill.complete, false, "a rejected character feat fill blocks Create");
+assert.throws(() => assertComplete(rejectedFill), /feat: Rejected Feat/);
+assert.deepEqual(rejectedFill.records.filter((record) => record.category === "feat"), [
+  { category: "feat", name: "Rejected Feat", status: "unresolved", required: true }
+]);
+
+const plainNullFeat = completionManifest({ mode: "character", concept: {}, resolved: {
+  ancestryDoc: { name: "Human" }, backgroundDoc: { name: "Soldier" }, classDoc: { name: "Soldier" },
+  spells: [], focusSpells: [], equipment: [], loot: [],
+  feats: [{ type: "general", level: 19, archetype: true, name: "general 19", entry: null }]
+} });
+assert.equal(plainNullFeat.complete, true, "a plain null character feat slot does not block Create");
+assert.doesNotThrow(() => assertComplete(plainNullFeat));
+
 const summary = completionSummary([creature, pc, skippedGear, emptyFeat]);
 assert.deepEqual(summary, {
   total: creature.records.length + pc.records.length + skippedGear.records.length + emptyFeat.records.length,
