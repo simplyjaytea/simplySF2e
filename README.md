@@ -133,7 +133,7 @@ While a generation runs, a progress bar names each step and has a **Cancel gener
 
 **Advanced options** (a fold-out under the description) holds:
 
-- **Preset**: a flavor guide for the AI. It offers the six Standard classes (Envoy, Mystic, Operative, Solarian, Soldier, Witchwarper), four Starfinder Archetypes (Corp Enforcer, Free Captain (Pirate), Street Cyberdoc, Bounty Hunter), and your own custom presets. **Manage Presets** lets you create, edit, duplicate, delete, export and import custom presets as JSON. Custom presets are saved in the world.
+- **Preset**: a flavor guide for the AI. It offers the eight Standard classes (Envoy, Mechanic, Mystic, Operative, Solarian, Soldier, Technomancer, Witchwarper), four Starfinder Archetypes (Corp Enforcer, Free Captain (Pirate), Street Cyberdoc, Bounty Hunter), and your own custom presets. **Manage Presets** lets you create, edit, duplicate, delete, export and import custom presets as JSON. Custom presets are saved in the world.
 - **Rarity**: the creature's rarity. In Player Character mode this becomes **Rarity cap**, which excludes ancestries, backgrounds and heritages rarer than the cap.
 - **Monster Adjustment**: **Normal**, **Elite (+1 Level)** or **Weak (-1 Level)** (not shown in Player Character or Encounter mode). It applies to single Monster and NPC generation.
 - **Treasure amount**: **Stingy**, **Standard** or **Generous**.
@@ -238,7 +238,7 @@ SimplySF2e builds from real content and **fails closed**: when it cannot match s
 - **Feat prerequisites.** Ordinary prerequisites are checked conservatively. Free Archetype slot placement is checked, but the full archetype prerequisite chain is not.
 - **Spells.** Review empty slots, signature spells and subclass or feat spell bonuses on casters after creation.
 - **Upgrade slots.** The number of upgrade slots on forged weapons and armor (1 for weapons and 0 for armor when the item text names none) is a module default. No published source has been cited for it, and this is on hold.
-- **Not built yet:** multiclass dedications, upgrade prerequisite checks, shields and ammunition in the Item Forge, and custom art.
+- **Not built yet:** upgrade prerequisite checks, shields and ammunition in the Item Forge, companion actors (a Mechanic's drone is set up by hand), and custom art.
 - **Live checks.** The QA checklist passed live on 2026-10-08. The features added since then (scrolling button rows, the TypeSafe endpoint field, the http key rule, party fill, right-click Reskin, folders, handouts, remembered settings, the one-step chat command, Re-level in Reskin, the Treasure hoard window, faster encounters and the What's new window) are not yet checked live. This is Beta.
 
 ## Troubleshooting
