@@ -311,7 +311,8 @@ export async function resolvePCConcept(concept, { exactContent = false, pathPlan
 
   if (!pathPlan) {
     const pathContext = { names: conceptChoiceNames(concept, { ancestryDoc, heritageDoc, backgroundDoc, classDoc }) };
-    pathPlan = await planClassPaths(classDoc, { context: pathContext, selectChoices });
+    const excludeFeats = abcGrantExclusions([ancestryDoc, heritageDoc, backgroundDoc]);
+    pathPlan = await planClassPaths(classDoc, { context: pathContext, selectChoices, excludeFeats });
   }
 
   for (const planned of Object.values(pathPlan ?? {})) {
@@ -359,6 +360,8 @@ export async function resolvePCConcept(concept, { exactContent = false, pathPlan
   }
   if (heritageDoc) pathFeatures.push({ name: `${heritageDoc.name} heritage` });
   const reservedFeats = Object.values(pathPlan ?? {}).flatMap((planned) => planned?.reservedFeats ?? []);
+  const reservedFeatNames = Object.values(pathPlan ?? {}).flatMap((planned) => planned?.reservedFeatNames ?? []);
+  const slotExclusions = [...reservedFeats, ...reservedFeatNames];
 
   const hasSpecializedSkillSet = Object.values(classDoc.system?.items ?? {}).some((feature) =>
     Number(feature?.level) === 3 && (
@@ -407,12 +410,12 @@ export async function resolvePCConcept(concept, { exactContent = false, pathPlan
     const category = slot.type === "general" ? ["general", "skill"] : slot.type;
     let candidates = await getFeatCandidates({
       level: slot.level, category, traits, preferredNames: concept.feats,
-      excludeUuids: reservedFeats, prerequisiteContext
+      excludeUuids: slotExclusions, prerequisiteContext
     });
     if (!candidates.length && traits.length && !slot.archetype) {
       candidates = await getFeatCandidates({
         level: slot.level, category, preferredNames: concept.feats,
-        excludeUuids: reservedFeats, prerequisiteContext
+        excludeUuids: slotExclusions, prerequisiteContext
       });
     }
     if (candidates.length) featSlots.push({ ...slot, candidates });
@@ -698,6 +701,39 @@ const CHARACTER_ITEM_TYPES = new Set([
 ]);
 
 /**
+ * Uuids and names of the feats ancestry, heritage and background grant
+ * natively. A class path must never reserve one of these for its own choice.
+ */
+function abcGrantExclusions(docs) {
+  const grants = [];
+  for (const doc of docs) {
+    const docItems = doc?.system?.items;
+    if (docItems && typeof docItems === "object") {
+      for (const entry of Object.values(docItems)) {
+        if (typeof entry?.uuid === "string" && entry.uuid) grants.push(entry.uuid);
+        if (typeof entry?.name === "string" && entry.name) grants.push(entry.name);
+      }
+    }
+  }
+  return grants;
+}
+
+/**
+ * Core skill ranks a stored skill plan proves at `level`, over `base` (the
+ * ABC and class-path floors). Same rule as pc-projection.mjs's ranksAt.
+ */
+function projectedSkillRanks(skillPlan, base, level) {
+  const ranks = Object.fromEntries(CORE_SKILLS.map((slug) => [slug, base[slug] ?? 0]));
+  for (const slug of skillPlan.training ?? []) {
+    if ((skillPlan.trainingLevels?.[slug] ?? 1) <= level) ranks[slug] = Math.max(ranks[slug], 1);
+  }
+  for (const event of skillPlan.events ?? []) {
+    if (event.level <= level && event.slug in ranks) ranks[event.slug] = Math.max(ranks[event.slug], event.rank);
+  }
+  return ranks;
+}
+
+/**
  * Every real name this concept already committed to, used by choice-set.mjs's
  * middle-priority policy step: a ChoiceSet option the character was already
  * given (a clan weapon in its equipment, a named feat) beats the deterministic
@@ -801,16 +837,7 @@ export async function createCharacterActor(concept, resolved, { img = null, sele
   // Class.system.items, where the ordinary source preselector cannot reach
   // them. Stage only a proven exact bridge before Actor.create; all remaining
   // class grants still flow through PF2e's normal class item.
-  const excludeFeats = [];
-  for (const doc of [resolved.ancestryDoc, resolved.heritageDoc, resolved.backgroundDoc]) {
-    const docItems = doc?.system?.items;
-    if (docItems && typeof docItems === "object") {
-      for (const entry of Object.values(docItems)) {
-        if (typeof entry?.uuid === "string" && entry.uuid) excludeFeats.push(entry.uuid);
-        if (typeof entry?.name === "string" && entry.name) excludeFeats.push(entry.name);
-      }
-    }
-  }
+  const excludeFeats = abcGrantExclusions([resolved.ancestryDoc, resolved.heritageDoc, resolved.backgroundDoc]);
   for (const feat of resolved.feats ?? []) {
     const entry = feat?.entry;
     if (!entry) continue;
@@ -1294,6 +1321,19 @@ export async function createCharacterActor(concept, resolved, { img = null, sele
     const snapshot = characterSkillSnapshot(actor, loreIds);
     rows = Object.entries(snapshot.nativeRanks).filter(([, rank]) => Number.isInteger(rank) && rank > 0)
       .map(([slug, rank]) => ({ slug, rank, name: snapshot.lore.find((entry) => entry.key === slug)?.name ?? null }));
+    // Feat prerequisites were proven against projected ranks. A native rule
+    // can block module training, so any projected rank above the created
+    // actor's real rank means a feat may have been planned without its skill.
+    if (resolved.skillPlan) {
+      const base = { ...initialRanks };
+      for (const planned of Object.values(resolved.pathPlan ?? {})) {
+        for (const [slug, rank] of Object.entries(planned?.skills ?? {})) base[slug] = Math.max(base[slug] ?? 0, rank);
+      }
+      const projected = projectedSkillRanks(resolved.skillPlan, base, concept.level);
+      if (CORE_SKILLS.some((slug) => projected[slug] > (snapshot.nativeRanks[slug] ?? 0))) {
+        skillWarnings.push("projection-mismatch");
+      }
+    }
   } catch { skillWarnings.push("native-data"); }
   const warnings = [...new Set([...skillWarnings, ...(skillPlan?.warnings ?? [])])];
   for (const warning of warnings) console.warn(`simplysf2e | character skill review: ${warning}`);

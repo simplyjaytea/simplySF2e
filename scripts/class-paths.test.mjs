@@ -94,7 +94,8 @@ const pack = {
       classFeatureEntry("sniper", "Sniper", "operative-specialization"),
       classFeatureEntry("striker", "Striker", "operative-specialization"),
       ...exocortexOptions.map(([id, name]) => classFeatureEntry(id, name, "mechanic-exocortex")),
-      ...languageOptions.map(([id, name]) => classFeatureEntry(id, name, "technomancer-programming-language"))
+      ...languageOptions.map(([id, name]) => classFeatureEntry(id, name, "technomancer-programming-language")),
+      classFeatureEntry("marks", "Marksman", "marksman-spec")
     ];
   },
   getDocument: async (id) => docs.get(uuid(id)) ?? null
@@ -272,6 +273,8 @@ assert.deepEqual(reservedGhost.expectedPaths.map((entry) => entry._stats.compend
 const sniperPlan = await planClassPaths(operativeClass(), { context: { names: ["Sniper"] }, selectChoices: pickLabel("Sniper") });
 assert.deepEqual(sniperPlan["operative-specialization"].reservedFeats, [featUuid("trace"), featUuid("keep")],
   "each feat ChoiceSet contributes its first option, including the class-gated bonus feat");
+assert.deepEqual(sniperPlan["operative-specialization"].reservedFeatNames, ["without-a-trace", "keep-them-in-your-sights"],
+  "each reserved feat is also reported by its slugified loaded name");
 
 const soldierPlan = await planClassPaths({ system: { items: { style: { level: 1, uuid: uuid("style") } } } }, { context: {} });
 assert.deepEqual(soldierPlan["soldier-fighting-style"].reservedFeats, [],
@@ -281,5 +284,40 @@ await assert.rejects(stageClassPaths(operativeClass(), "operative-id", {
   context: { names: ["Ghost"] },
   pathPlan: { "operative-specialization": { tag: "operative-specialization", uuid: uuid("nope"), name: "Nope", skills: {}, trainedSkill: null, reservedFeats: [featUuid("face")] } }
 }), /not a valid candidate/, "a planned uuid outside the enabled candidates still blocks, even with reservations");
+
+// The build's own grants (background, ancestry, heritage) are excluded before
+// the path picks its reservation, so an excluded first option is skipped.
+const excludedFace = await planClassPaths(operativeClass(), {
+  context: { names: ["Ghost"] }, selectChoices: pickLabel("Ghost"), excludeFeats: [featUuid("face")]
+});
+assert.deepEqual(excludedFace["operative-specialization"].reservedFeats, [featUuid("favored")],
+  "a path whose first option is in excludeFeats reserves the next closed option");
+assert.deepEqual(excludedFace["operative-specialization"].reservedFeatNames, ["favored-disguise"]);
+
+// Name-form choice values (real sf2e Sniper-style bonusFeat data stores the
+// feat name in the uuid tail). The reservation keeps the exact uuid for the
+// path's own choice; the slot exclusion uses the loaded feat's slugified name.
+const nameKeepUuid = "Compendium.sf2e.feats.Item.Keep Them in Your Sights";
+const nameScopeUuid = "Compendium.sf2e.feats.Item.Scope Sight";
+docs.set(nameKeepUuid, { uuid: nameKeepUuid, name: "Keep Them in Your Sights", toObject: () => ({
+  _id: "keep", name: "Keep Them in Your Sights", type: "feat", system: { category: "class", level: { value: 1 }, rules: [] }
+}) });
+docs.set(nameScopeUuid, { uuid: nameScopeUuid, name: "Scope Sight", toObject: () => ({
+  _id: "scope", name: "Scope Sight", type: "feat", system: { category: "class", level: { value: 1 }, rules: [] }
+}) });
+docs.set(uuid("marks-bridge"), doc("marks-bridge", "Marksman's Specialization", { rules: [
+  { key: "ChoiceSet", flag: "specialization", choices: { filter: ["item:tag:marksman-spec"] } },
+  { key: "GrantItem", uuid: "{item|flags.system.rulesSelections.specialization}" }
+] }));
+docs.set(uuid("marks"), doc("marks", "Marksman", { category: "classfeature", traits: { otherTags: ["marksman-spec"] }, rules: [
+  { key: "ActiveEffectLike", mode: "upgrade", path: "system.skills.stealth.rank", value: 1 },
+  { adjustName: false, choices: [{ value: nameKeepUuid }, { value: nameScopeUuid }], flag: "bonusFeat", key: "ChoiceSet", predicate: ["class:operative"] },
+  { key: "GrantItem", predicate: ["class:operative"], uuid: "{item|flags.system.rulesSelections.bonusFeat}" }
+] }));
+const marksClass = () => ({ name: "Operative", system: { slug: null, items: { marks: { level: 1, uuid: uuid("marks-bridge") } } } });
+const marksPlan = await planClassPaths(marksClass(), { context: { names: ["Marksman"] }, selectChoices: pickLabel("Marksman") });
+assert.deepEqual(marksPlan["marksman-spec"].reservedFeats, [nameKeepUuid], "the name-form choice keeps its exact uuid");
+assert.deepEqual(marksPlan["marksman-spec"].reservedFeatNames, ["keep-them-in-your-sights"],
+  "the name-form reservation is reported by the loaded feat name, slugified");
 
 console.log("class-paths.test.mjs: exact closed class-path staging passed");

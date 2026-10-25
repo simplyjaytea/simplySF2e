@@ -168,4 +168,18 @@ args.concept.level = 3;
 args.resolved.classDoc.system.trainedSkills.additional = 0;
 await assert.rejects(createCharacterActor(args.concept, args.resolved), /lore save failed/);
 assert.equal(events.at(-1).kind, "delete");
+// Feat prerequisites were proven with a projected rank the created actor lacks
+// (here a rank-4 event no allocation can give at level 1); the GM is told.
+args = reset();
+args.resolved.skillPlan = { training: [], trainingLevels: {}, events: [{ level: 1, slug: "occultism", rank: 4 }] };
+result = await createCharacterActor(args.concept, args.resolved);
+assert.ok(result.skillReport.warnings.includes("projection-mismatch"), "a projected rank above the created actor's rank is reported");
+assert.equal(created.system.skills.occultism.rank < 4, true);
+
+// A projection the created actor meets (ABC training) is not reported.
+args = reset();
+args.resolved.skillPlan = { training: ["athletics"], trainingLevels: { athletics: 1 }, events: [] };
+result = await createCharacterActor(args.concept, args.resolved);
+assert.ok(!result.skillReport.warnings.includes("projection-mismatch"));
+
 console.log("pc-builder.skills.test.mjs: native seeding, ownership, finalization and rollback passed");

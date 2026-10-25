@@ -436,6 +436,7 @@
       "NativeRule": "A native rule changes skill ranks in a way the allocator cannot safely reconcile. Existing choices were preserved; review these skills manually.",
       "UnspentTraining": "{count} additional training choices could not be assigned safely.",
       "UnspentIncreases": "{count} skill increases could not be assigned safely.",
+      "ProjectionMismatch": "Some feat prerequisites were planned with skill ranks the created character did not get; check feats that need skill proficiency.",
       "Rank0": "Untrained",
       "Rank1": "Trained",
       "Rank2": "Expert",
