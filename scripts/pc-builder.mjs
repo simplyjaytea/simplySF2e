@@ -11,6 +11,7 @@ import { SETTINGS, getSetting } from "./settings.mjs";
 import { CORE_SKILLS, SKILL_ATTRIBUTES, normalizeSkillPriorities, initialSkillTraining, allocateCharacterSkills, characterSkillSnapshot } from "./pc-skills.mjs";
 import { applyCharacterLoadout } from "./pc-loadout.mjs";
 import { planClassPaths, stageClassPaths } from "./class-paths.mjs";
+import { classManualNotes, manualNotesContent, technomancerInitialHack, withInitialFocusSpell } from "./pc-support.mjs";
 import { stagedActorContext } from "./pc-prerequisites.mjs";
 import { gpToCredits } from "./currency.mjs";
 
@@ -220,6 +221,28 @@ async function fallbackHeritageFor(ancestryDoc) {
     if (doc && heritageMatchesAncestry(doc, ancestryDoc)) return doc;
   }
   return null;
+}
+
+/**
+ * Technomancer's initial magic hack for the staged Programming Language
+ * (pc-support.mjs TECHNOMANCER_INITIAL_HACKS), loaded from sf2e.spells by its
+ * exact id. Fail closed: a disabled pack or a document that is not a focus
+ * spell warns and yields no hack. The AI never picks it.
+ */
+async function resolveInitialMagicHack(stagedItems) {
+  const hack = technomancerInitialHack(stagedItems);
+  if (!hack) return null;
+  const entry = { packId: "sf2e.spells", _id: hack.spellId };
+  if (!getPacksFor("spells").includes(entry.packId)) {
+    console.warn(`simplysf2e | ${entry.packId} is not an enabled spell source — no initial magic hack added`);
+    return null;
+  }
+  const doc = await getDocument(entry);
+  if (doc?.type !== "spell" || !(doc.system?.traits?.value ?? []).includes("focus")) {
+    console.warn(`simplysf2e | initial magic hack "${hack.spell}" (${hack.spellId}) is not a focus spell in ${entry.packId} — none added`);
+    return null;
+  }
+  return { name: doc.name, entry };
 }
 
 /**
@@ -772,6 +795,11 @@ export async function createCharacterActor(concept, resolved, { img = null, sele
   });
   items.push(classData);
   items.push(...stagedClassPaths.items);
+  const manualNotes = classManualNotes(stagedClassPaths.items);
+  const classSlug = slugify(resolved.classDoc.system?.slug ?? resolved.classDoc.name);
+  const focusSpells = classSlug === "technomancer"
+    ? withInitialFocusSpell(resolved.focusSpells ?? [], await resolveInitialMagicHack(stagedClassPaths.items))
+    : (resolved.focusSpells ?? []);
 
   // Background Lore: a real embedded lore item (not a system.skills entry).
   const loreNames = resolved.backgroundDoc.system?.trainedSkills?.lore;
@@ -914,9 +942,9 @@ export async function createCharacterActor(concept, resolved, { img = null, sele
   // clamped to cap 3 in creature/document.ts. No rule is cloned: sf2e packs
   // carry no focus-max ActiveEffectLike, and one would double-count.
   let focusPoolSize = 0;
-  if (resolved.focusSpells?.some((s) => s.entry)) {
+  if (focusSpells.some((s) => s.entry)) {
     const focusEntryId = foundry.utils.randomID();
-    focusPoolSize = Math.min(resolved.focusSpells.filter((s) => s.entry).length, 3);
+    focusPoolSize = Math.min(focusSpells.filter((s) => s.entry).length, 3);
     items.push({
       _id: focusEntryId,
       name: "Focus Spells",
@@ -933,7 +961,7 @@ export async function createCharacterActor(concept, resolved, { img = null, sele
         showSlotlessLevels: { value: false }
       }
     });
-    for (const { entry } of resolved.focusSpells) {
+    for (const { entry } of focusSpells) {
       const doc = await getDocument(entry);
       if (!doc) continue;
       const data = toItemData(doc);
@@ -1219,7 +1247,16 @@ export async function createCharacterActor(concept, resolved, { img = null, sele
   } catch { skillWarnings.push("native-data"); }
   const warnings = [...new Set([...skillWarnings, ...(skillPlan?.warnings ?? [])])];
   for (const warning of warnings) console.warn(`simplysf2e | character skill review: ${warning}`);
-  return { actor, expectedItems: [...safeItems, ...stagedClassPaths.expectedPaths], skillReport: { rows, warnings, loadoutWarnings, automatic: skillPlan?.automatic ?? !normalizeSkillPriorities(concept.skillPriorities).length,
+  if (manualNotes.length) {
+    // Chat whisper (as the NPC stat check does) so the note outlives the window.
+    try {
+      ChatMessage.create({
+        content: manualNotesContent(actor.name, manualNotes, (key) => game.i18n.localize(key)),
+        whisper: game.users.filter((user) => user.isGM).map((user) => user.id)
+      }).catch((err) => console.warn("simplysf2e | could not whisper the manual follow-up", err));
+    } catch (err) { console.warn("simplysf2e | could not whisper the manual follow-up", err); }
+  }
+  return { actor, manualNotes, expectedItems: [...safeItems, ...stagedClassPaths.expectedPaths], skillReport: { rows, warnings, loadoutWarnings, automatic: skillPlan?.automatic ?? !normalizeSkillPriorities(concept.skillPriorities).length,
     trainingBudget: skillPlan?.trainingBudget ?? null, unspentTraining: skillPlan?.unspentTraining ?? null,
     unspentIncreases: skillPlan?.unspentIncreases ?? null } };
 }

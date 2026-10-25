@@ -1,4 +1,4 @@
-import { slugify } from "./text.mjs";
+import { esc, slugify } from "./text.mjs";
 
 /**
  * Classes whose native feature/casting path has an end-to-end one-click plan.
@@ -12,7 +12,10 @@ import { slugify } from "./text.mjs";
  * `packs/sf2e/class-features/soldier/soldier-fighting-style.json`
  * filter `item:tag:soldier-fighting-style`). Same shape:
  * envoy-leadership-style, mystic-connection, witchwarper-paradox,
- * witchwarper-anchor, operative-specialization. Solarian Solar
+ * witchwarper-anchor, operative-specialization, and (sf2e-1.6)
+ * `packs/sf2e/class-features/` Exocortex (`mechanic-exocortex`, flag
+ * `exocortex`) and Programming Language (`technomancer-programming-language`,
+ * flag `programmingLanguage`). Solarian Solar
  * Manifestations is GrantItem/Strike REs, not an item:tag ChoiceSet —
  * nothing to stage.
  *
@@ -27,7 +30,7 @@ import { slugify } from "./text.mjs";
  * native dialog.
  */
 export const COMPLETE_PC_CLASS_SLUGS = new Set([
-  "envoy", "mystic", "operative", "solarian", "soldier", "witchwarper"
+  "envoy", "mechanic", "mystic", "operative", "solarian", "soldier", "technomancer", "witchwarper"
 ]);
 
 export function supportedClassCandidates(candidates) {
@@ -46,12 +49,95 @@ export function isCompletePCClass(value) {
  */
 export const SF2E_MULTICLASS_DEDICATIONS = {
   envoy: "envoy-dedication",
+  mechanic: "mechanic-dedication",
   mystic: "mystic-dedication",
   operative: "operative-dedication",
   solarian: "solarian-dedication",
   soldier: "soldier-dedication",
+  technomancer: "technomancer-dedication",
   witchwarper: "witchwarper-dedication"
 };
+
+/**
+ * Technomancer's initial magic hack per Programming Language, keyed by the
+ * language class feature's `_id` (packs/sf2e/class-features, tag
+ * `technomancer-programming-language`). Each language's description reads
+ * "Magic Hack initial: @UUID[Compendium.sf2e.spells.Item.<name>]"; the hack is
+ * NOT granted by data, so the builder embeds it. Spells are rank 1 focus
+ * spells with traits focus + technomancer, in
+ * packs/sf2e/spells/focus/technomancer/<language>/*.json.
+ * DPS++ msU9FRYDZwkYvLNH, FORTRUN 7yxVnWzTynBvFVjr, Servoshell KVc89RjerouF0wo1,
+ * Viper KWVSfZLZIW4zCW7K.
+ */
+export const TECHNOMANCER_INITIAL_HACKS = {
+  msU9FRYDZwkYvLNH: { language: "DPS++", spellId: "5kzAMtSSpGDJTIWV", spell: "A-Stellar Targetfinder Algorithm" },
+  "7yxVnWzTynBvFVjr": { language: "FORTRUN", spellId: "1Wp3rkKJQef7K8Tn", spell: "Force-FieldPGA" },
+  KVc89RjerouF0wo1: { language: "Servoshell", spellId: "xNU0CX0Wt0MwOHes", spell: "Repair Protocols" },
+  KWVSfZLZIW4zCW7K: { language: "Viper", spellId: "FfkyvwVrY3sx9NOQ", spell: "Amplify Vulnerability" }
+};
+
+export const TECHNOMANCER_LANGUAGE_FLAG = "programmingLanguage";
+export const MECHANIC_EXOCORTEX_FLAG = "exocortex";
+/** Mechanic exocortex options (packs/sf2e/class-features): Drone has rules []
+ * and no data-side companion; Mine and Turret grant their own actions. */
+export const MECHANIC_DRONE_ID = "UCilslXlrd7ihsgY";
+export const DRONE_MANUAL_KEY = "SIMPLYSF2E.PC.DroneManual";
+
+const ITEM_UUID_ID = /^Compendium\.[^.]+\.[^.]+\.Item\.([A-Za-z0-9]+)$/;
+
+/** The compendium `_id` a staged bridge's ChoiceSet selected, or null. */
+export function stagedPathSelectionId(stagedItems, flag) {
+  for (const item of Array.isArray(stagedItems) ? stagedItems : []) {
+    for (const rule of Array.isArray(item?.system?.rules) ? item.system.rules : []) {
+      if (rule?.key !== "ChoiceSet" || rule.flag !== flag || typeof rule.selection !== "string") continue;
+      const id = ITEM_UUID_ID.exec(rule.selection)?.[1];
+      if (id) return id;
+    }
+  }
+  return null;
+}
+
+/**
+ * Technomancer's initial hack for the staged Programming Language, or null.
+ * Fails closed: no staged language, or one outside the four cited languages,
+ * warns and yields no hack.
+ */
+export function technomancerInitialHack(stagedItems) {
+  const languageId = stagedPathSelectionId(stagedItems, TECHNOMANCER_LANGUAGE_FLAG);
+  if (!languageId) {
+    console.warn("simplysf2e | no staged Programming Language — no initial magic hack added");
+    return null;
+  }
+  const hack = Object.hasOwn(TECHNOMANCER_INITIAL_HACKS, languageId) ? TECHNOMANCER_INITIAL_HACKS[languageId] : null;
+  if (!hack) console.warn(`simplysf2e | Programming Language ${languageId} has no known initial magic hack — none added`);
+  return hack;
+}
+
+/** Lang keys for GM-facing manual follow-ups implied by the staged class paths. */
+export function classManualNotes(stagedItems) {
+  return stagedPathSelectionId(stagedItems, MECHANIC_EXOCORTEX_FLAG) === MECHANIC_DRONE_ID ? [DRONE_MANUAL_KEY] : [];
+}
+
+/**
+ * Put the language's initial hack first in the focus list, dropping any AI
+ * pick of the same spell (by compendium id or name). Capped at the focus
+ * pool ceiling of 3 (PLAYBOOK §7); the pool max itself is system-derived.
+ * @param {{name: string, entry: object|null}[]} focusSpells
+ * @param {{name: string, entry: {packId: string, _id: string}}|null} hack
+ */
+export function withInitialFocusSpell(focusSpells, hack) {
+  const list = Array.isArray(focusSpells) ? focusSpells : [];
+  if (!hack?.entry) return list;
+  const same = (spell) => (spell?.entry?._id && spell.entry._id === hack.entry._id)
+    || (spell?.name && slugify(spell.name) === slugify(hack.name));
+  return [hack, ...list.filter((spell) => !same(spell))].slice(0, 3);
+}
+
+/** GM whisper body for manual follow-ups; `localize` is `game.i18n.localize`. */
+export function manualNotesContent(actorName, keys, localize) {
+  if (!keys?.length) return "";
+  return `<p><strong>${esc(actorName)}</strong></p><ul>${keys.map((key) => `<li>${esc(localize(key))}</li>`).join("")}</ul>`;
+}
 
 /** Check if a class slug has an official multiclass dedication in SF2e. */
 export function getMulticlassDedicationSlug(classSlug) {

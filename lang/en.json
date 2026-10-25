@@ -438,6 +438,9 @@
       "ManualAmmo": "A reloadable weapon needs its ammunition loaded with the native SF2e sheet control.",
       "MissingAmmo": "A ready ranged weapon has no compatible generated ammunition selected."
     },
+    "PC": {
+      "DroneManual": "Drone exocortex: set up the drone companion by hand; SimplySF2e does not create companion actors."
+    },
     "Progress": {
       "Label": "Generation progress",
       "StepDone": "(done)",

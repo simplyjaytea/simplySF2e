@@ -147,7 +147,12 @@ const REMASTER_SPELLCASTERS = [
   { slug: "wizard", name: "Wizard", title: "Pathfinder Player Core", mode: "prepared", ability: "int", tradition: "arcane", baseSlots: 2 },
   // SF2e-cited rows (Starfinder Player Core):
   { slug: "mystic", name: "Mystic", title: "Starfinder Player Core", mode: "spontaneous", ability: "wis", tradition: null, baseSlots: 3 },
-  { slug: "witchwarper", name: "Witchwarper", title: "Starfinder Player Core", mode: "spontaneous", ability: null, tradition: null, baseSlots: 3 }
+  { slug: "witchwarper", name: "Witchwarper", title: "Starfinder Player Core", mode: "spontaneous", ability: null, tradition: null, baseSlots: 3 },
+  // sf2e-1.6.1 packs/sf2e/classes/technomancer.json (spellcasting 1, key Int):
+  // the Technomancer Spellcasting feature is arcane, prepared from a spell
+  // database ("up to two 1st-rank spells and five cantrips"), matching the
+  // baseSlots 2 table above. Published in Starfinder Tech Core.
+  { slug: "technomancer", name: "Technomancer", title: "Starfinder Tech Core", mode: "prepared", ability: "int", tradition: "arcane", baseSlots: 2 }
 ];
 
 /** Conservative Remaster class profile. Class data itself contains only spell

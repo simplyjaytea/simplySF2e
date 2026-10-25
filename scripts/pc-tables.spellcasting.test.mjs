@@ -60,4 +60,21 @@ for (const profile of [mystic, witchwarper]) {
   assert.equal(plan.picks[10], 2, "Transcendence / Quantum Thesis add two 10th-rank spells");
   assert.ok(plan.signatureRanks.includes(10));
 }
+// sf2e-1.6.1 packs/sf2e/classes/technomancer.json: Starfinder Tech Core, key Int.
+const technomancer = pcSpellcastingProfile(klass("Technomancer", null, "Starfinder Tech Core"));
+assert.deepEqual(technomancer, { mode: "prepared", ability: "int", tradition: "arcane", baseSlots: 2 });
+assert.deepEqual(pcSpellcastingProfile(klass("Technomancer", "technomancer", "Starfinder Tech Core")), technomancer);
+assert.equal(pcSpellcastingProfile(klass("Technomancer", null, "Starfinder Player Core")), null, "wrong publication does not qualify");
+assert.equal(pcSpellcastingProfile(klass("Technomancer", null, "Starfinder Tech Core", false)), null);
+assert.equal(pcSpellcastingProfile(klass("Mechanic", null, "Starfinder Tech Core")), null, "Mechanic does not cast");
+// "prepare up to two 1st-rank spells and five cantrips"
+assert.deepEqual(pcSpellSlots(1, technomancer), { 0: 5, 1: 2, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0 });
+assert.deepEqual(pcSpellSlots(5, technomancer), { 0: 5, 1: 3, 2: 3, 3: 2, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0 });
+assert.deepEqual(pcSpellSlots(19, technomancer), { 0: 5, 1: 3, 2: 3, 3: 3, 4: 3, 5: 3, 6: 3, 7: 3, 8: 3, 9: 3, 10: 1 });
+for (const lv of [1, 5, 19]) {
+  const plan = pcSpellPlan(lv, technomancer);
+  assert.deepEqual(plan.picks, plan.slots, `technomancer prepares exactly its slots at level ${lv}`);
+  assert.deepEqual(plan.signatureRanks, [], "prepared casters have no signature spells");
+}
+
 console.log("pc spellcasting profiles and slots: all assertions passed");
