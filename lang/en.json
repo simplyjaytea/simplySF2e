@@ -148,6 +148,10 @@
       "GotIt": "Got it",
       "Disable": "Don't show for updates",
       "Note": {
+        "Multiclass": {
+          "Title": "Multiclass, Tech Core ancestries and more",
+          "Body": "With Free Archetype on, a player character can take a second class: pick it in the new Multiclass field or let the AI choose from your prompt. The dedication goes in the first archetype slot, and later slots favor its feats. Mystic, Witchwarper and Technomancer dedications get their own spell list. A Technomancer now has a full spell database. Living Hologram and SRO characters get their size chosen for you, and the Item Forge can install projectile-weapon upgrades. Mechanic and Technomancer have Standard presets, shops and hoards skip items with no price, and the windows have a calmer look."
+        },
         "ClassFixes": {
           "Title": "Every class builds cleanly",
           "Body": "Player characters of every class now build from level 1 to 20. Feat choices check the character's planned attributes and skill ranks at each level, so dedications and feats that need, for example, Charisma +2 appear when they are legal. General feat slots can also hold skill feats, as in the system. Operative specializations keep the feat they need. If no legal feat exists for a slot, the character is still created with that slot empty and the GM gets a whisper saying which slots to fill by hand."
