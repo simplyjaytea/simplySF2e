@@ -130,7 +130,7 @@ export function withInitialFocusSpell(focusSpells, hack) {
   if (!hack?.entry) return list;
   const same = (spell) => (spell?.entry?._id && spell.entry._id === hack.entry._id)
     || (spell?.name && slugify(spell.name) === slugify(hack.name));
-  return [hack, ...list.filter((spell) => !same(spell))].slice(0, 3);
+  return [hack, ...list.filter((spell) => spell?.entry && !same(spell))].slice(0, 3);
 }
 
 /** GM whisper body for manual follow-ups; `localize` is `game.i18n.localize`. */

@@ -36,7 +36,7 @@ import { composeEncounter, THREATS } from "./encounter.mjs";
 import { findBestiaryScaffold, scaffoldArt } from "./art.mjs";
 import { assertComplete, completionManifest, completionSummary } from "./completion.mjs";
 import { verifyCreatedActor } from "./post-create.mjs";
-import { supportedClassCandidates } from "./pc-support.mjs";
+import { manualNotesContent, supportedClassCandidates } from "./pc-support.mjs";
 import { validateArchetypeSlotPlacement } from "./pc-prerequisites.mjs";
 import { SpfApp } from "./app-base.mjs";
 import { jevKeySource } from "./jev.mjs";
@@ -1817,6 +1817,12 @@ export class GeneratorApp extends SpfApp {
       this.#created = { name: actor.name, actorId: actor.id, count: 1, grounding, statCheck: null };
       created = true;
       committed = true;
+      if (result.manualNotes?.length) {
+        ChatMessage.create({
+          content: manualNotesContent(actor.name, result.manualNotes, (key) => game.i18n.localize(key)),
+          whisper: game.users.filter((u) => u.isGM).map((u) => u.id)
+        }).catch((err) => console.warn(`${MODULE_ID} | could not whisper the manual follow-up`, err));
+      }
       await moveToGeneratedFolder(actor, "character");
       try {
         let review;
