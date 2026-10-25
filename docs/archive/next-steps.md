@@ -1,6 +1,6 @@
 # Next-steps plan — UI polish (U) and Jev fast picks (J)
 
-Written 2026-10-02 after every Claude-doable GM-ready item (G1–G10, G14) merged. This plan is complete: U1–U6 and J1a–J6 are merged, U7 was settled as a decision with no code change, JD1 was skipped, and G11–G13 of the GM-ready checklist in [HANDOFF.md](../HANDOFF.md) are closed. Tick items (`[x]` + PR link) rather than deleting them. IDs are stable; use them in branch names and PR titles.
+Written 2026-10-02 after every Claude-doable GM-ready item (G1–G10, G14) merged. This plan is complete: U1–U6 and J1a–J6 are merged, U7 was settled as a decision with no code change, JD1 was skipped, and G11–G13 of the GM-ready checklist in [gm-ready-checklist.md](gm-ready-checklist.md) are closed. Tick items (`[x]` + PR link) rather than deleting them. IDs are stable; use them in branch names and PR titles.
 
 Each step below is sized for **one Sonnet 5.5 thread** that starts cold. Read "How a step thread works" at the bottom before starting any step.
 
@@ -49,7 +49,7 @@ Dev-workflow option (D-J1 b, **not chosen**): Jev also ships as a Claude Code sk
 
 ### Wave U-2 (after U1 merges)
 
-- [x] **U3 · UI audit.** *(done: [docs/ui-audit.md](ui-audit.md))* Run the U1 harness on every fixture and read the code paths for "works well". Write `docs/ui-audit.md`: one table per app with `id | screen/state | finding | evidence (screenshot name or file:line) | severity (blocker/major/minor) | kind (bug/design)`. Check at least: overflow and wrapping at 460 px (the prototype showed the five-mode toggle wrapping 3 + 2 and "Player Character" breaking onto two lines); visible keyboard focus on every control; icon-only buttons have `aria-label` (`sources.hbs` has none of `aria-label`/`data-tooltip`); text contrast against the navy tokens meets WCAG AA (compute, don't eyeball); disabled/busy states; error and empty states; long creature names; raw `⟦KEY⟧` output; button order and labels consistent across Generator and Item Forge; what Enter, Escape and Cancel do while busy. **kind = design** for anything that changes look, layout, wording or flow; those go to JT. This step changes no code. **Review:** a fresh agent spot-checks five findings against the screenshots and code.
+- [x] **U3 · UI audit.** *(done: [docs/archive/ui-audit.md](ui-audit.md))* Run the U1 harness on every fixture and read the code paths for "works well". Write `docs/ui-audit.md`: one table per app with `id | screen/state | finding | evidence (screenshot name or file:line) | severity (blocker/major/minor) | kind (bug/design)`. Check at least: overflow and wrapping at 460 px (the prototype showed the five-mode toggle wrapping 3 + 2 and "Player Character" breaking onto two lines); visible keyboard focus on every control; icon-only buttons have `aria-label` (`sources.hbs` has none of `aria-label`/`data-tooltip`); text contrast against the navy tokens meets WCAG AA (compute, don't eyeball); disabled/busy states; error and empty states; long creature names; raw `⟦KEY⟧` output; button order and labels consistent across Generator and Item Forge; what Enter, Escape and Cancel do while busy. **kind = design** for anything that changes look, layout, wording or flow; those go to JT. This step changes no code. **Review:** a fresh agent spot-checks five findings against the screenshots and code.
 
 ### Wave U-3 (after U3 merges)
 
@@ -131,8 +131,8 @@ Every step that changes behavior adds its rows to `docs/qa-checklist.md`, becaus
 
 Sonnet 5.5 thread, one step ID, starting cold.
 
-1. Read `AGENTS.md`, `CLAUDE.md` (Invariants, Files, How to work here), this file's entry for your step, and the ground rules for your track. `git log --oneline -10`. If a step you depend on is not merged, stop and say so.
-2. You are a full thread, not a worktree worker: you push your own branch and open your own PR (any subagents *you* start follow [docs/playbook.md](playbook.md); that replaced the old CLAUDE.md "Sonnet worker recipe" on 2026-10-25). Work on your session's designated branch; name the PR `<ID>: <title>`. Git identity `jt` / `jt_f@ymail.com`.
+1. Read `PLAYBOOK.md`, this file's entry for your step, and the ground rules for your track. `git log --oneline -10`. If a step you depend on is not merged, stop and say so.
+2. You are a full thread, not a worktree worker: you push your own branch and open your own PR (any subagents *you* start follow [PLAYBOOK.md](../../PLAYBOOK.md); that replaced the old CLAUDE.md "Sonnet worker recipe" on 2026-10-25). Work on your session's designated branch; name the PR `<ID>: <title>`. Git identity `jt` / `jt_f@ymail.com`.
 3. Build exactly the step. No extra features. If you hit a choice that changes look, layout, wording or flow and this file doesn't settle it, ask JT with a decision card, recommend an option, and keep building the rest.
 4. Verify: `node --check` every touched `.mjs`; `for f in scripts/*.test.mjs; do node "$f" || echo FAIL $f; done` shows no FAIL; for UI steps, run the U1 harness and attach before/after screenshots to the PR or thread.
 5. Tick your item in this file (`[x]` + PR link) inside the same PR. Open the PR (ready for review) and subscribe to its activity.

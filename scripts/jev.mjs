@@ -65,13 +65,13 @@ export function normalizeJevSource(value) {
   return Object.hasOwn(JEV_SOURCES, id) ? id : DEFAULT_JEV_SOURCE;
 }
 
-/** Module default, not a rules number: minimum answer confidence to trust a pick (same value the jev-gateway project defaults to, per docs/next-steps.md). */
+/** Module default, not a rules number: minimum answer confidence to trust a pick (same value the jev-gateway project defaults to, per docs/archive/next-steps.md). */
 export const JEV_MIN_CONFIDENCE = 0.7;
 
 /** Module default: give up on Jev and let the caller fall back to the chat LLM. */
 export const JEV_TIMEOUT_MS = 4000;
 
-/** Choice question option cap: 255, per the flaviocopes.com summary of TypeSafe docs (docs/next-steps.md). */
+/** Choice question option cap: 255, per the flaviocopes.com summary of TypeSafe docs (docs/archive/next-steps.md). */
 export const JEV_MAX_CHOICES = 255;
 
 const ANSWER_TYPES = new Set(["choice", "score", "noul"]);

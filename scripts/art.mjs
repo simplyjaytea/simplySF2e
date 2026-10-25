@@ -69,11 +69,12 @@ export async function findBestiaryScaffold(concept) {
 }
 
 /**
- * Find the bestiary creature that best matches this concept's
- * creature-type traits, size and level, and reuse its artwork.
- * @returns {Promise<string|null>}
+ * Real creature art carried by a bestiary scaffold: the scaffold's portrait
+ * (`img`, which already holds any art-module art mapped onto the compendium
+ * actor), or null when it is only the placeholder npc.svg.
+ * @param {object|null|undefined} scaffold
+ * @returns {string|null}
  */
-export async function findBestiaryArt(concept) {
-  const scaffold = await findBestiaryScaffold(concept);
+export function scaffoldArt(scaffold) {
   return isPlaceholderArt(scaffold?.img) ? null : scaffold.img;
 }

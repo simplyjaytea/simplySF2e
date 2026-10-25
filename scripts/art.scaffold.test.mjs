@@ -6,7 +6,7 @@ const entries = [
 ];
 const pack = { getIndex: async () => entries, getDocument: async (id) => ({ toObject: () => ({ _id: id, img: entries.find((entry) => entry._id === id).img, prototypeToken: { disposition: -1 } }) }) };
 globalThis.game = { packs: { get: (id) => id === "sf2e.alien-core-bestiary" ? pack : null }, settings: { get: () => ({ bestiaryActors: ["sf2e.alien-core-bestiary"] }) } };
-const { findBestiaryScaffold, findBestiaryArt, isPlaceholderArt } = await import("./art.mjs");
+const { findBestiaryScaffold, scaffoldArt, isPlaceholderArt } = await import("./art.mjs");
 const scaffold = await findBestiaryScaffold({ traits: ["undead", "skeleton"], size: "med", level: 5 });
 assert.equal(scaffold.img, "best.webp");
 assert.equal(scaffold.prototypeToken.disposition, -1);
@@ -32,8 +32,9 @@ assert.equal((await findBestiaryScaffold({ traits: ["aberration"], size: "med", 
   "mapped art outranks a closer size and level among equal trait matches");
 assert.equal((await findBestiaryScaffold({ traits: ["aberration", "amphibious"], size: "med", level: 5 }))._id, "two-traits",
   "a better trait match still outranks art");
-assert.equal(await findBestiaryArt({ traits: ["aberration", "amphibious"], size: "med", level: 5 }), null,
-  "the default npc.svg is not reported as creature art");
+assert.equal(scaffoldArt({ img: placeholder }), null, "the default npc.svg is not reported as creature art");
+assert.equal(scaffoldArt(null), null);
+assert.equal(scaffoldArt({ img: "modules/art/ksarik.webp" }), "modules/art/ksarik.webp");
 globalThis.game.compendiumArt = { enabled: false, get: () => ({ actor: "modules/art/mapped.webp" }) };
 assert.equal((await findBestiaryScaffold({ traits: ["aberration"], size: "med", level: 5 }))._id, "plain",
   "disabled compendium art mapping gives no preference");
