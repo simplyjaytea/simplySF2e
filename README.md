@@ -1,5 +1,7 @@
 # SimplySF2e
 
+![simplySF2e: AI-grounded Starfinder 2e generators for Foundry VTT](assets/brand/social-preview.png)
+
 AI generator for Starfinder 2e in Foundry VTT. Describe a creature, NPC, encounter, player character or magic item in plain words; SimplySF2e asks an AI model for a concept, then builds it out of real content from your installed Starfinder 2e compendiums. Ported from [SimplyPF2e](https://github.com/simplyjaytea/simplyPF2e).
 
 > **Beta.** The live QA checklist passed in a Foundry world on 2026-10-08, and automated node tests run on every release. Features added since then are not yet checked live. Check every generated actor and item before you use it at the table.
