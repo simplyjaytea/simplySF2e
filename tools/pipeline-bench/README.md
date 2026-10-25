@@ -62,3 +62,45 @@ The matrix goes to stdout and to `tools/class-bench/cache/forge-matrix.md`. Per-
 - No macro is executed. The macro check is compile plus string checks on the escaped name and the embedded rules.
 - No upgrade slot counts come from the packs: they are not in the item JSON, and the forge's own slot parser is never fed a description (see FORGE-REPORT.md).
 - The stub picks deterministically. A different pick order can produce different cases, but not different code paths.
+
+## Creature bench (`creature.mjs`)
+
+```
+node tools/pipeline-bench/creature.mjs                   # monster and npc x levels -1,1,5,12,20,24 x none/elite/weak, plus the encounter
+node tools/pipeline-bench/creature.mjs --kinds npc --levels 5 --verbose
+```
+
+Node 22+, after `tools/class-bench/fetch.mjs`. No install step, no Foundry, about a second. Findings and causes are in `CREATURE-REPORT.md`.
+
+### What it runs
+
+- `generateCreature()` and `generateEncounter()` from `scripts/creature-pipeline.mjs`: the NPC/monster chain and the per-member body. Stats come from `computeStats`, `adjustedStats`, `adjustedLevel` and `hpAdjustment` (`builder.mjs`); the encounter composition from `composeEncounter` (`encounter.mjs`); the GM Core rows from `tables.mjs`.
+- The `ai` option replaces every AI call. `generateConcept` returns a fixed concept with every key `ai-response-validation.mjs` requires, using scale words and enum slugs only. Every select step returns the first offered candidate in the post-validation shape `ai.mjs` returns. `designEncounter` returns one brief per slot.
+- The packs and Foundry globals come from `tools/class-bench/env.mjs`. Only the `Item` packs are needed: the bestiary `Actor` packs feed `art.mjs`'s scaffold lookup, which runs in `createActor`, outside the pipeline.
+
+### Runs
+
+Kind `monster` (no spellcasting) and `npc` (spellcasting allowed), each at every level and adjustment: 36 runs. Plus one encounter, `composeEncounter("severe", 4, 5)`, which gives three creatures (a level-7 boss and two level-3 minions) at party level 5.
+
+### What each run asserts
+
+- **No throw**, with the last step named on failure.
+- **Manifest complete:** `completionManifest` reports no unresolved required record.
+- **Sources:** every resolved ability, spell, feat, focus spell, equipment and loot line with a pack points to `sf2e.spells`, `sf2e.feats`, `sf2e.equipment` or the glossary pack, and the document exists in the cache. Narrative abilities and coins are exempt.
+- **Stat bands:** each AC, HP, perception, save, ability modifier, strike attack and damage, and spell DC and attack equals the GM Core row for the concept's level and scale in `tables.mjs`. A table with no column for the scale uses the documented fallback column, and the detail line names it. Spell max rank is `min(10, max(1, ceil(level / 2)))`.
+- **Elite/Weak applied once:** the concept keeps the GM level, the adjustment is stored once, and `adjustedStats` moves AC and HP by exactly one delta.
+- **Advisory (WARN, never FAIL):** Weak's display level stays at or above the level -1 floor. Nothing cited in the repo says where Weak stops.
+- **WARN:** any `console.warn` the pipeline emitted.
+
+Status is `FAIL` for a failed non-advisory check, `WARN` for a warning or a failed advisory check, `PASS` otherwise. The exit code is 1 on any FAIL.
+
+### Output
+
+The matrix goes to stdout and to `tools/class-bench/cache/creature-matrix.md`. Per-run checks and warnings are in `tools/class-bench/cache/creature-results.json`. `CREATURE-REPORT.md` is the hand-written analysis of one run and is not regenerated.
+
+### What it does not prove
+
+- No live Foundry. No Rule Element runs, nothing is prepared, and `createActor` (art, token, sheet) is never called.
+- The stub takes the first candidate only. Focus spells, spell-gem loot (scroll candidates), and encounter Elite/Weak are not reached.
+- `CONFIG.PF2E.npcAttackTraits` and `creatureTraits` are not faked, so trait validation runs on its fallback. A fixture trait is dropped with a WARN (`builder.mjs:67`).
+- Stats match the table row for the level and scale. They are not checked against the GM Core page numbers, which are cited in `tables.mjs` comments.
