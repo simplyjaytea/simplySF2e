@@ -9,7 +9,7 @@ import {
 } from "./presets.mjs";
 
 const EXPECTED = [
-  "envoy", "mystic", "operative", "solarian", "soldier", "witchwarper"
+  "envoy", "mechanic", "mystic", "operative", "solarian", "soldier", "technomancer", "witchwarper"
 ];
 const ARCHETYPES = [
   "corp-guard", "free-captain", "cyberdoc", "bounty-hunter"
@@ -22,7 +22,8 @@ const DROPPED = [
   "cultivator", "fire-mage", "assassin", "healer", "tank", "skill-monkey"
 ];
 
-assert.deepEqual(STANDARD_PRESET_IDS, EXPECTED, "Standard ids must be the six SF2e classes in pack order");
+assert.deepEqual(STANDARD_PRESET_IDS, EXPECTED, "Standard ids must be the eight SF2e classes in alphabetical order");
+assert.deepEqual(BUILT_IN_PRESETS.slice(0, EXPECTED.length).map((p) => p.id), EXPECTED, "Standard presets lead BUILT_IN_PRESETS");
 assert.deepEqual(NPC_ARCHETYPE_IDS, ARCHETYPES, "Archetype ids must be the 4 NPC archetypes");
 assert.equal(new Set(STANDARD_PRESET_IDS).size, EXPECTED.length, "preset ids must be unique");
 for (const dropped of DROPPED) {
@@ -50,7 +51,10 @@ assert.equal(resolveSelectedPresetId("custom-gone", [{ id: "custom-live", name: 
 
 const emptyCustom = presetPickerGroups("", []);
 assert.equal(emptyCustom.selectedId, "");
-assert.equal(emptyCustom.standard.length, 6);
+assert.equal(emptyCustom.standard.length, 8);
+assert.equal(emptyCustom.archetypes.length, 4, "archetypes stay separate from Standard");
+assert.equal(emptyCustom.standard.find((p) => p.id === "mechanic").nameKey, "SIMPLYSF2E.Presets.Mechanic");
+assert.equal(emptyCustom.standard.find((p) => p.id === "technomancer").nameKey, "SIMPLYSF2E.Presets.Technomancer");
 assert.deepEqual(emptyCustom.custom, [], "empty Custom must be an empty array so the optgroup can be omitted");
 assert.equal(emptyCustom.standard[0].id, "envoy");
 assert.equal(emptyCustom.standard.every((p) => p.selected === false), true, "None selected means no Standard option is selected");
@@ -58,6 +62,8 @@ assert.equal(emptyCustom.standard.every((p) => p.selected === false), true, "Non
 const grouped = presetPickerGroups("witchwarper", [{ id: "custom-1", name: "Drift Hag" }]);
 assert.equal(grouped.selectedId, "witchwarper");
 assert.equal(grouped.standard.find((p) => p.id === "witchwarper").selected, true);
+assert.equal(presetPickerGroups("technomancer", []).standard.find((p) => p.id === "technomancer").selected, true);
+assert.equal(resolveSelectedPresetId("mechanic"), "mechanic", "new Standard ids survive last-used restore");
 assert.equal(grouped.custom.length, 1);
 assert.equal(grouped.custom[0].selected, false);
 
