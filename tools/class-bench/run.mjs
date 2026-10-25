@@ -5,7 +5,7 @@
 // class x level x Free Archetype findings matrix. Run fetch.mjs first.
 //   node tools/class-bench/run.mjs [--classes soldier,mystic] [--levels 1,5]
 //        [--ancestry Human] [--heritage "Versatile Human"] [--background Athlete]
-//        [--priorities athletics,medicine,nature] [--verbose]
+//        [--priorities athletics,medicine,nature] [--path Striker] [--verbose]
 import { readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -22,6 +22,8 @@ const HERITAGE = flag("heritage", "Urbanite Human");
 const BACKGROUND = flag("background", "Athlete");
 // Skill slugs as the AI's concept.skillPriorities carries them; none means the key-ability default.
 const PRIORITIES = (flag("priorities", "")).split(",").map((s) => s.trim()).filter(Boolean);
+// Class path (e.g. Operative specialization "Striker") the path choice must select; none means the first candidate.
+const PATH = flag("path", "").trim();
 const ONLY = flag("classes")?.split(",");
 const VERBOSE = args.includes("--verbose");
 
@@ -45,8 +47,13 @@ const realWarn = console.warn;
 console.warn = (...parts) => { warnings.push(parts.map((p) => (p instanceof Error ? p.message : String(p))).join(" ").replace(/^simplysf2e \| /, "")); };
 console.log = console.info = console.debug = () => {};
 
-/** Deterministic stand-in for the AI ChoiceSet callback: first option of every group. */
-const selectChoices = async (groups) => ({ picks: groups.map((g) => ({ choice: g.id, option: g.options[0].id })) });
+/** Deterministic stand-in for the AI ChoiceSet callback: first option of every group, or the --path option where one is offered. */
+const selectChoices = async (groups) => ({
+  picks: groups.map((g) => {
+    const wanted = PATH ? g.options.find((o) => slugify(o.label) === slugify(PATH)) : null;
+    return { choice: g.id, option: (wanted ?? g.options[0]).id };
+  })
+});
 
 const classDocs = packs.get("sf2e.classes").docs.slice().sort((a, b) => a.name.localeCompare(b.name));
 const classes = classDocs.filter((c) => !ONLY || ONLY.includes(slugify(c.name)));
@@ -127,6 +134,11 @@ async function runOne(classData, level, freeArchetype) {
   }
   if (!resolved) { rec.warnings = warnings; return rec; }
   rec.pathPlan = Object.fromEntries(Object.entries(resolved.pathPlan ?? {}).map(([tag, p]) => [tag, p.name]));
+  // Fail closed: a requested path that the choice did not select is a FAIL, not a silent first-candidate run.
+  if (PATH && !Object.values(rec.pathPlan).some((name) => slugify(name) === slugify(PATH))) {
+    rec.throws = `--path "${PATH}" was not selected (plan: ${Object.values(rec.pathPlan).join(", ") || "none"})`;
+    rec.throwStage = "path";
+  }
   // The module's own projection (what the feat prerequisites see). The fake Actor's final ranks are not used: its clone/update merge by Math.max.
   const projected = resolved.skillPlan;
   rec.skillPlan = projected ? { training: projected.training, events: projected.events, source: projected.sourceRanks } : null;
