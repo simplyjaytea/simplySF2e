@@ -4,6 +4,8 @@ Run this in a real Foundry v14 world (14.367 or later) with the `sf2e` system 1.
 
 How to use: work the sections in order (Section 0 first). For every step fill **Result** with `PASS`, `FAIL` or `N/A`, and **Evidence** with a screenshot filename, a copied value, or a console line. Keep the browser console (F12) open throughout and paste any `simplysf2e |` warning or error into Evidence. Use a scratch world: the checks create actors, items, folders and macros. When something fails, note it in the Failure log at the end and continue.
 
+For a quick pass over only the features added since 2026-10-08, use [live-pass.md](live-pass.md).
+
 Test record: Foundry version `____` · sf2e version `____` · module version `____` · provider/model `____` · browser `____` · tester `____` · date `____`
 
 Conventions: "Generator" = the **SimplySF2e — Generator** window. "Forge" = the **SimplySF2e — Item Forge** window. Both are GM-only.
