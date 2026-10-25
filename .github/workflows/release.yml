@@ -218,16 +218,25 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.tag.outputs.tag }}
           CHANNEL: ${{ steps.tag.outputs.channel }}
-        # Let GitHub choose Latest automatically by version/date. Forcing
-        # --latest here would let an older manual publish or rerun replace the
-        # update manifest served from releases/latest/download/module.json.
         # A beta stays a pre-release, so it can never become Latest.
+        # Promoting an existing beta to stable does NOT make GitHub recompute
+        # Latest (seen live on v0.1.4, 2026-10-25), so a stable publish sets it
+        # explicitly - but only when this tag is the highest stable version,
+        # so an older manual publish or a rerun can never replace the update
+        # manifest served from releases/latest/download/module.json.
         run: |
           set -euo pipefail
           if [[ "$CHANNEL" == "beta" ]]; then
             gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease
           else
             gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease=false
+            CURRENT=$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName --jq .tagName 2>/dev/null || true)
+            HIGHEST=$(printf '%s\n' "$TAG" "${CURRENT:-v0.0.0}" | sort -V | tail -1)
+            if [[ "$HIGHEST" == "$TAG" ]]; then
+              gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --latest
+            else
+              echo "Not marking $TAG Latest: $CURRENT is newer"
+            fi
           fi
 
       - name: Refresh the rolling beta channel
