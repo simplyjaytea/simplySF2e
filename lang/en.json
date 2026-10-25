@@ -148,6 +148,10 @@
       "GotIt": "Got it",
       "Disable": "Don't show for updates",
       "Note": {
+        "CreatureArt": {
+          "Title": "Creature art keeps its token",
+          "Body": "With an art module installed, a generated creature now keeps the token art and scale of the similar bestiary creature it borrows from, instead of reusing its portrait. Its token is named after the new creature."
+        },
         "WhatsNew": {
           "Title": "What's new",
           "Body": "This window. It opens once after an update that changes something you can see. Reopen it any time with /sf2e whatsnew."

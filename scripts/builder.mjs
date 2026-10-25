@@ -2,6 +2,7 @@ import * as T from "./tables.mjs";
 import { getPacksFor, findEntry, getDocument, toItemData, priceToGp, isIssuedCandidate } from "./compendium.mjs";
 import { slugify, capitalized, esc, toHtml } from "./text.mjs";
 import { applyReskin, recallKnowledgeNote } from "./reskin.mjs";
+import { isPlaceholderArt } from "./art.mjs";
 import { parseRunes, applyRunes, dropUncitedRunePrefix, runeGp, hasRunes } from "./runes.mjs";
 import {
   parseCoins, currencyQuantity, isCurrencyDocument, gpToCredits,
@@ -1746,14 +1747,22 @@ export async function createActor(concept, resolved, { img = null, scaffold = nu
       ...(focusPoolSize ? { resources: { focus: { value: focusPoolSize, max: focusPoolSize } } } : {})
     },
     prototypeToken: {
-      ...(scaffold?.prototypeToken ?? {}),
+      // Cloned so nested flags/sight/texture are not shared with the scaffold
+      // (Encounter members reuse one scaffold; document creation merges in place).
+      ...structuredClone(scaffold?.prototypeToken ?? {}),
+      // The scaffold's token is named after the bestiary creature; name it for the new one.
+      name: concept.name,
       displayName: CONST.TOKEN_DISPLAY_MODES.OWNER_HOVER,
       displayBars: CONST.TOKEN_DISPLAY_MODES.OWNER_HOVER
     }
   };
   if (img) {
     actorData.img = img;
-    actorData.prototypeToken.texture = { src: img };
+    // Keep the scaffold's own token art (and its scale etc.); only fill a
+    // missing or placeholder token texture with the portrait.
+    if (isPlaceholderArt(actorData.prototypeToken.texture?.src)) {
+      actorData.prototypeToken.texture = { ...(actorData.prototypeToken.texture ?? {}), src: img };
+    }
   }
 
   const actor = await Actor.create(actorData);
