@@ -78,7 +78,7 @@ const indexEntries = [
   { name: "Specific Full Plate", type: "armor", system: {
     level: { value: 5 }, category: "heavy", specific: {}
   } },
-  { name: "Longsword", type: "weapon", system: { level: { value: 0 } } },
+  { name: "Longsword", type: "weapon", system: { level: { value: 0 }, group: "sword" } },
   { name: "Specific Longsword", type: "weapon", system: {
     level: { value: 5 }, specific: {}
   } },
@@ -110,14 +110,15 @@ try {
   assert.ok(requestedFields.includes("system.specific"),
     "the equipment index explicitly requests PF2e's specific-item marker");
   assert.deepEqual(indexedBases, [
-    { name: "Leather Armor", level: 0, category: "light", upgradeSlots: 0 },
-    { name: "Full Plate", level: 2, category: "heavy", upgradeSlots: 0 }
+    { name: "Leather Armor", level: 0, category: "light", group: null, upgradeSlots: 0 },
+    { name: "Full Plate", level: 2, category: "heavy", group: null, upgradeSlots: 0 }
   ], "base candidates preserve real system.category and upgradeSlots values from the pack index");
 
   const indexedWeapons = await getBaseItemCandidates("weapon", 20);
+  assert.ok(requestedFields.includes("system.group"), "the equipment index requests the weapon group");
   assert.deepEqual(indexedWeapons, [
-    { name: "Longsword", level: 0, category: null, upgradeSlots: 1 }
-  ], "specific weapons are excluded while a base missing system.specific remains ordinary");
+    { name: "Longsword", level: 0, category: null, group: "sword", upgradeSlots: 1 }
+  ], "specific weapons are excluded while a base missing system.specific remains ordinary, and its group is carried");
 
   const indexedUpgrades = await getPropertyRuneCandidates("armor", 20);
   assert.deepEqual(indexedUpgrades, [

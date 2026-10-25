@@ -179,7 +179,10 @@ function exclusionSet(values) {
   return excluded;
 }
 
-function isExcluded(excluded, uuid, name) {
+/** A reserved uuid is never excluded, even when a slot or name in `excluded`
+ * matches it: the path planned around it. */
+function isExcluded(excluded, uuid, name, reserved = new Set()) {
+  if (reserved.has(uuid)) return false;
   return excluded.has(uuid) || excluded.has(slugify(name));
 }
 
@@ -188,7 +191,7 @@ function isExcluded(excluded, uuid, name) {
  * prerequisites the path's own skill training proves. A subset of the native
  * all-packs query, so any pick is a legal native preselection.
  */
-async function skillFeatOptions(rules, { names, excluded }) {
+async function skillFeatOptions(rules, { names, excluded, reserved }) {
   const skills = upgradedSkillRanks(rules);
   if (!Object.keys(skills).length) return [];
   const prerequisiteContext = stagedActorContext({ level: 1, skills });
@@ -197,7 +200,7 @@ async function skillFeatOptions(rules, { names, excluded }) {
   for (const candidate of candidates) {
     if (candidate.level !== 1 || !candidate.ref?.packId || !candidate.ref?._id) continue;
     const uuid = `Compendium.${candidate.ref.packId}.Item.${candidate.ref._id}`;
-    if (isExcluded(excluded, uuid, candidate.name)) continue;
+    if (isExcluded(excluded, uuid, candidate.name, reserved)) continue;
     const source = await closedGrantSource(uuid);
     if (source?.type !== "feat" || source.system?.category !== "skill" || source.system?.level?.value !== 1) continue;
     options.push({ value: uuid, label: source.name });
@@ -207,11 +210,11 @@ async function skillFeatOptions(rules, { names, excluded }) {
 
 /** Keep the rule's exact uuid values (native preselection matches them by
  * value); label each from its loaded document, as native inflation does. */
-async function uuidChoiceOptions(choices, excluded) {
+async function uuidChoiceOptions(choices, excluded, reserved) {
   const options = [];
   for (const choice of choices) {
     const source = await closedGrantSource(choice.value);
-    if (!source?.name || isExcluded(excluded, choice.value, source.name)) continue;
+    if (!source?.name || isExcluded(excluded, choice.value, source.name, reserved)) continue;
     options.push({ value: choice.value, label: source.name });
   }
   return options;
@@ -222,7 +225,7 @@ async function uuidChoiceOptions(choices, excluded) {
  * choices are replaced by their proven bounded options in the copy only; the
  * native feature is still granted from its compendium source.
  */
-async function resolvePathCandidate(candidate, { config, classSlug, names, excluded }) {
+async function resolvePathCandidate(candidate, { config, classSlug, names, excluded, reserved = new Set() }) {
   const document = await documentFromUuid(candidate.uuid);
   const source = document?.toObject?.();
   if (!source || !isEnabledClassFeature(document)) return null;
@@ -236,8 +239,8 @@ async function resolvePathCandidate(candidate, { config, classSlug, names, exclu
       continue;
     }
     let choices = null;
-    if (isClassUuidChoice(rule, classSlug)) choices = await uuidChoiceOptions(rule.choices, excluded);
-    else if (isLevelOneSkillFeatQuery(rule)) choices = await skillFeatOptions(rules, { names, excluded });
+    if (isClassUuidChoice(rule, classSlug)) choices = await uuidChoiceOptions(rule.choices, excluded, reserved);
+    else if (isLevelOneSkillFeatQuery(rule)) choices = await skillFeatOptions(rules, { names, excluded, reserved });
     else if (isStaticChoice(rule, config)) {
       resolvedRules.push(rule);
       continue;
@@ -256,12 +259,43 @@ async function resolvePathCandidate(candidate, { config, classSlug, names, exclu
 }
 
 /**
+ * First option uuid of each closed ChoiceSet that offers compendium feats
+ * (the level-one skill feat query and class uuid choices). Slot planning keeps
+ * these out of feat slots so the path can still be staged.
+ */
+function reservedFeatUuids(rules) {
+  const reserved = [];
+  for (const rule of rules) {
+    if (rule?.key !== "ChoiceSet" || !Array.isArray(rule.choices) || !rule.choices.length) continue;
+    const values = rule.choices.map((choice) => choice?.value);
+    if (!values.every((value) => typeof value === "string" && value.startsWith("Compendium."))) continue;
+    if (!reserved.includes(values[0])) reserved.push(values[0]);
+  }
+  return reserved;
+}
+
+/**
+ * Slugified names of reserved feats, so slot planning excludes them by name
+ * too. Name-form uuids (`Compendium.<pack>.Item.<Name>`) are matched by the
+ * loaded source's name; an unloaded uuid contributes nothing.
+ */
+async function reservedFeatNameSlugs(uuids) {
+  const slugs = [];
+  for (const uuid of uuids) {
+    const slug = slugify((await sourceFromUuid(uuid))?.name);
+    if (slug && !slugs.includes(slug)) slugs.push(slug);
+  }
+  return slugs;
+}
+
+/**
  * Plan the level-one class paths from real compendium candidates BEFORE
  * feat-slot planning, so granted skills and specialization identity are
  * known and can constrain restricted skill slots (e.g. Operative Specialized Skill Set).
  * @param {object} classData
  * @param {object} [options]
- * @returns {Promise<Record<string, { tag: string, uuid: string, name: string, skills: Record<string, number>, trainedSkill: string|null }>>}
+ * @returns {Promise<Record<string, { tag: string, uuid: string, name: string, skills: Record<string, number>, trainedSkill: string|null, reservedFeats: string[], reservedFeatNames: string[] }>>}
+ *   `reservedFeatNames` holds the slugified names of `reservedFeats`.
  */
 export async function planClassPaths(classData, {
   context, config = globalThis.CONFIG?.PF2E ?? {}, selectChoices = null, excludeFeats = []
@@ -306,12 +340,15 @@ export async function planClassPaths(classData, {
     const resolved = resolvedByUuid.get(selected.uuid);
     const skills = upgradedSkillRanks(resolved?.source?.system?.rules ?? []);
     const trainedSkill = Object.keys(skills)[0] ?? null;
+    const reservedFeats = reservedFeatUuids(resolved?.source?.system?.rules ?? []);
     plan[selector.tag] = {
       tag: selector.tag,
       uuid: selected.uuid,
       name: selected.name,
       skills,
-      trainedSkill
+      trainedSkill,
+      reservedFeats,
+      reservedFeatNames: await reservedFeatNameSlugs(reservedFeats)
     };
   }
   return plan;
@@ -326,8 +363,9 @@ export async function planClassPaths(classData, {
  * @param {string[]} [options.excludeFeats] compendium uuids or names of feats
  *   the build already embeds or grants (background, ancestry, planned slots);
  *   never offered for a path's own feat choice.
- * @param {Record<string, { uuid: string }>} [options.pathPlan] optional pre-resolved
+ * @param {Record<string, { uuid: string, reservedFeats?: string[] }>} [options.pathPlan] optional pre-resolved
  *   class path plan from planClassPaths; forces staging to consume the exact planned candidate.
+ *   Its `reservedFeats` are never excluded from that path's own feat choice.
  */
 export async function stageClassPaths(classData, classId, {
   context, config = CONFIG?.PF2E ?? {}, selectChoices = null, excludeFeats = [], pathPlan = null
@@ -350,11 +388,14 @@ export async function stageClassPaths(classData, classId, {
       throw new Error(`simplysf2e | required class path source for "${source.name}" is not enabled`);
     }
 
+    // Feats the plan reserved for this path stay offerable even when slots
+    // (or a name in excludeFeats) would otherwise exclude them.
+    const reserved = new Set(pathPlan?.[selector.tag]?.reservedFeats ?? []);
     const candidates = await getClassFeatureCandidates(selector.tag);
     const closed = [];
     const resolvedByUuid = new Map();
     for (const candidate of candidates) {
-      const resolved = await resolvePathCandidate(candidate, { config, classSlug, names, excluded });
+      const resolved = await resolvePathCandidate(candidate, { config, classSlug, names, excluded, reserved });
       if (!resolved) continue;
       closed.push(candidate);
       resolvedByUuid.set(candidate.uuid, resolved);
@@ -414,4 +455,75 @@ export async function stageClassPaths(classData, classId, {
     }
   }
   return { items: staged, expectedPaths };
+}
+
+/** No AI callback: the first offered option of each group (deterministic). */
+const FIRST_OFFERED_OPTION = async (groups) => ({
+  picks: groups.map((group) => ({ choice: group.id, option: group.options[0].id }))
+});
+
+/**
+ * Pre-answer a caster dedication's granted bridge (Mystic Connection,
+ * Witchwarper Paradox) with the same proof and bounded chooser as a class path.
+ * The option pool is the bridge's own single `item:tag` query, closed the same
+ * way (resolvePathCandidate). The AI callback picks when given; otherwise the
+ * first offered option. Nothing is authored: `preselectChoices` is the native
+ * GrantItem record, copied from the same preselect a class path uses.
+ * Mutates nothing; the caller writes `preselectChoices` onto the dedication's
+ * GrantItem whose uuid is `grantUuid`.
+ * @param {object} dedicationSource plain item source of the dedication
+ * @param {object} [options]
+ * @returns {Promise<null|{choice: string, choiceType: string, grantUuid: string,
+ *   preselectChoices: Record<string, string>|null,
+ *   option: {uuid: string, name: string, type: string, source: object}|null}>}
+ *   null when the dedication grants no single-tag bridge. `option` is null when
+ *   the bridge cannot be pre-answered (fail closed).
+ */
+export async function pickDedicationBridge(dedicationSource, { context = {}, config = CONFIG?.PF2E ?? {}, selectChoices = null } = {}) {
+  const rules = dedicationSource?.system?.rules;
+  if (!Array.isArray(rules)) return null;
+  const names = Array.isArray(context.names) ? context.names : [];
+  for (const rule of rules) {
+    const grantUuid = staticGrantUuid(rule);
+    if (!grantUuid) continue;
+    const document = await documentFromUuid(grantUuid);
+    const bridge = document?.toObject?.();
+    const selector = bridge && isEnabledClassFeature(document) ? singlePathTag(bridge) : null;
+    if (!selector) continue;
+
+    const choice = bridge.name;
+    const choiceType = bridge.type ?? "feat";
+    const flag = normalizeChoiceFlag(bridge.system.rules[selector.ruleIndex].flag);
+    const unresolved = { choice, choiceType, grantUuid, preselectChoices: null, option: null };
+    const closed = [];
+    const resolvedByUuid = new Map();
+    for (const candidate of await getClassFeatureCandidates(selector.tag)) {
+      const resolved = await resolvePathCandidate(candidate, { config, classSlug: null, names, excluded: exclusionSet([]) });
+      if (!resolved) continue;
+      closed.push(candidate);
+      resolvedByUuid.set(candidate.uuid, resolved);
+    }
+    if (!closed.length) {
+      console.warn(`simplysf2e | ${dedicationSource.name}: no fully resolvable ${choice} options — pre-answer skipped`);
+      return unresolved;
+    }
+
+    bridge.system.rules[selector.ruleIndex].choices = closed.map((candidate) => ({ value: candidate.uuid, label: candidate.name }));
+    const grant = { name: choice, system: { rules: [{ key: "GrantItem", uuid: grantUuid }] } };
+    await preselectChoiceSets([grant], { names }, config,
+      async (uuid) => (uuid === grantUuid ? structuredClone(bridge) : sourceFromUuid(uuid)),
+      selectChoices ?? FIRST_OFFERED_OPTION);
+    const preselectChoices = grant.system.rules[0].preselectChoices ?? null;
+    const chosen = closed.find((candidate) => candidate.uuid === preselectChoices?.[flag]);
+    if (!chosen) {
+      console.warn(`simplysf2e | ${dedicationSource.name}: ${choice} not pre-answered — archetype spellcasting skipped`);
+      return unresolved;
+    }
+    const option = resolvedByUuid.get(chosen.uuid).source;
+    return {
+      choice, choiceType, grantUuid, preselectChoices,
+      option: { uuid: chosen.uuid, name: chosen.name, type: option.type ?? "feat", source: option }
+    };
+  }
+  return null;
 }

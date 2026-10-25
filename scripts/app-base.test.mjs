@@ -31,7 +31,7 @@ let confirmAnswer = true;
 let confirmCalls = 0;
 const context = vm.createContext({
   AbortController,
-  console: { log() {}, warn() {}, error() {} },
+  console: { log() {}, warn() {}, error() {}, debug() {} },
   game: {
     i18n: {
       localize: (key) => key,

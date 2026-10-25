@@ -25,7 +25,7 @@ let macroFailure;
 let activation = null;
 const warnings = [];
 const context = vm.createContext({
-  console: { log() {}, warn() {}, error() {} },
+  console: { log() {}, debug() {}, warn() {}, error() {} },
   game: { i18n: { localize: (key) => key, format: (key) => key } },
   ui: { notifications: { info() {}, warn: (text) => warnings.push(text) } },
   Item: { create: async () => {

@@ -123,7 +123,8 @@ const unresolved = await resolveFeatPicks([{ type: "class", level: 1, candidates
 const manifest = completionManifest({ mode: "character", concept: {}, resolved: {
   ancestryDoc: { name: "Human" }, backgroundDoc: { name: "Scholar" }, classDoc: { name: "Fighter" }, feats: unresolved
 } });
-assert.equal(manifest.complete, false, "an earned empty feat slot remains a blocking unresolved record");
-assert.equal(manifest.unresolved.some((record) => record.category === "feat"), true,
-  "the completion manifest identifies the unsupported entitlement");
+assert.equal(manifest.complete, true, "an earned empty feat slot is created empty and warned, never blocking (owner decision 2026-10-25)");
+assert.equal(manifest.unresolved.length, 0, "no legal feat means an empty slot, not a required unresolved record");
+assert.deepEqual(manifest.records.filter((record) => record.category === "feat").map((record) => record.status), ["empty"],
+  "the completion manifest still identifies the empty entitlement so the GM is warned");
 console.log("pc-prerequisites.test.mjs: staged-actor prerequisite evaluator passed");

@@ -8,8 +8,11 @@ import * as recentGenerations from "./recent-generations.mjs";
 import { reviewUnresolvedChoices } from "./choice-set.mjs";
 import { normalizeSkillPriorities, skillPriorityOrder } from "./pc-skills.mjs";
 import { assertComplete, completionManifest, completionSummary } from "./completion.mjs";
-import { freeArchetypeNeedsPrerequisiteValidation } from "./pc-support.mjs";
-import { validateArchetypeSlotPlacement } from "./pc-prerequisites.mjs";
+import {
+  freeArchetypeNeedsPrerequisiteValidation, manualNotesContent, isCompletePCClass, COMPLETE_PC_CLASS_SLUGS, getMulticlassDedicationSlug
+} from "./pc-support.mjs";
+import { validateArchetypeSlotPlacement, stagedActorContext } from "./pc-prerequisites.mjs";
+import { capitalized } from "./text.mjs";
 
 if (!vm.SourceTextModule) {
   const run = spawnSync(process.execPath, ["--experimental-vm-modules", import.meta.filename], { stdio: "inherit" });
@@ -17,8 +20,9 @@ if (!vm.SourceTextModule) {
 }
 
 let actor, createFailure, verifyFailure, deleteFailure, skillReport, creates = 0, deleted = 0, sheetCalls = 0;
+let manualNotes = [], whispers = [];
 let conceptCalls = 0, generatorLevel = 1, freeArchetype = false;
-let previewLoot = [];
+let previewLoot = [], previewFeats = [];
 let budgetPending = null, budgetStarted = null;
 const notices = [];
 class App {
@@ -41,16 +45,18 @@ class App {
   }
 }
 const context = vm.createContext({
-  console: { log() {}, warn() {}, error() {} },
+  console: { log() {}, debug() {}, warn() {}, error() {} },
   game: {
-    i18n: { localize: (key) => key, format: (key) => key },
+    i18n: { localize: (key) => key, format: (key, data) => (key === "SIMPLYSF2E.PC.EmptyFeatSlots" ? `${key} ${data.count} ${data.slots}` : key) },
     actors: { get: (id) => id === actor?.id ? actor : null },
-    settings: { get: () => freeArchetype }
+    settings: { get: () => freeArchetype },
+    users: [{ id: "gm", isGM: true }, { id: "player", isGM: false }]
   },
+  ChatMessage: { create: async (data) => { whispers.push(data); return data; } },
   ui: { notifications: Object.fromEntries(["info", "warn"].map((kind) => [kind, (text) => notices.push([kind, text])])) }
 });
 const resolved = () => ({ ancestryDoc: { name: "Dwarf" }, classDoc: { name: "Fighter" },
-  backgroundDoc: { name: "Warrior" }, featSlots: [], feats: [], spells: [], equipment: [], loot: previewLoot });
+  backgroundDoc: { name: "Warrior" }, featSlots: previewFeats.map(({ type, level, archetype }) => ({ type, level, archetype, candidates: [] })), feats: previewFeats, spells: [], equipment: [], loot: previewLoot });
 const mocks = {
   ...recentGenerations,
   SpfApp: App, MODULE_ID: "simplysf2e", SETTINGS: { freeArchetype: "freeArchetype", generatorInput: "generatorInput" }, getSetting: () => undefined,
@@ -58,7 +64,10 @@ const mocks = {
   assertComplete, completionManifest, completionSummary,
   verifyCreatedActor: () => { if (verifyFailure) throw verifyFailure; },
   moveToGeneratedFolder: async () => {}, generatedFolderId: async () => "root", createHandout: async () => null,
-  freeArchetypeNeedsPrerequisiteValidation, validateArchetypeSlotPlacement, jevKeySource: () => "connection",
+  freeArchetypeNeedsPrerequisiteValidation, manualNotesContent, validateArchetypeSlotPlacement, jevKeySource: () => "connection",
+  isCompletePCClass, COMPLETE_PC_CLASS_SLUGS, getMulticlassDedicationSlug, capitalized, stagedActorContext,
+  ABILITY_KEYS: ["str", "dex", "con", "int", "wis", "cha"], initialSkillTraining: () => ({ ranks: {} }),
+  projectAttributeModifiers: () => null, projectSkillRanks: () => null,
   supportedClassCandidates: (candidates) => candidates,
   getProviderRequestConfig: () => ({}), getProviderAuthWarningKey: () => null,
   BUILT_IN_PRESETS: [], getCustomPresets: () => [], findPreset: () => null, examplePrompt: () => "",
@@ -68,23 +77,30 @@ const mocks = {
   normalizePCConcept: (raw) => raw,
   getAncestryCandidates: () => [], getBackgroundCandidates: () => [], getClassCandidates: () => [{ name: "Fighter" }], getHeritageCandidates: () => [],
   selectAncestryBackgroundClass: async () => ({ ancestry: "Dwarf", background: "Warrior", class: "Fighter" }),
+  selectFeats: async () => ({ picks: [], usage: null, timing: null }), resolveFeatPicks: async () => previewFeats.map((feat) => ({ ...feat })),
   resolvePCConcept: async () => resolved(), pcSpellcastingProfile: () => null, slugify: (name) => name.toLowerCase(),
   generatePCLoot: async () => ({ loot: [] }), normalizeLoot: (loot) => loot,
   dedupeLootAgainstEquipment: (loot) => loot, enforceNamedLootBudget: (loot) => loot,
   applyTreasureBudget: async (loot) => { budgetStarted?.(); if (budgetPending) await budgetPending; return loot; },
   pcStartingWealthGp: () => 0, equipmentValueGp: () => 0, lootValueGp: () => 0, parseCoins: () => null,
   describeMissingSources: (missing = []) => missing.join(", "),
-  createCharacterActor: async () => { creates++; if (createFailure) throw createFailure; return { actor, skillReport }; }
+  createCharacterActor: async () => { creates++; if (createFailure) throw createFailure; return { actor, skillReport, manualNotes, expectedItems: [] }; }
 };
 const source = await readFile(new URL("./generator-app.mjs", import.meta.url), "utf8");
-const appModule = new vm.SourceTextModule(source, { context });
-await appModule.link((specifier) => {
-  const imports = [...source.matchAll(/import\s*\{([^}]+)\}\s*from\s*"([^"]+)"/g)]
+const pipelineSource = await readFile(new URL("./creature-pipeline.mjs", import.meta.url), "utf8");
+// creature-pipeline.mjs is linked from the same mocks, so the shared step chain runs against them.
+const pipelineModule = new vm.SourceTextModule(pipelineSource, { context });
+const linkWith = (text) => (specifier) => {
+  if (specifier === "./creature-pipeline.mjs") return pipelineModule;
+  const imports = [...text.matchAll(/import\s*\{([^}]+)\}\s*from\s*"([^"]+)"/g)]
     .filter((match) => match[2] === specifier).flatMap((match) => match[1].split(",").map((name) => name.trim()));
   return new vm.SyntheticModule(imports, function () {
     for (const name of imports) this.setExport(name, mocks[name] ?? (() => { throw new Error(`Unexpected dependency: ${name}`); }));
   }, { context });
-});
+};
+await pipelineModule.link(linkWith(pipelineSource));
+const appModule = new vm.SourceTextModule(source, { context });
+await appModule.link(linkWith(source));
 await appModule.evaluate();
 const { GeneratorApp } = appModule.namespace;
 const actions = GeneratorApp.DEFAULT_OPTIONS.actions;
@@ -232,6 +248,56 @@ assert.equal(unverified.context.error, verifyFailure.message, "post-create verif
 assert.ok(unverified.context.pcPreview, "an unverified actor leaves the retryable plan intact");
 assert.equal(deleted, 1, "an unverified newly created character is rolled back before commit");
 verifyFailure = undefined;
+
+// The Drone manual whisper names the actor, so it is sent only after the
+// actor is verified and committed. A failed verify must leave no whisper.
+setActor();
+manualNotes = ["SIMPLYSF2E.PC.DroneManual"];
+const noted = await generate();
+await actions.createActor.call(noted);
+assert.equal(noted.context.error, null);
+assert.equal(whispers.length, 1, "a committed character with manual notes sends one whisper");
+assert.equal(whispers[0].content, manualNotesContent("<img src=x>", manualNotes, (key) => key));
+assert.ok(!whispers[0].content.includes("<img"), "the actor name is escaped in the whisper");
+assert.deepEqual(whispers[0].whisper, ["gm"], "the whisper goes only to GM users");
+setActor();
+verifyFailure = new Error("expected embedded feat was dropped");
+const noteUnverified = await generate();
+await actions.createActor.call(noteUnverified);
+assert.equal(whispers.length, 1, "an unverified character sends no manual whisper");
+verifyFailure = undefined;
+manualNotes = [];
+
+// An empty character feat slot (no legal feat left) is a warning, not a block:
+// the preview shows it as empty, and the GM whisper names it after commit only.
+setActor();
+whispers.length = 0;
+previewFeats = [
+  { type: "general", level: 3, archetype: false, name: "Toughness", entry: { name: "Toughness" } },
+  { type: "skill", level: 18, archetype: false, name: "skill 18", entry: null },
+  { type: "general", level: 19, archetype: false, name: "general 19", entry: null }
+];
+const emptyFeat = await generate();
+assert.deepEqual(emptyFeat.context.pcPreview.feats.map(({ name, found, empty }) => ({ name, found, empty: empty === true })), [
+  { name: "Toughness", found: true, empty: false },
+  { name: "skill 18", found: false, empty: true },
+  { name: "general 19", found: false, empty: true }
+], "an empty feat slot renders as empty, not as a missing compendium match");
+assert.equal(emptyFeat.context.pcPreview.emptyFeatNotice, "SIMPLYSF2E.PC.EmptyFeatSlots 2 skill 18, general 19");
+assert.equal(emptyFeat.context.pcPreview.matchSummary.total, 4, "empty slots are not counted as misses");
+await actions.createActor.call(emptyFeat);
+assert.equal(emptyFeat.context.error, null, "an empty feat slot must not block Create");
+assert.equal(whispers.length, 1, "a committed character with empty feat slots sends one whisper");
+assert.equal(whispers[0].content, manualNotesContent(actor.name, ["SIMPLYSF2E.PC.EmptyFeatSlots 2 skill 18, general 19"], (note) => note));
+setActor();
+verifyFailure = new Error("expected embedded feat was dropped");
+const emptyUnverified = await generate();
+await actions.createActor.call(emptyUnverified);
+assert.equal(whispers.length, 1, "an unverified character with empty feat slots sends no whisper");
+verifyFailure = undefined;
+previewFeats = [];
+const lang = JSON.parse(await readFile(new URL("../lang/en.json", import.meta.url), "utf8"));
+assert.match(lang.SIMPLYSF2E.PC.EmptyFeatSlots, /\{count\}.*\{slots\}/, "the empty-slot GM note has its count and slot list");
 
 setActor();
 verifyFailure = new Error("expected embedded feat was dropped");

@@ -42,6 +42,11 @@ globalThis.Actor = {
   }
 };
 
+// The manual-notes whisper belongs to generator-app after verification and
+// commit; the builder must not whisper a name it may still roll back.
+const chatMessages = [];
+globalThis.ChatMessage = { create: async (data) => { chatMessages.push(data); return data; } };
+
 const { createCharacterActor } = await import("./pc-builder.mjs");
 
 function doc(type, system = {}) {
@@ -90,6 +95,7 @@ reset();
 }
 assert.deepEqual(events, ["create", "embedded:start", "embedded:end", "update"]);
 assert.deepEqual(scenario.actorData.system.attributes.hp, { temp: 0 }, "no pre-create HP sentinel is seeded");
+assert.equal(chatMessages.length, 0, "createCharacterActor sends no whisper before verification");
 assert.deepEqual(scenario.updates, [{
   "system.attributes.hp.value": 37,
   "system.details.languages.value": ["dwarven", "elven"]
@@ -128,6 +134,8 @@ reset();
     "published ammunition reaches native PC item creation");
   assert.equal(created.expectedItems.filter((item) => item.type === "ammo").length, 1,
     "ammunition remains covered by the post-create survival contract");
+  assert.deepEqual(created.manualNotes, [], "manual notes are still returned for the caller to whisper");
+  assert.equal(chatMessages.length, 0);
 }
 
 reset({ system: { attributes: { hp: { value: 11, max: 22 } }, abilities: { int: { mod: 0 } } } });

@@ -80,15 +80,6 @@ assert.ok(!resolved.featSlots.filter((slot) => slot.type === "class").some((slot
   slot.candidates.some((candidate) => candidate.name === "Later feature feat")),
 "a later native class grant cannot satisfy a feat's earlier earned slot");
 
-entries.class.name = "Investigator";
-entries.class.system = { ...classes.Investigator, trainedSkills: { value: ["stealth"], additional: 4 },
-  items: { skillful: { level: 3, name: "Skillful Lessons", uuid: "Compendium.pf2e.classfeatures.Item.dmK1wya8GBi9MmCB" } } };
-const investigator = await resolvePCConcept(concept);
-assert.deepEqual(investigator.featSlots.filter((slot) => slot.type === "skill").map((slot) => slot.level), [2, 3]);
-assert.deepEqual(investigator.featSlots.find((slot) => slot.type === "skill" && slot.level === 3).candidates.map((candidate) => candidate.name),
-  ["Society feat"], "published Skillful Lessons receives only a provable qualifying mental-skill candidate");
-assert.ok(investigator.featSlots.find((slot) => slot.type === "skill" && slot.level === 2).candidates.some((candidate) => candidate.name === "Stealth feat"),
-  "ordinary even-level skill feats keep their normal prerequisite catalog");
 entries.class.system.skillFeatLevels = null;
 await assert.rejects(resolvePCConcept(concept), /feat schedule/, "production resolution refuses unreadable native schedules");
 

@@ -1,13 +1,15 @@
 # SimplySF2e
 
+![simplySF2e: AI-grounded Starfinder 2e generators for Foundry VTT](assets/brand/social-preview.png)
+
 AI generator for Starfinder 2e in Foundry VTT. Describe a creature, NPC, encounter, player character or magic item in plain words; SimplySF2e asks an AI model for a concept, then builds it out of real content from your installed Starfinder 2e compendiums. Ported from [SimplyPF2e](https://github.com/simplyjaytea/simplyPF2e).
 
 > **Beta.** The live QA checklist passed in a Foundry world on 2026-10-08, and automated node tests run on every release. Features added since then are not yet checked live. Check every generated actor and item before you use it at the table.
 
 ## Requirements
 
-- Foundry VTT v14 (minimum 14.361, verified 14.367).
-- The **Starfinder Second Edition** game system (`sf2e`) 1.5.0 or later. Checked against 1.5.1.
+- Foundry VTT v14 (minimum 14.361, verified 14.369).
+- The **Starfinder Second Edition** game system (`sf2e`) 1.6.0 or later. Checked against 1.6.1.
 - An AI provider that speaks the OpenAI-compatible Chat Completions API. This can be a hosted service (DeepSeek, OpenAI, OpenRouter, or another compatible gateway) or a model running on your own machine (Ollama, LM Studio).
 - A GM account. Players cannot open the generator, the Item Forge or provider setup.
 
@@ -24,7 +26,13 @@ AI generator for Starfinder 2e in Foundry VTT. Describe a creature, NPC, encount
 2. Launch a world that uses the Starfinder Second Edition system.
 3. Open **Manage Modules**, tick **SimplySF2e**, and save.
 
-Every merge to `main` publishes the next release. See [Releases](https://github.com/simplyjaytea/simplySF2e/releases) for the current version.
+That URL is the **stable** channel: it updates only when a release is promoted to stable. To try every change first, use the **beta** channel manifest instead. Beta builds are tested less.
+
+```
+https://github.com/simplyjaytea/simplySF2e/releases/download/beta/module.json
+```
+
+To roll back, install a specific version's manifest: `https://github.com/simplyjaytea/simplySF2e/releases/download/v<version>/module.json`. See [Releases](https://github.com/simplyjaytea/simplySF2e/releases) for every version.
 
 When a GM logs in and no AI connection works yet, the **Welcome to SimplySF2e** window opens. It checks the Starfinder 2e system version, your compendium content and the AI connection, shows whether fast picks are on, and links to the window that fixes each row. It stops opening by itself once the connection works, or when you tick **Don't show this again at login**. Reopen it any time with **Open Welcome** in the module settings or `/sf2e welcome` in chat.
 
@@ -131,7 +139,7 @@ While a generation runs, a progress bar names each step and has a **Cancel gener
 
 **Advanced options** (a fold-out under the description) holds:
 
-- **Preset**: a flavor guide for the AI. It offers the six Standard classes (Envoy, Mystic, Operative, Solarian, Soldier, Witchwarper), four Starfinder Archetypes (Corp Enforcer, Free Captain (Pirate), Street Cyberdoc, Bounty Hunter), and your own custom presets. **Manage Presets** lets you create, edit, duplicate, delete, export and import custom presets as JSON. Custom presets are saved in the world.
+- **Preset**: a flavor guide for the AI. It offers the eight Standard classes (Envoy, Mechanic, Mystic, Operative, Solarian, Soldier, Technomancer, Witchwarper), four Starfinder Archetypes (Corp Enforcer, Free Captain (Pirate), Street Cyberdoc, Bounty Hunter), and your own custom presets. **Manage Presets** lets you create, edit, duplicate, delete, export and import custom presets as JSON. Custom presets are saved in the world.
 - **Rarity**: the creature's rarity. In Player Character mode this becomes **Rarity cap**, which excludes ancestries, backgrounds and heritages rarer than the cap.
 - **Monster Adjustment**: **Normal**, **Elite (+1 Level)** or **Weak (-1 Level)** (not shown in Player Character or Encounter mode). It applies to single Monster and NPC generation.
 - **Treasure amount**: **Stingy**, **Standard** or **Generous**.
@@ -159,9 +167,9 @@ The preview shows each member's level and role (**Boss**, **Minion**) with **Add
 
 ### Player Character
 
-Fill **Describe the character** and set **Level** (1–20). Character generation is **complete-only**: it supports only the six published Starfinder 2e classes (Envoy, Mystic, Operative, Solarian, Soldier, Witchwarper). If none of them is available in your enabled packs, the generator says so.
+Fill **Describe the character** and set **Level** (1–20). Character generation is **complete-only**: it supports only the eight published Starfinder 2e classes (Envoy, Mechanic, Mystic, Operative, Solarian, Soldier, Technomancer, Witchwarper). If none of them is available in your enabled packs, the generator says so.
 
-SimplySF2e picks a real ancestry, heritage, background and class, plus feats, skills, equipment, starting wealth and (for Mystic and Witchwarper) spells. It puts them on a character actor, and the sf2e system works out AC, HP, saves and proficiencies itself. The preview shows **Skill priorities** and the picks with their match marks.
+SimplySF2e picks a real ancestry, heritage, background and class, plus feats, skills, equipment, starting wealth and (for Mystic, Technomancer and Witchwarper) spells. It puts them on a character actor, and the sf2e system works out AC, HP, saves and proficiencies itself. The preview shows **Skill priorities** and the picks with their match marks.
 
 During creation, the system may open its own **choice dialogs** for options the module could not answer safely. Complete them to continue. Afterwards the generator shows **Character created — review**. It lists:
 
@@ -186,7 +194,7 @@ The AI writes a new name, a read-aloud description and Recall Knowledge text, an
 
 ## Using the Item Forge
 
-Pick an **Item type**, fill **Describe the magic item**, and set **Item level** (1–24) and **Rarity**. Press **Generate** (press it again for a new version). Then press **Create Item**. The item lands in the Items directory, and you drag it onto a character sheet from there. The gear in the Compendium Content row at the top opens Compendium Sources.
+Pick an **Item type**, fill **Describe the item**, and set **Item level** (1–24) and **Rarity**. Press **Generate** (press it again for a new version). Then press **Create Item**. The item lands in the Items directory, and you drag it onto a character sheet from there. The gear in the Compendium Content row at the top opens Compendium Sources.
 
 | Item type | What you get |
 | --- | --- |
@@ -236,7 +244,7 @@ SimplySF2e builds from real content and **fails closed**: when it cannot match s
 - **Feat prerequisites.** Ordinary prerequisites are checked conservatively. Free Archetype slot placement is checked, but the full archetype prerequisite chain is not.
 - **Spells.** Review empty slots, signature spells and subclass or feat spell bonuses on casters after creation.
 - **Upgrade slots.** The number of upgrade slots on forged weapons and armor (1 for weapons and 0 for armor when the item text names none) is a module default. No published source has been cited for it, and this is on hold.
-- **Not built yet:** multiclass dedications, upgrade prerequisite checks, shields and ammunition in the Item Forge, and custom art.
+- **Not built yet:** upgrade prerequisite checks, shields and ammunition in the Item Forge, companion actors (a Mechanic's drone is set up by hand), and custom art.
 - **Live checks.** The QA checklist passed live on 2026-10-08. The features added since then (scrolling button rows, the TypeSafe endpoint field, the http key rule, party fill, right-click Reskin, folders, handouts, remembered settings, the one-step chat command, Re-level in Reskin, the Treasure hoard window, faster encounters and the What's new window) are not yet checked live. This is Beta.
 
 ## Troubleshooting
@@ -267,11 +275,11 @@ When a run fails, the red error box in the Generator or Item Forge has a **Copy 
 
 ## Status
 
-**Beta.** Identity `simplysf2e`, targeting system `sf2e` 1.5.0 or later, checked against 1.5.1 (Foundry 14.361+, verified 14.367). Live Foundry QA passed on 2026-10-08 (reported by the author; no per-row log was kept).
+**Beta.** Identity `simplysf2e`, targeting system `sf2e` 1.6.0 or later, checked against 1.6.1 (Foundry 14.361+, verified 14.369). Live Foundry QA passed on 2026-10-08 on sf2e 1.5.x (reported by the author; no per-row log was kept).
 
 - Building Creatures and Treasure-by-Level numbers are cited against *Starfinder GM Core* pp. 116–128.
-- Character generation covers all six published classes. Level 1 class paths (including Operative's specialization skill feat and Sniper's bonus feat) are settled before creation. Solarian has no level 1 path choice.
-- Mystic and Witchwarper use cited SF2e spell-slot tables (3 base slots per rank, 5 cantrips, 10th-rank spell at level 19).
+- Character generation covers all eight published classes. Level 1 class paths (including Operative's specialization skill feat and Sniper's bonus feat) are settled before creation. Solarian has no level 1 path choice.
+- Mystic, Technomancer and Witchwarper use cited SF2e spell-slot tables (5 cantrips, 10th-rank spell at level 19). Mystic and Witchwarper cast spontaneously with 3 slots per rank; Technomancer prepares arcane spells, with 2 slots in a new rank and 3 after that.
 - Item Forge weapons and armor use SF2e equipment grades and installed upgrades. Grade names follow published `sf2e.equipment` names. Grade and upgrade assembly is unverified live.
 - Forged items' daily uses refill when the owner uses Rest for the Night.
 
@@ -279,4 +287,4 @@ When a run fails, the red error box in the Generator or Item Forge has a **Copy 
 
 - Repository: https://github.com/simplyjaytea/simplySF2e
 - Foundry: v14 (compat minimum 14.361)
-- Game system: [`sf2e`](https://foundryvtt.com/packages/sf2e) 1.5.0 or later, checked against 1.5.1 (Starfinder Second Edition)
+- Game system: [`sf2e`](https://foundryvtt.com/packages/sf2e) 1.6.0 or later, checked against 1.6.1 (Starfinder Second Edition)

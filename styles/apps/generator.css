@@ -93,7 +93,6 @@
 
 .simplysf2e .spf-mode-toggle label.spf-mode-active > i {
   color: var(--spf-brand-accent);
-  text-shadow: var(--spf-neon-glow);
 }
 
 .simplysf2e .spf-mode-toggle input[type="radio"] {
@@ -438,7 +437,7 @@
 }
 
 .simplysf2e .spf-custom {
-  font-size: 0.75em;
+  font-size: var(--spf-text-xs);
   font-weight: bold;
   text-transform: uppercase;
   background: var(--spf-success);
@@ -488,12 +487,6 @@
   display: flex;
   flex-direction: column;
   gap: var(--spf-space-md);
-}
-
-/* Member cards (.spf-card) show the scanline texture as a full repeating
-   layer over the plain surface, without the shared card's tile sizing. */
-.simplysf2e .spf-encounter-member {
-  background: repeating-linear-gradient(0deg, transparent 0 3px, var(--spf-scan) 3px 4px) var(--spf-surface);
 }
 
 .simplysf2e .spf-member-head {
@@ -576,21 +569,16 @@
   }
 }
 
-/* Medium-narrow (about 400-520px): keep all five modes on one row, icon over
-   label, so "Player Character" no longer breaks mid-segment (audit G3). Below
-   that the auto-fit grid above wraps the segments instead. */
+/* Wrap modes at narrow window sizes without shrinking their labels. */
+@container spf-window (max-width: 520px) {
+  .simplysf2e .spf-mode-toggle {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @container spf-window (min-width: 400px) and (max-width: 520px) {
   .simplysf2e .spf-mode-toggle {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-  }
-
-  .simplysf2e .spf-mode-toggle label {
-    flex-direction: column;
-    gap: 0.2rem;
-    padding: var(--spf-space-xs) 2px;
-    font-size: 0.66em;
-    letter-spacing: 0;
-    line-height: 1.15;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 

@@ -24,7 +24,7 @@ const ready = { ready: true, missing: [], packCount: 7 };
 
 // All green.
 let state = welcomeState({
-  systemId: "sf2e", systemVersion: "1.5.1",
+  systemId: "sf2e", systemVersion: "1.6.1",
   creatureSources: ready, characterSources: { ready: true, missing: [], packCount: 9 },
   providerWarningKey: null, jevSource: "connection"
 });
@@ -47,9 +47,12 @@ assert.deepEqual(state.provider, { ready: false, warningKey: "SIMPLYSF2E.Generat
 assert.equal(state.ready, false);
 
 // Jev off is optional: it never blocks readiness.
-state = welcomeState({ systemId: "sf2e", systemVersion: "1.5.0", creatureSources: ready, characterSources: ready });
+state = welcomeState({ systemId: "sf2e", systemVersion: "1.6.0", creatureSources: ready, characterSources: ready });
 assert.equal(state.jev.on, false);
 assert.equal(state.ready, true);
+
+// sf2e 1.5 is below the 1.6 minimum, so the system row is not ready.
+assert.equal(welcomeState({ systemId: "sf2e", systemVersion: "1.5.1", creatureSources: ready, characterSources: ready }).system.ready, false);
 
 // Wrong system is never ready.
 assert.equal(welcomeState({ systemId: "pf2e", systemVersion: "7.0.0", creatureSources: ready, characterSources: ready }).system.ready, false);

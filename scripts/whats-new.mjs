@@ -9,6 +9,26 @@
 /** Newest first. title/body are i18n keys in lang/en.json. */
 export const RELEASE_NOTES = [
   {
+    id: "2026-10-25-multiclass",
+    title: "SIMPLYSF2E.WhatsNew.Note.Multiclass.Title",
+    body: "SIMPLYSF2E.WhatsNew.Note.Multiclass.Body"
+  },
+  {
+    id: "2026-10-25-class-fixes",
+    title: "SIMPLYSF2E.WhatsNew.Note.ClassFixes.Title",
+    body: "SIMPLYSF2E.WhatsNew.Note.ClassFixes.Body"
+  },
+  {
+    id: "2026-10-25-tech-core",
+    title: "SIMPLYSF2E.WhatsNew.Note.TechCore.Title",
+    body: "SIMPLYSF2E.WhatsNew.Note.TechCore.Body"
+  },
+  {
+    id: "2026-10-25-ui-refresh",
+    title: "SIMPLYSF2E.WhatsNew.Note.UiRefresh.Title",
+    body: "SIMPLYSF2E.WhatsNew.Note.UiRefresh.Body"
+  },
+  {
     id: "2026-10-25-creature-art",
     title: "SIMPLYSF2E.WhatsNew.Note.CreatureArt.Title",
     body: "SIMPLYSF2E.WhatsNew.Note.CreatureArt.Body"

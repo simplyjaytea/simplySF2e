@@ -66,6 +66,22 @@ for (const [id, name, level, prerequisite, rules] of skillFeats) {
 docs.set(featUuid("keep"), featDoc("keep", "Keep Them in Your Sights", { category: "class", level: { value: 1 }, rules: [{ key: "ActiveEffectLike", mode: "add", path: "system.custom", value: 1 }] }));
 docs.set(featUuid("scope"), featDoc("scope", "Scope Sight", { category: "class", level: { value: 1 }, rules: [] }));
 
+// sf2e-1.6.1 Mechanic Exocortex and Technomancer Programming Language: same
+// ChoiceSet item:tag filter + templated GrantItem as Soldier Fighting Style;
+// every option below has rules [] (real ids from packs/sf2e/class-features).
+docs.set(uuid("Exocortex"), doc("Exocortex", "Exocortex", { rules: [
+  { choices: { filter: ["item:tag:mechanic-exocortex"] }, flag: "exocortex", key: "ChoiceSet" },
+  { key: "GrantItem", uuid: "{item|flags.system.rulesSelections.exocortex}" }
+] }));
+docs.set(uuid("Programming Language"), doc("Programming Language", "Programming Language", { rules: [
+  { choices: { filter: ["item:tag:technomancer-programming-language"] }, flag: "programmingLanguage", key: "ChoiceSet" },
+  { key: "GrantItem", uuid: "{item|flags.system.rulesSelections.programmingLanguage}" }
+] }));
+const exocortexOptions = [["UCilslXlrd7ihsgY", "Drone"], ["peXRQKUzkAGqduHP", "Mine"], ["V7LMvEnxI7hN1n8Z", "Turret"]];
+const languageOptions = [["msU9FRYDZwkYvLNH", "DPS++"], ["7yxVnWzTynBvFVjr", "FORTRUN"], ["KVc89RjerouF0wo1", "Servoshell"], ["KWVSfZLZIW4zCW7K", "Viper"]];
+for (const [id, name] of exocortexOptions) docs.set(uuid(id), doc(id, name, { category: "classfeature", traits: { otherTags: ["mechanic-exocortex"] }, rules: [] }));
+for (const [id, name] of languageOptions) docs.set(uuid(id), doc(id, name, { category: "classfeature", traits: { otherTags: ["technomancer-programming-language"] }, rules: [] }));
+
 const classFeatureEntry = (id, name, tag) => ({ _id: id, name, type: "feat", system: { category: "classfeature", level: { value: 1 }, traits: { value: [], otherTags: [tag] } } });
 const pack = {
   async getIndex() {
@@ -76,7 +92,10 @@ const pack = {
       classFeatureEntry("hero", "Action Hero", "soldier-fighting-style"),
       classFeatureEntry("ghost", "Ghost", "operative-specialization"),
       classFeatureEntry("sniper", "Sniper", "operative-specialization"),
-      classFeatureEntry("striker", "Striker", "operative-specialization")
+      classFeatureEntry("striker", "Striker", "operative-specialization"),
+      ...exocortexOptions.map(([id, name]) => classFeatureEntry(id, name, "mechanic-exocortex")),
+      ...languageOptions.map(([id, name]) => classFeatureEntry(id, name, "technomancer-programming-language")),
+      classFeatureEntry("marks", "Marksman", "marksman-spec")
     ];
   },
   getDocument: async (id) => docs.get(uuid(id)) ?? null
@@ -97,7 +116,7 @@ globalThis.game = {
 globalThis.CONFIG = { PF2E: {} };
 globalThis.fromUuid = async (id) => docs.get(id) ?? null;
 
-const { stageClassPaths } = await import("./class-paths.mjs");
+const { planClassPaths, stageClassPaths } = await import("./class-paths.mjs");
 const classData = { system: { items: { bridge: { level: 1, uuid: uuid("bridge") }, ordinary: { level: 1, uuid: "Compendium.sf2e.class-features.Item.NotAPath" } } } };
 const calls = [];
 const staged = await stageClassPaths(classData, "class-id", {
@@ -195,5 +214,110 @@ const envoyBridge = await stageClassPaths({ name: "Envoy", system: { items: { sp
 });
 assert.deepEqual(envoyBridge.items[0].system.rules[0].choices, [{ value: uuid("ghost"), label: "Ghost" }],
   "Sniper's class:operative-gated choice is only closed when the staged class is Operative");
+
+// Mechanic: the Exocortex bridge offers Drone, Mine and Turret; the selection
+// is staged and the granted option is verified after create. Class entries use
+// name-based uuids in the real pack ("...Item.Exocortex").
+const mechanicClass = () => ({ name: "Mechanic", system: { slug: null, items: { exo: { level: 1, uuid: uuid("Exocortex") }, mod: { level: 1, uuid: uuid("Modify") } } } });
+for (const [id, name] of exocortexOptions) {
+  const staged = await stageClassPaths(mechanicClass(), "mechanic-id", {
+    context: { names: [name] }, selectChoices: async (groups) => ({ picks: [{ choice: groups[0].id, option: groups[0].options.find((o) => o.label === name).id }] })
+  });
+  assert.equal(staged.items.length, 1);
+  assert.equal(staged.items[0].name, "Exocortex");
+  assert.deepEqual(staged.items[0].system.rules[0].choices.map((c) => c.label).sort(), ["Drone", "Mine", "Turret"]);
+  assert.equal(staged.items[0].system.rules[0].selection, uuid(id));
+  assert.deepEqual(staged.expectedPaths, [{ name, type: "feat", _stats: { compendiumSource: uuid(id) } }]);
+}
+const mechanicPlan = await planClassPaths(mechanicClass(), { context: { names: ["Mine"] }, selectChoices: async (groups) => ({ picks: [{ choice: groups[0].id, option: groups[0].options.find((o) => o.label === "Mine").id }] }) });
+assert.deepEqual(Object.keys(mechanicPlan), ["mechanic-exocortex"]);
+assert.equal(mechanicPlan["mechanic-exocortex"].uuid, uuid("peXRQKUzkAGqduHP"));
+const plannedMechanic = await stageClassPaths(mechanicClass(), "mechanic-id", { context: {}, pathPlan: mechanicPlan });
+assert.equal(plannedMechanic.items[0].system.rules[0].selection, uuid("peXRQKUzkAGqduHP"), "the planned exocortex is staged without a callback");
+
+// Technomancer: Programming Language bridge, four options.
+const technomancerClass = () => ({ name: "Technomancer", system: { slug: null, items: { lang: { level: 1, uuid: uuid("Programming Language") } } } });
+for (const [id, name] of languageOptions) {
+  const staged = await stageClassPaths(technomancerClass(), "technomancer-id", { context: { names: [name] } });
+  assert.equal(staged.items[0].name, "Programming Language");
+  assert.equal(staged.items[0].system.rules[0].selection, uuid(id), `${name} is selected by concept name`);
+  assert.deepEqual(staged.items[0].system.rules[0].choices.map((c) => c.label).sort(), ["DPS++", "FORTRUN", "Servoshell", "Viper"]);
+  assert.deepEqual(staged.expectedPaths, [{ name, type: "feat", _stats: { compendiumSource: uuid(id) } }]);
+}
+const languagePlan = await planClassPaths(technomancerClass(), { context: { names: ["Viper"] } });
+assert.equal(languagePlan["technomancer-programming-language"].uuid, uuid("KWVSfZLZIW4zCW7K"));
+await assert.rejects(stageClassPaths(technomancerClass(), "technomancer-id", { context: {} }), /was not selected/,
+  "an unanswered Programming Language blocks before Actor.create");
+
+// Feat reservation: slots can take every level-one skill feat a specialization
+// offers at high level. The plan reserves the first offered feat per feat
+// ChoiceSet, and staging keeps it offerable to that path alone.
+const pickLabel = (label) => async (groups) => ({
+  picks: groups.map((group) => ({ choice: group.id, option: group.options.find((entry) => entry.label === label).id }))
+});
+const ghostPlan = await planClassPaths(operativeClass(), { context: { names: ["Ghost"] }, selectChoices: pickLabel("Ghost") });
+assert.deepEqual(ghostPlan["operative-specialization"].reservedFeats, [featUuid("face")],
+  "the plan reserves the first level-one skill feat the specialization offers");
+const allSkillFeats = ["face", "favored", "trace", "terrain", "skeptic"].map(featUuid);
+await assert.rejects(stageClassPaths(operativeClass(), "operative-id", { context: { names: ["Ghost"] }, excludeFeats: allSkillFeats }),
+  /no fully resolvable/, "without a reservation, slots that take every skill feat close no Ghost candidate");
+const reservedGhost = await stageClassPaths(operativeClass(), "operative-id", {
+  context: { names: ["Ghost"] }, excludeFeats: allSkillFeats, pathPlan: ghostPlan
+});
+assert.equal(reservedGhost.items[0].system.rules[0].selection, uuid("ghost"));
+assert.deepEqual(reservedGhost.items[0].system.rules[1].preselectChoices, { feat: featUuid("face") },
+  "with every level-one skill feat excluded, the reserved feat is the only one the path can select");
+assert.deepEqual(reservedGhost.expectedPaths.map((entry) => entry._stats.compendiumSource), [uuid("ghost"), featUuid("face")],
+  "the reserved feat is verified as the native grant after create");
+
+const sniperPlan = await planClassPaths(operativeClass(), { context: { names: ["Sniper"] }, selectChoices: pickLabel("Sniper") });
+assert.deepEqual(sniperPlan["operative-specialization"].reservedFeats, [featUuid("trace"), featUuid("keep")],
+  "each feat ChoiceSet contributes its first option, including the class-gated bonus feat");
+assert.deepEqual(sniperPlan["operative-specialization"].reservedFeatNames, ["without-a-trace", "keep-them-in-your-sights"],
+  "each reserved feat is also reported by its slugified loaded name");
+
+const soldierPlan = await planClassPaths({ system: { items: { style: { level: 1, uuid: uuid("style") } } } }, { context: {} });
+assert.deepEqual(soldierPlan["soldier-fighting-style"].reservedFeats, [],
+  "a path whose choices offer no feats reserves nothing");
+
+await assert.rejects(stageClassPaths(operativeClass(), "operative-id", {
+  context: { names: ["Ghost"] },
+  pathPlan: { "operative-specialization": { tag: "operative-specialization", uuid: uuid("nope"), name: "Nope", skills: {}, trainedSkill: null, reservedFeats: [featUuid("face")] } }
+}), /not a valid candidate/, "a planned uuid outside the enabled candidates still blocks, even with reservations");
+
+// The build's own grants (background, ancestry, heritage) are excluded before
+// the path picks its reservation, so an excluded first option is skipped.
+const excludedFace = await planClassPaths(operativeClass(), {
+  context: { names: ["Ghost"] }, selectChoices: pickLabel("Ghost"), excludeFeats: [featUuid("face")]
+});
+assert.deepEqual(excludedFace["operative-specialization"].reservedFeats, [featUuid("favored")],
+  "a path whose first option is in excludeFeats reserves the next closed option");
+assert.deepEqual(excludedFace["operative-specialization"].reservedFeatNames, ["favored-disguise"]);
+
+// Name-form choice values (real sf2e Sniper-style bonusFeat data stores the
+// feat name in the uuid tail). The reservation keeps the exact uuid for the
+// path's own choice; the slot exclusion uses the loaded feat's slugified name.
+const nameKeepUuid = "Compendium.sf2e.feats.Item.Keep Them in Your Sights";
+const nameScopeUuid = "Compendium.sf2e.feats.Item.Scope Sight";
+docs.set(nameKeepUuid, { uuid: nameKeepUuid, name: "Keep Them in Your Sights", toObject: () => ({
+  _id: "keep", name: "Keep Them in Your Sights", type: "feat", system: { category: "class", level: { value: 1 }, rules: [] }
+}) });
+docs.set(nameScopeUuid, { uuid: nameScopeUuid, name: "Scope Sight", toObject: () => ({
+  _id: "scope", name: "Scope Sight", type: "feat", system: { category: "class", level: { value: 1 }, rules: [] }
+}) });
+docs.set(uuid("marks-bridge"), doc("marks-bridge", "Marksman's Specialization", { rules: [
+  { key: "ChoiceSet", flag: "specialization", choices: { filter: ["item:tag:marksman-spec"] } },
+  { key: "GrantItem", uuid: "{item|flags.system.rulesSelections.specialization}" }
+] }));
+docs.set(uuid("marks"), doc("marks", "Marksman", { category: "classfeature", traits: { otherTags: ["marksman-spec"] }, rules: [
+  { key: "ActiveEffectLike", mode: "upgrade", path: "system.skills.stealth.rank", value: 1 },
+  { adjustName: false, choices: [{ value: nameKeepUuid }, { value: nameScopeUuid }], flag: "bonusFeat", key: "ChoiceSet", predicate: ["class:operative"] },
+  { key: "GrantItem", predicate: ["class:operative"], uuid: "{item|flags.system.rulesSelections.bonusFeat}" }
+] }));
+const marksClass = () => ({ name: "Operative", system: { slug: null, items: { marks: { level: 1, uuid: uuid("marks-bridge") } } } });
+const marksPlan = await planClassPaths(marksClass(), { context: { names: ["Marksman"] }, selectChoices: pickLabel("Marksman") });
+assert.deepEqual(marksPlan["marksman-spec"].reservedFeats, [nameKeepUuid], "the name-form choice keeps its exact uuid");
+assert.deepEqual(marksPlan["marksman-spec"].reservedFeatNames, ["keep-them-in-your-sights"],
+  "the name-form reservation is reported by the loaded feat name, slugified");
 
 console.log("class-paths.test.mjs: exact closed class-path staging passed");

@@ -2,7 +2,7 @@
    simplySF2e — shared visual system ("Neon Drift" Starfinder 2e HUD)
    One token set + a small kit of shared classes used by all five apps
    (generator, item forge, provider setup, manage presets, sources):
-   - .spf-card        notched, scanlined surface for sections/previews/progress
+   - .spf-card        notched, plain surface for sections/previews/progress
    - .spf-icon-btn    square icon-only button
    - .spf-primary     the ONE main action of a window (generate/forge/create)
    - .spf-secondary   quiet companion action (preview plan / cancel)
@@ -65,8 +65,8 @@
   --spf-space-lg: 0.75rem;
   --spf-space-xl: 1rem;
   /* Type + shape: sans + sharper corners, not PF2e parchment */
-  --spf-text-sm: 0.85em;
-  --spf-text-xs: 0.72em;
+  --spf-text-sm: 0.85rem;
+  --spf-text-xs: 0.85rem;
   --spf-font-display: var(--font-sans, "Signika", sans-serif);
   --spf-font-mono: var(--font-monospace, ui-monospace, "Cascadia Code", monospace);
   --spf-radius: 2px;
@@ -92,7 +92,10 @@
 }
 
 .application.simplysf2e .window-header {
-  background: linear-gradient(
+  background:
+    repeating-linear-gradient(0deg, transparent 0 3px, var(--spf-scan) 3px 4px),
+    repeating-linear-gradient(90deg, transparent 0 3px, var(--spf-grid-line) 3px 4px),
+    linear-gradient(
     90deg,
     #1d3c53,
     color-mix(in srgb, #40256f 28%, #2d4f6a)
@@ -108,15 +111,20 @@
   font-weight: 700;
 }
 
-/* Holographic scanline/grid texture over the window backdrop. */
+/* Keep reading surfaces plain; texture belongs to chrome and empty space. */
 .application.simplysf2e .window-content {
   container: spf-window / inline-size;
+  background: #0c1620;
+  color: #e8f6fa;
+}
+
+.simplysf2e .spf-empty,
+.simplysf2e .spf-hud-empty,
+.simplysf2e .spf-source-empty {
   background:
     repeating-linear-gradient(0deg, transparent 0 3px, var(--spf-scan) 3px 4px),
     repeating-linear-gradient(90deg, transparent 0 3px, var(--spf-grid-line) 3px 4px),
-    linear-gradient(180deg, color-mix(in srgb, #1d3c53 38%, transparent), transparent 5rem),
-    #0c1620;
-  color: #e8f6fa;
+    var(--spf-surface);
 }
 
 /* Busy window chrome keeps the magenta bottom edge under its glow. */
@@ -134,7 +142,6 @@
   border: 1px solid var(--spf-border);
   border-radius: 0;
   background-color: var(--spf-surface-raised);
-  background-image: repeating-linear-gradient(0deg, transparent 0 3px, var(--spf-scan) 3px 4px);
   background-repeat: no-repeat;
   background-size: var(--spf-tick) 1px;
   background-position: top left;
@@ -560,7 +567,7 @@
   background: color-mix(in srgb, var(--spf-brand-dark) 85%, #0c1620);
   border: 1px solid var(--spf-border);
   border-radius: var(--spf-radius-sm);
-  box-shadow: var(--spf-inset-glow), var(--spf-neon-glow);
+  box-shadow: var(--spf-inset-glow);
 }
 
 .simplysf2e .spf-inputs textarea,
@@ -568,7 +575,7 @@
 .simplysf2e .spf-inputs input[type="number"],
 .simplysf2e .spf-preset-controls select {
   background: color-mix(in srgb, var(--spf-brand-dark) 55%, rgba(8, 16, 26, 0.88));
-  border: 1px solid var(--spf-border);
+  border: 1px solid var(--spf-control-border);
   color: var(--spf-text);
   border-radius: var(--spf-radius-sm);
 }
@@ -898,14 +905,14 @@
 .simplysf2e .spf-trait {
   background: color-mix(in srgb, var(--spf-neon) 14%, var(--spf-brand-dark));
   color: #e8f6fa;
-  border: 1px solid var(--spf-neon);
+  border: 1px solid color-mix(in srgb, var(--spf-neon) 55%, var(--spf-border));
   border-radius: 999px;
   padding: 0 var(--spf-space-sm);
   font-size: var(--spf-text-xs);
   font-weight: bold;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  box-shadow: 0 0 8px color-mix(in srgb, var(--spf-neon) 25%, transparent);
+  box-shadow: none;
 }
 
 .simplysf2e .spf-statline {
@@ -1042,7 +1049,7 @@
 .simplysf2e .spf-error-notice button.spf-bug-report {
   flex: 0 0 auto;
   width: auto;
-  font-size: var(--font-size-12, 0.75rem);
+  font-size: var(--spf-text-sm);
 }
 
 /* Manual-copy fallback dialog (not inside a .simplysf2e window). */
@@ -1050,7 +1057,7 @@ textarea.spf-bug-report-text {
   width: 100%;
   min-height: 14rem;
   font-family: var(--font-mono, monospace);
-  font-size: var(--font-size-11, 0.7rem);
+  font-size: 0.85rem;
   white-space: pre;
   resize: vertical;
 }

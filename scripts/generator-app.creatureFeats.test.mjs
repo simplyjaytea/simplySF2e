@@ -1,5 +1,5 @@
 // Exercise the production caller's optional creature-feat contract without
-// provider requests or Foundry writes. Only the private method name is exposed.
+// provider requests or Foundry writes. The step lives in creature-pipeline.mjs.
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
@@ -9,11 +9,10 @@ if (!vm.SourceTextModule) {
   const run = spawnSync(process.execPath, ["--experimental-vm-modules", import.meta.filename], { stdio: "inherit" });
   process.exit(run.status ?? 1);
 }
-const source = (await readFile(new URL("./generator-app.mjs", import.meta.url), "utf8"))
-  .replace(/#refineCreatureFeats\b/g, "_test_refineCreatureFeats");
+const source = await readFile(new URL("./creature-pipeline.mjs", import.meta.url), "utf8");
 const warnings = [];
 const context = vm.createContext({
-  console: { warn: (...args) => warnings.push(args) },
+  console: { warn: (...args) => warnings.push(args), debug() {} },
   game: { i18n: { localize: (key) => key } }
 });
 const candidate = { id: "F0", name: "Sudden Charge", ref: { packId: "pf2e.feats-srd", _id: "charge" } };
@@ -25,7 +24,6 @@ let query;
 let receivedSignal;
 const tokens = [];
 const mocks = {
-  SpfApp: class { _recordTokens(label, usage) { tokens.push({ label, usage }); } },
   MODULE_ID: "simplysf2e",
   SETTINGS: { generatorInput: "generatorInput" }, getSetting: () => undefined,
   restoreGeneratorInput: (_saved, defaults) => defaults, rememberedInput: (input) => input,
@@ -47,7 +45,12 @@ await module.link((specifier) => {
   }, { context });
 });
 await module.evaluate();
-const app = new module.namespace.GeneratorApp();
+const { refineCreatureFeats } = module.namespace;
+const app = {
+  _test_refineCreatureFeats: (concept, signal) => refineCreatureFeats(concept, {
+    signal, onTokens: (usage, { label }) => tokens.push({ label, usage })
+  })
+};
 const usage = { totalTokens: 30 };
 const signal = new AbortController().signal;
 

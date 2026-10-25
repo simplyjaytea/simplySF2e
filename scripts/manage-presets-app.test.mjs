@@ -61,7 +61,7 @@ globalThis.foundry = {
 };
 
 const context = vm.createContext({
-  console: { log() {}, warn() {}, error() {} },
+  console: { log() {}, warn() {}, error() {}, debug() {} },
   game: globalThis.game,
   ui: {
     notifications: {

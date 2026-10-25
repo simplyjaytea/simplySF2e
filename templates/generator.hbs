@@ -233,6 +233,16 @@
           </select>
         </div>
       {{/if}}
+      {{#if multiclassPicker}}
+        <div class="form-group">
+          <label for="spf-generator-multiclass" data-tooltip="{{localize 'SIMPLYSF2E.Generator.MulticlassTooltip'}}">{{localize "SIMPLYSF2E.Generator.Multiclass"}}</label>
+          <select id="spf-generator-multiclass" name="multiclass">
+            {{#each multiclassPicker.options}}
+              <option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
+            {{/each}}
+          </select>
+        </div>
+      {{/if}}
       {{! Elite/Weak applies to a single Monster/NPC only; encounter members ignore it. }}
       {{#unless characterMode}}{{#unless encounterMode}}
       <div class="form-group">
@@ -285,9 +295,9 @@
     </details>
     {{/unless}}
     <div class="spf-generate-row">
-      <button type="button" class="spf-primary" data-action="generate" {{#if busy}}disabled{{/if}}>
-        <i aria-hidden="true" class="fa-solid fa-wand-sparkles"></i>
-        {{#if monsterMode}}{{localize "SIMPLYSF2E.Generator.GenerateMonster"}}{{else if npcMode}}{{localize "SIMPLYSF2E.Generator.GenerateNpc"}}{{else if encounterMode}}{{localize "SIMPLYSF2E.Generator.GenerateEncounter"}}{{else if reskinMode}}{{localize "SIMPLYSF2E.Generator.GenerateReskin"}}{{else}}{{localize "SIMPLYSF2E.Generator.GenerateCharacter"}}{{/if}}
+      <button type="button" class="{{#if preview}}spf-secondary{{else if encounterPreview}}spf-secondary{{else if pcPreview}}spf-secondary{{else if reskinPreview}}spf-secondary{{else}}spf-primary{{/if}}" data-action="generate" {{#if busy}}disabled{{/if}}>
+        <i aria-hidden="true" class="fa-solid fa-bolt"></i>
+        {{#if preview}}{{localize "SIMPLYSF2E.Generator.GenerateAnotherVersion"}}{{else if encounterPreview}}{{localize "SIMPLYSF2E.Generator.GenerateAnotherVersion"}}{{else if pcPreview}}{{localize "SIMPLYSF2E.Generator.GenerateAnotherVersion"}}{{else if reskinPreview}}{{localize "SIMPLYSF2E.Generator.GenerateAnotherVersion"}}{{else}}{{#if monsterMode}}{{localize "SIMPLYSF2E.Generator.GenerateMonster"}}{{else if npcMode}}{{localize "SIMPLYSF2E.Generator.GenerateNpc"}}{{else if encounterMode}}{{localize "SIMPLYSF2E.Generator.GenerateEncounter"}}{{else if reskinMode}}{{localize "SIMPLYSF2E.Generator.GenerateReskin"}}{{else}}{{localize "SIMPLYSF2E.Generator.GenerateCharacter"}}{{/if}}{{/if}}
       </button>
       <button type="button" class="spf-secondary" data-action="previewPlan" {{#if busy}}disabled{{/if}}>{{localize "SIMPLYSF2E.Generator.PreviewPlan"}}</button>
       {{#unless reskinMode}}
@@ -369,7 +379,7 @@
     {{/if}}
     <footer class="spf-actions">
       {{#if created.actorId}}<button type="button" class="spf-primary" data-action="openCreatedActor"><i aria-hidden="true" class="fa-solid fa-arrow-up-right-from-square"></i> {{localize "SIMPLYSF2E.Generator.OpenSheet"}}</button>{{/if}}
-      <button type="button" data-action="generateAnother"><i aria-hidden="true" class="fa-solid fa-wand-sparkles"></i> {{localize "SIMPLYSF2E.Generator.GenerateAnother"}}</button>
+      <button type="button" data-action="generateAnother"><i aria-hidden="true" class="fa-solid fa-bolt"></i> {{localize "SIMPLYSF2E.Generator.GenerateAnother"}}</button>
     </footer>
   </section>
   {{/if}}
@@ -593,6 +603,13 @@
       {{#if pcPreview.matchSummary}}<span class="spf-level spf-match-summary" data-tooltip="{{localize 'SIMPLYSF2E.Preview.Found'}}"><i aria-hidden="true" class="fa-solid fa-circle-check"></i> {{pcPreview.matchSummary.text}}</span>{{/if}}
     </header>
     {{#if pcPreview.concept.blurb}}<p class="spf-blurb"><em>{{pcPreview.concept.blurb}}</em></p>{{/if}}
+    {{#if pcPreview.multiclass}}
+      {{#if pcPreview.multiclass.dedication}}
+      <p class="spf-multiclass" role="status">{{localize "SIMPLYSF2E.Preview.MulticlassLine" class=pcPreview.multiclass.name dedication=pcPreview.multiclass.dedication}}</p>
+      {{else}}
+      <p class="notification warning" role="status">{{localize "SIMPLYSF2E.Preview.MulticlassNotPlaced" class=pcPreview.multiclass.name}}</p>
+      {{/if}}
+    {{/if}}
 
     <div class="spf-statline">
       <span><strong>{{localize "SIMPLYSF2E.Preview.Ancestry"}}</strong>
@@ -621,12 +638,13 @@
       <h3>{{localize "SIMPLYSF2E.Preview.Feats"}}</h3>
       <ul class="spf-list spf-inline">
         {{#each pcPreview.feats}}
-          <li class="{{#unless this.found}}spf-dropped{{/unless}}">
+          <li class="{{#unless this.found}}{{#unless this.empty}}spf-dropped{{/unless}}{{/unless}}">
             {{this.name}}
-            {{#if this.found}}<i class="fa-solid fa-circle-check spf-match" role="img" aria-label="{{localize 'SIMPLYSF2E.Preview.Found'}}" title="{{localize 'SIMPLYSF2E.Preview.Found'}}"></i>{{else}}<i class="fa-solid fa-circle-exclamation spf-unmatched" role="img" aria-label="{{localize 'SIMPLYSF2E.Preview.NotFound'}}" title="{{localize 'SIMPLYSF2E.Preview.NotFound'}}"></i>{{/if}}
+            {{#if this.empty}}<i class="fa-solid fa-circle-info" role="img" aria-label="{{localize 'SIMPLYSF2E.Preview.EmptyFeatSlot'}}" title="{{localize 'SIMPLYSF2E.Preview.EmptyFeatSlot'}}"></i>{{else if this.found}}<i class="fa-solid fa-circle-check spf-match" role="img" aria-label="{{localize 'SIMPLYSF2E.Preview.Found'}}" title="{{localize 'SIMPLYSF2E.Preview.Found'}}"></i>{{else}}<i class="fa-solid fa-circle-exclamation spf-unmatched" role="img" aria-label="{{localize 'SIMPLYSF2E.Preview.NotFound'}}" title="{{localize 'SIMPLYSF2E.Preview.NotFound'}}"></i>{{/if}}
           </li>
         {{/each}}
       </ul>
+      {{#if pcPreview.emptyFeatNotice}}<p class="notification warning" role="status">{{pcPreview.emptyFeatNotice}}</p>{{/if}}
     {{/if}}
 
     {{#if pcPreview.spellcastingNotice}}

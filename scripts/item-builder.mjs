@@ -18,7 +18,8 @@ import { slugify, capitalized, esc } from "./text.mjs";
 import {
   RUNED_ITEM_KINDS, SECONDARY_ADJECTIVE, SECONDARY_RUNE_FIELD, propertyRuneKey, propertyRuneFitsBase,
   findFundamentalRune, getBaseItemCandidates, getPropertyRuneCandidates, getFundamentalRuneTiers,
-  EQUIPMENT_GRADES, GRADE_LEVELS, GRADE_CREDITS_DELTA, parseUpgradeCapacity, getGradeTiers, getUpgradeCandidates
+  EQUIPMENT_GRADES, GRADE_LEVELS, GRADE_CREDITS_DELTA, parseUpgradeCapacity, getGradeTiers, getUpgradeCandidates,
+  trailingGradeLabel, stripTrailingGradeLabel
 } from "./runes.mjs";
 
 /* Re-exported: the item forge UI imports its whole surface from this module. */
@@ -177,7 +178,7 @@ export async function priceForLevel(level, rarity = "common") {
       if (inWindow.length >= MIN_PRICE_SAMPLES) {
         base = median(inWindow);
         if (window > 2) {
-          console.log(`simplysf2e | itemforge: few priced items near level ${lv}; price benchmark widened to ±${window} levels`);
+          console.debug(`simplysf2e | itemforge: few priced items near level ${lv}; price benchmark widened to ±${window} levels`);
         }
         break;
       }
@@ -201,7 +202,7 @@ export async function priceForLevel(level, rarity = "common") {
  */
 export function normalizeRunedItemConcept(raw, {
   kind, rarity, baseCandidates, runeCandidates = [],
-  potencyTiers = [], secondaryTiers = [], grades = []
+  potencyTiers = [], secondaryTiers = [], grades = [], level = null
 }) {
   const c = typeof raw === "object" && raw !== null ? raw : {};
   const findByName = (list, name) => list.find((x) => slugify(x.name) === slugify(name)) ?? null;
@@ -229,25 +230,39 @@ export function normalizeRunedItemConcept(raw, {
   // Upgrade slots come from the base candidate (see runes.parseUpgradeCapacity).
   const maxSlots = base.upgradeSlots ?? 0;
   const propertyRunes = [];
+  const skippedUpgrades = [];
+  const unfitUpgrades = [];
   const seen = new Set();
   const requestedUpgrades = Array.isArray(c.upgrades) ? c.upgrades
     : Array.isArray(c.propertyRunes) ? c.propertyRunes : [];
 
   for (const name of requestedUpgrades) {
-    if (propertyRunes.length >= maxSlots) break;
     const match = findByName(runeCandidates, name);
     if (!match) {
       if (name) console.warn(`simplysf2e | itemforge: dropped unmatched upgrade/rune "${name}"`);
       continue;
     }
-    if (!propertyRuneFitsBase(kind, match.usage)) {
-      console.warn(`simplysf2e | itemforge: dropped upgrade "${match.name}" (${match.usage}) — not installable in ${kind} "${base.name}"`);
-      continue;
-    }
     const key = slugify(match.name);
     if (seen.has(key)) continue;
     seen.add(key);
+    // A projectile-only upgrade on a base of another group never takes a slot:
+    // it is skipped with its own reason, before the slot cap is checked.
+    if (!propertyRuneFitsBase(kind, match.usage, base.group ?? null)) {
+      console.warn(`simplysf2e | itemforge: upgrade "${match.name}" (${match.usage}) cannot be installed in ${kind} "${base.name}" (group ${base.group ?? "unknown"}); skipped`);
+      skippedUpgrades.push(match.name);
+      unfitUpgrades.push(match.name);
+      continue;
+    }
+    // Slot capacity is uncited (PLAYBOOK §9), so the cap stays. The skip is kept and shown.
+    if (propertyRunes.length >= maxSlots) {
+      skippedUpgrades.push(match.name);
+      continue;
+    }
     propertyRunes.push(match.name);
+  }
+  const slotSkipped = skippedUpgrades.filter((name) => !unfitUpgrades.includes(name));
+  if (slotSkipped.length) {
+    console.warn(`simplysf2e | itemforge: no free upgrade slot on "${base.name}" (${maxSlots} slot${maxSlots === 1 ? "" : "s"}); not installed: ${slotSkipped.join(", ")}`);
   }
 
   return {
@@ -256,6 +271,9 @@ export function normalizeRunedItemConcept(raw, {
     grade,
     propertyRunes,
     upgrades: propertyRunes,
+    skippedUpgrades,
+    unfitUpgrades,
+    level,
     rarity: RARITIES.has(rarity) ? rarity : RARITIES.has(c.rarity) ? c.rarity : "common",
     description: String(c.description ?? "").slice(0, 800)
   };
@@ -280,23 +298,40 @@ export async function buildRunedItem(concept) {
     throw new Error(`Base ${concept.kind} "${concept.baseItemName}" could not be resolved against the compendium.`);
   }
 
-  const grade = concept.grade ?? "commercial";
+  // A base already published above commercial keeps its published grade. The
+  // system grades it from its own published data, so re-grading would pair its
+  // level and price with a different grade.
+  const publishedGrade = [trailingGradeLabel(baseDoc.name), baseDoc.system?.grade].find((g) => g && g !== "commercial");
+  const grade = publishedGrade ?? concept.grade ?? "commercial";
+  if (publishedGrade && publishedGrade !== concept.grade) {
+    console.warn(`simplysf2e | itemforge: "${baseDoc.name}" is published at ${publishedGrade} grade; kept ${publishedGrade} instead of ${concept.grade ?? "commercial"}`);
+  }
   const upgradeDocs = [];
   const upgradeNames = concept.upgrades ?? concept.propertyRunes ?? [];
+  const unfitDropped = [];
   for (const name of upgradeNames) {
     const entry = await findEntry(packs, name, (e) => e.type === "equipment");
     const doc = await getDocument(entry);
     // The fuzzy match may land on a different item; install it only if the
-    // graded base would accept it.
-    if (doc && !propertyRuneFitsBase(concept.kind, doc.system?.usage?.value)) {
-      console.warn(`simplysf2e | itemforge: upgrade "${doc.name}" (${doc.system?.usage?.value}) cannot be installed in a ${concept.kind} — dropped`);
+    // graded base would accept it. A drop here is reported on the preview, like
+    // a normalize-time skip, so it never looks like a silent loss.
+    if (doc && !propertyRuneFitsBase(concept.kind, doc.system?.usage?.value, baseDoc.system?.group)) {
+      console.warn(`simplysf2e | itemforge: upgrade "${doc.name}" (${doc.system?.usage?.value}) cannot be installed in ${concept.kind} "${baseDoc.name}" (group ${baseDoc.system?.group ?? "unknown"}); skipped`);
+      unfitDropped.push(name);
       continue;
     }
     if (doc) upgradeDocs.push(doc);
     else console.warn(`simplysf2e | itemforge: upgrade/rune "${name}" could not be resolved — dropped`);
   }
+  const skippedUpgrades = [...new Set([...(concept.skippedUpgrades ?? []), ...unfitDropped])];
+  const unfitUpgrades = [...new Set([...(concept.unfitUpgrades ?? []), ...unfitDropped])];
 
   const data = toItemData(baseDoc);
+  // Base price and level are copied on purpose. The system recomputes both on
+  // every derived prep: physical/document.ts prepareDerivedData (lines 355-358)
+  // calls computeLevelRarityPrice, which starts from this stored base price
+  // (helpers.ts line 38, when no material or rune value applies) and adds the
+  // grade's credits itself (line 39). Do not add grade credits here.
   // Set native SF2e equipment grade (CTASEUP)
   data.system.grade = grade;
   // Zero runes per SF2e Migration942EquipmentGrade standard
@@ -323,18 +358,24 @@ export async function buildRunedItem(concept) {
   // level. Installed upgrades do not raise the item's level.
   const gradeLevel = (GRADE_LEVELS[concept.kind] && GRADE_LEVELS[concept.kind][grade]) ?? 0;
   const level = Math.max(data.system.level?.value ?? 0, gradeLevel);
-
-  // SF2e published naming convention: "{Base Name} ({Grade})" or with upgrades
-  const gradeLabel = capitalized(grade);
-  const nameParts = [baseDoc.name];
-  if (grade !== "commercial") {
-    nameParts.push(`(${gradeLabel})`);
+  // A base published above commercial keeps its own grade, which can put it
+  // above the GM's level even though its stored level is lower. Fail closed.
+  if (concept.level != null && level > concept.level) {
+    throw new Error(`${baseDoc.name} comes out at level ${level}, above this item's level ${concept.level}. Generate a new plan.`);
   }
+
+  // SF2e published naming convention: "{Base Name} ({Grade})" or with upgrades.
+  // A commercial base is published as "{Name} (Commercial)", so its label is
+  // stripped before the chosen grade is added: never two grade labels.
+  const gradeLabel = capitalized(grade);
+  const baseName = stripTrailingGradeLabel(baseDoc.name);
   if (upgradeDocs.length) {
     const upgradeSummary = upgradeDocs.map((d) => d.name).join(", ");
-    data.name = `${baseDoc.name} (${gradeLabel}: ${upgradeSummary})`;
+    data.name = `${baseName} (${gradeLabel}: ${upgradeSummary})`;
+  } else if (grade !== "commercial") {
+    data.name = `${baseName} (${gradeLabel})`;
   } else {
-    data.name = nameParts.join(" ");
+    data.name = baseDoc.name;
   }
 
   const baseRarity = data.system.traits?.rarity ?? "common";
@@ -363,7 +404,9 @@ export async function buildRunedItem(concept) {
       priceCredits: totalCredits,
       level,
       grade,
-      upgrades: upgradeDocs.map((d) => d.name)
+      upgrades: upgradeDocs.map((d) => d.name),
+      skippedUpgrades,
+      unfitUpgrades
     }
   };
 }

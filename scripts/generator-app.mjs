@@ -4,29 +4,30 @@ import {
 } from "./settings.mjs";
 import { rememberedInput, restoreGeneratorInput } from "./generator-memory.mjs";
 import {
-  generateConcept, generateLoot, selectSpells, chooseSpellFocus, selectEquipment, selectLoot, designEncounter,
-  generatePCConcept, generatePCLoot, selectAncestryBackgroundClass, selectFeats, selectCreatureFeats, selectCreatureAbilities, selectCharacterChoices,
+  generateLoot, selectSpells,
+  generatePCConcept, generatePCLoot, selectAncestryBackgroundClass, selectFeats, selectCharacterChoices,
   generateReskin, selectRerollPick
 } from "./ai.mjs";
+import { generateCreature, generateEncounter, refineSpells, refineEquipment, refineLoot } from "./creature-pipeline.mjs";
 import {
-  getSpellCandidates, getEquipmentCandidates, getLootCandidates, getScrollSpellCandidates,
-  getAncestryCandidates, getBackgroundCandidates, getClassCandidates, getHeritageCandidates, getFocusSpellCandidates, getFeatCandidates, getAbilityCandidates, sourceReadiness, describeMissingSources
+  getSpellCandidates,
+  getAncestryCandidates, getBackgroundCandidates, getClassCandidates, getHeritageCandidates, getFeatCandidates, getAbilityCandidates, sourceReadiness, describeMissingSources
 } from "./compendium.mjs";
 import {
-  normalizeConcept, normalizeLoot, resolveConcept, resolveLoot, computeStats, adjustedStats, createActor,
-  applyTreasureBudget, equipmentValueGp, lootValueGp, parseCoins, parseScroll, slugify,
-  dedupeLootAgainstEquipment, enforceNamedLootBudget, reskinActorData, narrativeHasMechanics
+  normalizeLoot, resolveLoot, computeStats, adjustedStats, createActor,
+  applyTreasureBudget, equipmentValueGp, lootValueGp, parseCoins, slugify,
+  dedupeLootAgainstEquipment, enforceNamedLootBudget, reskinActorData
 } from "./builder.mjs";
 import { normalizeReskin, reskinRenameTargets } from "./reskin.mjs";
-import { runPool, encounterConcurrency } from "./pool.mjs";
 import { relevelActorData, clampRelevel, RELEVEL_MIN, RELEVEL_MAX } from "./relevel.mjs";
 import { REROLL_KINDS, rerollTarget, rerollPool, applyRerollPick, rerollKeywords } from "./reroll.mjs";
 import {
-  normalizePCConcept, resolvePCConcept, resolveFeatPicks, createCharacterActor, pcStartingWealthGp
+  normalizePCConcept, resolvePCConcept, resolveFeatPicks, createCharacterActor, pcStartingWealthGp, archetypeCasterPlan, resolveArchetypeBridges
 } from "./pc-builder.mjs";
 import { pcSpellcastingProfile, pcSpellPlan } from "./pc-tables.mjs";
 import { reviewUnresolvedChoices } from "./choice-set.mjs";
-import { normalizeSkillPriorities, skillPriorityOrder } from "./pc-skills.mjs";
+import { normalizeSkillPriorities, skillPriorityOrder, initialSkillTraining } from "./pc-skills.mjs";
+import { ABILITY_KEYS, projectAttributeModifiers, projectSkillRanks } from "./pc-projection.mjs";
 import { treasureBudget, TREASURE_AMOUNT_MULTIPLIER } from "./tables.mjs";
 import { gpToCredits } from "./currency.mjs";
 import { getCustomPresets, findPreset, examplePrompt, randomBrief, presetPickerGroups } from "./presets.mjs";
@@ -36,11 +37,13 @@ import { composeEncounter, THREATS } from "./encounter.mjs";
 import { findBestiaryScaffold, scaffoldArt } from "./art.mjs";
 import { assertComplete, completionManifest, completionSummary } from "./completion.mjs";
 import { verifyCreatedActor } from "./post-create.mjs";
-import { supportedClassCandidates } from "./pc-support.mjs";
-import { validateArchetypeSlotPlacement } from "./pc-prerequisites.mjs";
+import {
+  manualNotesContent, supportedClassCandidates, isCompletePCClass, COMPLETE_PC_CLASS_SLUGS, getMulticlassDedicationSlug
+} from "./pc-support.mjs";
+import { validateArchetypeSlotPlacement, stagedActorContext } from "./pc-prerequisites.mjs";
 import { SpfApp } from "./app-base.mjs";
 import { jevKeySource } from "./jev.mjs";
-import { signed, esc } from "./text.mjs";
+import { signed, esc, capitalized } from "./text.mjs";
 import { statCheckForActor, describeStatCheck, hasSpellEntry } from "./stat-check.mjs";
 import { moveToGeneratedFolder, generatedFolderId } from "./folders.mjs";
 import { createHandout } from "./handout.mjs";
@@ -68,7 +71,7 @@ export class GeneratorApp extends SpfApp {
     classes: ["simplysf2e"],
     window: {
       title: "SIMPLYSF2E.Generator.Title",
-      icon: "fa-solid fa-dragon",
+      icon: "fa-solid fa-microchip",
       resizable: true
     },
     position: { width: 720, height: "auto" },
@@ -113,7 +116,7 @@ export class GeneratorApp extends SpfApp {
   #input = {
     mode: "monster", prompt: "", level: 1, rarity: "common",
     allowSpellcasting: true, preset: "", partySize: 4, threat: "moderate",
-    treasureAmount: "standard", rarityCap: "unique"
+    treasureAmount: "standard", rarityCap: "unique", multiclass: "none"
   };
   #modePrompts = { monster: "", npc: "", encounter: "", character: "", reskin: "" };
   /** Reskin mode: the dropped NPC ({uuid, name, img, level}) and the validated flavor. */
@@ -297,6 +300,7 @@ export class GeneratorApp extends SpfApp {
       preview: ["monster", "npc"].includes(this.#input.mode) ? this.#buildPreviewContext() : null,
       encounterPreview: this.#input.mode === "encounter" ? this.#buildEncounterPreviewContext() : null,
       pcPreview: this.#input.mode === "character" ? this.#buildPCPreviewContext() : null,
+      multiclassPicker: this.#input.mode === "character" && this.#freeArchetypeOn() ? this.#multiclassPickerContext() : null,
       characterReview: this.#characterReview,
       created: this.#created,
       recent: this.#buildRecentContext(),
@@ -355,6 +359,84 @@ export class GeneratorApp extends SpfApp {
     };
   }
 
+  /** Free Archetype is the campaign rule multiclass depends on; read it live, and treat an unreadable setting as off. */
+  #freeArchetypeOn() {
+    try {
+      return Boolean(getSetting(SETTINGS.freeArchetype));
+    } catch (err) {
+      console.warn(`${MODULE_ID} | could not read the Free Archetype setting; multiclass stays off`, err);
+      return false;
+    }
+  }
+
+  /** Multiclass picker options: None, Let the AI decide, then each supported class. */
+  #multiclassPickerContext() {
+    const options = [
+      { value: "none", label: game.i18n.localize("SIMPLYSF2E.Generator.MulticlassNone") },
+      { value: "ai", label: game.i18n.localize("SIMPLYSF2E.Generator.MulticlassAI") },
+      ...[...COMPLETE_PC_CLASS_SLUGS].map((slug) => ({ value: slug, label: capitalized(slug) }))
+    ];
+    return { options: options.map((option) => ({ ...option, selected: option.value === this.#input.multiclass })) };
+  }
+
+  /** Preview line for a multiclass pick; the dedication counts only when it was placed on a real feat. */
+  #multiclassPreview(concept, resolved) {
+    if (!concept.multiclass) return null;
+    const dedicationSlug = getMulticlassDedicationSlug(concept.multiclass);
+    const placed = (resolved.feats ?? []).find((feat) => feat?.entry && feat.placement !== "rejected"
+      && feat.name && slugify(feat.name) === dedicationSlug);
+    return { name: capitalized(concept.multiclass), dedication: placed?.name ?? null };
+  }
+
+  /**
+   * Staged context for the archetype placement check: what the PC already has
+   * at its level (ABC, class path, heritage) plus the projected ability
+   * modifiers and skill ranks that resolvePCConcept proved candidates against.
+   * The projection repeats pc-builder's inputs because its helpers are private.
+   * Ranks and modifiers only grow with level, so the final-level context is
+   * never stricter than a slot's own candidate-time context.
+   */
+  #archetypePlacementContext(resolved, concept) {
+    const { ancestryDoc, heritageDoc, backgroundDoc, classDoc, pathPlan } = resolved;
+    const keyOptions = Array.isArray(classDoc.system?.keyAbility?.value) ? classDoc.system.keyAbility.value : [];
+    const keyAbility = keyOptions.includes(concept.keyAbility) ? concept.keyAbility
+      : keyOptions[0] ?? (ABILITY_KEYS.includes(concept.keyAbility) ? concept.keyAbility : "str");
+    const modsAt = (level) => projectAttributeModifiers({
+      ancestrySystem: ancestryDoc.system, backgroundSystem: backgroundDoc.system,
+      keyAbility, preferences: concept.abilityPriorities, level
+    });
+    const levelMods = modsAt(concept.level);
+    const initialMods = modsAt(1);
+    const { ranks: provenSkills } = initialSkillTraining(classDoc.system, backgroundDoc.system);
+    for (const planned of Object.values(pathPlan ?? {})) {
+      for (const [slug, rank] of Object.entries(planned?.skills ?? {})) {
+        provenSkills[slug] = Math.max(provenSkills[slug] ?? 0, rank);
+      }
+    }
+    const projection = levelMods && initialMods ? projectSkillRanks({
+      classSystem: classDoc.system, backgroundSystem: backgroundDoc.system, provenSkills,
+      intelligence: levelMods.int, initialIntelligence: initialMods.int, keyAbility,
+      priorities: concept.skillPriorities, level: concept.level
+    }) : null;
+    const loreSkills = Object.fromEntries((Array.isArray(backgroundDoc.system?.trainedSkills?.lore)
+      ? backgroundDoc.system.trainedSkills.lore : [])
+      .filter((name) => typeof name === "string" && name.trim())
+      .map((name) => [slugify(name), 1]));
+    const features = [];
+    for (const [tag, planned] of Object.entries(pathPlan ?? {})) {
+      if (!planned?.name) continue;
+      features.push({ name: planned.name });
+      if (tag === "mechanic-exocortex") features.push({ name: `${planned.name} exocortex` });
+      if (tag === "technomancer-programming-language") features.push({ name: `${planned.name} programming language` });
+    }
+    if (heritageDoc) features.push({ name: `${heritageDoc.name} heritage` });
+    return stagedActorContext({
+      level: concept.level, ancestry: ancestryDoc, heritage: heritageDoc, background: backgroundDoc, class: classDoc,
+      features, skills: { ...(projection ? projection.ranksAt(concept.level) : provenSkills), ...loreSkills },
+      abilities: levelMods ?? {}
+    });
+  }
+
   #buildPCPreviewContext() {
     if (!this.#pcConcept) return null;
     const concept = this.#pcConcept;
@@ -365,7 +447,8 @@ export class GeneratorApp extends SpfApp {
       : null;
     const background = { name: resolved.backgroundDoc?.name ?? concept.background, found: Boolean(resolved.backgroundDoc) };
     const pcClass = { name: resolved.classDoc?.name ?? concept.class, found: Boolean(resolved.classDoc) };
-    const feats = GeneratorApp.#mapNamed(resolved.feats);
+    const feats = GeneratorApp.#pcFeatRows(resolved.feats);
+    const emptyFeatSlots = GeneratorApp.#emptyFeatSlots(resolved);
     const spells = GeneratorApp.#mapSpells(resolved.spells);
     const signatureRanks = concept.spellcasting?.signatureRanks ?? [];
     const plannedSignatures = new Set(spells.filter((spell) => spell.found && spell.signature
@@ -374,6 +457,7 @@ export class GeneratorApp extends SpfApp {
     const loot = GeneratorApp.#mapGear(resolved.loot, resolved.skippedGear, "loot");
     return {
       concept,
+      multiclass: this.#multiclassPreview(concept, resolved),
       ancestry,
       heritage,
       background,
@@ -385,11 +469,35 @@ export class GeneratorApp extends SpfApp {
         selected: plannedSignatures.size, total: signatureRanks.length
       }) : null,
       feats,
+      emptyFeatNotice: emptyFeatSlots.length ? game.i18n.format("SIMPLYSF2E.PC.EmptyFeatSlots", {
+        count: emptyFeatSlots.length, slots: emptyFeatSlots.join(", ")
+      }) : null,
       spells,
       equipment,
       loot,
-      matchSummary: this.#matchSummary([ancestry], heritage ? [heritage] : [], [background], [pcClass], feats, spells, equipment, loot)
+      matchSummary: this.#matchSummary([ancestry], heritage ? [heritage] : [], [background], [pcClass],
+        feats.filter((feat) => !feat.empty), spells, equipment, loot)
     };
+  }
+
+  /** PC feat rows. An empty slot (no legal feat left) is shown as empty, not as a miss;
+   * a rejected fill is still a miss. */
+  static #pcFeatRows(list) {
+    return (list ?? []).map((feat) => feat.entry
+      ? { name: feat.entry.name ?? feat.name, found: true }
+      : { name: GeneratorApp.#featSlotLabel(feat), found: false, empty: feat.placement !== "rejected" });
+  }
+
+  /** Labels such as "general 19" for character feat slots left empty. A
+   * rejected fill is unresolved, not empty, so it is not listed here. */
+  static #emptyFeatSlots(resolved) {
+    return (resolved?.feats ?? [])
+      .filter((feat) => !feat.entry && feat.placement !== "rejected")
+      .map((feat) => GeneratorApp.#featSlotLabel(feat));
+  }
+
+  static #featSlotLabel(feat) {
+    return `${feat.archetype ? "archetype " : ""}${feat.type} ${feat.level}`;
   }
 
   static #skillName(slug) {
@@ -402,7 +510,8 @@ export class GeneratorApp extends SpfApp {
       "native-data": "NativeData", "training-data": "TrainingData", "schedule": "Schedule",
       "grant-timing": "GrantTiming", "native-rank-rule": "NativeRule",
       "intelligence-timing": "IntelligenceTiming",
-      "unspent-training": "UnspentTraining", "unspent-increases": "UnspentIncreases"
+      "unspent-training": "UnspentTraining", "unspent-increases": "UnspentIncreases",
+      "projection-mismatch": "ProjectionMismatch"
     };
     return {
       rows: report.rows.map((row) => ({ name: row.name ?? this.#skillName(row.slug),
@@ -466,7 +575,8 @@ export class GeneratorApp extends SpfApp {
       ["native", "SIMPLYSF2E.Generator.CompletionNative"],
       ["moduleBuilt", "SIMPLYSF2E.Generator.CompletionModuleBuilt"],
       ["customNarrative", "SIMPLYSF2E.Generator.CompletionCustomNarrative"],
-      ["skipped", "SIMPLYSF2E.Generator.CompletionSkipped"]
+      ["skipped", "SIMPLYSF2E.Generator.CompletionSkipped"],
+      ["empty", "SIMPLYSF2E.Generator.CompletionEmpty"]
     ].filter(([key]) => summary[key] > 0).map(([key, label]) => ({
       text: game.i18n.format(label, { count: summary[key] })
     }));
@@ -665,6 +775,7 @@ export class GeneratorApp extends SpfApp {
     const threat = form.querySelector('[name="threat"]')?.value ?? this.#input.threat;
     const treasureAmount = form.querySelector('[name="treasureAmount"]')?.value ?? this.#input.treasureAmount;
     const rarityCap = form.querySelector('[name="rarityCap"]')?.value ?? this.#input.rarityCap;
+    const multiclass = form.querySelector('[name="multiclass"]')?.value ?? this.#input.multiclass;
     const rawAdj = form.querySelector('[name="adjustment"]')?.value ?? this.#input.adjustment;
     const adjustment = rawAdj === "elite" || rawAdj === "weak" ? rawAdj : null;
     const reskinLevelEl = form.querySelector('[name="reskinLevel"]');
@@ -672,7 +783,7 @@ export class GeneratorApp extends SpfApp {
       const reskinLevel = clampRelevel(reskinLevelEl.value, this.#reskinTargetLevel());
       this.#reskinLevel = reskinLevel === this.#reskinSource.level ? null : reskinLevel;
     }
-    this.#input = { mode, prompt, level, rarity, adjustment, allowSpellcasting, preset, partySize, threat, treasureAmount, rarityCap };
+    this.#input = { mode, prompt, level, rarity, adjustment, allowSpellcasting, preset, partySize, threat, treasureAmount, rarityCap, multiclass };
     this.#rememberInput();
   }
 
@@ -983,68 +1094,31 @@ export class GeneratorApp extends SpfApp {
       ["match", game.i18n.localize("SIMPLYSF2E.Progress.Match")]
     ]);
     try {
-      await this._setStep("concept");
       const gmPrompt = isRandom ? randomBrief(this.#input.mode) : this.#input.prompt;
-      const { concept: raw, usage } = await generateConcept({
-        // Random mode rolls a fresh local brief each generation, so
-        // Regenerate gives a genuinely different creature every time.
+      const { concept, resolved, manifest } = await generateCreature({
+        mode: this.#input.mode,
         prompt: gmPrompt,
         level: this.#input.level,
         rarity: this.#input.rarity,
         allowSpellcasting: this.#input.allowSpellcasting,
-        preset: isRandom ? null : findPreset(this.#input.preset)?.prompt ?? null,
-        amount: this.#input.treasureAmount,
-        intent: this.#input.mode,
-        onProgress: (p) => this._onAIProgress(p), signal
-      });
-      this._recordTokens(game.i18n.localize("SIMPLYSF2E.Progress.Concept"), usage);
-      this.#concept = {
-        ...normalizeConcept(raw, { level: this.#input.level, rarity: this.#input.rarity }),
         adjustment: this.#input.adjustment ?? null,
-        gmPrompt
-      };
-      // so a non-compliant model output can still return a valid tradition.
-      // Strip it here (focus spells ride on it — normalizeConcept already
-      // ties focusSpells to spellcasting, and every downstream resolve/build
-      // step re-checks concept.spellcasting, so nulling it here is enough).
-      if (!this.#input.allowSpellcasting) {
-        this.#concept.spellcasting = null;
-        this.#concept.focusSpells = [];
-      }
-      // Gate on the SAME condition the step list above was built from — the
-      // "spells" step key only exists when allowSpellcasting was true.
-      // applyStep no-ops on a missing key, but we still skip the call so the
-      // UI does not leave a phantom spells step active.
-      if (this.#input.allowSpellcasting && this.#concept.spellcasting) await this._setStep("spells");
-      await this.#refineSpells(this.#concept, signal);
-      if (this.#concept.specialAbilities.length) await this._setStep("abilities");
-      await this.#refineCreatureAbilities(this.#concept, signal);
-      if (this.#concept.feats.length) await this._setStep("feats");
-      await this.#refineCreatureFeats(this.#concept, signal);
-      if (this.#concept.equipment.length) await this._setStep("equipment");
-      await this.#refineEquipment(this.#concept, signal);
-      if (this.#concept.loot.length) await this._setStep("loot");
-      await this.#refineLoot(this.#concept, signal);
-      await this._setStep("match");
-      this.#resolved = await resolveConcept(this.#concept, { exactContent: true });
-      // Treasure budget: the module owns the numbers (level + rarity from the
-      // tables, scaled by the Treasure amount control); only coins flex.
-      this.#resolved.loot = await applyTreasureBudget(
-        this.#resolved.loot,
-        this.#concept.loot.length ? treasureBudget(this.#concept.level, this.#concept.rarity, this.#input.treasureAmount) : 0
-      );
-      const manifest = completionManifest({ mode: this.#input.mode, concept: this.#concept, resolved: this.#resolved });
-      this._throwIfCancelled();
-      assertComplete(manifest);
+        // Random mode rolls a fresh local brief each generation, so
+        // Regenerate gives a genuinely different creature every time.
+        preset: isRandom ? null : findPreset(this.#input.preset)?.prompt ?? null,
+        treasureAmount: this.#input.treasureAmount,
+        ...this.#creatureContext(signal),
+        // The draft is shown as soon as it exists, before its grounding steps.
+        onDraft: (concept) => { this.#concept = concept; },
+        onStep: (id, state) => {
+          if (state.concept) this.#concept = state.concept;
+          return this._setStep(id);
+        }
+      });
+      this.#concept = concept;
+      this.#resolved = resolved;
       this.#manifest = manifest;
       this.#markPreview();
-      const eq = this.#resolved.equipment;
-      const misses = (this.#resolved.skippedGear ?? []).filter((g) => g.category === "equipment").map((g) => g.name);
-      if (eq.length || misses.length) {
-        console.log(`${MODULE_ID} | equipment matches: ${eq.length}/${eq.length + misses.length}`,
-          misses.length ? { skipped: misses } : "");
-      }
-      console.log(`${MODULE_ID} | token usage`, this._tokenUsage);
+      console.debug(`${MODULE_ID} | token usage`, this._tokenUsage);
     } catch (err) {
       this.#noteGenerationFailure(err, "generation");
       this.#concept = null;
@@ -1085,100 +1159,28 @@ export class GeneratorApp extends SpfApp {
         ...composition.members.map((_, i) => [`member${i}`, memberLabel(i)]),
         ["match", game.i18n.localize("SIMPLYSF2E.Progress.Match")]
       ]);
-      await this._setStep("design");
       // Random mode always rolls a fresh theme, even over a typed prompt —
       // same contract as the other modes' dice button (#onGenerateRandom).
       const theme = isRandom ? randomBrief(this.#input.mode) : (this.#input.prompt.trim() || randomBrief(this.#input.mode));
-      const design = await designEncounter({
+      const context = this.#creatureContext(signal);
+      context.labels.member = memberLabel;
+      this.#encounter = await generateEncounter({
+        composition,
         theme,
         partyLevel,
-        slots: composition.members,
-        onProgress: (p) => this._onAIProgress(p), signal
+        rarity,
+        allowSpellcasting: this.#input.allowSpellcasting,
+        // The preset row is now a stable slot in every mode: a selected
+        // preset shapes each member the same way it shapes a single
+        // creature (and, matching the Single dice button, Random ignores it).
+        preset: isRandom ? null : findPreset(this.#input.preset)?.prompt ?? null,
+        treasureAmount: this.#input.treasureAmount,
+        local: isLikelyKeylessLocalEndpoint(getSetting(SETTINGS.apiBaseUrl)),
+        ...context,
+        onStep: (id) => this._setStep(id)
       });
-      this._recordTokens(game.i18n.localize("SIMPLYSF2E.Progress.Design"), design.usage);
-
-      const members = [];
-      // Creatures are independent, so build a few at once (pool.mjs). The
-      // first failure aborts the rest instead of paying for creatures that
-      // will be thrown away.
-      const memberAbort = new AbortController();
-      const memberSignal = AbortSignal.any([signal, memberAbort.signal]);
-      // Several creatures run at once, so the progress list counts finished
-      // creatures: step N is active until N creatures are done.
-      let finished = 0;
-      await this._setStep("member0");
-      const local = isLikelyKeylessLocalEndpoint(getSetting(SETTINGS.apiBaseUrl));
-      const built = await runPool(composition.members.length, encounterConcurrency({ local }), async (i) => {
-        const slot = composition.members[i];
-        const signal = memberSignal;
-        this._throwIfCancelled();
-        const { concept: raw, usage } = await generateConcept({
-          prompt: `${design.briefs[i]} (Part of the encounter "${design.name}": ${theme})`,
-          level: slot.level,
-          rarity,
-          allowSpellcasting: this.#input.allowSpellcasting,
-          // The preset row is now a stable slot in every mode: a selected
-          // preset shapes each member the same way it shapes a single
-          // creature (and, matching the Single dice button, Random ignores it).
-          preset: isRandom ? null : findPreset(this.#input.preset)?.prompt ?? null,
-          amount: this.#input.treasureAmount,
-          intent: "monster",
-          onProgress: (p) => this._onAIProgress(p), signal
-        });
-        this._recordTokens(memberLabel(i), usage);
-        const concept = { ...normalizeConcept(raw, { level: slot.level, rarity }), gmPrompt: theme };
-        // Same defensive filter as the single-creature pipeline: the prompt
-        // asks for no spellcasting, but a non-compliant model can still
-        // return a valid tradition.
-        if (!this.#input.allowSpellcasting) {
-          concept.spellcasting = null;
-          concept.focusSpells = [];
-        }
-        await this.#refineSpells(concept, signal);
-        await this.#refineCreatureAbilities(concept, signal);
-        await this.#refineCreatureFeats(concept, signal);
-        await this.#refineEquipment(concept, signal);
-        await this.#refineLoot(concept, signal);
-        finished++;
-        if (finished < composition.members.length) await this._setStep(`member${finished}`);
-        return { ...slot, concept };
-      }, { onError: () => memberAbort.abort() });
-      members.push(...built);
-
-      await this._setStep("match");
-      for (const member of members) {
-        member.resolved = await resolveConcept(member.concept, { exactContent: true });
-        // Treasure is calibrated to the PARTY level and the WHOLE encounter:
-        // treasureBudget() returns one encounter's total, split evenly across
-        // groups. A group keeps its constant share (treasureGroupBudget)
-        // regardless of copy count — only the per-copy split changes
-        // (#stepMemberCount recomputes it the same way).
-        member.treasureGroupBudget =
-          member.concept.loot.length ? treasureBudget(partyLevel, member.concept.rarity, this.#input.treasureAmount) / members.length : 0;
-        member.treasureBudgetEach = member.treasureGroupBudget / Math.max(member.count, 1);
-        member.resolved.loot = await applyTreasureBudget(member.resolved.loot, member.treasureBudgetEach);
-        member.manifest = completionManifest({ mode: "monster", concept: member.concept, resolved: member.resolved });
-        assertComplete(member.manifest);
-        member.treasureEach = lootValueGp(member.resolved.loot);
-      }
-      const allEq = members.flatMap((m) => m.resolved.equipment);
-      const misses = members.flatMap((m) => m.resolved.skippedGear ?? [])
-        .filter((g) => g.category === "equipment").map((g) => g.name);
-      if (allEq.length || misses.length) {
-        console.log(`${MODULE_ID} | equipment matches: ${allEq.length}/${allEq.length + misses.length}`,
-          misses.length ? { skipped: misses } : "");
-      }
-      this._throwIfCancelled();
-      this.#encounter = {
-        name: design.name,
-        budget: composition.budget,
-        spent: composition.spent,
-        treasureBudget: members.reduce((sum, m) => sum + m.count * (m.treasureBudgetEach ?? 0), 0),
-        treasureSpent: members.reduce((sum, m) => sum + m.count * (m.treasureEach ?? 0), 0),
-        members
-      };
       this.#markPreview();
-      console.log(`${MODULE_ID} | token usage`, this._tokenUsage);
+      console.debug(`${MODULE_ID} | token usage`, this._tokenUsage);
     } catch (err) {
       this.#noteGenerationFailure(err, "encounter generation");
       this.#encounter = null;
@@ -1224,10 +1226,15 @@ export class GeneratorApp extends SpfApp {
     ]);
     try {
       await this._setStep("concept");
-      const { concept: raw, usage } = await generatePCConcept({
+      // Multiclass needs Free Archetype. The AI is asked for a second class only
+      // when the GM left the picker on "Let the AI decide"; a GM pick never asks it.
+      const freeArchetype = this.#freeArchetypeOn();
+      const multiclassChoice = freeArchetype ? this.#input.multiclass : "none";
+      const { concept: raw, multiclass: aiMulticlass, usage } = await generatePCConcept({
         prompt: isRandom ? randomBrief(this.#input.mode) : this.#input.prompt,
         level: this.#input.level,
         allowSpellcasting: this.#input.allowSpellcasting,
+        allowMulticlass: multiclassChoice === "ai",
         // Stable preset slot, PC flavor: the guidance steers class/style
         // choice only (generatePCConcept tells the model to ignore any
         // numeric scale wording — a PC's numbers come from the system).
@@ -1236,6 +1243,9 @@ export class GeneratorApp extends SpfApp {
       });
       this._recordTokens(game.i18n.localize("SIMPLYSF2E.Progress.PCConcept"), usage);
       const concept = normalizePCConcept(raw, { level: this.#input.level });
+      concept.multiclass = null;
+      if (isCompletePCClass(multiclassChoice)) concept.multiclass = slugify(multiclassChoice);
+      else if (multiclassChoice === "ai") concept.multiclass = aiMulticlass;
 
       await this._setStep("abc");
       // Rarity cap: excludes ancestries/backgrounds/heritages rarer than the
@@ -1276,6 +1286,11 @@ export class GeneratorApp extends SpfApp {
       };
       let resolved = await resolvePCConcept(concept, { selectChoices: choiceSelector });
       concept.traits = [slugify(resolved.ancestryDoc.name), slugify(resolved.classDoc.name)];
+      // A second class equal to the main class is no multiclass: drop it and warn, never substitute.
+      if (concept.multiclass && slugify(resolved.classDoc.name) === concept.multiclass) {
+        console.warn(`${MODULE_ID} | multiclass "${concept.multiclass}" is the main class — no second class`);
+        concept.multiclass = null;
+      }
 
       // The real class document owns the casting mode and base slot plan.
       // Variable traditions still need the selected bloodline/patron checked.
@@ -1292,6 +1307,10 @@ export class GeneratorApp extends SpfApp {
           if (castingProfile.tradition) concept.spellcasting.tradition = castingProfile.tradition;
           const plan = pcSpellPlan(concept.level, castingProfile);
           concept.spellcasting.plannedPicks = plan.picks;
+          // A spell database (Technomancer) is selected against its own caps; the
+          // daily slots above stay the completion check for prepared spells.
+          concept.spellcasting.selectionPicks = plan.database ? plan.database.caps : null;
+          concept.spellcasting.database = Boolean(plan.database);
           concept.spellcasting.signatureRanks = plan.signatureRanks;
           concept.spellcasting.preparationMode = castingProfile.mode;
           concept.spellcasting.maxRank = Math.max(...Object.entries(plan.slots)
@@ -1313,8 +1332,11 @@ export class GeneratorApp extends SpfApp {
         // archetype trait at or below the slot level. Candidate time already
         // proved ordinary prerequisites against the staged actor; placement
         // here runs without skill data, so it checks slot fit only. A
-        // rejected fill keeps its name but loses its entry, becoming an
-        // unresolved manifest record that blocks creation (fail-closed).
+        // rejected fill keeps its name but loses its entry and is marked
+        // placement "rejected": completion treats it as an unresolved line
+        // that blocks creation, because other legal candidates may have fit
+        // the slot (fail-closed). A slot that never had a fill keeps a plain
+        // null entry, which is an empty, non-blocking slot.
         const archetypePositions = [];
         resolved.featSlots.forEach((slot, index) => {
           if (slot?.archetype === true) archetypePositions.push(index);
@@ -1323,14 +1345,15 @@ export class GeneratorApp extends SpfApp {
           const { dropped } = validateArchetypeSlotPlacement(
             archetypePositions.map((index) => resolved.featSlots[index]),
             archetypePositions.map((index) => resolved.feats[index]),
-            null
+            this.#archetypePlacementContext(resolved, concept)
           );
           for (const { index, name } of dropped) {
             const position = archetypePositions[index];
             resolved.feats[position] = {
               ...resolved.feats[position],
               name: name ?? resolved.feats[position]?.name ?? "archetype feat",
-              entry: null
+              entry: null,
+              placement: "rejected"
             };
           }
         }
@@ -1342,6 +1365,19 @@ export class GeneratorApp extends SpfApp {
       // enforced in the AI prompt, so a non-compliant model output can still
       // return a valid tradition.
       if (!this.#input.allowSpellcasting) concept.spellcasting = null;
+      // A placed caster dedication gets its own spell list (a separate archetype
+      // entry, never merged into the class list). Its tradition is proven in
+      // archetypeCasterPlan or the dedication is skipped.
+      // Pre-answer a Mystic/Witchwarper dedication's Connection/Paradox first:
+      // the chosen option carries the archetype entry's tradition.
+      if (this.#input.allowSpellcasting) {
+        resolved.archetypeBridges = await resolveArchetypeBridges(concept, resolved, { selectChoices: choiceSelector });
+      }
+      const archetype = this.#input.allowSpellcasting ? archetypeCasterPlan(concept, resolved) : null;
+      concept.archetypeSpellcasting = archetype ? {
+        tradition: archetype.tradition, preparationMode: archetype.mode,
+        plannedPicks: archetype.counts, maxRank: archetype.maxRank, spells: []
+      } : null;
 
       // Both refine helpers reuse the NPC pipeline; the PC spell pass also
       // receives a class-qualified plan where supported. The
@@ -1351,6 +1387,7 @@ export class GeneratorApp extends SpfApp {
       // as the NPC pipeline: only call _setStep("spells") when that key exists.
       if (this.#input.allowSpellcasting && concept.spellcasting) await this._setStep("spells");
       await this.#refineSpells(concept, signal);
+      await this.#refineArchetypeSpells(concept, signal);
 
       await this._setStep("equipment");
       await this.#refineEquipment(concept, signal);
@@ -1365,7 +1402,7 @@ export class GeneratorApp extends SpfApp {
       // cheap and index-cached, so redoing them here is harmless; keep the
       // feat picks already made).
       const final = await resolvePCConcept(concept, { exactContent: true, pathPlan: resolved.pathPlan });
-      resolved = { ...final, feats: resolved.feats, pathPlan: resolved.pathPlan };
+      resolved = { ...final, feats: resolved.feats, pathPlan: resolved.pathPlan, archetypeBridges: resolved.archetypeBridges };
       // Cross-bucket dedup BEFORE any budget math sees the loot list: the AI
       // sometimes lists the same named item as both starting equipment and
       // loot (issue found in live QA — a "+1 Striking Dwarven War Axe" and a
@@ -1419,7 +1456,7 @@ export class GeneratorApp extends SpfApp {
           concept.loot = [...concept.loot.filter((l) => !parseCoins(l.name)), ...normalizeLoot(draft)];
           await this.#refineLoot(concept, signal);
           const topUp = await resolvePCConcept(concept, { exactContent: true, pathPlan: resolved.pathPlan });
-          resolved = { ...topUp, feats: resolved.feats, pathPlan: resolved.pathPlan };
+          resolved = { ...topUp, feats: resolved.feats, pathPlan: resolved.pathPlan, archetypeBridges: resolved.archetypeBridges };
           resolved.loot = dedupeLootAgainstEquipment(resolved.loot, resolved.equipment);
           resolved.loot = enforceNamedLootBudget(resolved.loot, lootBudget);
           resolved.loot = await applyTreasureBudget(resolved.loot, lootBudget);
@@ -1436,7 +1473,7 @@ export class GeneratorApp extends SpfApp {
       this.#pcConcept = concept;
       this.#pcResolved = resolved;
       this.#markPreview();
-      console.log(`${MODULE_ID} | token usage`, this._tokenUsage);
+      console.debug(`${MODULE_ID} | token usage`, this._tokenUsage);
     } catch (err) {
       this.#noteGenerationFailure(err, "character generation");
       this.#pcConcept = null;
@@ -1450,6 +1487,30 @@ export class GeneratorApp extends SpfApp {
   }
 
   /**
+   * Hooks the shared creature steps (creature-pipeline.mjs) report through:
+   * localized token-row and progress labels, live AI progress, and the run's
+   * abort signal. The PC and loot-reroll paths reuse the same grounding steps.
+   */
+  #creatureContext(signal) {
+    return {
+      signal,
+      labels: {
+        concept: game.i18n.localize("SIMPLYSF2E.Progress.Concept"),
+        spellFocus: game.i18n.localize("SIMPLYSF2E.Progress.SpellFocus"),
+        spells: game.i18n.localize("SIMPLYSF2E.Progress.Spells"),
+        abilities: game.i18n.localize("SIMPLYSF2E.Progress.Abilities"),
+        feats: game.i18n.localize("SIMPLYSF2E.Progress.Feats"),
+        equipment: game.i18n.localize("SIMPLYSF2E.Progress.Equipment"),
+        loot: game.i18n.localize("SIMPLYSF2E.Progress.Loot"),
+        design: game.i18n.localize("SIMPLYSF2E.Progress.Design"),
+        cancelled: game.i18n.localize("SIMPLYSF2E.Errors.Cancelled")
+      },
+      onProgress: (p) => this._onAIProgress(p),
+      onTokens: (usage, { label, timing }) => this._recordTokens(label, usage, timing)
+    };
+  }
+
+  /**
    * Grounded spell selection: first ask the AI for a thematic focus (so the
    * compendium query below can be narrowed instead of dumping every spell in
    * the tradition), then fetch that narrowed, level-capped list and let the
@@ -1459,120 +1520,43 @@ export class GeneratorApp extends SpfApp {
    * compendium-backed list, spells are dropped rather than left as unvetted
    * draft names, same fail-closed behavior as feats elsewhere in the pipeline.
    */
-  async #refineSpells(concept, signal) {
-    const spellcasting = concept?.spellcasting;
-    if (!spellcasting) return;
-    try {
-      // Two AI calls share the "Spell selection" step. Sub-labels distinguish
-      // them in the detail line; the bar stays on phase fill, not extra steps.
-      let keywords = [];
-      try {
-        const focusLabel = game.i18n.localize("SIMPLYSF2E.Progress.SpellFocus");
-        const focus = await chooseSpellFocus({
-          concept,
-          tradition: spellcasting.tradition,
-          onProgress: (p) => this._onAIProgress({ ...p, call: focusLabel }), signal
-        });
-        keywords = focus.keywords;
-        this._recordTokens(focusLabel, focus.usage);
-      } catch (err) {
-        if (err?.cancelled) throw err;
-        console.warn(`${MODULE_ID} | spell focus selection failed, using first-draft spell names only`, err);
-      }
-      const candidates = await getSpellCandidates(
-        spellcasting.tradition,
-        spellcasting.maxRank,
-        [...spellcasting.spells.map((spell) => spell.name), ...keywords],
-        spellcasting.plannedPicks
-      );
-      const focusCandidates = await getFocusSpellCandidates(
-        spellcasting.maxRank,
-        [...concept.focusSpells.map((spell) => spell.name), ...keywords]
-      );
-      if (!candidates.length) {
-        console.warn(`${MODULE_ID} | no spell candidates found, dropping spellcasting (unconstrained first-draft spells discarded)`);
-        spellcasting.spells = [];
-      } else {
-        const { spells, focusSpells, usage, timing } = await selectSpells({
-          concept,
-          candidates,
-          focusCandidates,
-          maxRank: spellcasting.maxRank,
-          plannedPicks: spellcasting.plannedPicks,
-          preparationMode: spellcasting.preparationMode,
-          signatureRanks: spellcasting.signatureRanks,
-          onProgress: (p) => this._onAIProgress({
-            ...p,
-            call: game.i18n.localize("SIMPLYSF2E.Progress.Spells")
-          }), signal
-        });
-        this._recordTokens(game.i18n.localize("SIMPLYSF2E.Progress.Spells"), usage, timing);
-        spellcasting.spells = spells;
-        concept.focusSpells = focusSpells;
-      }
-    } catch (err) {
-      if (err?.cancelled) throw err;
-      console.warn(`${MODULE_ID} | grounded spell selection failed, dropping spellcasting (unconstrained first-draft spells discarded)`, err);
-      spellcasting.spells = [];
-      concept.focusSpells = [];
-    }
-    if (spellcasting.spells.length) return;
-    // A known class spell plan stays visible as empty: completionManifest()
-    // records every missing module-owned pick and blocks actor creation.
-    if (spellcasting.plannedPicks) return;
-    concept.spellcasting = null;
+  #refineSpells(concept, signal) {
+    return refineSpells(concept, this.#creatureContext(signal));
   }
 
-  /** Resolve published abilities by opaque ID; unlisted concept flavor stays narrative-only. */
-  async #refineCreatureAbilities(concept, signal) {
-    if (!concept?.specialAbilities?.length) return;
-    const draft = concept.specialAbilities;
-    const narratives = draft.filter((ability) => !ability.glossary)
-      .filter((ability) => {
-        if (!narrativeHasMechanics(ability.description)) return true;
-        console.warn(`${MODULE_ID} | dropped narrative ability "${ability.name}": its text names dice, a DC or Hit Points`);
-        return false;
-      })
-      .map((ability) => ({ ...ability, narrative: true }));
+  /**
+   * Caster dedication spells: the same grounded flow as #refineSpells, with the
+   * archetype's own tradition, per-rank caps and maximum rank. Fail closed: no
+   * candidates or an AI failure leaves the archetype list empty; pc-builder
+   * builds the entry without spells rather than inventing any.
+   */
+  async #refineArchetypeSpells(concept, signal) {
+    const plan = concept?.archetypeSpellcasting;
+    if (!plan) return;
     try {
-      const keywords = draft.flatMap((ability) => [ability.glossary, ability.name])
-        .map((name) => String(name ?? "").toLowerCase()).filter(Boolean);
-      const candidates = await getAbilityCandidates(keywords);
+      const candidates = await getSpellCandidates(plan.tradition, plan.maxRank, [], plan.plannedPicks);
       if (!candidates.length) {
-        concept.specialAbilities = [...draft.filter((ability) => ability.glossary), ...narratives].slice(0, 6);
+        console.warn(`${MODULE_ID} | no archetype spell candidates found — archetype spells left empty`);
         return;
       }
-      const { abilities, usage, timing } = await selectCreatureAbilities({
-        concept, candidates, onProgress: (p) => this._onAIProgress(p), signal
+      const { spells, usage, timing } = await selectSpells({
+        concept: { ...concept, spellcasting: { tradition: plan.tradition, spells: [] } },
+        candidates,
+        focusCandidates: [],
+        maxRank: plan.maxRank,
+        plannedPicks: plan.plannedPicks,
+        preparationMode: plan.preparationMode,
+        signatureRanks: [],
+        onProgress: (p) => this._onAIProgress({
+          ...p,
+          call: game.i18n.localize("SIMPLYSF2E.Progress.Spells")
+        }), signal
       });
-      this._recordTokens(game.i18n.localize("SIMPLYSF2E.Progress.Abilities"), usage, timing);
-      concept.specialAbilities = [...abilities, ...narratives].slice(0, 6);
+      this._recordTokens(game.i18n.localize("SIMPLYSF2E.Progress.Spells"), usage, timing);
+      plan.spells = spells;
     } catch (err) {
       if (err?.cancelled) throw err;
-      console.warn(`${MODULE_ID} | grounded creature ability selection failed; unresolved glossary abilities will block creation`, err);
-      concept.specialAbilities = [...draft.filter((ability) => ability.glossary), ...narratives].slice(0, 6);
-    }
-  }
-
-  /** Ground a creature's class-like feats against an issued, level-capped list. */
-  async #refineCreatureFeats(concept, signal) {
-    if (!concept?.feats?.length) return;
-    try {
-      const candidates = await getFeatCandidates({
-        level: Math.max(concept.level, 1), category: "class",
-        preferredNames: concept.feats.map((feat) => typeof feat === "string" ? feat : feat.name)
-      });
-      if (!candidates.length) return;
-      const { feats, omitted, usage, timing } = await selectCreatureFeats({
-        concept, candidates, onProgress: (p) => this._onAIProgress(p), signal
-      });
-      this._recordTokens(game.i18n.localize("SIMPLYSF2E.Progress.Feats"), usage, timing);
-      // An explicit empty selection is allowed for this optional wishlist;
-      // invalid picks/provider failures must not silently erase requirements.
-      if (feats.length || omitted === true) concept.feats = feats;
-    } catch (err) {
-      if (err?.cancelled) throw err;
-      console.warn(`${MODULE_ID} | grounded creature feat selection failed; unresolved draft feats will block creation`, err);
+      console.warn(`${MODULE_ID} | archetype spell selection failed — archetype spells left empty`, err);
     }
   }
 
@@ -1584,28 +1568,8 @@ export class GeneratorApp extends SpfApp {
    * final creation resolver accepts only retained candidate references.
    * Creatures designed to carry nothing (beasts, mindless) are skipped.
    */
-  async #refineEquipment(concept, signal) {
-    if (!concept?.equipment?.length) return;
-    try {
-      const draftNames = [...concept.equipment.map((e) => e.name), ...concept.strikes.map((s) => s.name)]
-        .map((name) => String(name).toLowerCase()).filter(Boolean);
-      const keywords = [...new Set([
-        ...draftNames,
-        ...draftNames.flatMap((name) => name.split(/[^a-z0-9]+/)).filter((token) => token.length > 2)
-      ])];
-      const candidates = await getEquipmentCandidates(concept.level, keywords);
-      if (!candidates.length) return;
-      const { equipment, omitted, usage, timing } = await selectEquipment({
-        concept,
-        candidates,
-        onProgress: (p) => this._onAIProgress(p), signal
-      });
-      this._recordTokens(game.i18n.localize("SIMPLYSF2E.Progress.Equipment"), usage, timing);
-      if (equipment.length || omitted === true) concept.equipment = equipment;
-    } catch (err) {
-      if (err?.cancelled) throw err;
-      console.warn(`${MODULE_ID} | grounded equipment selection failed; draft equipment with no published match will be skipped`, err);
-    }
+  #refineEquipment(concept, signal) {
+    return refineEquipment(concept, this.#creatureContext(signal));
   }
 
   /**
@@ -1619,38 +1583,8 @@ export class GeneratorApp extends SpfApp {
    * request. The final creation resolver accepts only retained candidate
    * references for all non-coin loot.
    */
-  async #refineLoot(concept, signal) {
-    if (!concept?.loot?.length) return;
-    if (concept.loot.every((l) => parseCoins(l.name))) return;
-    try {
-      const draftNames = concept.loot.map((loot) => String(loot.name).toLowerCase()).filter(Boolean);
-      const keywords = [...new Set([
-        ...draftNames,
-        ...draftNames.flatMap((name) => name.split(/[^a-z0-9]+/)).filter((token) => token.length > 2)
-      ])];
-      const scrollKeywords = concept.loot
-        .map((loot) => parseScroll(loot.name)?.spellName)
-        .filter(Boolean);
-      const [candidates, scrollCandidates] = await Promise.all([
-        getLootCandidates(concept.level, keywords),
-        scrollKeywords.length ? getScrollSpellCandidates(10, scrollKeywords) : []
-      ]);
-      if (!candidates.length && !scrollCandidates.length) return;
-      const { loot, omitted, usage, timing } = await selectLoot({
-        concept,
-        candidates,
-        scrollCandidates,
-        onProgress: (p) => this._onAIProgress(p), signal
-      });
-      this._recordTokens(game.i18n.localize("SIMPLYSF2E.Progress.Loot"), usage, timing);
-      if (loot.length || omitted === true) {
-        const coins = concept.loot.filter((item) => parseCoins(item.name));
-        concept.loot = normalizeLoot([...coins, ...loot]);
-      }
-    } catch (err) {
-      if (err?.cancelled) throw err;
-      console.warn(`${MODULE_ID} | grounded loot selection failed; draft loot with no published match will be skipped`, err);
-    }
+  #refineLoot(concept, signal) {
+    return refineLoot(concept, this.#creatureContext(signal));
   }
 
   /**
@@ -1809,6 +1743,7 @@ export class GeneratorApp extends SpfApp {
       // Commit all creation state before any presentation. Rendering and
       // notifications are intentionally unable to roll back valid work.
       const grounding = GeneratorApp.#completionContext(this.#manifest);
+      const emptyFeatSlots = GeneratorApp.#emptyFeatSlots(this.#pcResolved);
       this.#pcConcept = null;
       this.#pcResolved = null;
       this.#characterReview = null;
@@ -1817,6 +1752,17 @@ export class GeneratorApp extends SpfApp {
       this.#created = { name: actor.name, actorId: actor.id, count: 1, grounding, statCheck: null };
       created = true;
       committed = true;
+      // Localized here because the empty-slot line carries its own arguments.
+      const notes = (result.manualNotes ?? []).map((key) => game.i18n.localize(key));
+      if (emptyFeatSlots.length) {
+        notes.push(game.i18n.format("SIMPLYSF2E.PC.EmptyFeatSlots", { count: emptyFeatSlots.length, slots: emptyFeatSlots.join(", ") }));
+      }
+      if (notes.length) {
+        ChatMessage.create({
+          content: manualNotesContent(actor.name, notes, (note) => note),
+          whisper: game.users.filter((u) => u.isGM).map((u) => u.id)
+        }).catch((err) => console.warn(`${MODULE_ID} | could not whisper the manual follow-up`, err));
+      }
       await moveToGeneratedFolder(actor, "character");
       try {
         let review;

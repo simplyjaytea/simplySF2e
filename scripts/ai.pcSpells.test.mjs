@@ -144,24 +144,43 @@ try {
     { name: "Common Ten A", rank: 10, signature: true }, { name: "Common Ten B", rank: 10 }
   ], "two common repertoire picks survive even though native rank-ten casting has one slot");
   assert.match(requests.at(-1).messages[0].content, /"rank-ten":2/);
+
+  // Technomancer spell database: module caps above five, each spell learned once, database prompt.
+  const databaseArgs = { ...args, plannedPicks: { 0: 10, 1: 13, 2: 6, 3: 2 }, preparationMode: "prepared", database: true };
+  replies.push({ spells: [
+    { name: "Force Barrage", rank: "rank-one" }, { name: "Force Barrage", rank: "rank-two" },
+    { name: "Detect Magic", rank: "cantrip" }, { name: "Fireball", rank: "rank-three" }
+  ] });
+  assert.deepEqual((await selectSpells(databaseArgs)).spells, [
+    { name: "Force Barrage", rank: 1 }, { name: "Detect Magic", rank: 0 }, { name: "Fireball", rank: 3 }
+  ], "a database spell is learned once, at its first valid rank");
+  assert.match(requests.at(-1).messages[0].content, /spell DATABASE plan/);
+  assert.match(requests.at(-1).messages[0].content, /Choose up to 10 DISTINCT cantrips/);
+  assert.match(requests.at(-1).messages[0].content, /never repeat a spell at another rank/);
+  await assert.rejects(selectSpells({ ...databaseArgs, plannedPicks: { 0: 10, 1: 51 } }), /Invalid character/);
+  await assert.rejects(selectSpells({ ...databaseArgs, preparationMode: "spontaneous" }), /Invalid character/);
   assert.equal(replies.length, 0);
 } finally { globalThis.fetch = originalFetch; }
 
 // Static wiring is not live ApplicationV2 QA. Guard the ownership and fallback
 // boundary while provider and builder tests exercise the real functions.
 const generator = readFileSync(new URL("./generator-app.mjs", import.meta.url), "utf8");
+// The grounded spell pass moved to creature-pipeline.mjs with the creature chain.
+const pipeline = readFileSync(new URL("./creature-pipeline.mjs", import.meta.url), "utf8");
 const template = readFileSync(new URL("../templates/generator.hbs", import.meta.url), "utf8");
 const locale = JSON.parse(readFileSync(new URL("../lang/en.json", import.meta.url), "utf8"));
 assert.match(generator, /pcSpellcastingProfile\(resolved\.classDoc\)/);
-assert.match(generator, /plannedPicks: spellcasting\.plannedPicks/);
-assert.match(generator, /preparationMode: spellcasting\.preparationMode/);
-assert.match(generator, /signatureRanks: spellcasting\.signatureRanks/);
-assert.match(generator, /const \{ spells, focusSpells, usage, timing \} = await selectSpells\(/,
+assert.match(pipeline, /plannedPicks: selectionPicks/);
+assert.match(pipeline, /selectionPicks = spellcasting\.selectionPicks \?\? spellcasting\.plannedPicks/);
+assert.match(pipeline, /database: spellcasting\.database === true/);
+assert.match(pipeline, /preparationMode: spellcasting\.preparationMode/);
+assert.match(pipeline, /signatureRanks: spellcasting\.signatureRanks/);
+assert.match(pipeline, /const \{ spells, focusSpells, usage, timing \} = await ctx\.ai\.selectSpells\(/,
   "the generator must retain grounded focus spells returned by the shared selector");
 assert.match(generator, /plannedPicks = plan\.picks/);
 assert.match(template, /role="status">\{\{pcPreview\.signatureSummary\}\}/);
 assert.match(template, /\{\{#if this\.signature\}\}/);
-assert.match(generator, /if \(spellcasting\.plannedPicks\) return;[\s\S]*?concept\.spellcasting = null;/,
+assert.match(pipeline, /if \(spellcasting\.plannedPicks\) return;[\s\S]*?concept\.spellcasting = null;/,
   "a failed known spell plan must remain empty for completion validation, never fall back to draft names");
 assert.match(template, /role="status">\{\{pcPreview\.spellcastingNotice\}\}/, "escaped, accessible review notice");
 for (const key of ["PCBaseSpellPlan", "PCVariableSpellPlan", "PCApproximateSpellPlan", "Signature", "PCSignaturePlan"]) {

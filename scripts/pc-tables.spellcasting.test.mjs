@@ -1,31 +1,19 @@
 import assert from "node:assert/strict";
-import { pcSpellcastingProfile, pcSpellSlots, pcSpellPlan, spontaneousSpellSlots } from "./pc-tables.mjs";
+import { REMASTER_SPELLCASTERS, pcSpellcastingProfile, pcSpellSlots, pcSpellPlan, spontaneousSpellSlots } from "./pc-tables.mjs";
 
 const klass = (name, slug, title, remaster = true) => ({ name, system: { slug, publication: { title, remaster } } });
-assert.deepEqual(pcSpellcastingProfile(klass("Bard", "bard", "Pathfinder Player Core")),
-  { mode: "spontaneous", ability: "cha", tradition: "occult", baseSlots: 2 });
-assert.deepEqual(pcSpellcastingProfile(klass("Sorcerer", "sorcerer", "Pathfinder Player Core 2")),
-  { mode: "spontaneous", ability: "cha", tradition: null, baseSlots: 3 });
-assert.deepEqual(pcSpellcastingProfile(klass("Wizard", "wizard", "Pathfinder Player Core")),
-  { mode: "prepared", ability: "int", tradition: "arcane", baseSlots: 2 });
+// PF2e Remaster casters never qualify: sf2e class documents are Compendium.sf2e.* and never carry these titles.
+assert.equal(pcSpellcastingProfile(klass("Bard", "bard", "Pathfinder Player Core")), null);
+assert.equal(pcSpellcastingProfile(klass("Sorcerer", "sorcerer", "Pathfinder Player Core 2")), null);
+assert.equal(pcSpellcastingProfile(klass("Wizard", "wizard", "Pathfinder Player Core")), null);
 assert.equal(pcSpellcastingProfile(klass("Oracle", "oracle", "Advanced Player's Guide")), null);
 assert.equal(pcSpellcastingProfile(klass("Oracle", "oracle", "Pathfinder Player Core 2", false)), null);
 assert.equal(pcSpellcastingProfile(klass("Magus", "magus", "Pathfinder Player Core 2")), null);
-
-const bard = pcSpellcastingProfile(klass("Bard", "bard", "Pathfinder Player Core"));
-const sorcerer = pcSpellcastingProfile(klass("Sorcerer", "sorcerer", "Pathfinder Player Core 2"));
-assert.deepEqual(pcSpellSlots(1, bard), { 0: 5, 1: 2, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0 });
-assert.equal(pcSpellSlots(2, bard)[1], 3);
-assert.equal(pcSpellSlots(5, sorcerer)[3], 3);
-assert.equal(pcSpellSlots(6, sorcerer)[3], 4);
-assert.equal(pcSpellSlots(19, bard)[10], 1);
-assert.equal(pcSpellSlots(20, sorcerer)[10], 1);
 assert.deepEqual(pcSpellSlots(5, null), spontaneousSpellSlots(5), "unsupported classes retain legacy fallback");
-assert.deepEqual(pcSpellPlan(2, bard).signatureRanks, []);
-assert.ok(pcSpellPlan(3, bard).signatureRanks.includes(2));
-assert.equal(pcSpellPlan(19, bard).slots[10], 1);
-assert.equal(pcSpellPlan(19, bard).picks[10], 2);
-assert.deepEqual(pcSpellPlan(20, pcSpellcastingProfile(klass("Wizard", "wizard", "Pathfinder Player Core"))).signatureRanks, []);
+assert.deepEqual(REMASTER_SPELLCASTERS.map((caster) => caster.slug), ["mystic", "witchwarper", "technomancer"],
+  "the caster table holds exactly the sf2e casters");
+assert.ok(REMASTER_SPELLCASTERS.every((caster) => ["Starfinder Player Core", "Starfinder Tech Core"].includes(caster.title)),
+  "every caster row is cited to an sf2e publication");
 
 // SF2e v14-dev packs/sf2e/classes/{mystic,witchwarper}.json: slug null,
 // publication { title: "Starfinder Player Core", remaster: true }.
@@ -60,4 +48,27 @@ for (const profile of [mystic, witchwarper]) {
   assert.equal(plan.picks[10], 2, "Transcendence / Quantum Thesis add two 10th-rank spells");
   assert.ok(plan.signatureRanks.includes(10));
 }
+// sf2e-1.6.1 packs/sf2e/classes/technomancer.json: Starfinder Tech Core, key Int.
+const technomancer = pcSpellcastingProfile(klass("Technomancer", null, "Starfinder Tech Core"));
+assert.deepEqual(technomancer, { mode: "prepared", ability: "int", tradition: "arcane", baseSlots: 2 });
+assert.deepEqual(pcSpellcastingProfile(klass("Technomancer", "technomancer", "Starfinder Tech Core")), technomancer);
+assert.equal(pcSpellcastingProfile(klass("Technomancer", null, "Starfinder Player Core")), null, "wrong publication does not qualify");
+assert.equal(pcSpellcastingProfile(klass("Technomancer", null, "Starfinder Tech Core", false)), null);
+assert.equal(pcSpellcastingProfile(klass("Mechanic", null, "Starfinder Tech Core")), null, "Mechanic does not cast");
+// "prepare up to two 1st-rank spells and five cantrips"
+assert.deepEqual(pcSpellSlots(1, technomancer), { 0: 5, 1: 2, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0 });
+assert.deepEqual(pcSpellSlots(5, technomancer), { 0: 5, 1: 3, 2: 3, 3: 2, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0 });
+assert.deepEqual(pcSpellSlots(19, technomancer), { 0: 5, 1: 3, 2: 3, 3: 3, 4: 3, 5: 3, 6: 3, 7: 3, 8: 3, 9: 3, 10: 1 });
+for (const lv of [1, 5, 19]) {
+  const plan = pcSpellPlan(lv, technomancer);
+  assert.deepEqual(plan.picks, plan.slots, `technomancer prepares exactly its slots at level ${lv}`);
+  assert.deepEqual(plan.signatureRanks, [], "prepared casters have no signature spells");
+}
+// Spell Cache exists for ranks 1-9 only (each programming language), so levels 19-20 add no 10th-rank cache spell.
+for (const lv of [19, 20]) {
+  const { database } = pcSpellPlan(lv, technomancer);
+  assert.deepEqual(database.cacheRanks, [1, 2, 3, 4, 5, 6, 7, 8, 9], `technomancer level ${lv} caches ranks 1-9`);
+  assert.equal(database.size, 10 + 5 + 2 * (lv - 1) + 9, `technomancer level ${lv} database holds 9 cache spells`);
+}
+
 console.log("pc spellcasting profiles and slots: all assertions passed");

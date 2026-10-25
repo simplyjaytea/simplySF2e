@@ -126,33 +126,29 @@ export function spontaneousSpellSlots(level) {
   return pcSpellSlots(level, null);
 }
 
-// Provenance split: the seven Pathfinder rows below (bard…wizard) are PF2e
-// Player Core legacy fallback — PF2e-compatible pending SF2e equivalents, do
-// not treat as SF2e published. The two Starfinder rows (mystic, witchwarper)
-// are SF2e-cited: packs/sf2e/classes/{mystic,witchwarper}.json on
+// The three sf2e casters are cited to their published class documents:
+// packs/sf2e/classes/{mystic,witchwarper}.json on
 // https://github.com/foundryvtt/pf2e/tree/v14-dev (publication "Starfinder Player
 // Core", remaster: true, no system.slug, so name matching applies). Casting ability:
 // mystic-spellcasting.json says Wisdom; witchwarper-spellcasting.json says Charisma
 // or Intelligence "depending on which you chose for your key attribute" (class
 // keyAbility.value ["cha","int"]), so null leaves ability to the chosen key attribute.
 // Tradition comes from connection or paradox. Both features grant "three 1st-rank spells".
-const REMASTER_SPELLCASTERS = [
-  // PF2e legacy fallback rows (Pathfinder Player Core / Player Core 2):
-  { slug: "bard", name: "Bard", title: "Pathfinder Player Core", mode: "spontaneous", ability: "cha", tradition: "occult", baseSlots: 2 },
-  { slug: "sorcerer", name: "Sorcerer", title: "Pathfinder Player Core 2", mode: "spontaneous", ability: "cha", tradition: null, baseSlots: 3 },
-  { slug: "oracle", name: "Oracle", title: "Pathfinder Player Core 2", mode: "spontaneous", ability: "cha", tradition: "divine", baseSlots: 3 },
-  { slug: "cleric", name: "Cleric", title: "Pathfinder Player Core", mode: "prepared", ability: "wis", tradition: "divine", baseSlots: 2 },
-  { slug: "druid", name: "Druid", title: "Pathfinder Player Core", mode: "prepared", ability: "wis", tradition: "primal", baseSlots: 2 },
-  { slug: "witch", name: "Witch", title: "Pathfinder Player Core", mode: "prepared", ability: "int", tradition: null, baseSlots: 2 },
-  { slug: "wizard", name: "Wizard", title: "Pathfinder Player Core", mode: "prepared", ability: "int", tradition: "arcane", baseSlots: 2 },
-  // SF2e-cited rows (Starfinder Player Core):
+// PF2e casters never match: sf2e class documents are Compendium.sf2e.* and the
+// Pathfinder titles are not sf2e publications.
+export const REMASTER_SPELLCASTERS = [
   { slug: "mystic", name: "Mystic", title: "Starfinder Player Core", mode: "spontaneous", ability: "wis", tradition: null, baseSlots: 3 },
-  { slug: "witchwarper", name: "Witchwarper", title: "Starfinder Player Core", mode: "spontaneous", ability: null, tradition: null, baseSlots: 3 }
+  { slug: "witchwarper", name: "Witchwarper", title: "Starfinder Player Core", mode: "spontaneous", ability: null, tradition: null, baseSlots: 3 },
+  // sf2e-1.6.1 packs/sf2e/classes/technomancer.json (spellcasting 1, key Int):
+  // the Technomancer Spellcasting feature is arcane, prepared from a spell
+  // database ("up to two 1st-rank spells and five cantrips"), matching the
+  // baseSlots 2 table above. Published in Starfinder Tech Core.
+  { slug: "technomancer", name: "Technomancer", title: "Starfinder Tech Core", mode: "prepared", ability: "int", tradition: "arcane", baseSlots: 2 }
 ];
 
-/** Conservative Remaster class profile. Class data itself contains only spell
+/** Conservative sf2e Remaster class profile. Class data itself contains only spell
  * proficiency (PF2e class/data.ts), so the published source title qualifies
- * this small verified profile table and prevents legacy lookalikes applying. */
+ * this small verified profile table. */
 export function pcSpellcastingProfile(classDoc) {
   const slug = String(classDoc?.system?.slug ?? "");
   const name = String(classDoc?.name ?? "");
@@ -162,11 +158,9 @@ export function pcSpellcastingProfile(classDoc) {
   return profile ? { mode: profile.mode, ability: profile.ability, tradition: profile.tradition, baseSlots: profile.baseSlots } : null;
 }
 
-/** Base slots only: nine class tables verified at every level against
- * https://raw.githubusercontent.com/foundryvtt/pf2e/pf2e-8.4.1/packs/pf2e/journals/classes.json,
- * master packs/journals/classes.json, and (Mystic/Witchwarper Spells per Day)
+/** Base slots only: Mystic/Witchwarper Spells per Day verified at every level against
  * https://raw.githubusercontent.com/foundryvtt/pf2e/v14-dev/packs/sf2e/journals/classes.json.
- * Font/curriculum/feat bonuses are NOT
+ * Technomancer's base 2 is cited on its row above. Font/curriculum/feat bonuses are NOT
  * unrestricted base slots. Missing profiles retain the old 2/3 approximation. */
 export function pcSpellSlots(level, profile) {
   const baseSlots = profile?.baseSlots === 3 ? 3 : 2;
@@ -184,7 +178,7 @@ export function pcSpellSlots(level, profile) {
 /** Spell-list capacity is distinct from native casting slots for spontaneous
  * Remaster casters: their 10th-rank repertoire has two common picks at 19–20
  * while the entry still has one slot. Signature eligibility starts at level 3.
- * Only the five qualified spontaneous profiles above use this policy.
+ * Only the qualified spontaneous profiles above (Mystic, Witchwarper) use this policy.
  * Sources (master agrees under packs/classfeatures/):
  * https://raw.githubusercontent.com/foundryvtt/pf2e/pf2e-8.4.1/packs/pf2e/class-features/signature-spells.json
  * Same directory: magnum-opus.json, oracular-clarity.json, bloodline-paragon.json.
@@ -204,5 +198,97 @@ export function pcSpellPlan(level, profile) {
       : [];
     return { slots, picks, signatureRanks };
   }
+  // Prepared profiles are the Technomancer class: its picks are the daily slots
+  // (the spell database is the wider pool they are prepared from, see below).
+  if (profile?.mode === "prepared") return { slots, picks, signatureRanks: [], database: technomancerDatabasePlan(level) };
   return { slots, picks, signatureRanks: [] };
+}
+
+/**
+ * Spellcasting Archetypes, sf2e-1.6.1 packs/sf2e/journals/archetypes.json
+ * (page "Spellcasting Archetypes", Starfinder Player Core pg. 174). The
+ * dedication grants two cantrips. Each placed Basic/Expert/Master
+ * <Class> Spellcasting feat grants one slot per listed rank, once the PC
+ * reaches the listed level. The feats themselves carry no rules.
+ *   Basic: "usually available at 4th level ... 1st-rank ... 2nd-rank ... 3rd-rank"
+ *   Expert: "typically taken at 12th level ... 4th-rank ... 5th ... 6th"
+ *   Master: "usually found at 18th level ... 7th-rank ... 8th-rank"
+ */
+export const ARCHETYPE_SPELL_GRANTS = {
+  basic: [{ level: 4, rank: 1 }, { level: 6, rank: 2 }, { level: 8, rank: 3 }],
+  expert: [{ level: 12, rank: 4 }, { level: 14, rank: 5 }, { level: 16, rank: 6 }],
+  master: [{ level: 18, rank: 7 }, { level: 20, rank: 8 }]
+};
+
+/**
+ * Archetype spell plan for a dedicated PC: the cited two dedication cantrips
+ * plus one slot per granted rank whose feat is placed and whose level is
+ * reached. `rank` slots are NOT repertoire-scaled; an archetype entry holds
+ * exactly the slots its placed feats grant.
+ * @returns {{cantrips: number, slots: Record<number, number>}}
+ */
+export function archetypeSpellSlots(level, { basic = false, expert = false, master = false } = {}) {
+  const lv = Math.min(Math.max(Math.round(Number(level)) || 1, 1), 20);
+  const slots = {};
+  for (const [feat, placed] of [["basic", basic], ["expert", expert], ["master", master]]) {
+    if (placed !== true) continue;
+    for (const { level: grantLevel, rank } of ARCHETYPE_SPELL_GRANTS[feat]) {
+      if (lv >= grantLevel) slots[rank] = 1;
+    }
+  }
+  return { cantrips: 2, slots };
+}
+
+/**
+ * Caster dedications, keyed by the feat slug (pc-support SF2E_MULTICLASS_DEDICATIONS).
+ * - Mystic: spontaneous, Wisdom, tradition from the granted Connection
+ *   (mystic-dedication: "two common cantrips from the spell list granted by your
+ *   connection"). The connection's tradition must be proven by the build.
+ * - Witchwarper: spontaneous, Intelligence or Charisma (the chosen key attribute),
+ *   tradition from the Paradox ("two common cantrips from the spell list associated
+ *   with your paradox").
+ * - Technomancer: prepared, Intelligence, arcane ("they're arcane technomancer spells").
+ * sf2e-1.6.1 packs/sf2e/feats (dedications) and journals/archetypes.json.
+ */
+export const ARCHETYPE_CASTER_DEDICATIONS = {
+  "mystic-dedication": { mode: "spontaneous", ability: "wis", abilities: null, tradition: null, traditionFrom: "connection" },
+  "witchwarper-dedication": { mode: "spontaneous", ability: null, abilities: ["int", "cha"], tradition: null, traditionFrom: "paradox" },
+  "technomancer-dedication": { mode: "prepared", ability: "int", abilities: null, tradition: "arcane", traditionFrom: null }
+};
+
+/**
+ * Witchwarper dedication key attribute: the higher projected modifier of
+ * Intelligence and Charisma; a tie uses Intelligence. Null when a modifier is
+ * missing, so the caller fails closed.
+ */
+export function witchwarperArchetypeAbility(mods) {
+  const int = mods?.int;
+  const cha = mods?.cha;
+  if (!Number.isFinite(int) || !Number.isFinite(cha)) return null;
+  return cha > int ? "cha" : "int";
+}
+
+/**
+ * Technomancer spell database (sf2e-1.6.1 Technomancer Spellcasting,
+ * classes/vVobwIMADBAIsBUV): "your choice of 10 arcane cantrips and five 1st-rank
+ * arcane spells", plus one 1st-rank programming-language cache spell ("you also
+ * add one 1st-rank spell from your programming language"). Each level after 1st
+ * adds two arcane spells "of any spell rank for which you have spell slots", and
+ * each newly gained rank adds one cache spell of that rank.
+ * `caps` are per-rank upper bounds for the level-up picks: a rank-r pick is
+ * possible only at a level whose max rank is at least r, i.e. level >= 2r-1
+ * (ceil(level/2) >= r), so rank r gets 2 per such level from 2 onward.
+ * @returns {{cantrips: number, rankOne: number, levelUps: number, maxRank: number,
+ *   cacheRanks: number[], size: number, caps: Record<number, number>}}
+ */
+export function technomancerDatabasePlan(level) {
+  const lv = Math.min(Math.max(Math.round(Number(level)) || 1, 1), 20);
+  const maxRank = Math.min(Math.ceil(lv / 2), 10);
+  const levelUps = 2 * (lv - 1);
+  const levelUpCap = (rank) => 2 * Math.max(0, lv - Math.max(2, 2 * rank - 1) + 1);
+  const caps = { 0: 10, 1: 5 + levelUpCap(1) };
+  for (let rank = 2; rank <= maxRank; rank++) caps[rank] = levelUpCap(rank);
+  // Each programming language lists Spell Cache 1st through 9th only, so rank 10 has no cache spell.
+  const cacheRanks = Array.from({ length: Math.min(maxRank, 9) }, (_, i) => i + 1);
+  return { cantrips: 10, rankOne: 5, levelUps, maxRank, cacheRanks, size: 10 + 5 + levelUps + cacheRanks.length, caps };
 }

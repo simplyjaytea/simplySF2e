@@ -29,7 +29,7 @@ export class ItemForgeApp extends SpfApp {
     classes: ["simplysf2e"],
     window: {
       title: "SIMPLYSF2E.ItemForge.Title",
-      icon: "fa-solid fa-hammer",
+      icon: "fa-solid fa-gears",
       resizable: true
     },
     position: { width: 720, height: "auto" },
@@ -163,7 +163,9 @@ export class ItemForgeApp extends SpfApp {
     const preview = this.#runedPreview;
     const priceCredits = preview.priceCredits ?? gpToCredits(preview.priceGp);
     const priceText = `${priceCredits.toLocaleString()} credits`;
+    const skipped = preview.skippedUpgrades ?? [];
     return {
+      skippedNote: skipped.length ? game.i18n.format("SIMPLYSF2E.ItemForge.UpgradesSkipped", { upgrades: skipped.join(", ") }) : null,
       concept: { name: data.name, level: preview.level, description: this.#concept?.description ?? "" },
       traits: [data.system.traits?.rarity !== "common" ? data.system.traits?.rarity : null, ...(data.system.traits?.value ?? [])].filter(Boolean),
       price: priceText,
@@ -298,7 +300,7 @@ export class ItemForgeApp extends SpfApp {
       });
       this.#price = await priceForLevel(this.#concept.level, this.#concept.rarity);
       this._throwIfCancelled();
-      console.log(`${MODULE_ID} | token usage`, this._tokenUsage);
+      console.debug(`${MODULE_ID} | token usage`, this._tokenUsage);
     } catch (err) {
       if (err?.cancelled) console.warn(`${MODULE_ID} | item generation cancelled`);
       else console.error(`${MODULE_ID} | item generation failed`, err);
@@ -360,7 +362,7 @@ export class ItemForgeApp extends SpfApp {
       // item's preview IS its final data, there is no separate build step.
       await this._setStep("assemble");
       this.#concept = normalizeRunedItemConcept(raw, {
-        kind, rarity: this.#input.rarity, baseCandidates, runeCandidates,
+        kind, rarity: this.#input.rarity, level: this.#input.level, baseCandidates, runeCandidates,
         grades: gradeTiers.grades,
         potencyTiers: tiers.potencyTiers, secondaryTiers: tiers.secondaryTiers
       });
@@ -368,7 +370,7 @@ export class ItemForgeApp extends SpfApp {
       this._throwIfCancelled();
       this.#itemData = built.itemData;
       this.#runedPreview = built.preview;
-      console.log(`${MODULE_ID} | token usage`, this._tokenUsage);
+      console.debug(`${MODULE_ID} | token usage`, this._tokenUsage);
     } catch (err) {
       if (err?.cancelled) console.warn(`${MODULE_ID} | runed item generation cancelled`);
       else console.error(`${MODULE_ID} | runed item generation failed`, err);

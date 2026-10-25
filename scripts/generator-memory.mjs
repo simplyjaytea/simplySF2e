@@ -2,8 +2,9 @@
 // and writes the Foundry setting; this module only decides what is kept.
 import { THREATS } from "./encounter.mjs";
 import { TREASURE_AMOUNT_MULTIPLIER } from "./tables.mjs";
+import { COMPLETE_PC_CLASS_SLUGS } from "./pc-support.mjs";
 
-export const REMEMBERED_FIELDS = ["mode", "level", "rarity", "adjustment", "allowSpellcasting", "preset", "partySize", "threat", "treasureAmount", "rarityCap"];
+export const REMEMBERED_FIELDS = ["mode", "level", "rarity", "adjustment", "allowSpellcasting", "preset", "partySize", "threat", "treasureAmount", "rarityCap", "multiclass"];
 
 // Reskin is left out: its dropped source is never remembered.
 const MODES = ["monster", "npc", "encounter", "character"];
@@ -11,6 +12,8 @@ const RARITIES = ["common", "uncommon", "rare", "unique"];
 const ADJUSTMENTS = ["elite", "weak"];
 const THREAT_KEYS = Object.keys(THREATS);
 const TREASURE_KEYS = Object.keys(TREASURE_AMOUNT_MULTIPLIER);
+// Picker values: "none", "ai" (let the AI decide), or a supported class slug.
+const MULTICLASS_KEYS = ["none", "ai", ...COMPLETE_PC_CLASS_SLUGS];
 
 /** The subset of the Generator input that is safe to remember. The prompt is never stored. */
 export function rememberedInput(input) {
@@ -46,6 +49,7 @@ export function restoreGeneratorInput(saved, defaults) {
 
   if (THREAT_KEYS.includes(saved.threat)) out.threat = saved.threat;
   if (TREASURE_KEYS.includes(saved.treasureAmount)) out.treasureAmount = saved.treasureAmount;
+  if (MULTICLASS_KEYS.includes(saved.multiclass)) out.multiclass = saved.multiclass;
 
   return out;
 }

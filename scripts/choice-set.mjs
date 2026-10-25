@@ -30,8 +30,10 @@ import { slugify } from "./text.mjs";
  * So: writing `selection` into `system.rules[i]` of the item source we hand to
  * `createEmbeddedDocuments` suppresses that item's prompt — PROVIDED the value
  * deep-equals one of the inflated choice values. The schema accepts
- * string | number | boolean | object; this helper handles only string and
- * number values whose exact source value remains local.
+ * string | number | boolean | object; this helper handles string and number
+ * values, and flat object values of string/number leaves (sf2e 1.6 Living
+ * Hologram and SRO size choices, `sameChoiceValue`), whose exact source value
+ * remains local.
  *
  * `src/module/rules/rule-element/grant-item/rule-element.ts` answers the
  * grants-of-grants question for GrantItem grants:
@@ -107,6 +109,27 @@ function isPlainObject(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+/** A string, a finite number, or a non-empty flat object of string/number
+ * leaves. Nested objects, arrays, booleans and empty objects are not choices
+ * this module can enumerate, so they stay native. */
+function isChoiceValue(value) {
+  if (typeof value === "string" || (typeof value === "number" && Number.isFinite(value))) return true;
+  if (!isPlainObject(value)) return false;
+  const leaves = Object.values(value);
+  return leaves.length > 0
+    && leaves.every((leaf) => typeof leaf === "string" || (typeof leaf === "number" && Number.isFinite(leaf)));
+}
+
+/** Deep equality for choice values: strict for primitives, key-by-key for
+ * flat objects. Matches pf2e's `R.isDeepEqual` for the shapes written here. */
+export function sameChoiceValue(a, b) {
+  if (a === b) return true;
+  if (!isPlainObject(a) || !isPlainObject(b)) return false;
+  const keys = Object.keys(a);
+  if (keys.length !== Object.keys(b).length) return false;
+  return keys.every((key) => Object.prototype.hasOwnProperty.call(b, key) && a[key] === b[key]);
+}
+
 /** A choice entry carrying its own predicate is only legal under some actor
  * roll options we cannot evaluate here — drop it rather than risk picking it. */
 function hasPredicate(entry) {
@@ -174,11 +197,12 @@ function choicesFromData(data) {
     // before an actor exists, so one predicated entry makes the whole set
     // native: dropping it could force a selection from an incomplete catalog.
     if (data.some((c) => hasPredicate(c))) return null;
-    if (!data.every((c) => isPlainObject(c)
-      && (typeof c.value === "string" || (typeof c.value === "number" && Number.isFinite(c.value))))) return null;
+    if (!data.every((c) => isPlainObject(c) && isChoiceValue(c.value))) return null;
+    // An object value has no readable string form, so it needs its own label.
+    if (data.some((c) => isPlainObject(c.value) && (typeof c.label !== "string" || !c.label))) return null;
     if (data.some((c) => isPlainObject(c) && isItemUuid(c.value)
       && (typeof c.label !== "string" || !c.label || c.label === c.value || c.label === "???"))) return null;
-    return data.map((c) => ({ value: c.value, label: String(c.label ?? c.value) }));
+    return data.map((c) => ({ value: structuredClone(c.value), label: String(c.label ?? c.value) }));
   }
   if (!isPlainObject(data)) return [];
   const entries = Object.entries(data);
@@ -264,7 +288,7 @@ export function pickChoiceSelection(options, context = {}) {
   const keyAbility = context.keyAbility;
   if (ABILITY_KEYS.includes(keyAbility)
     && options.every((o) => ABILITY_KEYS.includes(String(o.value)))) {
-    const match = options.find((o) => String(o.value) === keyAbility);
+    const match = options.find((o) => sameChoiceValue(o.value, keyAbility));
     if (match) return { ...match, reason: "key-attribute" };
   }
 
@@ -272,7 +296,10 @@ export function pickChoiceSelection(options, context = {}) {
     .map((n) => slugify(String(n ?? "")))
     .filter(Boolean);
   if (names.length) {
-    const matches = options.filter((option) => names.some((n) => namesMatch(n, optionSlugs(option))));
+    // Object values (sizes and the like) are never picked by a name that
+    // happens to appear in concept text: "Large" must not choose a size.
+    const named = options.filter((option) => !isPlainObject(option.value));
+    const matches = named.filter((option) => names.some((n) => namesMatch(n, optionSlugs(option))));
     if (matches.length === 1) return { ...matches[0], reason: "concept" };
   }
 
@@ -378,7 +405,7 @@ export async function preselectChoiceSets(itemSources, context = {}, config = {}
       const rule = rules[ruleIndex];
       consider({
         item: String(itemData.name ?? "?"), rule,
-        set: (value) => { rule.selection = value; },
+        set: (value) => { rule.selection = structuredClone(value); },
         target: `item-${itemIndex}-rule-${ruleIndex}`
       });
 
@@ -406,7 +433,7 @@ export async function preselectChoiceSets(itemSources, context = {}, config = {}
         consider({
           item: `${itemData.name ?? "?"} → ${granted.name ?? "?"}`,
           rule: grantedRule,
-          set: (value) => { rule.preselectChoices = { ...(rule.preselectChoices ?? {}), [flag]: value }; },
+          set: (value) => { rule.preselectChoices = { ...(rule.preselectChoices ?? {}), [flag]: structuredClone(value) }; },
           target: `grant-${itemIndex}-rule-${ruleIndex}-flag-${flag}`
         });
       }

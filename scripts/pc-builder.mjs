@@ -6,12 +6,20 @@ import {
 } from "./builder.mjs";
 import { slugify, capitalized, toHtml } from "./text.mjs";
 import { preselectChoiceSets } from "./choice-set.mjs";
-import { ABILITY_BOOST_LEVELS, PC_WEALTH_BY_LEVEL, buildFeatSlots, featSlotLocation, pcSpellcastingProfile, pcSpellPlan } from "./pc-tables.mjs";
+import {
+  PC_WEALTH_BY_LEVEL, buildFeatSlots, featSlotLocation, pcSpellcastingProfile, pcSpellPlan,
+  ARCHETYPE_CASTER_DEDICATIONS, archetypeSpellSlots, witchwarperArchetypeAbility
+} from "./pc-tables.mjs";
 import { SETTINGS, getSetting } from "./settings.mjs";
-import { CORE_SKILLS, SKILL_ATTRIBUTES, normalizeSkillPriorities, initialSkillTraining, allocateCharacterSkills, characterSkillSnapshot } from "./pc-skills.mjs";
+import { CORE_SKILLS, normalizeSkillPriorities, initialSkillTraining, allocateCharacterSkills, characterSkillSnapshot } from "./pc-skills.mjs";
+import { ABILITY_KEYS, normalizeAbilityPriorities, assignAbilityBoosts, assignItemBoosts, projectAttributeModifiers, projectSkillRanks } from "./pc-projection.mjs";
 import { applyCharacterLoadout } from "./pc-loadout.mjs";
-import { planClassPaths, stageClassPaths } from "./class-paths.mjs";
-import { stagedActorContext } from "./pc-prerequisites.mjs";
+import { pickDedicationBridge, planClassPaths, stageClassPaths } from "./class-paths.mjs";
+import { COMPLETE_PC_CLASS_SLUGS, archetypeTraditionFor, classManualNotes, getMulticlassDedicationSlug, technomancerCacheSpells, technomancerInitialHack, withInitialFocusSpell } from "./pc-support.mjs";
+import {
+  archetypeOfFeat, createDedicationRuleState, dedicationRuleBlock, evidencePrerequisitesMet, recordDedicationRulePlacement,
+  stagedActorContext
+} from "./pc-prerequisites.mjs";
 import { gpToCredits } from "./currency.mjs";
 
 /**
@@ -25,15 +33,17 @@ import { gpToCredits } from "./currency.mjs";
  * profiles: class items expose spell proficiency, not automatic slot counts.
  */
 
-const ABILITY_KEYS = ["str", "dex", "con", "int", "wis", "cha"];
-
-function normalizeAbilityPriorities(value) {
-  const seen = new Set();
-  return (Array.isArray(value) ? value : []).filter((ability) => {
-    if (!ABILITY_KEYS.includes(ability) || seen.has(ability)) return false;
-    seen.add(ability);
-    return true;
-  });
+/**
+ * Second class of a multiclass PC: a complete class slug other than the main
+ * class, or null. "ai" is the AI's choice before it resolves, so it is null
+ * here. Anything else is dropped with a warning (fail closed).
+ */
+function normalizeMulticlass(raw, mainClass) {
+  if (!raw || raw === "ai") return null;
+  const slug = typeof raw === "string" ? slugify(raw) : "";
+  if (COMPLETE_PC_CLASS_SLUGS.has(slug) && slug !== slugify(mainClass)) return slug;
+  console.warn(`simplysf2e | dropped invalid multiclass "${String(raw).slice(0, 40)}"`);
+  return null;
 }
 
 /**
@@ -78,6 +88,8 @@ export function normalizePCConcept(raw, { level }) {
     heritage: c.heritage ? String(c.heritage).slice(0, 80) : null,
     background: String(c.background || "Follower").slice(0, 80),
     class: String(c.class || "Soldier").slice(0, 80),
+    // Null unless Free Archetype is on at resolve time (resolvePCConcept ignores it otherwise).
+    multiclass: normalizeMulticlass(c.multiclass, c.class || "Soldier"),
     keyAbility: ABILITY_KEYS.includes(c.keyAbility) ? c.keyAbility : "str",
     abilityPriorities,
     skillPriorities,
@@ -223,6 +235,50 @@ async function fallbackHeritageFor(ancestryDoc) {
 }
 
 /**
+ * Technomancer's initial magic hack for the staged Programming Language
+ * (pc-support.mjs TECHNOMANCER_INITIAL_HACKS), loaded from sf2e.spells by its
+ * exact id. Fail closed: a disabled pack or a document that is not a focus
+ * spell warns and yields no hack. The AI never picks it.
+ */
+async function resolveInitialMagicHack(stagedItems) {
+  const hack = technomancerInitialHack(stagedItems);
+  if (!hack) return null;
+  const entry = { packId: "sf2e.spells", _id: hack.spellId };
+  if (!getPacksFor("spells").includes(entry.packId)) {
+    console.warn(`simplysf2e | ${entry.packId} is not an enabled spell source — no initial magic hack added`);
+    return null;
+  }
+  const doc = await getDocument(entry);
+  if (doc?.type !== "spell" || !(doc.system?.traits?.value ?? []).includes("focus")) {
+    console.warn(`simplysf2e | initial magic hack "${hack.spell}" (${hack.spellId}) is not a focus spell in ${entry.packId} — none added`);
+    return null;
+  }
+  return { name: doc.name, entry };
+}
+
+/**
+ * Candidates for a later archetype slot of a multiclass PC, follow-ups of the
+ * pinned archetype first. Membership comes from prerequisite text
+ * (archetypeOfFeat); each follow-up found joins `archetypeMembers`, so a
+ * follow-up of a follow-up still counts. Preferred, not exclusive: other
+ * candidates keep their order after them.
+ */
+function archetypeFollowUpsFirst(candidates, archetypeMembers) {
+  const followUps = [];
+  const others = [];
+  for (const candidate of candidates) {
+    const owner = archetypeOfFeat(candidate, archetypeMembers);
+    if (owner === null) {
+      others.push(candidate);
+      continue;
+    }
+    archetypeMembers.set(slugify(candidate.name), owner);
+    followUps.push(candidate);
+  }
+  return [...followUps, ...others];
+}
+
+/**
  * Resolve every compendium reference in a PC concept — the PC counterpart of
  * builder.mjs's resolveConcept(). Assumes concept.ancestry/heritage/
  * background/class already carry GROUNDED real names (i.e. generator-app has
@@ -298,7 +354,8 @@ export async function resolvePCConcept(concept, { exactContent = false, pathPlan
 
   if (!pathPlan) {
     const pathContext = { names: conceptChoiceNames(concept, { ancestryDoc, heritageDoc, backgroundDoc, classDoc }) };
-    pathPlan = await planClassPaths(classDoc, { context: pathContext, selectChoices });
+    const excludeFeats = abcGrantExclusions([ancestryDoc, heritageDoc, backgroundDoc]);
+    pathPlan = await planClassPaths(classDoc, { context: pathContext, selectChoices, excludeFeats });
   }
 
   for (const planned of Object.values(pathPlan ?? {})) {
@@ -306,6 +363,48 @@ export async function resolvePCConcept(concept, { exactContent = false, pathPlan
       provenSkills[skillSlug] = Math.max(provenSkills[skillSlug] ?? 0, rank);
     }
   }
+
+  // Projected ability modifiers and skill ranks, computed with the same key
+  // ability and boosts createCharacterActor applies. Prerequisites such as
+  // "Charisma +2" or "trained in Stealth" are proven at each slot's level.
+  // A null ability projection passes no abilities; a null skill projection
+  // falls back to the staged ABC skills. Either case warns once.
+  const keyAbility = resolveKeyAbility(classDoc.system, concept.keyAbility);
+  const modsByLevel = new Map();
+  const modsAt = (lvl) => {
+    if (!modsByLevel.has(lvl)) {
+      modsByLevel.set(lvl, projectAttributeModifiers({
+        ancestrySystem: ancestryDoc.system, backgroundSystem: backgroundDoc.system,
+        keyAbility, preferences: concept.abilityPriorities, level: lvl
+      }));
+    }
+    return modsByLevel.get(lvl);
+  };
+  const levelMods = modsAt(concept.level);
+  const initialMods = modsAt(1);
+  const projection = levelMods && initialMods ? projectSkillRanks({
+    classSystem: classDoc.system, backgroundSystem: backgroundDoc.system, provenSkills,
+    intelligence: levelMods.int, initialIntelligence: initialMods.int, keyAbility,
+    priorities: concept.skillPriorities, level: concept.level
+  }) : null;
+  if (!levelMods || !initialMods || !projection) {
+    console.warn("simplysf2e | could not project ability modifiers or skill ranks — feat prerequisites use the staged ABC skills only");
+  }
+
+  // Path- and heritage-keyed prerequisites ("drone exocortex", "<X> heritage")
+  // are proven from the planned names only. Feats a class path keeps for its
+  // own choice never fill a general or skill slot.
+  const pathFeatures = [];
+  for (const [tag, planned] of Object.entries(pathPlan ?? {})) {
+    if (!planned?.name) continue;
+    pathFeatures.push({ name: planned.name });
+    if (tag === "mechanic-exocortex") pathFeatures.push({ name: `${planned.name} exocortex` });
+    if (tag === "technomancer-programming-language") pathFeatures.push({ name: `${planned.name} programming language` });
+  }
+  if (heritageDoc) pathFeatures.push({ name: `${heritageDoc.name} heritage` });
+  const reservedFeats = Object.values(pathPlan ?? {}).flatMap((planned) => planned?.reservedFeats ?? []);
+  const reservedFeatNames = Object.values(pathPlan ?? {}).flatMap((planned) => planned?.reservedFeatNames ?? []);
+  const slotExclusions = [...reservedFeats, ...reservedFeatNames];
 
   const hasSpecializedSkillSet = Object.values(classDoc.system?.items ?? {}).some((feature) =>
     Number(feature?.level) === 3 && (
@@ -319,60 +418,85 @@ export async function resolvePCConcept(concept, { exactContent = false, pathPlan
   const operativePlan = pathPlan?.["operative-specialization"];
   const operativeSkill = operativePlan?.trainedSkill ?? null;
 
-  // Published Skillful Lessons limits Investigator's odd-level skill feats
-  // to mental skills or its methodology skill. Prove the mental-skill branch
-  // from ordinary rank prerequisites; methodology-only and generic choices
-  // remain unavailable until their native selection is known. Match the real
-  // feature's source identity, never its display name alone.
-  // pf2e-8.5.0/packs/pf2e/class-features/skillful-lessons.json (dmK1wya8GBi9MmCB).
-  const skillfulLessons = Object.values(classDoc.system?.items ?? {}).some((feature) =>
-    feature?.level === 3 && [
-      "Compendium.pf2e.classfeatures.Item.dmK1wya8GBi9MmCB",
-      "Compendium.pf2e.classfeatures.Item.Skillful Lessons"
-    ].includes(feature.uuid));
-  const mentalSkills = [...CORE_SKILLS.filter((skill) => ["int", "wis", "cha"].includes(SKILL_ATTRIBUTES[skill])), ...Object.keys(loreSkills)];
   const ancestryTrait = slugify(ancestryDoc.name);
   const classTrait = slugify(classDoc.name);
   const featSlots = [];
   const freeArchetype = Boolean(getSetting(SETTINGS.freeArchetype));
+  // Multiclass (Free Archetype only): the first archetype slot takes the second
+  // class's dedication as its only candidate, when that dedication is provable
+  // there. Later archetype slots list that archetype's follow-ups first.
+  const secondClass = freeArchetype && concept.multiclass && concept.multiclass !== classTrait ? concept.multiclass : null;
+  const dedicationSlug = secondClass ? getMulticlassDedicationSlug(secondClass) : null;
+  const archetypeMembers = new Map(); // feat slug -> dedication slug of its archetype
+  // Slugs of every archetype candidate offered to an EARLIER archetype slot
+  // (dedications and follow-ups, the pinned dedication included).
+  const offeredArchetypeSlugs = new Set();
+  let multiclass = null;
+  let firstArchetypeSlotSeen = false;
   for (const slot of buildFeatSlots(concept.level, { freeArchetype, classSystem: classDoc.system })) {
     const isSpecializedSlot = hasSpecializedSkillSet && slot.type === "skill" && [3, 7, 15].includes(slot.level);
-    const prerequisiteContext = stagedActorContext({
+    // The staged facts alone; resolveFeatPicks re-proves archetype picks against these.
+    const stagedContext = stagedActorContext({
       level: slot.level, ancestry: ancestryDoc, heritage: heritageDoc,
-      background: backgroundDoc, class: classDoc, skills: { ...provenSkills, ...loreSkills },
-      allowedSkillFeats: isSpecializedSlot
-        ? (operativeSkill ? [operativeSkill] : [])
-        : (skillfulLessons && slot.type === "skill" && slot.level >= 3 && slot.level % 2 === 1
-          ? mentalSkills : null)
+      background: backgroundDoc, class: classDoc, features: pathFeatures,
+      skills: { ...(projection ? projection.ranksAt(slot.level) : provenSkills), ...loreSkills },
+      abilities: modsAt(slot.level) ?? {},
+      allowedSkillFeats: isSpecializedSlot ? (operativeSkill ? [operativeSkill] : []) : null
     });
+    // A follow-up names its dedication ("Envoy Dedication"), which no staged fact
+    // proves yet. Candidate time therefore also accepts the names offered to earlier
+    // archetype slots; the cap in getFeatCandidates still bounds the list. Other
+    // slots keep the pinned dedication, as before.
+    const offeredNames = slot.archetype
+      ? offeredArchetypeSlugs : new Set(multiclass ? [slugify(multiclass.dedication)] : []);
+    const prerequisiteContext = { ...stagedContext, names: new Set([...stagedContext.names, ...offeredNames]) };
     const traits = slot.archetype ? ["archetype"]
       : slot.type === "ancestry" ? [ancestryTrait]
       : slot.type === "class" ? [classTrait] : [];
+    // General slots also accept skill feats (sf2e-1.6.1 feats/collection.ts: supported ["general", "skill"]).
+    const category = slot.type === "general" ? ["general", "skill"] : slot.type;
     let candidates = await getFeatCandidates({
-      level: slot.level, category: slot.type, traits, preferredNames: concept.feats,
-      prerequisiteContext
+      level: slot.level, category, traits, preferredNames: concept.feats,
+      excludeUuids: slotExclusions, prerequisiteContext
     });
     if (!candidates.length && traits.length && !slot.archetype) {
       candidates = await getFeatCandidates({
-        level: slot.level, category: slot.type, preferredNames: concept.feats,
-        prerequisiteContext
+        level: slot.level, category, preferredNames: concept.feats,
+        excludeUuids: slotExclusions, prerequisiteContext
       });
     }
-    if (candidates.length) featSlots.push({ ...slot, candidates });
+    if (slot.archetype && dedicationSlug && !firstArchetypeSlotSeen) {
+      firstArchetypeSlotSeen = true;
+      // preferredNames keeps the exact dedication inside the bounded candidate list.
+      const dedications = (await getFeatCandidates({
+        level: slot.level, category, traits,
+        preferredNames: [`${capitalized(secondClass)} Dedication`],
+        excludeUuids: slotExclusions, prerequisiteContext
+      })).filter((candidate) => slugify(candidate.name) === dedicationSlug);
+      if (dedications.length) {
+        candidates = dedications;
+        multiclass = { class: secondClass, dedication: dedications[0].name };
+        archetypeMembers.set(dedicationSlug, dedicationSlug);
+      } else {
+        console.warn(`simplysf2e | multiclass ${secondClass} dedication not legal for this character — using ordinary archetype candidates`);
+      }
+    } else if (slot.archetype && multiclass) {
+      candidates = archetypeFollowUpsFirst(candidates, archetypeMembers);
+    }
+    // Archetype slots carry their staged context to resolveFeatPicks, which proves
+    // each pick's prerequisites against it plus the archetype feats actually taken.
+    const archetypeProof = slot.archetype ? { prerequisiteContext: stagedContext } : {};
+    if (slot.archetype) for (const candidate of candidates) offeredArchetypeSlugs.add(slugify(candidate.name));
+    if (candidates.length) featSlots.push({ ...slot, candidates, ...archetypeProof });
     else {
       console.warn(`simplysf2e | no feat candidates for a ${slot.type}${slot.archetype ? " (archetype)" : ""} slot at level ${slot.level} — slot remains unresolved`);
-      featSlots.push({ ...slot, candidates: [] });
+      featSlots.push({ ...slot, candidates: [], ...archetypeProof });
     }
   }
 
-  const spells = [];
-  if (concept.spellcasting) {
-    for (const spell of concept.spellcasting.spells) {
-      const entry = isIssuedCandidate(spell.candidate, getPacksFor("spells"))
-        ? spell.candidate : (exactContent ? null : await findEntry(getPacksFor("spells"), spell.name, (e) => e.type === "spell"));
-      spells.push({ spell, entry });
-    }
-  }
+  const spells = await groundSpellPicks(concept.spellcasting?.spells ?? [], { exactContent });
+  // Caster dedication picks (archetype entry), grounded the same way.
+  const archetypeSpells = await groundSpellPicks(concept.archetypeSpellcasting?.spells ?? [], { exactContent });
 
   const focusSpells = await resolveFocusSpells(concept.focusSpells ?? [], { exactContent });
 
@@ -383,7 +507,10 @@ export async function resolvePCConcept(concept, { exactContent = false, pathPlan
   // pcStartingWealthGp()) is what actually fills it with coins.
   const loot = await resolveLoot(concept, { exactContent, skipped: skippedGear });
 
-  return { ancestryDoc, heritageDoc, backgroundDoc, classDoc, featSlots, spells, focusSpells, equipment, loot, skippedGear, pathPlan };
+  return {
+    ancestryDoc, heritageDoc, backgroundDoc, classDoc, featSlots, spells, archetypeSpells, focusSpells, equipment, loot, skippedGear,
+    pathPlan, skillPlan: projection?.plan ?? null, abilityMods: levelMods ?? null, multiclass
+  };
 }
 
 /**
@@ -412,6 +539,8 @@ export async function resolvePCConcept(concept, { exactContent = false, pathPlan
  * different same-named feat through a post-selection lookup. The entitlement
  * fallback remains, but it too uses that slot's exact candidate reference.
  * Legacy/pre-selection callers retain the former name-lookup behavior.
+ * A slot still empty after this pass gets an augmenting-path repair
+ * (repairUnfilledFeatSlots), which may move an earlier slot to another of its own candidates.
  * @param {{type: string, level: number, candidates: {name: string, ref?: object}[]}[]} featSlots
  * @param {{slot: number, name: string, candidate?: object}[]} picks
  * @param {{exactContent?: boolean}} [options]
@@ -442,28 +571,56 @@ export async function resolveFeatPicks(featSlots, picks, { exactContent = false 
       allowedPacks,
       name,
       (e) => e.type === "feat"
-        && e.system?.category === slot.type
+        && (slot.type === "general" ? ["general", "skill"] : [slot.type]).includes(e.system?.category)
         && (e.system?.level?.value ?? 0) <= slot.level
         && !taken.has(slugify(e.name))
     );
   };
 
+  /** The candidate record behind a resolved entry; a full compendium entry (permissive path) is its own evidence. */
+  const evidenceOf = (slot, entry) => (slot.candidates ?? []).find((candidate) => candidate?.ref === entry) ?? entry;
+
+  // Archetype slots also obey the dedication rule in slot order: a dedication
+  // is skipped while an earlier one still needs follow-ups, and a slot with no
+  // legal feat stays empty (entry null) rather than taking an illegal one. Their
+  // prerequisites must also hold against the archetype feats accepted so far.
+  const archetypeRule = createDedicationRuleState();
+  const archetypeAccepted = new Set(); // slugs of archetype feats accepted in earlier archetype slots
+  const aiPicked = [];
+  const evidence = [];
   for (let i = 0; i < featSlots.length; i++) {
     const slot = featSlots[i];
+    const archetypeSlot = slot.archetype === true;
     const pick = bySlot.get(i + 1) ?? null;
     let name = pick?.name ?? null;
     let entry = name ? await resolveFor(slot, name, pick?.candidate) : null;
+    // One warning per skipped pick, emitted once the slot's outcome is known.
+    let skipped = null;
+    if (entry && archetypeSlot) {
+      const blocked = archetypeBlock(archetypeRule, slot, evidenceOf(slot, entry), archetypeAccepted);
+      if (blocked) {
+        skipped = { name, reason: blocked };
+        entry = null;
+        name = null;
+      }
+    }
+    aiPicked[i] = Boolean(entry);
     if (name && !entry) {
       console.warn(`simplysf2e | feat pick "${name}" for slot ${i + 1} (${slot.type}, level ${slot.level}) did not resolve to an unused feat for this slot`);
     }
     if (!entry) {
       // Fallback: walk this slot's own candidate list (real, already
       // level/category/trait-filtered) for the first one not already taken.
-      for (const candidate of slot.candidates ?? []) {
+      // An archetype slot skips what the dedication rule forbids right now.
+      const candidates = archetypeSlot
+        ? dedicationRuleOrder(slot.candidates ?? [], archetypeRule)
+        : slot.candidates ?? [];
+      for (const candidate of candidates) {
+        if (archetypeSlot && archetypeBlock(archetypeRule, slot, candidate, archetypeAccepted)) continue;
         entry = await resolveFor(slot, candidate.name, candidate.ref);
         if (entry) {
           name = candidate.name;
-          console.warn(`simplysf2e | slot ${i + 1} (${slot.type}, level ${slot.level}) had no usable AI pick — defaulted to "${name}"`);
+          if (!skipped) console.warn(`simplysf2e | slot ${i + 1} (${slot.type}, level ${slot.level}) had no usable AI pick — defaulted to "${name}"`);
           break;
         }
       }
@@ -475,7 +632,16 @@ export async function resolveFeatPicks(featSlots, picks, { exactContent = false 
       // desirable on the strict path.
       name = (slot.candidates ?? []).find((candidate) => candidate?.ref === entry)?.name ?? entry.name ?? name;
       taken.add(slugify(name));
+      if (archetypeSlot) {
+        recordDedicationRulePlacement(archetypeRule, slugify(name), evidenceOf(slot, entry));
+        archetypeAccepted.add(slugify(name));
+      }
     }
+    if (skipped) {
+      const outcome = entry ? `took "${name}"` : "no legal feat left, slot left empty";
+      console.warn(`simplysf2e | feat pick "${skipped.name}" for slot ${i + 1} (archetype, level ${slot.level}) skipped: ${skipped.reason}; ${outcome}`);
+    }
+    evidence[i] = entry ? evidenceOf(slot, entry) : null;
     // entry can still be null when every candidate for this slot is already
     // taken (a sparse category at low levels); the name is kept so the preview
     // can still show intent, and the slot is simply left empty on the sheet.
@@ -484,63 +650,139 @@ export async function resolveFeatPicks(featSlots, picks, { exactContent = false 
       name: name ?? `${slot.type} feat`, entry
     });
   }
+  repairUnfilledFeatSlots(featSlots, resolved, aiPicked, evidence);
   return resolved;
 }
 
 /**
- * Deterministic v1 ability-boost assignment: boost the class's key ability
- * and Constitution at every eligible tier, filling the rest of the 4 free
- * boosts from the remaining abilities in a fixed order. This is a reasonable
- * default build, NOT a real point-buy allocation tailored to the concept —
- * out of scope per the plan (no pre-create edit screen in v1); a GM should
- * sanity-check/adjust it before play, same review step as any other preview.
+ * Candidate order for an archetype slot while a dedication is open and still
+ * needs follow-ups: that dedication's follow-ups first, the rest in their own
+ * order. The caller drops what the dedication rule forbids. Unchanged otherwise.
  */
-function boostPriority(keyAbility, preferences = []) {
-  const key = ABILITY_KEYS.includes(keyAbility) ? keyAbility : "str";
-  const preferred = normalizeAbilityPriorities(preferences).filter((ability) => ability !== key);
-  return [key, ...preferred, ...ABILITY_KEYS.filter((ability) => ability !== key && !preferred.includes(ability))];
-}
-
-function assignAbilityBoosts(keyAbility, preferences) {
-  const priority = boostPriority(keyAbility, preferences).slice(0, 4);
-  const boosts = {};
-  for (const level of ABILITY_BOOST_LEVELS) boosts[level] = [...priority];
-  return boosts;
+function dedicationRuleOrder(candidates, rule) {
+  const open = rule.openDedication;
+  if (open === null || (rule.archetypeCounts.get(open) ?? 0) >= 2) return candidates;
+  const followUps = candidates.filter((candidate) => archetypeOfFeat(candidate, rule.archetypeFeats) === open);
+  return [...followUps, ...candidates.filter((candidate) => !followUps.includes(candidate))];
 }
 
 /**
- * Pick a legal `selected` for every ability-boost slot on a cloned ancestry or
- * background item, so the PF2e system actually applies each boost. An unset
- * `selected` contributes NOTHING (verified: ancestry/background document
- * prepareActorData only pushes slots whose `selected` is truthy — that's why
- * a freshly-attached ancestry/background gave the character no attribute
- * boosts, issue #50 item 1). Slot rules verified against foundryvtt/pf2e item
- * source (ancestry/background data.ts + ancestry document prepareBaseData):
- *   value.length === 1 -> fixed boost, selected forced to value[0]
- *   value.length  >  1 -> constrained choice, pick from the listed options
- *   value.length === 0 -> not a real boost in modern data (legacy/voluntary
- *                          placeholder, e.g. Human's third slot); left untouched
- * Free boosts within one item are kept distinct (remaster "two different
- * abilities"), preferring the character's key ability then Constitution.
+ * Why an archetype slot may not take `evidence` now, or null when it may. The
+ * dedication rule comes first. Then the feat's own prerequisite text must hold
+ * against the slot's staged facts plus the archetype feats already accepted
+ * (`acceptedSlugs`). Candidate time offers a follow-up whose dedication was only
+ * offered, so this is what refuses it when that dedication was not taken. A slot
+ * with no staged context (a hand-built slot) has nothing to prove against.
  */
-function assignItemBoosts(system, keyAbility, preferences) {
-  const boosts = system?.boosts;
-  if (!boosts || typeof boosts !== "object") return;
-  const priority = boostPriority(keyAbility, preferences);
-  const taken = new Set();
-  for (const slot of Object.values(boosts)) {
-    if (Array.isArray(slot?.value) && slot.value.length === 1) {
-      slot.selected = slot.value[0];
-      taken.add(slot.value[0]);
+function archetypeBlock(rule, slot, evidence, acceptedSlugs) {
+  const blocked = dedicationRuleBlock(rule, evidence);
+  if (blocked) return blocked;
+  if (!slot.prerequisiteContext) return null;
+  const names = new Set([...slot.prerequisiteContext.names, ...acceptedSlugs]);
+  return evidencePrerequisitesMet(evidence, { ...slot.prerequisiteContext, names })
+    ? null : "prerequisites not met by the staged character or the archetype feats taken before it";
+}
+
+/**
+ * Whether the archetype slots, in slot order, pass the dedication rule and their
+ * prerequisites (archetypeBlock). `assigned[k]` is `{ slug, evidence }` for a
+ * filled slot and null for an empty one; empty and non-archetype slots take no part.
+ */
+function archetypeSequenceLegal(featSlots, assigned) {
+  const rule = createDedicationRuleState();
+  const accepted = new Set();
+  for (let k = 0; k < featSlots.length; k++) {
+    const placement = assigned[k];
+    if (featSlots[k]?.archetype !== true || !placement) continue;
+    if (archetypeBlock(rule, featSlots[k], placement.evidence, accepted)) return false;
+    recordDedicationRulePlacement(rule, placement.slug, placement.evidence);
+    accepted.add(placement.slug);
+  }
+  return true;
+}
+
+/**
+ * Cause B repair for resolveFeatPicks. The greedy pass above never gives a feat
+ * back, so a later slot whose candidates were all taken can stay empty even
+ * when a full assignment exists. Treat the resolved slots as a matching of
+ * slots to feats (keyed by slugified name) and augment from each empty slot
+ * (Kuhn's algorithm): a feat held by another slot is freed only when that slot
+ * moves to another of ITS OWN offered candidates. Only exact issued references
+ * qualify, the same rule resolveFor applies. A default-filled slot moves
+ * first; an AI-picked slot moves only when no other path fills an empty slot,
+ * and only as part of that augmenting path. Each moved slot warns.
+ * Mutates `resolved` in place (name and entry only). A move is kept only when the
+ * archetype slots still pass the dedication rule and their prerequisites in slot
+ * order (archetypeSequenceLegal), so a repair never creates an illegal dedication
+ * or a follow-up whose dedication was not taken.
+ * @param {{candidates?: {name: string, ref?: object}[]}[]} featSlots
+ * @param {{name: string, entry: object|null}[]} resolved
+ * @param {boolean[]} aiPicked true where the slot's own AI pick was kept
+ * @param {(object|null)[]} evidence per slot, the candidate record or entry that resolved it (null when empty)
+ */
+function repairUnfilledFeatSlots(featSlots, resolved, aiPicked, evidence) {
+  const allowedPacks = getPacksFor("feats");
+  const usable = featSlots.map((slot) => {
+    const keys = new Set();
+    return (slot.candidates ?? []).filter((candidate) => {
+      const key = slugify(candidate?.name ?? "");
+      if (!key || keys.has(key) || !isIssuedCandidate(candidate.ref, allowedPacks)) return false;
+      keys.add(key);
+      return true;
+    });
+  });
+  if (!resolved.some((row, i) => !row.entry && usable[i].length)) return;
+
+  const holder = new Map(); // feat key -> index of the slot holding it
+  resolved.forEach((row, i) => { if (row.entry) holder.set(slugify(row.name), i); });
+  const originalKeys = resolved.map((row) => (row.entry ? slugify(row.name) : null));
+  const chosen = new Map(); // slot index -> candidate it now holds
+  /** The archetype placements as they stand, with `chosen` applied. */
+  const placements = () => resolved.map((row, k) => {
+    if (chosen.has(k)) return { slug: slugify(chosen.get(k).name), evidence: chosen.get(k) };
+    return row.entry ? { slug: originalKeys[k], evidence: evidence[k] } : null;
+  });
+
+  /** Try to give slot i one of its candidates, re-homing any holder on the way. */
+  const place = (i, allowAiMoves, visited) => {
+    for (const candidate of usable[i]) {
+      const key = slugify(candidate.name);
+      if (visited.has(key)) continue;
+      visited.add(key);
+      const owner = holder.get(key);
+      if (owner !== undefined) {
+        if (!allowAiMoves && aiPicked[owner]) continue;
+        if (!place(owner, allowAiMoves, visited)) continue;
+      }
+      holder.set(key, i);
+      chosen.set(i, candidate);
+      return true;
+    }
+    return false;
+  };
+
+  for (let i = 0; i < resolved.length; i++) {
+    if (resolved[i].entry || !usable[i].length) continue;
+    const savedHolder = new Map(holder);
+    const savedChosen = new Map(chosen);
+    for (const allowAiMoves of [false, true]) {
+      if (place(i, allowAiMoves, new Set()) && archetypeSequenceLegal(featSlots, placements())) break;
+      holder.clear();
+      for (const [key, owner] of savedHolder) holder.set(key, owner);
+      chosen.clear();
+      for (const [index, candidate] of savedChosen) chosen.set(index, candidate);
     }
   }
-  for (const slot of Object.values(boosts)) {
-    if (!Array.isArray(slot?.value) || slot.value.length <= 1) continue;
-    const pick = priority.find((a) => slot.value.includes(a) && !taken.has(a))
-      ?? slot.value.find((a) => !taken.has(a))
-      ?? slot.value[0];
-    slot.selected = pick;
-    taken.add(pick);
+
+  for (const [i, candidate] of chosen) {
+    const key = slugify(candidate.name);
+    if (key === originalKeys[i]) continue;
+    const slot = featSlots[i];
+    const where = `slot ${i + 1} (${slot.type}, level ${slot.level})`;
+    if (originalKeys[i]) console.warn(`simplysf2e | ${where} moved to "${candidate.name}" to free a feat for an empty slot`);
+    else console.warn(`simplysf2e | ${where} filled with "${candidate.name}" by moving an earlier slot`);
+    resolved[i].name = candidate.name;
+    resolved[i].entry = candidate.ref;
   }
 }
 
@@ -625,6 +867,39 @@ const CHARACTER_ITEM_TYPES = new Set([
 ]);
 
 /**
+ * Uuids and names of the feats ancestry, heritage and background grant
+ * natively. A class path must never reserve one of these for its own choice.
+ */
+function abcGrantExclusions(docs) {
+  const grants = [];
+  for (const doc of docs) {
+    const docItems = doc?.system?.items;
+    if (docItems && typeof docItems === "object") {
+      for (const entry of Object.values(docItems)) {
+        if (typeof entry?.uuid === "string" && entry.uuid) grants.push(entry.uuid);
+        if (typeof entry?.name === "string" && entry.name) grants.push(entry.name);
+      }
+    }
+  }
+  return grants;
+}
+
+/**
+ * Core skill ranks a stored skill plan proves at `level`, over `base` (the
+ * ABC and class-path floors). Same rule as pc-projection.mjs's ranksAt.
+ */
+function projectedSkillRanks(skillPlan, base, level) {
+  const ranks = Object.fromEntries(CORE_SKILLS.map((slug) => [slug, base[slug] ?? 0]));
+  for (const slug of skillPlan.training ?? []) {
+    if ((skillPlan.trainingLevels?.[slug] ?? 1) <= level) ranks[slug] = Math.max(ranks[slug], 1);
+  }
+  for (const event of skillPlan.events ?? []) {
+    if (event.level <= level && event.slug in ranks) ranks[event.slug] = Math.max(ranks[event.slug], event.rank);
+  }
+  return ranks;
+}
+
+/**
  * Every real name this concept already committed to, used by choice-set.mjs's
  * middle-priority policy step: a ChoiceSet option the character was already
  * given (a clan weapon in its equipment, a named feat) beats the deterministic
@@ -636,6 +911,7 @@ function conceptChoiceNames(concept, resolved) {
     ...(concept.feats ?? []),
     ...(resolved.feats ?? []).map((f) => f?.name),
     ...(concept.spellcasting?.spells ?? []).map((s) => s?.name),
+    ...(concept.archetypeSpellcasting?.spells ?? []).map((s) => s?.name),
     ...(concept.focusSpells ?? []).map((s) => s?.name),
     resolved.ancestryDoc?.name,
     resolved.heritageDoc?.name,
@@ -669,6 +945,274 @@ async function preresolveChoiceSets(itemSources, concept, resolved, keyAbility, 
   };
 
   await preselectChoiceSets(itemSources, context, config, loadItemSource, selectChoices);
+}
+
+/**
+ * Ground AI spell picks: an issued candidate reference wins; otherwise a name
+ * match (never under exactContent, which allows only issued references).
+ * @returns {Promise<{spell: object, entry: object|null}[]>}
+ */
+async function groundSpellPicks(picks, { exactContent = false } = {}) {
+  const grounded = [];
+  for (const spell of Array.isArray(picks) ? picks : []) {
+    const entry = isIssuedCandidate(spell.candidate, getPacksFor("spells"))
+      ? spell.candidate : (exactContent ? null : await findEntry(getPacksFor("spells"), spell.name, (e) => e.type === "spell"));
+    grounded.push({ spell, entry });
+  }
+  return grounded;
+}
+
+/** Document identity for spell de-duplication. Bare `_id`s collide across packs. */
+function spellIdentity(doc, entry) {
+  return doc?.uuid ?? entry?.uuid ?? (entry?.packId && entry?._id ? `${entry.packId}:${entry._id}` : null);
+}
+
+/**
+ * Resolve one Technomancer cache spell by its exact name in sf2e.spells
+ * (pc-support TECHNOMANCER_LANGUAGE_CACHE). Fail closed: a disabled pack, a
+ * name miss, a non-spell, or a base rank other than the cited rank warns and
+ * yields null.
+ */
+async function resolveCacheSpell({ rank, name }) {
+  if (!getPacksFor("spells").includes("sf2e.spells")) {
+    console.warn(`simplysf2e | sf2e.spells is not an enabled spell source — cache spell "${name}" not added`);
+    return null;
+  }
+  const entry = await findEntry(["sf2e.spells"], name, (e) => e.type === "spell" && e.name === name);
+  const doc = entry ? await getDocument(entry) : null;
+  const data = doc ? toItemData(doc) : null;
+  if (!data || data.type !== "spell" || data.name !== name || data.system?.level?.value !== rank) {
+    console.warn(`simplysf2e | cache spell "${name}" (rank ${rank}) not found in sf2e.spells as a rank ${rank} spell — not added`);
+    return null;
+  }
+  return { entry, doc, data };
+}
+
+/**
+ * One spellcasting entry and the spell documents it owns. The class entry and
+ * an archetype (dedication) entry both come through here, so each keeps its
+ * own counts, caps and tradition; nothing is merged between them.
+ *  - spontaneous: each valid pick is a repertoire row at its assigned rank.
+ *  - prepared: each valid pick is a daily slot; a repeated pick repeats the slot.
+ *  - prepared with `plan.database` (Technomancer class): valid picks form the
+ *    spell database, plus the cache spells by exact name. Daily slots are then
+ *    prepared only from database spells of the same rank, in database order
+ *    (cache spells first), and a shortfall warns instead of inventing a spell.
+ * `profiled` is true when the class or dedication has a verified profile; then
+ * trait data is required and tradition, focus/ritual and 10th-rank rules apply.
+ */
+async function buildSpellcastingEntry({ entryId, name, tradition, mode, ability, proficiency, profiled, plan, picks, cacheSpells = [] }) {
+  const database = plan.database ?? null;
+  const counts = plan.slots;
+  const caps = database ? database.caps : plan.picks;
+  const slots = {};
+  for (const [rank, max] of Object.entries(counts)) {
+    slots[`slot${rank}`] = { value: max, max, prepared: [] };
+  }
+
+  const spellSources = new Map();
+  const databaseSpells = [];
+  const seenDatabase = new Set();
+  // The database holds the cited totals: 10 cantrips and 5 + levelUps ranked spells.
+  // Per-rank caps alone would let a model exceed the total, so it is checked here.
+  const databaseTotals = { cantrips: 0, ranked: 0 };
+  const usedCantrips = new Set();
+  const spontaneousSeen = new Set();
+  const usedRanks = new Map();
+  const signatureCandidates = new Map();
+  for (const cache of cacheSpells) {
+    const found = await resolveCacheSpell(cache);
+    if (!found) continue;
+    const identity = spellIdentity(found.doc, found.entry);
+    if (!identity || seenDatabase.has(identity)) continue;
+    seenDatabase.add(identity);
+    found.data._id = foundry.utils.randomID();
+    found.data.system.location = { value: entryId };
+    databaseSpells.push({ rank: cache.rank, data: found.data });
+  }
+
+  for (const { spell, entry } of picks) {
+    const assignedRank = spell?.rank;
+    const reject = (reason) => console.warn(`simplysf2e | dropped planned spell "${spell?.name ?? entry?.name ?? "?"}": ${reason}`);
+    if (typeof assignedRank !== "number" || !Number.isInteger(assignedRank) || assignedRank < 0 || assignedRank > 10 || !caps[assignedRank]) { reject("assigned rank is invalid or has no slot"); continue; }
+    const doc = await getDocument(entry);
+    if (!doc) { reject("could not load grounded spell"); continue; }
+    const source = toItemData(doc);
+    if (source.type !== "spell") { reject("grounded document is not a spell"); continue; }
+    const baseRank = source.system?.level?.value;
+    const traits = source.system?.traits ?? {};
+    const cantrip = Array.isArray(traits.value) && traits.value.includes("cantrip");
+    const traditions = Array.isArray(traits.traditions) ? traits.traditions : [];
+    if (profiled && (!Array.isArray(traits.value) || !Array.isArray(traits.traditions))) { reject("missing spell trait data"); continue; }
+    if (!Number.isInteger(baseRank) || baseRank < 0 || (!cantrip && baseRank > assignedRank)) { reject("base rank cannot occupy assigned rank"); continue; }
+    if (cantrip !== (assignedRank === 0)) { reject("cantrip rank mismatch"); continue; }
+    if ((Array.isArray(traits.value) && traits.value.includes("focus")) || source.system?.ritual) { reject("focus spells and rituals use separate casting entries"); continue; }
+    if (profiled && !traditions.includes(tradition)) { reject("spell tradition does not match caster profile"); continue; }
+    if (profiled && mode === "spontaneous" && assignedRank === 10 && traits.rarity !== "common") {
+      reject("ordinary 10th-rank repertoire picks must be common"); continue;
+    }
+    const identity = spellIdentity(doc, entry);
+    if (!identity) { reject("grounded spell identity is missing"); continue; }
+    if (database) {
+      if (seenDatabase.has(identity)) { reject("spell is already in the database"); continue; }
+      if ((usedRanks.get(assignedRank) ?? 0) >= caps[assignedRank]) { reject("assigned rank is already at its pick cap"); continue; }
+      const kind = assignedRank === 0 ? "cantrips" : "ranked";
+      const limit = kind === "cantrips" ? database.cantrips : database.rankOne + database.levelUps;
+      if (databaseTotals[kind] >= limit) { reject(`database already holds its ${limit} ${kind} spells`); continue; }
+      databaseTotals[kind] += 1;
+      seenDatabase.add(identity);
+      source._id = foundry.utils.randomID();
+      source.system.location = { value: entryId };
+      databaseSpells.push({ rank: assignedRank, data: source });
+      usedRanks.set(assignedRank, (usedRanks.get(assignedRank) ?? 0) + 1);
+      continue;
+    }
+    if (assignedRank === 0 && usedCantrips.has(identity)) { reject("duplicate cantrip"); continue; }
+    const key = `${identity}:${assignedRank}`;
+    if (mode === "spontaneous" && spontaneousSeen.has(key)) { reject("duplicate spontaneous repertoire rank"); continue; }
+    if ((usedRanks.get(assignedRank) ?? 0) >= caps[assignedRank]) { reject("assigned rank is already at its pick cap"); continue; }
+    // A spontaneous repertoire can contain the same source at different
+    // assigned ranks; each needs its own embedded item/location heightening.
+    const sourceKey = mode === "spontaneous" ? key : identity;
+    let data = spellSources.get(sourceKey);
+    if (!data) {
+      data = source;
+      data._id = foundry.utils.randomID();
+      spellSources.set(sourceKey, data);
+    }
+    // A cloned source can carry a stale entry or heightened location from a
+    // compendium/previous embedding. Rebuild it rather than merging one.
+    data.system.location = { value: entryId };
+    if (mode === "spontaneous") {
+      const heightenedLevel = heightenedLevelFor(data.system, assignedRank);
+      if (heightenedLevel) data.system.location.heightenedLevel = heightenedLevel;
+      else delete data.system.location.heightenedLevel;
+      spontaneousSeen.add(key);
+    } else {
+      // PF2e entry/data.ts SpellPrepData; the native entry pads unused
+      // positions with null IDs, and its collection casts at the slot rank.
+      slots[`slot${assignedRank}`].prepared.push({ id: data._id, expended: false });
+    }
+    usedRanks.set(assignedRank, (usedRanks.get(assignedRank) ?? 0) + 1);
+    if (spell?.signature === true) {
+      if (!plan.signatureRanks.includes(assignedRank)) console.warn(`simplysf2e | ignored signature marker on "${source.name}": rank is not eligible`);
+      else signatureCandidates.set(assignedRank, [...(signatureCandidates.get(assignedRank) ?? []), data]);
+    } else if (spell?.signature != null && spell.signature !== false) {
+      console.warn(`simplysf2e | ignored invalid signature marker on "${source.name}"`);
+    }
+    if (assignedRank === 0) usedCantrips.add(identity);
+  }
+
+  if (database) {
+    for (const [rank, max] of Object.entries(counts)) {
+      const ranked = Number(rank);
+      const prepared = databaseSpells.filter((spell) => spell.rank === ranked).slice(0, max);
+      if (prepared.length < max) console.warn(`simplysf2e | ${name}: ${prepared.length} of ${max} rank-${ranked} daily slots can be prepared from the database`);
+      for (const { data } of prepared) slots[`slot${rank}`].prepared.push({ id: data._id, expended: false });
+    }
+    if (databaseSpells.length < database.size) console.warn(`simplysf2e | ${name}: database holds ${databaseSpells.length} of ${database.size} spells`);
+  }
+  for (const [rank, candidates] of signatureCandidates) {
+    // PF2e spell/data.ts location.signature; collection.ts expands native
+    // virtual casting rows from the spell's original rank, not learned rank.
+    if (candidates.length === 1) candidates[0].system.location.signature = true;
+    else console.warn(`simplysf2e | ignored ${candidates.length} signature markers at rank ${rank}: only one is allowed`);
+  }
+  const entry = {
+    _id: entryId,
+    name,
+    type: "spellcastingEntry",
+    img: systemIcon("icons/default-icons/spellcastingEntry.svg"),
+    system: {
+      tradition: { value: tradition },
+      prepared: { value: mode, flexible: false },
+      ability: { value: ability },
+      proficiency: { value: proficiency },
+      slots,
+      spelldc: { value: 0, dc: 0, mod: 0 },
+      showSlotlessLevels: { value: false }
+    }
+  };
+  const sources = database ? databaseSpells.map((spell) => spell.data) : [...spellSources.values()];
+  return { entry, sources };
+}
+
+/**
+ * The one caster dedication (Mystic, Witchwarper or Technomancer) a build
+ * places, with its archetype spell plan, or null. Two placed caster
+ * dedications get no archetype entry. An unproven tradition (Mystic connection,
+ * Witchwarper paradox: archetypeTraditionFor) or key attribute returns null
+ * with a warning, never a guess. Grants: the dedication's two cantrips plus one
+ * slot per rank from each placed Basic/Expert/Master <Class> Spellcasting feat
+ * (archetypeSpellSlots). Proficiency is trained, or expert/master with those feats.
+ * @returns {{dedication: string, mode: string, tradition: string, ability: string,
+ *   proficiency: number, counts: Record<number, number>, maxRank: number} | null}
+ */
+export function archetypeCasterPlan(concept, resolved) {
+  const placed = (resolved?.feats ?? []).filter((feat) => feat?.entry);
+  const placedSlugs = new Set(placed.map((feat) => slugify(feat.name ?? "")));
+  const dedications = [...placedSlugs].filter((slug) => Object.hasOwn(ARCHETYPE_CASTER_DEDICATIONS, slug));
+  if (dedications.length > 1) {
+    console.warn("simplysf2e | more than one caster dedication placed — archetype spellcasting skipped");
+    return null;
+  }
+  if (dedications.length !== 1) return null;
+  const dedication = dedications[0];
+  const profile = ARCHETYPE_CASTER_DEDICATIONS[dedication];
+  const classSlug = dedication.replace(/-dedication$/, "");
+  const grants = {
+    basic: placedSlugs.has(`basic-${classSlug}-spellcasting`),
+    expert: placedSlugs.has(`expert-${classSlug}-spellcasting`),
+    master: placedSlugs.has(`master-${classSlug}-spellcasting`)
+  };
+  // The tradition comes from the option the bridge pre-answered (resolveArchetypeBridges).
+  const tradition = archetypeTraditionFor(dedication, resolved?.archetypeBridges?.[dedication]?.option?.source ?? null);
+  if (!tradition) return null;
+  const ability = profile.ability ?? witchwarperArchetypeAbility(resolved.abilityMods);
+  if (!ability) {
+    console.warn(`simplysf2e | ${dedication}: key attribute not proven — archetype spellcasting skipped`);
+    return null;
+  }
+  const archetype = archetypeSpellSlots(concept?.level, grants);
+  const counts = { 0: archetype.cantrips, ...archetype.slots };
+  return {
+    dedication,
+    mode: profile.mode,
+    tradition,
+    ability,
+    proficiency: grants.master ? 3 : grants.expert ? 2 : 1,
+    counts,
+    maxRank: Math.max(0, ...Object.keys(archetype.slots).map(Number))
+  };
+}
+
+/**
+ * Pre-answer the bridge of each placed Mystic or Witchwarper Dedication
+ * (Connection, Paradox) so its tradition is proven before the spell plan. Runs
+ * after feats are picked and before archetypeCasterPlan. Result:
+ * `{[dedicationSlug]: {dedication, choice, choiceType, grantUuid, preselectChoices, option}}`,
+ * stored on `resolved.archetypeBridges`. `option` is null when the bridge could
+ * not be pre-answered (warned; createCharacterActor adds a GM note). Technomancer
+ * has its own tradition and gets no record.
+ * @param {object} concept
+ * @param {object} resolved resolvePCConcept result with picked `feats`
+ * @param {{selectChoices?: Function|null}} [options]
+ * @returns {Promise<Record<string, object>>}
+ */
+export async function resolveArchetypeBridges(concept, resolved, { selectChoices = null } = {}) {
+  const bridges = {};
+  const context = { names: conceptChoiceNames(concept ?? {}, resolved) };
+  for (const feat of resolved?.feats ?? []) {
+    const slug = slugify(feat?.name ?? "");
+    if (!feat?.entry || !Object.hasOwn(ARCHETYPE_CASTER_DEDICATIONS, slug) || !ARCHETYPE_CASTER_DEDICATIONS[slug].traditionFrom) continue;
+    const source = await getDocument(feat.entry).then((doc) => (doc ? toItemData(doc) : null));
+    const bridge = source ? await pickDedicationBridge(source, { context, selectChoices }) : null;
+    bridges[slug] = {
+      dedication: source?.name ?? feat.name, choice: bridge?.choice ?? null, choiceType: bridge?.choiceType ?? null,
+      grantUuid: bridge?.grantUuid ?? null, preselectChoices: bridge?.preselectChoices ?? null, option: bridge?.option ?? null
+    };
+  }
+  return bridges;
 }
 
 /**
@@ -728,16 +1272,7 @@ export async function createCharacterActor(concept, resolved, { img = null, sele
   // Class.system.items, where the ordinary source preselector cannot reach
   // them. Stage only a proven exact bridge before Actor.create; all remaining
   // class grants still flow through PF2e's normal class item.
-  const excludeFeats = [];
-  for (const doc of [resolved.ancestryDoc, resolved.heritageDoc, resolved.backgroundDoc]) {
-    const docItems = doc?.system?.items;
-    if (docItems && typeof docItems === "object") {
-      for (const entry of Object.values(docItems)) {
-        if (typeof entry?.uuid === "string" && entry.uuid) excludeFeats.push(entry.uuid);
-        if (typeof entry?.name === "string" && entry.name) excludeFeats.push(entry.name);
-      }
-    }
-  }
+  const excludeFeats = abcGrantExclusions([resolved.ancestryDoc, resolved.heritageDoc, resolved.backgroundDoc]);
   for (const feat of resolved.feats ?? []) {
     const entry = feat?.entry;
     if (!entry) continue;
@@ -772,6 +1307,11 @@ export async function createCharacterActor(concept, resolved, { img = null, sele
   });
   items.push(classData);
   items.push(...stagedClassPaths.items);
+  const manualNotes = classManualNotes(stagedClassPaths.items);
+  const classSlug = slugify(resolved.classDoc.system?.slug ?? resolved.classDoc.name);
+  const focusSpells = classSlug === "technomancer"
+    ? withInitialFocusSpell(resolved.focusSpells ?? [], await resolveInitialMagicHack(stagedClassPaths.items))
+    : (resolved.focusSpells ?? []);
 
   // Background Lore: a real embedded lore item (not a system.skills entry).
   const loreNames = resolved.backgroundDoc.system?.trainedSkills?.lore;
@@ -798,6 +1338,13 @@ export async function createCharacterActor(concept, resolved, { img = null, sele
       data.system.location = location;
       data.system.level = { ...(data.system.level ?? {}), taken: level };
     }
+    // Caster dedication bridge: the same native GrantItem preselect a class path uses.
+    const bridge = resolved.archetypeBridges?.[slugify(data.name)];
+    if (bridge?.preselectChoices) {
+      for (const rule of data.system?.rules ?? []) {
+        if (rule?.key === "GrantItem" && rule.uuid === bridge.grantUuid) rule.preselectChoices = structuredClone(bridge.preselectChoices);
+      }
+    }
     items.push(data);
   }
 
@@ -806,101 +1353,47 @@ export async function createCharacterActor(concept, resolved, { img = null, sele
   // fallback until a source-qualified profile is added.
   const spellProfile = concept.spellcasting ? pcSpellcastingProfile(resolved.classDoc) : null;
   if (concept.spellcasting && (spellProfile || resolved.spells?.some((s) => s.entry))) {
-    const entryId = foundry.utils.randomID();
-    const mode = spellProfile?.mode ?? "spontaneous";
-    const tradition = spellProfile?.tradition ?? concept.spellcasting.tradition;
-    const ability = spellProfile?.ability ?? keyAbility;
     const plan = pcSpellPlan(concept.level, spellProfile);
-    const counts = plan.slots;
-    const slots = {};
-    for (const [rank, max] of Object.entries(counts)) {
-      slots[`slot${rank}`] = { value: max, max, prepared: [] };
-    }
-
-    const spellSources = new Map();
-    const usedCantrips = new Set();
-    const spontaneousSeen = new Set();
-    const usedRanks = new Map();
-    const signatureCandidates = new Map();
-    for (const { spell, entry } of resolved.spells ?? []) {
-      const assignedRank = spell?.rank;
-      const reject = (reason) => console.warn(`simplysf2e | dropped planned spell "${spell?.name ?? entry?.name ?? "?"}": ${reason}`);
-      if (typeof assignedRank !== "number" || !Number.isInteger(assignedRank) || assignedRank < 0 || assignedRank > 10 || !counts[assignedRank]) { reject("assigned rank is invalid or has no slot"); continue; }
-      const doc = await getDocument(entry);
-      if (!doc) { reject("could not load grounded spell"); continue; }
-      const source = toItemData(doc);
-      if (source.type !== "spell") { reject("grounded document is not a spell"); continue; }
-      const baseRank = source.system?.level?.value;
-      const traits = source.system?.traits ?? {};
-      const cantrip = Array.isArray(traits.value) && traits.value.includes("cantrip");
-      const traditions = Array.isArray(traits.traditions) ? traits.traditions : [];
-      if (spellProfile && (!Array.isArray(traits.value) || !Array.isArray(traits.traditions))) { reject("missing spell trait data"); continue; }
-      if (!Number.isInteger(baseRank) || baseRank < 0 || (!cantrip && baseRank > assignedRank)) { reject("base rank cannot occupy assigned rank"); continue; }
-      if (cantrip !== (assignedRank === 0)) { reject("cantrip rank mismatch"); continue; }
-      if ((Array.isArray(traits.value) && traits.value.includes("focus")) || source.system?.ritual) { reject("focus spells and rituals use separate casting entries"); continue; }
-      if (spellProfile && !traditions.includes(tradition)) { reject("spell tradition does not match caster profile"); continue; }
-      if (spellProfile && mode === "spontaneous" && assignedRank === 10 && traits.rarity !== "common") {
-        reject("ordinary 10th-rank repertoire picks must be common"); continue;
-      }
-      const identity = doc.uuid ?? entry?.uuid ?? (entry?.packId && entry?._id ? `${entry.packId}:${entry._id}` : null);
-      if (!identity) { reject("grounded spell identity is missing"); continue; }
-      if (assignedRank === 0 && usedCantrips.has(identity)) { reject("duplicate cantrip"); continue; }
-      const key = `${identity}:${assignedRank}`;
-      if (mode === "spontaneous" && spontaneousSeen.has(key)) { reject("duplicate spontaneous repertoire rank"); continue; }
-      if ((usedRanks.get(assignedRank) ?? 0) >= plan.picks[assignedRank]) { reject("assigned rank is already at its pick cap"); continue; }
-      // A spontaneous repertoire can contain the same source at different
-      // assigned ranks; each needs its own embedded item/location heightening.
-      const sourceKey = mode === "spontaneous" ? key : identity;
-      let data = spellSources.get(sourceKey);
-      if (!data) {
-        data = source;
-        data._id = foundry.utils.randomID();
-        spellSources.set(sourceKey, data);
-      }
-      // A cloned source can carry a stale entry or heightened location from a
-      // compendium/previous embedding. Rebuild it rather than merging one.
-      data.system.location = { value: entryId };
-      if (mode === "spontaneous") {
-        const heightenedLevel = heightenedLevelFor(data.system, assignedRank);
-        if (heightenedLevel) data.system.location.heightenedLevel = heightenedLevel;
-        else delete data.system.location.heightenedLevel;
-        spontaneousSeen.add(key);
-      } else {
-        // PF2e entry/data.ts SpellPrepData; the native entry pads unused
-        // positions with null IDs, and its collection casts at the slot rank.
-        slots[`slot${assignedRank}`].prepared.push({ id: data._id, expended: false });
-      }
-      usedRanks.set(assignedRank, (usedRanks.get(assignedRank) ?? 0) + 1);
-      if (spell?.signature === true) {
-        if (!plan.signatureRanks.includes(assignedRank)) console.warn(`simplysf2e | ignored signature marker on "${source.name}": rank is not eligible`);
-        else signatureCandidates.set(assignedRank, [...(signatureCandidates.get(assignedRank) ?? []), data]);
-      } else if (spell?.signature != null && spell.signature !== false) {
-        console.warn(`simplysf2e | ignored invalid signature marker on "${source.name}"`);
-      }
-      if (assignedRank === 0) usedCantrips.add(identity);
-    }
-    for (const [rank, candidates] of signatureCandidates) {
-      // PF2e spell/data.ts location.signature; collection.ts expands native
-      // virtual casting rows from the spell's original rank, not learned rank.
-      if (candidates.length === 1) candidates[0].system.location.signature = true;
-      else console.warn(`simplysf2e | ignored ${candidates.length} signature markers at rank ${rank}: only one is allowed`);
-    }
-    items.push({
-      _id: entryId,
-      name: `${capitalized(tradition)} Spells`,
-      type: "spellcastingEntry",
-      img: systemIcon("icons/default-icons/spellcastingEntry.svg"),
-      system: {
-        tradition: { value: tradition },
-        prepared: { value: mode, flexible: false },
-        ability: { value: ability },
-        proficiency: { value: 1 },
-        slots,
-        spelldc: { value: 0, dc: 0, mod: 0 },
-        showSlotlessLevels: { value: false }
-      }
+    const built = await buildSpellcastingEntry({
+      entryId: foundry.utils.randomID(),
+      name: `${capitalized(spellProfile?.tradition ?? concept.spellcasting.tradition)} Spells`,
+      tradition: spellProfile?.tradition ?? concept.spellcasting.tradition,
+      mode: spellProfile?.mode ?? "spontaneous",
+      ability: spellProfile?.ability ?? keyAbility,
+      proficiency: 1,
+      profiled: Boolean(spellProfile),
+      plan,
+      picks: resolved.spells ?? [],
+      cacheSpells: plan.database ? technomancerCacheSpells(stagedClassPaths.items, plan.database.cacheRanks) : []
     });
-    items.push(...spellSources.values());
+    items.push(built.entry, ...built.sources);
+  }
+
+  // Caster dedication: a SEPARATE archetype entry built by the same code path,
+  // never merged into the class entry. Planned only when the generator allowed
+  // spellcasting (concept.archetypeSpellcasting), so a disabled concept gets none.
+  const archetype = concept.archetypeSpellcasting ? archetypeCasterPlan(concept, resolved) : null;
+  if (archetype) {
+    const built = await buildSpellcastingEntry({
+      entryId: foundry.utils.randomID(),
+      name: `${capitalized(archetype.tradition)} Archetype Spells`,
+      tradition: archetype.tradition,
+      mode: archetype.mode,
+      ability: archetype.ability,
+      proficiency: archetype.proficiency,
+      profiled: true,
+      plan: { slots: archetype.counts, picks: archetype.counts, signatureRanks: [] },
+      picks: resolved.archetypeSpells ?? []
+    });
+    items.push(built.entry, ...built.sources);
+  }
+  // A caster dedication whose bridge could not be pre-answered gets no entry
+  // (archetypeTraditionFor warns); the GM adds it by hand.
+  const bridges = Object.values(resolved.archetypeBridges ?? {});
+  if (concept.archetypeSpellcasting) {
+    for (const bridge of bridges.filter((entry) => !entry.option)) {
+      manualNotes.push(game.i18n.format("SIMPLYSF2E.PC.ArchetypeSpellsManual", { dedication: bridge.dedication, choice: bridge.choice ?? game.i18n.localize("SIMPLYSF2E.PC.ArchetypeChoiceFallback") }));
+    }
   }
 
   // Focus spells: a separate `prepared.value: "focus"` entry — how the real
@@ -914,9 +1407,9 @@ export async function createCharacterActor(concept, resolved, { img = null, sele
   // clamped to cap 3 in creature/document.ts. No rule is cloned: sf2e packs
   // carry no focus-max ActiveEffectLike, and one would double-count.
   let focusPoolSize = 0;
-  if (resolved.focusSpells?.some((s) => s.entry)) {
+  if (focusSpells.some((s) => s.entry)) {
     const focusEntryId = foundry.utils.randomID();
-    focusPoolSize = Math.min(resolved.focusSpells.filter((s) => s.entry).length, 3);
+    focusPoolSize = Math.min(focusSpells.filter((s) => s.entry).length, 3);
     items.push({
       _id: focusEntryId,
       name: "Focus Spells",
@@ -933,7 +1426,7 @@ export async function createCharacterActor(concept, resolved, { img = null, sele
         showSlotlessLevels: { value: false }
       }
     });
-    for (const { entry } of resolved.focusSpells) {
+    for (const { entry } of focusSpells) {
       const doc = await getDocument(entry);
       if (!doc) continue;
       const data = toItemData(doc);
@@ -1216,10 +1709,28 @@ export async function createCharacterActor(concept, resolved, { img = null, sele
     const snapshot = characterSkillSnapshot(actor, loreIds);
     rows = Object.entries(snapshot.nativeRanks).filter(([, rank]) => Number.isInteger(rank) && rank > 0)
       .map(([slug, rank]) => ({ slug, rank, name: snapshot.lore.find((entry) => entry.key === slug)?.name ?? null }));
+    // Feat prerequisites were proven against projected ranks. A native rule
+    // can block module training, so any projected rank above the created
+    // actor's real rank means a feat may have been planned without its skill.
+    if (resolved.skillPlan) {
+      const base = { ...initialRanks };
+      for (const planned of Object.values(resolved.pathPlan ?? {})) {
+        for (const [slug, rank] of Object.entries(planned?.skills ?? {})) base[slug] = Math.max(base[slug] ?? 0, rank);
+      }
+      const projected = projectedSkillRanks(resolved.skillPlan, base, concept.level);
+      if (CORE_SKILLS.some((slug) => projected[slug] > (snapshot.nativeRanks[slug] ?? 0))) {
+        skillWarnings.push("projection-mismatch");
+      }
+    }
   } catch { skillWarnings.push("native-data"); }
   const warnings = [...new Set([...skillWarnings, ...(skillPlan?.warnings ?? [])])];
   for (const warning of warnings) console.warn(`simplysf2e | character skill review: ${warning}`);
-  return { actor, expectedItems: [...safeItems, ...stagedClassPaths.expectedPaths], skillReport: { rows, warnings, loadoutWarnings, automatic: skillPlan?.automatic ?? !normalizeSkillPriorities(concept.skillPriorities).length,
+  // Bridge picks are native items too: verify the Connection/Paradox and its option survived.
+  const bridgeExpected = bridges.filter((bridge) => bridge.option).flatMap((bridge) => [
+    { name: bridge.choice, type: bridge.choiceType, _stats: { compendiumSource: bridge.grantUuid } },
+    { name: bridge.option.name, type: bridge.option.type, _stats: { compendiumSource: bridge.option.uuid } }
+  ]);
+  return { actor, manualNotes, expectedItems: [...safeItems, ...stagedClassPaths.expectedPaths, ...bridgeExpected], skillReport: { rows, warnings, loadoutWarnings, automatic: skillPlan?.automatic ?? !normalizeSkillPriorities(concept.skillPriorities).length,
     trainingBudget: skillPlan?.trainingBudget ?? null, unspentTraining: skillPlan?.unspentTraining ?? null,
     unspentIncreases: skillPlan?.unspentIncreases ?? null } };
 }

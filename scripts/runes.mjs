@@ -53,6 +53,18 @@ export const EQUIPMENT_GRADES = [
   "commercial", "tactical", "advanced", "superior", "elite", "ultimate", "paragon"
 ];
 
+/* A grade label ending a published item name, e.g. "Blast Knife (Superior)" or
+ * "Lock (Commercial)". Some sf2e items are published this way with system.grade
+ * left at commercial (the grenade and Stun Stick families). */
+const TRAILING_GRADE = new RegExp(`\\s*\\((${EQUIPMENT_GRADES.join("|")})\\)$`, "i");
+export const trailingGradeLabel = (name) => String(name ?? "").match(TRAILING_GRADE)?.[1].toLowerCase() ?? null;
+export const stripTrailingGradeLabel = (name) => String(name ?? "").replace(TRAILING_GRADE, "");
+/** A base already published at a non-commercial grade is a finished item, not a commercial base to grade. */
+export const isPublishedAboveCommercial = (name) => {
+  const grade = trailingGradeLabel(name);
+  return grade !== null && grade !== "commercial";
+};
+
 export const GRADE_LEVELS = {
   weapon: {
     commercial: 0, tactical: 2, advanced: 4, superior: 10,
@@ -99,12 +111,38 @@ export function parseUpgradeCapacity(desc, kind = "weapon") {
  */
 export const WEAPON_UPGRADE_USAGES = new Set(["installed-in-a-weapon"]);
 export const ARMOR_UPGRADE_USAGES = new Set(["installed-in-armor"]);
-const WEAPON_RUNE_USAGE = WEAPON_UPGRADE_USAGES;
+
+/* Projectile-only weapon upgrades: Impact Enhancer (commercial, tactical,
+ * advanced) and Arcane Adapter (commercial, tactical) in sf2e 1.6.1
+ * packs/sf2e/equipment/weapon-upgrades/. Their system.usage.value is listed in
+ * src/scripts/config/usage.ts:10 (WEAPON_UPGRADES, tag sf2e-1.6.1). They fit
+ * only a base whose system.group is "projectile" (15 weapons in the pack).
+ * This is a separate set so WEAPON_UPGRADE_USAGES keeps its meaning.
+ */
+export const PROJECTILE_UPGRADE_USAGE = "installed-in-a-weapon-that-uses-projectiles";
+export const PROJECTILE_WEAPON_GROUP = "projectile";
+const WEAPON_RUNE_USAGE = new Set([...WEAPON_UPGRADE_USAGES, PROJECTILE_UPGRADE_USAGE]);
 const ARMOR_RUNE_USAGE = ARMOR_UPGRADE_USAGES;
 
-/** Whether an upgrade (by its real usage string) may be installed in a base item of this kind. */
-export function propertyRuneFitsBase(kind, usage) {
-  return (kind === "armor" ? ARMOR_UPGRADE_USAGES : WEAPON_UPGRADE_USAGES).has(usage);
+/**
+ * Whether an upgrade (by its real usage string) may be installed in a base item of this kind.
+ * `baseGroup` is the base weapon's real system.group; only the projectile usage reads it.
+ * Fails closed: a projectile upgrade needs baseGroup === "projectile".
+ */
+export function propertyRuneFitsBase(kind, usage, baseGroup = null) {
+  if (kind === "armor") return ARMOR_UPGRADE_USAGES.has(usage);
+  if (WEAPON_UPGRADE_USAGES.has(usage)) return true;
+  return usage === PROJECTILE_UPGRADE_USAGE && baseGroup === PROJECTILE_WEAPON_GROUP;
+}
+
+/**
+ * Whether an upgrade may fit a weapon whose group is not known yet. Only the
+ * candidate list uses it: it is built before the AI picks a base, so it drops
+ * what can never fit. Once the base is known, normalizeRunedItemConcept and
+ * buildRunedItem check the real base group with propertyRuneFitsBase.
+ */
+export function propertyRuneMayFitBase(kind, usage) {
+  return propertyRuneFitsBase(kind, usage, PROJECTILE_WEAPON_GROUP);
 }
 
 /* -------------------- parsing runes out of a name -------------------- */
@@ -315,18 +353,21 @@ export async function runeGp(runes, kind) {
  * Real ordinary (non-specific) base weapons/armor at or below a target level,
  * so the AI picks a base item that exists instead of naming one from memory.
  * `category` is the base item's real system.category (light/medium/heavy for
- * armor), which gates category-restricted property runes downstream.
- * @returns {Promise<{name: string, level: number, category: string|null}[]>}
+ * armor), which gates category-restricted property runes downstream. `group` is
+ * the real system.group ("projectile", "laser", ...), which gates projectile-only
+ * weapon upgrades.
+ * @returns {Promise<{name: string, level: number, category: string|null, group: string|null, upgradeSlots: number}[]>}
  */
 export async function getBaseItemCandidates(kind, maxLevel) {
   const entries = await getAllEquipmentEntries();
   return entries
-    .filter((e) => e.type === kind && !e.specific && e.level <= maxLevel)
+    .filter((e) => e.type === kind && !e.specific && e.level <= maxLevel && !isPublishedAboveCommercial(e.name))
     .sort((a, b) => a.level - b.level || a.name.localeCompare(b.name))
     .map((e) => ({
       name: e.name,
       level: e.level,
       category: e.category ?? null,
+      group: e.group ?? null,
       upgradeSlots: parseUpgradeCapacity(e.description, kind)
     }));
 }
@@ -341,7 +382,10 @@ function fundamentalRuneNames(kind) {
 
 /**
  * Real upgrade items a graded base of this kind accepts (see
- * WEAPON_UPGRADE_USAGES / ARMOR_UPGRADE_USAGES) at or below a target level.
+ * WEAPON_UPGRADE_USAGES / ARMOR_UPGRADE_USAGES, plus PROJECTILE_UPGRADE_USAGE
+ * for weapons) at or below a target level. Projectile upgrades are listed for
+ * every weapon here and are only installed by buildRunedItem on a
+ * system.group === "projectile" base (see propertyRuneFitsBase).
  * `usage` is the item's real system.usage.value.
  * @returns {Promise<{name: string, level: number, usage: string}[]>}
  */
@@ -351,7 +395,7 @@ export async function getPropertyRuneCandidates(kind, maxLevel) {
   const entries = await getAllEquipmentEntries();
   return entries
     .filter((e) => e.type === "equipment" && usageSet.has(e.usage) && e.level <= maxLevel
-      && !excluded.has(slugify(e.name)))
+      && propertyRuneMayFitBase(kind, e.usage) && !excluded.has(slugify(e.name)))
     .sort((a, b) => a.level - b.level || a.name.localeCompare(b.name))
     .map((e) => ({ name: e.name, level: e.level, usage: e.usage }));
 }

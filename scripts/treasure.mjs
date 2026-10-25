@@ -102,7 +102,8 @@ export function resolveIssuedPicks(picks, candidates) {
 /**
  * Fill the hoard: issued IDs only, in AI order, quantity 1, no repeats, and an
  * item is added only when its credit price fits the remaining budget. A
- * candidate without a finite `credits` price is dropped (never guessed).
+ * candidate without a finite, positive `credits` price is dropped (a 0-credit
+ * item is unpriced, never free loot; never guessed).
  * Leftover budget is returned as credits for a Credstick row.
  * @param {unknown[]} picks raw `ids` array from the AI
  * @param {{id: string, name: string, credits: number}[]} candidates issued catalog, priced
@@ -120,7 +121,7 @@ export function fillHoard(picks, candidates, budgetCredits) {
     if (seen.has(candidate.id)) continue;
     seen.add(candidate.id);
     const price = Number(candidate.credits);
-    if (!Number.isFinite(price) || price < 0) {
+    if (!Number.isFinite(price) || price <= 0) {
       unpriced.push(candidate.name);
       continue;
     }

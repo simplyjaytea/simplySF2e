@@ -8,7 +8,7 @@ import { readFile } from "node:fs/promises";
 const root = new URL("../", import.meta.url);
 const read = (path) => readFile(new URL(path, root), "utf8");
 
-const [generator, itemForge, providerSetup, managePresets, sources, progress, generatorApp, itemForgeApp, appBase, css, langJson] = await Promise.all([
+const [generator, itemForge, providerSetup, managePresets, sources, progress, generatorApp, itemForgeApp, appBase, css, langJson, creaturePipeline] = await Promise.all([
   read("templates/generator.hbs"),
   read("templates/itemforge.hbs"),
   read("templates/provider-setup.hbs"),
@@ -20,7 +20,8 @@ const [generator, itemForge, providerSetup, managePresets, sources, progress, ge
   read("scripts/app-base.mjs"),
   read("module.json").then(async (manifest) =>
     (await Promise.all(JSON.parse(manifest).styles.map(read))).join("\n")),
-  read("lang/en.json")
+  read("lang/en.json"),
+  read("scripts/creature-pipeline.mjs")
 ]);
 
 for (const [name, template] of [
@@ -187,7 +188,9 @@ assert.match(generatorApp, /_beginProgress\(\[\s*\["apply", applyLabel\]\s*\], \
   "PC apply must stay on progress chrome and must not arm Cancel during Foundry writes");
 assert.match(generator, /created\.grounding\.rows/, "completion card must report the validated content grounding");
 assert.match(generator, /\{\{#if tokenReport\}\}[\s\S]*?Tokens\.Heading/, "completion card must retain the generation token report");
-assert.match(generatorApp, /const manifest = completionManifest\([\s\S]*?assertComplete\(manifest\);[\s\S]*?this\.#manifest = manifest;/,
+assert.match(creaturePipeline, /const manifest = completionManifest\([\s\S]*?assertComplete\(manifest\);/,
+  "a single generation must validate its manifest before returning it");
+assert.match(generatorApp, /const \{ concept, resolved, manifest \} = await generateCreature\([\s\S]*?this\.#manifest = manifest;/,
   "a single generation must retain its validated manifest until creation commits");
 assert.doesNotMatch(generatorApp, /this\.#created = \{ name: actor\.name, actorId: actor\.id, count: 1 \};\s*\}\s*finally/,
   "generation failure handling must not fabricate a creation result from an unavailable actor");
@@ -206,10 +209,20 @@ for (const [name, template, createAction] of [
   ["generator", generator, "createActor"],
   ["item forge", itemForge, "createItem"]
 ]) {
+  const previewStates = name === "generator"
+    ? ["preview", "encounterPreview", "pcPreview", "reskinPreview"]
+    : ["preview"];
+  const generateClass = '{{#if preview}}spf-secondary'
+    + previewStates.slice(1).map((state) => `{{else if ${state}}}spf-secondary`).join("")
+    + '{{else}}spf-primary{{/if}}';
+  assert.ok(
+    template.includes(`class="${generateClass}" data-action="generate"`),
+    `${name} Generate must be primary only before a preview, and secondary for every preview type`
+  );
   assert.match(
     template,
-    /class="spf-primary" data-action="generate"/,
-    `${name} generate must be the styled primary action`
+    /SIMPLYSF2E\.Generator\.GenerateAnotherVersion/,
+    `${name} preview must label Generate as another version`
   );
   assert.match(
     template,
@@ -287,7 +300,7 @@ assert.match(
 assert.match(appBase, /_paintProgress\(\)/, "stream ticks must patch the existing fill instead of re-rendering the app");
 assert.match(appBase, /streamFraction\(\{ phase, prior:/, "intra-step fill is phase-based, not chars-vs-unknown-length");
 assert.match(appBase, /exact \? "SIMPLYSF2E\.Progress\.WritingExact"/, "live copy drops ≈ only for provider usage");
-assert.match(generatorApp, /call: focusLabel/, "multi-call spell steps sub-label the detail line without extra bar steps");
+assert.match(creaturePipeline, /progressFor\(ctx, focusLabel\)/, "multi-call spell steps sub-label the detail line without extra bar steps");
 assert.match(messages.Tokens.StepEstimated, /estimated/);
 assert.match(messages.Tokens.StepTotal, /\{total\} tokens/);
 assert.match(messages.Tokens.LastRun, /^last: \{total\} tokens$/);
@@ -550,15 +563,24 @@ assert.match(sources, /fa-satellite-dish/, "sources hint must use a sci-fi uplin
 // telemetry progress, HUD readout legends, and console inputs — all
 // on-palette (SF2e navy/cyan/violet), with motion yielding to reduced motion.
 assert.match(css, /\.simplysf2e\s*\{[^}]*--spf-neon:/s, "HUD glow tokens must be defined");
+const readingSurface = css.match(/\.application\.simplysf2e \.window-content\s*\{([^}]*)\}/s)?.[1];
+assert.ok(readingSurface, "window content must define its reading surface");
+assert.match(readingSurface, /background:\s*#0c1620\s*;/, "reading surfaces must stay plain dark navy");
+assert.doesNotMatch(readingSurface, /gradient/, "window content must not carry texture");
 assert.match(
   css,
-  /\.application\.simplysf2e \.window-content\s*\{[^}]*repeating-linear-gradient/s,
-  "window content must carry holographic scanline/grid texture"
+  /\.application\.simplysf2e \.window-header\s*\{[^}]*repeating-linear-gradient/s,
+  "window headers must retain the HUD texture"
 );
 assert.match(
   css,
-  /\.simplysf2e \.spf-card\s*\{[^}]*repeating-linear-gradient/s,
-  "cards must carry holographic scanline texture"
+  /\.simplysf2e \.spf-empty,\s*\.simplysf2e \.spf-hud-empty,\s*\.simplysf2e \.spf-source-empty\s*\{[^}]*repeating-linear-gradient/s,
+  "decorative empty-state panels must retain the HUD texture"
+);
+assert.doesNotMatch(
+  css.match(/\.simplysf2e \.spf-card\s*\{([^}]*)\}/s)?.[1] ?? "",
+  /gradient/,
+  "reading cards must have plain surfaces"
 );
 assert.match(
   css,

@@ -57,6 +57,10 @@ assert.deepEqual(filled.items.map((row) => row.id), ["a", "b", "d"], "AI order; 
 assert.deepEqual(filled.unknown, ["zzz"]);
 assert.deepEqual(filled.overBudget, ["Laser Pistol"], "300 does not fit in the 110 left after 70 + 500");
 assert.deepEqual(filled.unpriced, ["Mystery"], "an unpriced pick is dropped, not guessed");
+// A 0-credit price is unpriced too: sf2e has no free equipment to hoard.
+const free = fillHoard(["f", "a"], [...candidates, { id: "f", name: "Free Plate", credits: 0 }], 680);
+assert.deepEqual(free.unpriced, ["Free Plate"], "zero credits is unpriced, never free loot");
+assert.deepEqual(free.items.map((row) => row.id), ["a"]);
 assert.equal(filled.leftover, 680 - 70 - 500 - 20);
 assert.ok(filled.items.every((row) => row.quantity === 1));
 assert.equal(hoardLeftover(680, filled.items), filled.leftover);

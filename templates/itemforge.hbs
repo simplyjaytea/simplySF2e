@@ -84,9 +84,9 @@
       </div>
     </div>
     <div class="spf-generate-row">
-      <button type="button" class="spf-primary" data-action="generate" {{#if busy}}disabled{{/if}}>
-        <i aria-hidden="true" class="fa-solid fa-wand-sparkles"></i>
-        {{localize "SIMPLYSF2E.Generator.Generate"}}
+      <button type="button" class="{{#if preview}}spf-secondary{{else}}spf-primary{{/if}}" data-action="generate" {{#if busy}}disabled{{/if}}>
+        <i aria-hidden="true" class="fa-solid fa-bolt"></i>
+        {{#if preview}}{{localize "SIMPLYSF2E.Generator.GenerateAnotherVersion"}}{{else}}{{localize "SIMPLYSF2E.Generator.Generate"}}{{/if}}
       </button>
     </div>
   </fieldset>
@@ -139,6 +139,9 @@
           {{/each}}
         {{/unless}}
       </ul>
+      {{#if preview.skippedNote}}
+        <p class="notification warning" role="status">{{preview.skippedNote}}</p>
+      {{/if}}
     {{else}}
       <div class="spf-statline">
         <span><strong>{{localize "SIMPLYSF2E.ItemForge.Usage"}}</strong> {{preview.usage}}{{#if preview.invested}} ({{localize "SIMPLYSF2E.ItemForge.Invested"}}){{/if}}</span>

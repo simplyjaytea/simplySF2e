@@ -125,17 +125,42 @@ function nameClauseMet(text, context) {
   return Boolean(slug) && context.names.has(slug);
 }
 
+/**
+ * Ability requirement from one clause, or null when it is not an ability
+ * clause. The sf2e form is the modifier ("Charisma +2"; tag sf2e-1.6.1 Envoy
+ * Dedication). No sf2e prerequisite uses a score form ("Strength 14"), so
+ * that text is not an ability clause and falls through to name matching.
+ */
+function abilityRequirement(text) {
+  const modifier = /^(strength|dexterity|constitution|intelligence|wisdom|charisma)\s+\+(\d+)$/i.exec(text);
+  if (modifier) return { key: ABILITY[modifier[1].toLowerCase()], required: Number(modifier[2]) };
+  return null;
+}
+
+/** Missing or non-finite modifiers fail closed. */
+function abilityClauseMet(requirement, context) {
+  const modifier = context.abilities?.[requirement.key];
+  return Number.isFinite(modifier) && modifier >= requirement.required;
+}
+
+const SKILL_RANK_CLAUSE = /^(trained|expert|master|legendary)\s+in\s+(.+)$/i;
+
 function clauseMet(entry, context) {
   if (!isObject(entry) || typeof entry.value !== "string") return false;
   const text = entry.value.trim();
   if (!text) return false;
-  const skill = /^(trained|expert|master|legendary)\s+in\s+(.+)$/i.exec(text);
-  if (skill) return skillClauseMet(RANK[skill[1].toLowerCase()], skill[2], context);
-  const ability = /^(strength|dexterity|constitution|intelligence|wisdom|charisma)\s+(\d+)$/i.exec(text);
-  if (ability) {
-    const score = context.abilities[ABILITY[ability[1].toLowerCase()]];
-    return Number.isFinite(score) && score >= Number(ability[2]);
+  // "A or B" is met when either part is met, but only when every part is an
+  // ability or skill-rank clause. Otherwise the text may be a name with "or".
+  if (/\s+or\s+/i.test(text)) {
+    const parts = text.split(/\s+or\s+/i).map((part) => part.trim());
+    if (parts.every((part) => abilityRequirement(part) || SKILL_RANK_CLAUSE.test(part))) {
+      return parts.some((part) => clauseMet({ value: part }, context));
+    }
   }
+  const skill = SKILL_RANK_CLAUSE.exec(text);
+  if (skill) return skillClauseMet(RANK[skill[1].toLowerCase()], skill[2], context);
+  const ability = abilityRequirement(text);
+  if (ability) return abilityClauseMet(ability, context);
   return nameClauseMet(text, context);
 }
 
@@ -203,15 +228,109 @@ export function featPrerequisitesMet(feat, context) {
 }
 
 /**
- * Fail-closed archetype-trait probe for one feat in any staged shape: a full
- * compendium/index entry (`system.traits.value`) or an issued candidate
- * record (`traits`). Anything unreadable is not an archetype feat.
+ * featPrerequisitesMet for either staged shape: a full entry or an issued
+ * candidate record (`prerequisites: string[]`). Unreadable text is not met.
  */
-export function isArchetypeFeat(value) {
-  const traits = Array.isArray(value?.system?.traits?.value)
+export function evidencePrerequisitesMet(evidence, context) {
+  const prerequisites = featPrerequisiteClauses(evidence);
+  return Array.isArray(prerequisites)
+    && featPrerequisitesMet({ system: { prerequisites: { value: prerequisites } } }, context);
+}
+
+/**
+ * Trait list of one feat in any staged shape: a full compendium/index entry
+ * (`system.traits.value`) or an issued candidate record (`traits`). Null when
+ * unreadable.
+ */
+function featTraits(value) {
+  return Array.isArray(value?.system?.traits?.value)
     ? value.system.traits.value
     : Array.isArray(value?.traits) ? value.traits : null;
+}
+
+/**
+ * Fail-closed archetype-trait probe for one feat in any staged shape.
+ * Anything unreadable is not an archetype feat.
+ */
+export function isArchetypeFeat(value) {
+  const traits = featTraits(value);
   return traits !== null && traits.includes("archetype");
+}
+
+function isDedicationFeat(value) {
+  const traits = featTraits(value);
+  return traits !== null && traits.includes("dedication");
+}
+
+/**
+ * Prerequisite clauses of one feat in either staged shape: a full entry
+ * (`system.prerequisites.value[].value`) or an issued candidate record
+ * (`prerequisites: string[]`, from getFeatCandidates). Null when unreadable.
+ */
+function featPrerequisiteClauses(value) {
+  if (Array.isArray(value?.system?.prerequisites?.value)) return value.system.prerequisites.value;
+  if (Array.isArray(value?.prerequisites)) {
+    return value.prerequisites.filter((text) => typeof text === "string").map((text) => ({ value: text }));
+  }
+  return null;
+}
+
+/**
+ * The archetype a non-dedication feat belongs to, read from its prerequisite
+ * text: the first clause that names a feat already placed in an archetype
+ * (`acceptedArchetypeFeats` maps placed feat slug -> that archetype's
+ * dedication slug). A chain through an earlier follow-up therefore reaches
+ * the same archetype. Null when no clause names one.
+ */
+export function archetypeOfFeat(evidence, acceptedArchetypeFeats) {
+  const prerequisites = featPrerequisiteClauses(evidence);
+  if (!Array.isArray(prerequisites) || !(acceptedArchetypeFeats instanceof Map)) return null;
+  for (const clause of prerequisites) {
+    const named = slugify(typeof clause?.value === "string" ? clause.value : "");
+    if (named && acceptedArchetypeFeats.has(named)) return acceptedArchetypeFeats.get(named);
+  }
+  return null;
+}
+
+/**
+ * Dedication rule state for one chronological walk of archetype slots (sf2e-1.6.1
+ * journals/archetypes.json: "Once you take a dedication feat, you can't select a
+ * different dedication feat until you complete your dedication by taking two other
+ * feats from your current archetype."). `openDedication` is the most recently
+ * placed dedication slug, `archetypeFeats` maps placed archetype feat slug to its
+ * dedication slug, and `archetypeCounts` counts follow-ups per dedication.
+ */
+export function createDedicationRuleState() {
+  return { openDedication: null, archetypeFeats: new Map(), archetypeCounts: new Map() };
+}
+
+/**
+ * The dedication rule's reason when `evidence` (a candidate record or a full feat
+ * entry) may not be placed next, or null when it may be. Only a dedication can be
+ * blocked, and only while an earlier dedication has fewer than two follow-ups.
+ */
+export function dedicationRuleBlock(state, evidence) {
+  if (!isDedicationFeat(evidence) || state.openDedication === null) return null;
+  if ((state.archetypeCounts.get(state.openDedication) ?? 0) >= 2) return null;
+  return "dedication rule: finish the current dedication with two more of its feats first";
+}
+
+/**
+ * Record an accepted archetype placement in the rule state. Call only after
+ * dedicationRuleBlock() has passed the same evidence.
+ */
+export function recordDedicationRulePlacement(state, slug, evidence) {
+  if (isDedicationFeat(evidence)) {
+    state.openDedication = slug;
+    state.archetypeFeats.set(slug, slug);
+    state.archetypeCounts.set(slug, 0);
+    return;
+  }
+  const owner = archetypeOfFeat(evidence, state.archetypeFeats);
+  if (owner !== null) {
+    state.archetypeFeats.set(slug, owner);
+    state.archetypeCounts.set(owner, (state.archetypeCounts.get(owner) ?? 0) + 1);
+  }
 }
 
 function readableFeatLevel(value) {
@@ -251,6 +370,12 @@ function readableSlotLevel(slot) {
  * unrestricted context; a restricted skill-feat context cannot prove
  * archetype placement and fails its fills closed.
  *
+ * Dedication rule (sf2e-1.6.1 journals/archetypes.json): once a dedication
+ * is placed, another dedication is rejected until two non-dedication feats
+ * of that archetype have been placed after it. Membership comes from
+ * prerequisite text (`archetypeOfFeat`), so a feat whose text is not on the
+ * fill cannot count, and a second dedication then fails closed.
+ *
  * Never throws on malformed input: every rejection warns and lands in
  * `dropped` for the caller to leave unresolved.
  * @returns {{placed: number[], dropped: {index: number, name: string, reason: string}[]}}
@@ -270,6 +395,7 @@ export function validateArchetypeSlotPlacement(slots, feats, context = null) {
     console.warn(`simplysf2e | Free Archetype placement lists diverge (${slots.length} slots, ${feats.length} fills) — validating their overlap only`);
   }
   const accepted = new Set();
+  const rule = createDedicationRuleState();
   let names = context?.names instanceof Set ? new Set(context.names) : null;
   if (context && names === null) {
     console.warn("simplysf2e | Free Archetype placement given an unusable staged context — checking placement only");
@@ -323,7 +449,12 @@ export function validateArchetypeSlotPlacement(slots, feats, context = null) {
       drop(index, name, "already placed in an earlier archetype slot");
       continue;
     }
-    const prerequisites = evidence?.system?.prerequisites?.value ?? null;
+    const blocked = dedicationRuleBlock(rule, evidence);
+    if (blocked) {
+      drop(index, name, blocked);
+      continue;
+    }
+    const prerequisites = featPrerequisiteClauses(evidence);
     if (names !== null && Array.isArray(prerequisites)) {
       const proof = { ...context, names: new Set(names) };
       if (!featPrerequisitesMet({ system: { prerequisites: { value: prerequisites } } }, proof)) {
@@ -333,6 +464,7 @@ export function validateArchetypeSlotPlacement(slots, feats, context = null) {
     }
     accepted.add(slug);
     if (names !== null) names.add(slug);
+    recordDedicationRulePlacement(rule, slug, evidence);
     placed.push(index);
   }
   return { placed, dropped };

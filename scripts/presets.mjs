@@ -4,12 +4,13 @@ import { TREASURE_AMOUNT_MULTIPLIER } from "./tables.mjs";
 /**
  * Generation presets: guidance text injected into the AI prompt that shapes
  * the creature's road map (stat scales, techniques, casting) while the GM's
- * concept text still drives flavor. Built-ins are flavor keys for the six
+ * concept text still drives flavor. Built-ins are flavor keys for the eight
  * SF2e classes in packs/sf2e/classes/ (foundryvtt/pf2e v14-dev) — module-local
  * ids, not pack UUIDs or COMPLETE_PC_CLASS_SLUGS. GMs save their own presets
  * in world settings.
  *
- * Standard is envoy, mystic, operative, solarian, soldier, witchwarper only.
+ * Standard is envoy, mechanic, mystic, operative, solarian, soldier,
+ * technomancer, witchwarper only.
  * Flavor is scale-words / enum slugs; the AI still never emits numbers.
  */
 
@@ -18,6 +19,11 @@ export const BUILT_IN_PRESETS = [
     id: "envoy",
     name: "SIMPLYSF2E.Presets.Envoy",
     prompt: "Build like an ENVOY: a charming leader and influencer. High Charisma, high Diplomacy or Deception, moderate AC and HP, a ranged small-arm strike at moderate-to-high attack. A get-them-moving or covering-fire signature ability that aids allies, leadership-style flavor, a light weapon as backup. No spellcasting."
+  },
+  {
+    id: "mechanic",
+    name: "SIMPLYSF2E.Presets.Mechanic",
+    prompt: "Build like a MECHANIC: a tech-savvy engineer who fields a drone, mine, or turret exocortex. High Intelligence, high Computers or Crafting, moderate AC and HP, a small-arm or simple strike at moderate attack. A Custom Rig or Modify signature ability that upgrades gear or the exocortex companion, a tool-kit melee backup. No spellcasting."
   },
   {
     id: "mystic",
@@ -38,6 +44,11 @@ export const BUILT_IN_PRESETS = [
     id: "soldier",
     name: "SIMPLYSF2E.Presets.Soldier",
     prompt: "Build like a SOLDIER: a heavy-armor area-weapon specialist. Extreme or high AC, high HP, high Fortitude, a high attack with a heavy or area weapon (automatic, explosive, or suppressing-fire flavor). A fighting-style signature ability, Athletics and Intimidation, walking-armory gear. No spellcasting."
+  },
+  {
+    id: "technomancer",
+    name: "SIMPLYSF2E.Presets.Technomancer",
+    prompt: "Build like a TECHNOMANCER: a hacker-wizard who casts prepared arcane spells through programming languages and magic hacks. Spellcasting at high DC from a spell database of tech and hack effects, high Intelligence, high Will, moderate HP, low-to-moderate AC and attack. A programming-language signature (DPS++, FORTRUN, Servoshell, or Viper flavor) that shapes its magic hacks, Computers or Mysticism, a simple weapon or small-arm strike as a last resort."
   },
   {
     id: "witchwarper",
@@ -65,8 +76,8 @@ export const BUILT_IN_PRESETS = [
     prompt: "Build like a BOUNTY HUNTER / TRACKER: a relentless manhunter across the Drift. High Dexterity or Wisdom, high Reflex and Perception, high ranged strike with a sniper rifle or tracker weapon. A quarry-tracking, pin-down, or snare signature ability. Survival and Stealth. No spellcasting."
   }
 ];
-export const STANDARD_CLASS_PRESETS = BUILT_IN_PRESETS.slice(0, 6);
-export const NPC_ARCHETYPE_PRESETS = BUILT_IN_PRESETS.slice(6);
+export const STANDARD_CLASS_PRESETS = BUILT_IN_PRESETS.slice(0, 8);
+export const NPC_ARCHETYPE_PRESETS = BUILT_IN_PRESETS.slice(8);
 
 export const STANDARD_CLASS_IDS = STANDARD_CLASS_PRESETS.map((p) => p.id);
 export const NPC_ARCHETYPE_IDS = NPC_ARCHETYPE_PRESETS.map((p) => p.id);
@@ -91,6 +102,13 @@ export const EXAMPLE_PROMPTS = {
     "A visicaster host whose audience will riot if the feed drops",
     "A mercenary officer who leads from the front and bills from the rear",
     "A diplomat who never raises a weapon and never needs to"
+  ],
+  mechanic: [
+    "A drone-rigging engineer whose exocortex swarm hums through every bulkhead",
+    "A minefield tinkerer who wires traps into a freighter's cargo bay",
+    "A turret-building dockhand who tunes weapons for anyone who pays in parts",
+    "A Custom Rig specialist who has never met a broken machine they could not modify",
+    "A starship mechanic whose drone is the only crewmate who never argues"
   ],
   mystic: [
     "A vitality-network medic who treats gunshot wounds like weather",
@@ -119,6 +137,13 @@ export const EXAMPLE_PROMPTS = {
     "A walking-armory veteran whose coat rattles with spare magazines",
     "A trench-world sergeant who still hears the artillery in the Drift",
     "A Pact Worlds marine who volunteered for the boarding action nobody wanted"
+  ],
+  technomancer: [
+    "A hacker-wizard who types spells in DPS++ and debugs the local gravity",
+    "A FORTRUN coder whose magic hacks crash the station lights on command",
+    "A Servoshell pilot who casts through a body-bound exoframe and a pocket terminal",
+    "A Viper-speaking mystic who writes spells as clean, deadly one-liners",
+    "A Drift archivist whose spell database is older than the station that stores it"
   ],
   witchwarper: [
     "A paradox caster who keeps an extra version of every hallway",

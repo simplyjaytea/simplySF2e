@@ -148,6 +148,22 @@
       "GotIt": "Got it",
       "Disable": "Don't show for updates",
       "Note": {
+        "Multiclass": {
+          "Title": "Multiclass, Tech Core ancestries and more",
+          "Body": "With Free Archetype on, a player character can take a second class: pick it in the new Multiclass field or let the AI choose from your prompt. The dedication goes in the first archetype slot, and later slots favor its feats. Mystic, Witchwarper and Technomancer dedications get their own spell list. A Technomancer now has a full spell database. Living Hologram and SRO characters get their size chosen for you, and the Item Forge can install projectile-weapon upgrades. The Item Forge keeps one grade label per item, keeps a base's published grade, and says which requested upgrades did not fit. Mechanic and Technomancer have Standard presets, shops and hoards skip items with no price, and the windows have a calmer look."
+        },
+        "ClassFixes": {
+          "Title": "Every class builds cleanly",
+          "Body": "Player characters of every class now build from level 1 to 20. Feat choices check the character's planned attributes and skill ranks at each level, so dedications and feats that need, for example, Charisma +2 appear when they are legal. General feat slots can also hold skill feats, as in the system. Operative specializations keep the feat they need. If no legal feat exists for a slot, the character is still created with that slot empty and the GM gets a whisper saying which slots to fill by hand."
+        },
+        "TechCore": {
+          "Title": "Mechanic and Technomancer player characters",
+          "Body": "SimplySF2e now needs the Starfinder 2e system 1.6 or later. Player characters can be Mechanics or Technomancers from Tech Core. A Technomancer gets the magic hack that matches its programming language. A Mechanic who picks the Drone exocortex gets a reminder to set up the drone companion by hand."
+        },
+        "UiRefresh": {
+          "Title": "Easier to read, more Starfinder",
+          "Body": "Small labels and table headings are larger, and input fields have clearer borders. After a preview appears, Create is the main button and Generate offers another version. Icons and Item Forge wording now fit Starfinder: a microchip for the Generator, gears for the Item Forge and a bolt for Generate."
+        },
         "CreatureArt": {
           "Title": "Creature art keeps its token",
           "Body": "With an art module installed, a generated creature now keeps the token art and scale of the similar bestiary creature it borrows from, instead of reusing its portrait. Its token is named after the new creature, and encounter copies are numbered in their token name too."
@@ -216,7 +232,12 @@
       "TreasureAmount": "Treasure amount",
       "TreasureReadoutTooltip": "Total loot value across all members vs. the treasure budget (per-encounter share of the cited SF2e Party Treasure total, shown in credits; levels outside 1–20 are module extrapolations).",
       "AllowSpellcasting": "Allow spellcasting",
+      "Multiclass": "Multiclass",
+      "MulticlassTooltip": "Free Archetype only. Adds a second class's dedication to the first archetype slot. Pick a class, let the AI decide from the concept, or leave it on None.",
+      "MulticlassNone": "None",
+      "MulticlassAI": "Let the AI decide",
       "Generate": "Generate",
+      "GenerateAnotherVersion": "Generate another version",
       "GenerateMonster": "Generate Monster",
       "GenerateNpc": "Generate NPC",
       "GenerateEncounter": "Generate Encounter",
@@ -246,6 +267,7 @@
       "CompletionModuleBuilt": "Module-built currency or spell gems: {count}",
       "CompletionCustomNarrative": "Deliberate custom narrative abilities: {count}",
       "CompletionSkipped": "Skipped gear with no published match: {count}",
+      "CompletionEmpty": "Feat slots left empty, no legal feat available: {count}",
       "OpenSheet": "Open Sheet",
       "GenerateAnother": "Generate Another",
       "DiscardTitle": "Discard preview?",
@@ -301,12 +323,14 @@
       "StandardGroup": "Standard classes",
       "ArchetypesGroup": "Starfinder Archetypes",
       "CustomGroup": "Custom presets",
-      "FlavorGuide": "Standard class presets are flavor guides. Complete-only Character generation is available for all six published Starfinder 2e classes: Envoy, Mystic, Operative, Solarian, Soldier, and Witchwarper.",
+      "FlavorGuide": "Standard class presets are flavor guides. Complete-only Character generation is available for all eight published Starfinder 2e classes: Envoy, Mechanic, Mystic, Operative, Solarian, Soldier, Technomancer, and Witchwarper.",
       "Envoy": "Envoy",
+      "Mechanic": "Mechanic",
       "Mystic": "Mystic",
       "Operative": "Operative",
       "Solarian": "Solarian",
       "Soldier": "Soldier",
+      "Technomancer": "Technomancer",
       "Witchwarper": "Witchwarper",
       "CorpGuard": "Corp Enforcer",
       "FreeCaptain": "Free Captain (Pirate)",
@@ -422,6 +446,7 @@
       "NativeRule": "A native rule changes skill ranks in a way the allocator cannot safely reconcile. Existing choices were preserved; review these skills manually.",
       "UnspentTraining": "{count} additional training choices could not be assigned safely.",
       "UnspentIncreases": "{count} skill increases could not be assigned safely.",
+      "ProjectionMismatch": "Some feat prerequisites were planned with skill ranks the created character did not get; check feats that need skill proficiency.",
       "Rank0": "Untrained",
       "Rank1": "Trained",
       "Rank2": "Expert",
@@ -437,6 +462,12 @@
       "HandConflict": "A held item exceeded the two-hand limit and was left stowed.",
       "ManualAmmo": "A reloadable weapon needs its ammunition loaded with the native SF2e sheet control.",
       "MissingAmmo": "A ready ranged weapon has no compatible generated ammunition selected."
+    },
+    "PC": {
+      "DroneManual": "Drone exocortex: set up the drone companion by hand; SimplySF2e does not create companion actors.",
+      "ArchetypeSpellsManual": "{dedication}: choose its {choice} on the sheet, then add its spellcasting entry by hand.",
+      "ArchetypeChoiceFallback": "choice",
+      "EmptyFeatSlots": "{count} feat slot(s) left empty because no legal feat was available: {slots}. Pick them on the sheet if your table allows."
     },
     "Progress": {
       "Label": "Generation progress",
@@ -517,7 +548,10 @@
     "Preview": {
       "Average": "(avg {value})",
       "Signature": "Signature",
+      "MulticlassLine": "Multiclass: {class} ({dedication})",
+      "MulticlassNotPlaced": "Multiclass: {class}. Its dedication was not placed; review the archetype slots in Foundry.",
       "PCSignaturePlan": "Planned signature choices: {selected}/{total}. Choices are rechecked against real spells during creation; missing or rejected choices stay regular and need manual review.",
+      "EmptyFeatSlot": "empty, no legal feat available",
       "PCBaseSpellPlan": "Base spell plan only: prepared classes prepare each listed pick; spontaneous classes learn it at the listed rank. Review empty slots, signature spells, and restricted subclass or feat bonuses (such as curriculum or divine font) in Foundry.",
       "PCVariableSpellPlan": "Base spell plan only. Verify the tradition against your bloodline or patron; if none was selected, configure spellcasting in Foundry. Review empty slots, signature spells, subclass-granted spells, and feat bonuses after creation.",
       "PCApproximateSpellPlan": "This class has no verified casting profile yet. Spellcasting uses a generic spontaneous approximation; review casting mode, tradition, slots, and spells in Foundry before play.",
@@ -563,8 +597,8 @@
       "Title": "SimplySF2e — Item Forge",
       "SourcesDetail": "Draws from the packs chosen in Compendium Sources.",
       "OpenButton": "Item Forge",
-      "ConceptLegend": "Magic Item Concept",
-      "Prompt": "Describe the magic item",
+      "ConceptLegend": "Item concept",
+      "Prompt": "Describe the item",
       "PromptPlaceholder": "e.g. A scorched visor that shields the wearer's mind and lets them see in the dark...",
       "Level": "Item level",
       "Item": "Item",
@@ -578,8 +612,9 @@
       "Created": "Created item \"{name}\". Drag it from the Items directory onto a character sheet.",
       "CreateFailed": "Foundry did not return a created item. The preview is still available to retry.",
       "CreatedPresentationFailed": "The item was created, but its sheet could not be displayed. Open it from the Items directory; do not create it again.",
-      "NoPrompt": "Describe the magic item first.",
+      "NoPrompt": "Describe the item first.",
       "KindsUnavailable": "No supported published passive effects match this level and rarity for: {kinds}. These effect kinds are not offered.",
+      "UpgradesSkipped": "Not installed: {upgrades}. Either this base has no free upgrade slot, or the upgrade is not made for this base's weapon group.",
       "ProgressTemplates": "Finding published passive effects",
       "ProgressConcept": "Item concept",
       "ProgressAssemble": "Pricing & validation",
@@ -602,11 +637,11 @@
       "KindAugmentationHint": "Implanted tech, biotech, magitech, or necrograft",
       "KindCrystal": "Solarian Crystal",
       "KindCrystalHint": "Magic crystal for a solarian; general passive effects, not solar weapon damage",
-      "ProgressCandidates": "Harvesting real base items & runes",
+      "ProgressCandidates": "Finding base equipment & upgrades",
       "NoBaseItems": "No {kind} items were found in this world's compendiums — is the SF2e equipment pack installed?",
       "RunesHeading": "Grade & Upgrades",
       "Grade": "Equipment Grade:",
-      "EmptyHint": "Nothing forged yet — describe a magic item above and press Generate. The preview appears here before the item is created."
+      "EmptyHint": "Nothing forged yet — describe an item above and press Generate. The preview appears here before the item is created."
     },
     "Loot": {
       "CustomItem": "Generated by SimplySF2e. No compendium match was found for this item, so it stands in as treasure with an estimated value — replace it with the real item if you have it."
@@ -665,6 +700,7 @@
       "SizeLarge": "Large ({count} items)",
       "Rarity": "Rarest stock",
       "Generate": "Generate shop",
+      "GenerateAnotherVersion": "Generate another shop",
       "NoPrompt": "Describe the shop first.",
       "NoEquipmentPack": "No equipment compendium is enabled. Check Compendium Sources.",
       "NoCandidates": "No equipment of this level, type and rarity was found in your compendiums. Try a higher level or rarity.",
@@ -725,6 +761,7 @@
       "PromptPlaceholder": "Abandoned corporate lab on an ice moon",
       "SourcesDetail": "Items come only from your equipment compendiums, at their published prices.",
       "Generate": "Generate hoard",
+      "GenerateAnotherVersion": "Generate another hoard",
       "NoEquipmentPack": "No equipment compendium is enabled. Check Compendium Sources.",
       "NoCandidates": "No equipment of this level and rarity was found in your compendiums. Try a higher level or rarity.",
       "NoItems": "Nothing fit the budget. Generate again.",

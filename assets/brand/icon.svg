@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">simplySF2e circuit star</title>
+  <desc id="desc">An original cyan circuit core containing a four-point star, with a magenta output spark and notched navy HUD frame.</desc>
+  <defs>
+    <linearGradient id="navy" x2="0" y2="1">
+      <stop stop-color="#1d3c53"/>
+      <stop offset="1" stop-color="#0c1620"/>
+    </linearGradient>
+  </defs>
+  <!-- Solid square backing stays legible in avatars and at favicon sizes. -->
+  <path fill="url(#navy)" d="M0 0h512v512H0z"/>
+  <!-- Quiet HUD perimeter; the core, not this fine detail, carries the mark. -->
+  <path fill="none" stroke="#9edae6" stroke-opacity=".22" stroke-width="4" d="M40 24h384l64 64v384H88l-64-64V40z"/>
+  <path fill="none" stroke="#9edae6" stroke-width="8" d="M24 104V40l16-16h64M408 488h80v-80"/>
+  <!-- Two broad contacts per side survive reduction to 32 pixels. -->
+  <path fill="none" stroke="#9edae6" stroke-width="16" d="M208 88v48m64-48v48M208 376v48m64-48v48M88 208h48m-48 64h48M376 240h48m-48 64h48"/>
+  <!-- The chamfer opens toward the emitted magenta bit. -->
+  <path fill="#0c1620" stroke="#9edae6" stroke-opacity=".12" stroke-width="32" d="M152 136h152l72 72v152l-16 16H136V152z"/>
+  <path fill="#0c1620" stroke="#9edae6" stroke-width="16" d="M152 136h152l72 72v152l-16 16H136V152z"/>
+  <!-- A custom geometric star is the generative core; no borrowed glyphs. -->
+  <path fill="#9edae6" d="m256 176 26 54 54 26-54 26-26 54-26-54-54-26 54-26z"/>
+  <path fill="#e8f6fa" d="m256 208 16 32 32 16-32 16-16 32-16-32-32-16 32-16z"/>
+  <!-- A separated output spark makes the silhouette directional. -->
+  <path fill="#ff2e88" fill-opacity=".14" d="m384 88 40 40-40 40-40-40z"/>
+  <path fill="#ff2e88" d="m384 104 24 24-24 24-24-24z"/>
+</svg>

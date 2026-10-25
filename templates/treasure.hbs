@@ -100,9 +100,9 @@
       <textarea id="spf-treasure-prompt" name="prompt" rows="2" placeholder="{{localize 'SIMPLYSF2E.Treasure.PromptPlaceholder'}}">{{input.prompt}}</textarea>
     </div>
     <div class="spf-generate-row">
-      <button type="button" class="spf-primary" data-action="generate" {{#if busy}}disabled{{/if}}>
+      <button type="button" class="{{#if preview}}spf-secondary{{else}}spf-primary{{/if}}" data-action="generate" {{#if busy}}disabled{{/if}}>
         <i aria-hidden="true" class="fa-solid fa-gem"></i>
-        {{localize "SIMPLYSF2E.Treasure.Generate"}}
+        {{#if preview}}{{localize "SIMPLYSF2E.Treasure.GenerateAnotherVersion"}}{{else}}{{localize "SIMPLYSF2E.Treasure.Generate"}}{{/if}}
       </button>
     </div>
   </fieldset>
@@ -161,7 +161,7 @@
           {{/each}}
           {{#if preview.hasLeftover}}
           <tr class="spf-treasure-credits">
-            <th scope="row"><i aria-hidden="true" class="fa-solid fa-coins"></i> {{localize "SIMPLYSF2E.Treasure.CreditsRow"}}</th>
+            <th scope="row"><i aria-hidden="true" class="fa-solid fa-credit-card"></i> {{localize "SIMPLYSF2E.Treasure.CreditsRow"}}</th>
             <td class="spf-num">&mdash;</td>
             <td class="spf-num">{{preview.leftover}}</td>
             <td></td>

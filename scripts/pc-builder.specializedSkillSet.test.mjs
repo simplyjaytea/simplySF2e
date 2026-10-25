@@ -52,10 +52,14 @@ doc("sf2e.feats", "stealth-feat", "Quiet Move", "feat", {
 doc("sf2e.feats", "athletics-feat", "Hefty Hauler", "feat", {
   category: "skill", level: { value: 1 }, prerequisites: { value: [{ value: "trained in athletics" }] }, rules: []
 });
+// A second Stealth feat: Quiet Move is the Sniper's own level-1 choice (reserved, see below).
+doc("sf2e.feats", "silent-step-feat", "Silent Step", "feat", {
+  category: "skill", level: { value: 1 }, prerequisites: { value: [{ value: "trained in stealth" }] }, rules: []
+});
 
 // ABC items
 doc("sf2e.ancestries", "human", "Human", "ancestry", {
-  boosts: {}, additionalLanguages: {}, languages: { value: [] }
+  boosts: {}, flaws: { 0: { value: [] } }, additionalLanguages: {}, languages: { value: [] }
 });
 doc("sf2e.backgrounds", "athlete", "Athlete", "background", {
   boosts: {}, trainedSkills: { value: ["athletics"] }, items: {}
@@ -83,7 +87,8 @@ const classPack = makePack("sf2e.class-features", "Class Features", [
 ]);
 const featPack = makePack("sf2e.feats", "Feats", [
   { _id: "stealth-feat", name: "Quiet Move", type: "feat", system: { category: "skill", level: { value: 1 }, prerequisites: { value: [{ value: "trained in stealth" }] }, traits: { value: [] } } },
-  { _id: "athletics-feat", name: "Hefty Hauler", type: "feat", system: { category: "skill", level: { value: 1 }, prerequisites: { value: [{ value: "trained in athletics" }] }, traits: { value: [] } } }
+  { _id: "athletics-feat", name: "Hefty Hauler", type: "feat", system: { category: "skill", level: { value: 1 }, prerequisites: { value: [{ value: "trained in athletics" }] }, traits: { value: [] } } },
+  { _id: "silent-step-feat", name: "Silent Step", type: "feat", system: { category: "skill", level: { value: 1 }, prerequisites: { value: [{ value: "trained in stealth" }] }, traits: { value: [] } } }
 ]);
 const ancestryPack = makePack("sf2e.ancestries", "Ancestries", [
   { _id: "human", name: "Human", type: "ancestry" }
@@ -148,14 +153,18 @@ const slotLevel3 = skillSlots.find((slot) => slot.level === 3);
 assert.ok(slotLevel2, "level 2 skill feat slot exists");
 assert.ok(slotLevel3, "level 3 skill feat slot exists");
 
-// Level 2 slot is an ordinary skill slot: both Athletics (from background) and Stealth (from Sniper) are available
+// Level 2 slot is an ordinary skill slot: Athletics (from background) and the
+// other Stealth feat are available, but Quiet Move is the Sniper's own
+// level-1 choice, so a slot never takes it (class-path reservedFeats).
 const level2Names = slotLevel2.candidates.map((c) => c.name);
 assert.ok(level2Names.includes("Hefty Hauler"), "level 2 slot contains Athletics feat from background");
-assert.ok(level2Names.includes("Quiet Move"), "level 2 slot contains Stealth feat from Sniper specialization");
+assert.ok(level2Names.includes("Silent Step"), "level 2 slot contains a Stealth feat");
+assert.equal(level2Names.includes("Quiet Move"), false, "level 2 slot never takes the Sniper's reserved feat");
 
 // Level 3 slot is Specialized Skill Set: MUST ONLY contain Stealth feats, NO Athletics feats
 const level3Names = slotLevel3.candidates.map((c) => c.name);
-assert.ok(level3Names.includes("Quiet Move"), "level 3 slot contains Stealth feat for Sniper specialization");
+assert.ok(level3Names.includes("Silent Step"), "level 3 slot contains Stealth feat for Sniper specialization");
+assert.equal(level3Names.includes("Quiet Move"), false, "level 3 slot never takes the Sniper's reserved feat");
 assert.equal(level3Names.includes("Hefty Hauler"), false, "level 3 slot DOES NOT contain Athletics feat despite background training");
 
 console.log("pc-builder.specializedSkillSet.test.mjs: Operative Specialized Skill Set constraints verified");

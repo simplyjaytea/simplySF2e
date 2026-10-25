@@ -8,7 +8,7 @@
 import { SETTINGS, getSetting } from "./settings.mjs";
 import { featPrerequisitesMet } from "./pc-prerequisites.mjs";
 import { slugify } from "./text.mjs";
-import { withinShopRarity } from "./shop.mjs";
+import { withinShopRarity, hasPositivePrice } from "./shop.mjs";
 
 export const CATEGORIES = [
   "abilities", "spells", "feats", "equipment", "ancestries", "backgrounds", "classes", "classFeatures", "heritages", "bestiaryActors"
@@ -208,7 +208,7 @@ async function getIndex(packId) {
       "name", "type", "system.slug", "system.level.value",
       "system.traits.value", "system.traits.traditions", "system.ritual",
       "system.category", "system.spell", "system.traits.rarity", "system.traits.otherTags", "system.prerequisites.value",
-      "system.group"
+      "system.group", "system.price.value"
     ]
   });
   const entries = index.map((e) => ({ ...e, packId, normalized: normalize(e.name) }));
@@ -236,7 +236,7 @@ export async function getEquipmentIndex(packId) {
   let entries = [];
   try {
     const index = await pack.getIndex({
-      fields: ["name", "type", "system.level.value", "system.price.value", "system.usage.value", "system.traits.value", "system.category", "system.specific"]
+      fields: ["name", "type", "system.level.value", "system.price.value", "system.usage.value", "system.traits.value", "system.category", "system.specific", "system.group"]
     });
     entries = [...index];
   } catch (err) {
@@ -249,7 +249,7 @@ export async function getEquipmentIndex(packId) {
 /**
  * Every equipment-pack entry, deduped by name, as lightweight records. One
  * scan serves rune lookups, base-item candidates and price sampling alike.
- * @returns {Promise<{name: string, type: string, level: number, gp: number, usage: string|null, category: string|null, specific: boolean}[]>}
+ * @returns {Promise<{name: string, type: string, level: number, gp: number, usage: string|null, category: string|null, group: string|null, specific: boolean}[]>}
  */
 let equipmentEntriesPromise = null;
 export function getAllEquipmentEntries() {
@@ -268,6 +268,8 @@ export function getAllEquipmentEntries() {
           gp: priceToGp(entry.system?.price?.value),
           usage: entry.system?.usage?.value ?? null,
           category: entry.system?.category ?? null,
+          // Real weapon group ("projectile", "laser", ...); projectile-only upgrades check it.
+          group: entry.system?.group ?? null,
           // PF2e 8.4.1 weapon/armor isSpecific is true for a non-null
           // system.specific. Missing legacy/homebrew data remains ordinary.
           specific: entry.system?.specific != null,
@@ -782,6 +784,7 @@ export async function getShopCandidates(level, keywords = [], { types, maxRarity
   const maxLevel = Math.max(Number(level) || 0, 0);
   const candidates = [];
   const seen = new Set();
+  const unpriced = [];
   for (const packId of getPacksFor("equipment")) {
     const entries = await getIndex(packId);
     if (!entries) continue;
@@ -792,6 +795,12 @@ export async function getShopCandidates(level, keywords = [], { types, maxRarity
       if (itemLevel > maxLevel) continue;
       const rarity = entry.system?.traits?.rarity ?? "common";
       if (!withinShopRarity(rarity, maxRarity)) continue;
+      // Shop stock and hoards only: an item with no positive price would be
+      // sold or hoarded for 0 credits, so it is left out before the AI sees it.
+      if (!hasPositivePrice(entry.system?.price?.value)) {
+        unpriced.push(entry.name);
+        continue;
+      }
       if (seen.has(entry.normalized)) continue;
       seen.add(entry.normalized);
       candidates.push(candidateRecord(entry, {
@@ -804,6 +813,9 @@ export async function getShopCandidates(level, keywords = [], { types, maxRarity
           ? { group: entry.system.group, category: entry.system?.category ?? null } : {})
       }));
     }
+  }
+  if (unpriced.length) {
+    console.warn(`simplysf2e | ${unpriced.length} equipment item(s) left out of shop and hoard stock: no positive price (${unpriced.join(", ")})`);
   }
   candidates.sort((a, b) => a.level - b.level || a.name.localeCompare(b.name));
   return limitEquipmentCandidates(candidates, keywords, limit, { weaponGroups: types?.has("weapon") ?? false })
@@ -929,18 +941,26 @@ export function getHeritageCandidates(maxRarity) {
  * `system.category` ("ancestry"|"class"|"skill"|"general" — the PF2e system's
  * own discriminator) and a trait intersection (e.g. the ancestry's own trait
  * slug for ancestry feats, the class's trait slug for class feats).
+ * A general slot legally holds general or skill feats, so `category` may be
+ * an array; an array matches any listed category. An empty array matches none.
+ * `excludeUuids` keeps feats out by compendium uuid
+ * (`Compendium.<packId>.Item.<_id>`) or by slugified name, for example feats a
+ * class path has already reserved.
  * @param {object} args
  * @param {number} args.level        max item level (the slot's level)
- * @param {string} [args.category]   "ancestry"|"class"|"skill"|"general"
+ * @param {string|string[]} [args.category] "ancestry"|"class"|"skill"|"general", or an array of those
  * @param {string[]} [args.traits]   at least one must appear on the feat
  * @param {string[]} [args.preferredNames] exact legal first-draft picks kept before sampling
+ * @param {string[]} [args.excludeUuids] compendium uuids or slugified names to skip
  * @param {boolean} [args.requireNoPrerequisites] empty-array gate when no staged context is supplied
  * @param {object} [args.prerequisiteContext] staged-actor snapshot from `stagedActorContext()`
  * @returns {Promise<{name: string, level: number, traits: string[]}[]>} sorted by level then name
  */
 export async function getFeatCandidates({
-  level, category, traits = [], preferredNames = [], requireNoPrerequisites = false, prerequisiteContext = null
+  level, category, traits = [], preferredNames = [], excludeUuids = [], requireNoPrerequisites = false, prerequisiteContext = null
 } = {}) {
+  const categories = Array.isArray(category) ? category : (category ? [category] : null);
+  const excluded = new Set(excludeUuids ?? []);
   const candidates = [];
   const seen = new Set();
   for (const packId of getPacksFor("feats")) {
@@ -949,7 +969,8 @@ export async function getFeatCandidates({
     for (const entry of entries) {
       if (entry.type !== "feat") continue;
       if ((entry.system?.level?.value ?? 0) > level) continue;
-      if (category && entry.system?.category !== category) continue;
+      if (categories && !categories.includes(entry.system?.category)) continue;
+      if (excluded.size && (excluded.has(`Compendium.${entry.packId}.Item.${entry._id}`) || excluded.has(slugify(entry.name)))) continue;
       // PF2e stores prerequisite text as authored strings, not an eligibility
       // API. Complete-only catalogs evaluate that text against a staged actor
       // when one is supplied; otherwise they still accept only an explicit
@@ -962,7 +983,12 @@ export async function getFeatCandidates({
       if (traits.length && !traits.some((t) => entryTraits.includes(t))) continue;
       if (seen.has(entry.normalized)) continue;
       seen.add(entry.normalized);
-      candidates.push(candidateRecord(entry, { name: entry.name, level: entry.system?.level?.value ?? 0, traits: entryTraits }));
+      // Prerequisite text rides on the record so Free Archetype placement can
+      // read archetype membership (validateArchetypeSlotPlacement) without the
+      // full document. The AI never sees it (encodeFeatCandidateSlots: name, ref).
+      const clauses = Array.isArray(entry.system?.prerequisites?.value) ? entry.system.prerequisites.value : [];
+      const prerequisites = clauses.map((clause) => clause?.value).filter((text) => typeof text === "string");
+      candidates.push(candidateRecord(entry, { name: entry.name, level: entry.system?.level?.value ?? 0, traits: entryTraits, prerequisites }));
     }
   }
   candidates.sort((a, b) => a.level - b.level || a.name.localeCompare(b.name));

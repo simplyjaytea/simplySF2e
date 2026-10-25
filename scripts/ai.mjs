@@ -5,9 +5,10 @@ import {
 import { AI_TASK, completionOptionsFor } from "./ai-task-profiles.mjs";
 import { estimateTokens, normalizeUsage } from "./tokens.mjs";
 import { encodeFeatCandidateSlots, resolveEncodedFeatPicks } from "./ai-candidate-format.mjs";
-import { taskResponseProblem } from "./ai-response-validation.mjs";
+import { normalizeMulticlassPick, taskResponseProblem } from "./ai-response-validation.mjs";
 import { validateChoicePicks } from "./choice-set.mjs";
 import { CORE_SKILLS } from "./pc-skills.mjs";
+import { COMPLETE_PC_CLASS_SLUGS } from "./pc-support.mjs";
 import { resolveJevConfig } from "./jev.mjs";
 import { jevPickEquipment, jevPickLoot, jevPickCreatureFeats, jevPickCreatureAbilities, jevPickFeats, jevPickCharacterChoices, jevPickSpells, mergeUsage } from "./jev-picks.mjs";
 
@@ -377,7 +378,10 @@ export async function generateConcept({ prompt, level, rarity, allowSpellcasting
  * real Ancestry/Background/Class items once those are embedded; this module's
  * job is picking grounded, real choices, not doing that math.
  */
-function pcSystemPrompt() {
+function pcSystemPrompt({ allowMulticlass = false } = {}) {
+  const multiclassLine = allowMulticlass
+    ? `  "multiclass": ${[...COMPLETE_PC_CLASS_SLUGS].map((slug) => `"${slug}"`).join("|")}|null, // optional second class for a multiclass dedication: pick one slug from this list ONLY when the concept clearly implies a second calling (e.g. "a soldier who dabbles in mysticism"); otherwise null. Never the main class\n`
+    : "";
   return `You are an expert Starfinder 2e player character designer. You choose names and flavor only; the game system computes AC, HP, saves and proficiencies once real ancestry/background/class items are attached, so never invent numeric statistics.
 
 Respond with a SINGLE JSON object only. No markdown fences, no commentary.
@@ -407,7 +411,7 @@ JSON schema (all keys required unless marked optional):
   "allies": string, // 1-2 sentences naming allies, mentors, or loyal companions (can be "" if none fit)
   "enemies": string, // 1-2 sentences naming rivals, enemies, or things the character is hunted by (can be "" if none fit)
   "organizations": string, // 1-2 sentences naming factions, guilds, or organizations the character belongs to (can be "" if none fit)
-  "languages": string[], // EXACT Starfinder 2e language names beyond the ancestry's automatic ones, fitting the character's background/culture — lowercase is fine, [] if none fit. A character learns bonus languages equal to their Intelligence modifier ON TOP of the ancestry's own, so size this to the concept: 1-2 for an average character, but 4-6 for a high-Intelligence class (Witchwarper, Mystic, Envoy) or a well-travelled scholar/diplomat
+  "languages": string[], // EXACT Starfinder 2e language names beyond the ancestry's automatic ones, fitting the character's background/culture — lowercase is fine, [] if none fit. A character learns bonus languages equal to their Intelligence modifier ON TOP of the ancestry's own, so size this to the concept: 1-2 for an average character, but 4-6 for a high-Intelligence class (Technomancer, Mechanic, Witchwarper) or a well-travelled scholar/diplomat
   "feats": string[], // 3-6 EXACT published Starfinder 2e feat names fitting the concept as a first draft wishlist — inspiration only, the final picks are chosen from real compendium lists per level in a second step
   "skillPriorities": string[], // optional ordered core-skill preferences, most important first; choose unique slugs from: ${CORE_SKILLS.join(", ")}. Match the concept and intended role. Never provide ranks, counts, scores, or new Lore skills; the module allocates legal training and increases
   "spellcasting": null | {
@@ -415,14 +419,14 @@ JSON schema (all keys required unless marked optional):
     "spells": [ { "name": string, "rank": number } ] // rank 0 = cantrip; real Starfinder 2e spell names as a first draft (${REMASTER_NOTE}; the final list is chosen from the compendium in a second step)
   }, // null if the class you chose isn't a caster, or spellcasting is disallowed
   "focusSpells": string[], // EXACT published Starfinder 2e focus spell names (they carry the "focus" trait) granted by this character's class/subclass, 1-3 names, [] if none apply — first draft, grounded against the real compendium afterward. Independent of "spellcasting": include focus spells when the class grants them, even if the class has no spell slots
-  "equipment": [ { "name": string, "quantity": number, "value": number } ] // 4-8 first-draft carried items with EXACT Starfinder 2e item names (${REMASTER_NOTE}) fitting the class, level and concept — include starting armor appropriate to the class's armor proficiency when they would wear armor, a weapon, useful mundane gear, AND at least 1-2 level-appropriate magic items (a potion or elixir) when the character's level plausibly affords them; lightly-armored casters may deliberately carry no armor. When the level affords it, pick a published graded item whose catalog name already includes the grade; do not invent a rune prefix or unpublished grade suffix. Also include skill-supporting gear matching the character's likely trained skills, plus general utility items. Inspiration only, the final picks are chosen from the compendium in a second step
+${multiclassLine}  "equipment": [ { "name": string, "quantity": number, "value": number } ] // 4-8 first-draft carried items with EXACT Starfinder 2e item names (${REMASTER_NOTE}) fitting the class, level and concept — include starting armor appropriate to the class's armor proficiency when they would wear armor, a weapon, useful mundane gear, AND at least 1-2 level-appropriate magic items (a potion or elixir) when the character's level plausibly affords them; lightly-armored casters may deliberately carry no armor. When the level affords it, pick a published graded item whose catalog name already includes the grade; do not invent a rune prefix or unpublished grade suffix. Also include skill-supporting gear matching the character's likely trained skills, plus general utility items. Inspiration only, the final picks are chosen from the compendium in a second step
 }
 
 Design guidance:
 - Pick an ancestry, background and class that together tell a coherent, thematic character matching the GM's concept.
 - Default to common ancestries unless the concept specifically calls for something exotic — use rare or uncommon ancestries sparingly, only when they genuinely fit.
-- "keyAbility" MUST be a legal key ability for the Starfinder 2e class you chose. Classes are Envoy, Mystic, Operative, Solarian, Soldier, and Witchwarper only — never Pathfinder classes.
-- Only include "spellcasting" for classes that actually cast spells (Mystic, Witchwarper) and only when spellcasting is allowed.
+- "keyAbility" MUST be a legal key ability for the Starfinder 2e class you chose. Classes are Envoy, Mechanic, Mystic, Operative, Solarian, Soldier, Technomancer, and Witchwarper only — never Pathfinder classes.
+- Only include "spellcasting" for classes that actually cast spells (Mystic, Technomancer, Witchwarper) and only when spellcasting is allowed.
 - "focusSpells": name 1-3 published Starfinder 2e focus spells that plausibly fit this build when the class grants them; leave [] if the class/concept doesn't have any.
 - Give the character real personality texture, not just combat stats: mannerisms, likes/dislikes, and at least one named ally, enemy, or organization tying them into a wider world — a blank or generic answer for these is a worse answer than a specific, concept-fitting one.
 - feats/spells/equipment are first drafts only — write plausible real Starfinder 2e names; a later grounding step selects the actual final picks from the real compendium.`;
@@ -433,9 +437,12 @@ Design guidance:
  * heritage, background, class, key ability, personality/backstory prose, and
  * first-draft (ungrounded) feat/spell/equipment wishlists — the PC
  * counterpart of generateConcept().
- * @returns {Promise<{concept: object, usage: object}>} parsed concept JSON + token usage
+ * `allowMulticlass` asks for an optional second class (only when the GM left
+ * the Multiclass picker on "Let the AI decide").
+ * @returns {Promise<{concept: object, multiclass: string|null, usage: object}>} parsed concept JSON,
+ *   the validated AI multiclass slug (null unless requested and listed), and token usage
  */
-export async function generatePCConcept({ prompt, level, allowSpellcasting, preset, onProgress, signal }) {
+export async function generatePCConcept({ prompt, level, allowSpellcasting, preset, allowMulticlass = false, onProgress, signal }) {
   const userPrompt = [
     `Character level: ${level}`,
     `Spellcasting allowed: ${allowSpellcasting ? "yes, if the class you choose casts spells" : "NO - choose a non-caster class, or a caster with spellcasting set to null"}`,
@@ -449,11 +456,12 @@ export async function generatePCConcept({ prompt, level, allowSpellcasting, pres
 
   const { data, usage } = await requestJSON({
     task: AI_TASK.PC_CONCEPT,
-    system: pcSystemPrompt(),
+    system: pcSystemPrompt({ allowMulticlass }),
     user: userPrompt,
     onProgress, signal
   });
-  return { concept: data, usage };
+  const multiclass = allowMulticlass ? normalizeMulticlassPick(data?.multiclass, COMPLETE_PC_CLASS_SLUGS) : null;
+  return { concept: data, multiclass, usage };
 }
 
 /**
@@ -488,6 +496,9 @@ Give 3-6 lowercase keywords describing the KINDS of spells that fit this creatur
 }
 
 // Model-facing enum slugs; numeric ranks are owned and decoded by the module.
+// Module-derived PC plan counts are bounded by this ceiling, never by model output.
+// The largest is a Technomancer database rank-1 cap (43 at level 20, pc-tables.mjs).
+const PC_SPELL_PLAN_COUNT_CEILING = 50;
 const PC_SPELL_RANKS = ["cantrip", "rank-one", "rank-two", "rank-three", "rank-four", "rank-five",
   "rank-six", "rank-seven", "rank-eight", "rank-nine", "rank-ten"];
 
@@ -541,19 +552,22 @@ function physicalCandidateForPick(candidates, pick) {
  * @param {number[]} [args.signatureRanks] module-owned ordinary signature eligibility
  * @returns {Promise<{spells: {name: string, rank: number}[], usage: object}>}
  */
-export async function selectSpells({ concept, candidates, focusCandidates = [], maxRank, plannedPicks, preparationMode, signatureRanks = [], onProgress, signal, jevConfig = resolveJevConfig() }) {
+export async function selectSpells({ concept, candidates, focusCandidates = [], maxRank, plannedPicks, preparationMode, signatureRanks = [], database = false, onProgress, signal, jevConfig = resolveJevConfig() }) {
   const pcPlan = plannedPicks != null;
   if (pcPlan && (typeof plannedPicks !== "object" || Array.isArray(plannedPicks)
     || !Number.isInteger(maxRank) || maxRank < 0 || maxRank > 10
     || !["prepared", "spontaneous"].includes(preparationMode)
+    || (database && preparationMode !== "prepared")
     || !Object.entries(plannedPicks).every(([rank, count]) => /^(?:[0-9]|10)$/.test(rank)
-      && Number.isInteger(count) && count >= 0 && count <= 5)
+      && Number.isInteger(count) && count >= 0 && count <= PC_SPELL_PLAN_COUNT_CEILING)
     || !Array.isArray(signatureRanks) || !signatureRanks.every((rank) => preparationMode === "spontaneous"
       && Number.isInteger(rank) && rank > 0 && rank <= maxRank && plannedPicks[rank] > 0))) {
     throw new TypeError("Invalid character spell slot plan");
   }
   // PC slot plans: Jev scores every candidate and the module takes the top picks per rank; any doubt runs the chat model below.
-  const jev = pcPlan
+  // Jev takes exactly `plannedPicks[rank]` per rank. A spell database's caps are
+  // maximums, so only the model fills it.
+  const jev = pcPlan && !database
     ? await jevPickSpells({ concept, candidates, focusCandidates, maxRank, plannedPicks, preparationMode, signatureRanks, jevConfig, signal })
     : null;
   if (jev?.spells) {
@@ -581,9 +595,11 @@ ${pcPlan
     ? `"rank" must be one of these enum slugs, never a number: ${PC_SPELL_RANKS.slice(0, maxRank + 1).join(", ")}. Use cantrip only for cantrips; ranked spells use their listed rank or a higher allowed rank to heighten.`
     : `"rank" is the slot the creature casts it from: 0 for cantrips, otherwise at least the listed rank and at most ${maxRank} (choose higher to heighten a spell only when that clearly helps it).`}
 ${pcPlan
-    ? `Fill this module-supplied BASE spell plan (rank enum: number of picks): ${JSON.stringify(Object.fromEntries(Object.entries(plannedPicks).map(([rank, count]) => [PC_SPELL_RANKS[rank], count])))}. Choose five DISTINCT cantrips using the cantrip rank; cantrips must never use ranked slots. ${preparationMode === "prepared"
-      ? "Each array entry prepares ONE daily slot. You may deliberately repeat a ranked spell to prepare it in multiple slots, including at different legal ranks."
-      : "Each array entry is a repertoire spell at its assigned rank, not a spell slot. Do not repeat the same spell at the same rank; it may appear at different legal ranks. At rank-ten choose only common spells. Bracketed rarity annotations are not part of the spell name."} ${signatureRanks.length
+    ? `Fill this module-supplied ${database ? "spell DATABASE plan (rank enum: maximum number of spells learned)" : "BASE spell plan (rank enum: number of picks)"}: ${JSON.stringify(Object.fromEntries(Object.entries(plannedPicks).map(([rank, count]) => [PC_SPELL_RANKS[rank], count])))}. Choose ${database ? "up to " : ""}${plannedPicks[0] ?? 0} DISTINCT cantrips using the cantrip rank; cantrips must never use ranked slots. ${database
+      ? "These are learned database spells, not daily slots: list each spell once, and never repeat a spell at another rank. Learn no more than each rank's maximum."
+      : preparationMode === "prepared"
+        ? "Each array entry prepares ONE daily slot. You may deliberately repeat a ranked spell to prepare it in multiple slots, including at different legal ranks."
+        : "Each array entry is a repertoire spell at its assigned rank, not a spell slot. Do not repeat the same spell at the same rank; it may appear at different legal ranks. At rank-ten choose only common spells. Bracketed rarity annotations are not part of the spell name."} ${signatureRanks.length
         ? `Choose exactly one selected repertoire spell at each of these learned ranks as a signature: ${signatureRanks.map((rank) => PC_SPELL_RANKS[rank]).join(", ")}. Mark those with "signature": "signature" and all others with "signature": "regular". Favor different spells that benefit from flexible heightening. A signature can be learned heightened and still cast at lower legal ranks.`
         : 'No signature choices are available; use "signature": "regular" for every spell.'} Do not add subclass, feat, curriculum, or font bonus slots. Fill each rank where suitable candidates exist; leave unfillable slots empty, never invent names. Favor a useful mix of thematic spells.`
     : "Pick 2-3 cantrips and 4-8 ranked spells for a dedicated caster, weighted toward the highest ranks. Favor spells that express the creature's theme and tactics."}
@@ -626,12 +642,13 @@ ${focusCandidates.length ? "Choose up to three focusSpellIds only from the provi
       const candidate = candidateForPick(candidates, pick);
       const baseRank = candidate?.rank;
       const rank = PC_SPELL_RANKS.indexOf(pick?.rank);
-      const key = JSON.stringify([candidate?.id ?? candidate?.name, rank]);
+      // A database lists each spell once, whatever rank it is learned at.
+      const key = JSON.stringify([candidate?.id ?? candidate?.name, database ? null : rank]);
       if (!Number.isInteger(baseRank) || !Number.isInteger(rank) || rank < 0 || rank > maxRank
         || baseRank > rank || (baseRank === 0) !== (rank === 0)
         || (used.get(rank) ?? 0) >= (plannedPicks[rank] ?? 0)
         || (preparationMode === "spontaneous" && rank === 10 && candidate.rarity !== "common")
-        || ((rank === 0 || preparationMode === "spontaneous") && seen.has(key))) {
+        || ((rank === 0 || preparationMode === "spontaneous" || database) && seen.has(key))) {
         console.warn("simplysf2e | dropping invalid or excess character spell-plan pick", pick);
         continue;
       }
