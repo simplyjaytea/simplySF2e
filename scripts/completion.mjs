@@ -40,6 +40,16 @@ function spellLines(concept, resolved, character) {
   return records;
 }
 
+/** A character feat slot with a null entry has no legal feat left. It stays
+ * empty on the sheet and is warned about, never blocking, and no illegal feat
+ * is placed to fill it. NPC feats keep the blocking resolver rule. */
+function featLines(feats, character) {
+  if (!character) return resolvedLines("feat", feats);
+  return (Array.isArray(feats) ? feats : []).map((feat) => feat?.entry
+    ? line("feat", feat.name, "compendium")
+    : line("feat", `${feat?.type ?? "feat"} feat (level ${feat?.level ?? "?"}): no legal feat available`, "empty", false));
+}
+
 /** Spellcasting entries are module-built infrastructure, but a completed
  * plan must account for them just as it accounts for every exact spell. */
 function castingEntryLines(concept, resolved) {
@@ -69,7 +79,7 @@ export function completionManifest({ mode, concept, resolved }) {
   records.push(...spellLines(concept, resolved, character));
   records.push(...resolvedLines("focus-spell", resolved?.focusSpells));
   records.push(...castingEntryLines(concept, resolved));
-  records.push(...resolvedLines("feat", resolved?.feats));
+  records.push(...featLines(resolved?.feats, character));
   for (const item of resolved?.equipment ?? []) records.push(line("equipment", item.name, item.entry ? "compendium" : "unresolved"));
   for (const item of resolved?.loot ?? []) {
     const built = (parseCoins(item.name) || item.entry?.currency)
@@ -95,7 +105,7 @@ export function assertComplete(manifest) {
  * stays in the ephemeral build manifest and is never persisted to an actor.
  */
 export function completionSummary(manifests) {
-  const summary = { total: 0, compendium: 0, native: 0, moduleBuilt: 0, customNarrative: 0, skipped: 0, unresolved: 0 };
+  const summary = { total: 0, compendium: 0, native: 0, moduleBuilt: 0, customNarrative: 0, skipped: 0, empty: 0, unresolved: 0 };
   for (const manifest of Array.isArray(manifests) ? manifests : [manifests]) {
     for (const record of manifest?.records ?? []) {
       summary.total++;
@@ -104,6 +114,7 @@ export function completionSummary(manifests) {
       else if (record.status === "module-built") summary.moduleBuilt++;
       else if (record.status === "custom-narrative") summary.customNarrative++;
       else if (record.status === "skipped") summary.skipped++;
+      else if (record.status === "empty") summary.empty++;
       else if (record.status === "unresolved") summary.unresolved++;
     }
   }

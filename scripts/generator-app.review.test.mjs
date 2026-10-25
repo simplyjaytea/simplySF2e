@@ -19,7 +19,7 @@ if (!vm.SourceTextModule) {
 let actor, createFailure, verifyFailure, deleteFailure, skillReport, creates = 0, deleted = 0, sheetCalls = 0;
 let manualNotes = [], whispers = [];
 let conceptCalls = 0, generatorLevel = 1, freeArchetype = false;
-let previewLoot = [];
+let previewLoot = [], previewFeats = [];
 let budgetPending = null, budgetStarted = null;
 const notices = [];
 class App {
@@ -44,7 +44,7 @@ class App {
 const context = vm.createContext({
   console: { log() {}, debug() {}, warn() {}, error() {} },
   game: {
-    i18n: { localize: (key) => key, format: (key) => key },
+    i18n: { localize: (key) => key, format: (key, data) => (key === "SIMPLYSF2E.PC.EmptyFeatSlots" ? `${key} ${data.count} ${data.slots}` : key) },
     actors: { get: (id) => id === actor?.id ? actor : null },
     settings: { get: () => freeArchetype },
     users: [{ id: "gm", isGM: true }, { id: "player", isGM: false }]
@@ -53,7 +53,7 @@ const context = vm.createContext({
   ui: { notifications: Object.fromEntries(["info", "warn"].map((kind) => [kind, (text) => notices.push([kind, text])])) }
 });
 const resolved = () => ({ ancestryDoc: { name: "Dwarf" }, classDoc: { name: "Fighter" },
-  backgroundDoc: { name: "Warrior" }, featSlots: [], feats: [], spells: [], equipment: [], loot: previewLoot });
+  backgroundDoc: { name: "Warrior" }, featSlots: previewFeats.map(({ type, level, archetype }) => ({ type, level, archetype, candidates: [] })), feats: previewFeats, spells: [], equipment: [], loot: previewLoot });
 const mocks = {
   ...recentGenerations,
   SpfApp: App, MODULE_ID: "simplysf2e", SETTINGS: { freeArchetype: "freeArchetype", generatorInput: "generatorInput" }, getSetting: () => undefined,
@@ -71,6 +71,7 @@ const mocks = {
   normalizePCConcept: (raw) => raw,
   getAncestryCandidates: () => [], getBackgroundCandidates: () => [], getClassCandidates: () => [{ name: "Fighter" }], getHeritageCandidates: () => [],
   selectAncestryBackgroundClass: async () => ({ ancestry: "Dwarf", background: "Warrior", class: "Fighter" }),
+  selectFeats: async () => ({ picks: [], usage: null, timing: null }), resolveFeatPicks: async () => previewFeats.map((feat) => ({ ...feat })),
   resolvePCConcept: async () => resolved(), pcSpellcastingProfile: () => null, slugify: (name) => name.toLowerCase(),
   generatePCLoot: async () => ({ loot: [] }), normalizeLoot: (loot) => loot,
   dedupeLootAgainstEquipment: (loot) => loot, enforceNamedLootBudget: (loot) => loot,
@@ -254,6 +255,37 @@ await actions.createActor.call(noteUnverified);
 assert.equal(whispers.length, 1, "an unverified character sends no manual whisper");
 verifyFailure = undefined;
 manualNotes = [];
+
+// An empty character feat slot (no legal feat left) is a warning, not a block:
+// the preview shows it as empty, and the GM whisper names it after commit only.
+setActor();
+whispers.length = 0;
+previewFeats = [
+  { type: "general", level: 3, archetype: false, name: "Toughness", entry: { name: "Toughness" } },
+  { type: "skill", level: 18, archetype: false, name: "skill 18", entry: null },
+  { type: "general", level: 19, archetype: false, name: "general 19", entry: null }
+];
+const emptyFeat = await generate();
+assert.deepEqual(emptyFeat.context.pcPreview.feats.map(({ name, found, empty }) => ({ name, found, empty: empty === true })), [
+  { name: "Toughness", found: true, empty: false },
+  { name: "skill 18", found: false, empty: true },
+  { name: "general 19", found: false, empty: true }
+], "an empty feat slot renders as empty, not as a missing compendium match");
+assert.equal(emptyFeat.context.pcPreview.emptyFeatNotice, "SIMPLYSF2E.PC.EmptyFeatSlots 2 skill 18, general 19");
+assert.equal(emptyFeat.context.pcPreview.matchSummary.total, 4, "empty slots are not counted as misses");
+await actions.createActor.call(emptyFeat);
+assert.equal(emptyFeat.context.error, null, "an empty feat slot must not block Create");
+assert.equal(whispers.length, 1, "a committed character with empty feat slots sends one whisper");
+assert.equal(whispers[0].content, manualNotesContent(actor.name, ["SIMPLYSF2E.PC.EmptyFeatSlots 2 skill 18, general 19"], (note) => note));
+setActor();
+verifyFailure = new Error("expected embedded feat was dropped");
+const emptyUnverified = await generate();
+await actions.createActor.call(emptyUnverified);
+assert.equal(whispers.length, 1, "an unverified character with empty feat slots sends no whisper");
+verifyFailure = undefined;
+previewFeats = [];
+const lang = JSON.parse(await readFile(new URL("../lang/en.json", import.meta.url), "utf8"));
+assert.match(lang.SIMPLYSF2E.PC.EmptyFeatSlots, /\{count\}.*\{slots\}/, "the empty-slot GM note has its count and slot list");
 
 setActor();
 verifyFailure = new Error("expected embedded feat was dropped");

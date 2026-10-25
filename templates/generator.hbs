@@ -621,12 +621,13 @@
       <h3>{{localize "SIMPLYSF2E.Preview.Feats"}}</h3>
       <ul class="spf-list spf-inline">
         {{#each pcPreview.feats}}
-          <li class="{{#unless this.found}}spf-dropped{{/unless}}">
+          <li class="{{#unless this.found}}{{#unless this.empty}}spf-dropped{{/unless}}{{/unless}}">
             {{this.name}}
-            {{#if this.found}}<i class="fa-solid fa-circle-check spf-match" role="img" aria-label="{{localize 'SIMPLYSF2E.Preview.Found'}}" title="{{localize 'SIMPLYSF2E.Preview.Found'}}"></i>{{else}}<i class="fa-solid fa-circle-exclamation spf-unmatched" role="img" aria-label="{{localize 'SIMPLYSF2E.Preview.NotFound'}}" title="{{localize 'SIMPLYSF2E.Preview.NotFound'}}"></i>{{/if}}
+            {{#if this.empty}}<i class="fa-solid fa-circle-info" role="img" aria-label="{{localize 'SIMPLYSF2E.Preview.EmptyFeatSlot'}}" title="{{localize 'SIMPLYSF2E.Preview.EmptyFeatSlot'}}"></i>{{else if this.found}}<i class="fa-solid fa-circle-check spf-match" role="img" aria-label="{{localize 'SIMPLYSF2E.Preview.Found'}}" title="{{localize 'SIMPLYSF2E.Preview.Found'}}"></i>{{else}}<i class="fa-solid fa-circle-exclamation spf-unmatched" role="img" aria-label="{{localize 'SIMPLYSF2E.Preview.NotFound'}}" title="{{localize 'SIMPLYSF2E.Preview.NotFound'}}"></i>{{/if}}
           </li>
         {{/each}}
       </ul>
+      {{#if pcPreview.emptyFeatNotice}}<p class="notification warning" role="status">{{pcPreview.emptyFeatNotice}}</p>{{/if}}
     {{/if}}
 
     {{#if pcPreview.spellcastingNotice}}

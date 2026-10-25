@@ -365,7 +365,8 @@ export class GeneratorApp extends SpfApp {
       : null;
     const background = { name: resolved.backgroundDoc?.name ?? concept.background, found: Boolean(resolved.backgroundDoc) };
     const pcClass = { name: resolved.classDoc?.name ?? concept.class, found: Boolean(resolved.classDoc) };
-    const feats = GeneratorApp.#mapNamed(resolved.feats);
+    const feats = GeneratorApp.#pcFeatRows(resolved.feats);
+    const emptyFeatSlots = GeneratorApp.#emptyFeatSlots(resolved);
     const spells = GeneratorApp.#mapSpells(resolved.spells);
     const signatureRanks = concept.spellcasting?.signatureRanks ?? [];
     const plannedSignatures = new Set(spells.filter((spell) => spell.found && spell.signature
@@ -385,11 +386,31 @@ export class GeneratorApp extends SpfApp {
         selected: plannedSignatures.size, total: signatureRanks.length
       }) : null,
       feats,
+      emptyFeatNotice: emptyFeatSlots.length ? game.i18n.format("SIMPLYSF2E.PC.EmptyFeatSlots", {
+        count: emptyFeatSlots.length, slots: emptyFeatSlots.join(", ")
+      }) : null,
       spells,
       equipment,
       loot,
-      matchSummary: this.#matchSummary([ancestry], heritage ? [heritage] : [], [background], [pcClass], feats, spells, equipment, loot)
+      matchSummary: this.#matchSummary([ancestry], heritage ? [heritage] : [], [background], [pcClass],
+        feats.filter((feat) => !feat.empty), spells, equipment, loot)
     };
+  }
+
+  /** PC feat rows. An empty slot (no legal feat left) is shown as empty, not as a miss. */
+  static #pcFeatRows(list) {
+    return (list ?? []).map((feat) => feat.entry
+      ? { name: feat.entry.name ?? feat.name, found: true }
+      : { name: GeneratorApp.#featSlotLabel(feat), found: false, empty: true });
+  }
+
+  /** Labels such as "general 19" for character feat slots left empty. */
+  static #emptyFeatSlots(resolved) {
+    return (resolved?.feats ?? []).filter((feat) => !feat.entry).map((feat) => GeneratorApp.#featSlotLabel(feat));
+  }
+
+  static #featSlotLabel(feat) {
+    return `${feat.archetype ? "archetype " : ""}${feat.type} ${feat.level}`;
   }
 
   static #skillName(slug) {
@@ -466,7 +487,8 @@ export class GeneratorApp extends SpfApp {
       ["native", "SIMPLYSF2E.Generator.CompletionNative"],
       ["moduleBuilt", "SIMPLYSF2E.Generator.CompletionModuleBuilt"],
       ["customNarrative", "SIMPLYSF2E.Generator.CompletionCustomNarrative"],
-      ["skipped", "SIMPLYSF2E.Generator.CompletionSkipped"]
+      ["skipped", "SIMPLYSF2E.Generator.CompletionSkipped"],
+      ["empty", "SIMPLYSF2E.Generator.CompletionEmpty"]
     ].filter(([key]) => summary[key] > 0).map(([key, label]) => ({
       text: game.i18n.format(label, { count: summary[key] })
     }));
@@ -1809,6 +1831,7 @@ export class GeneratorApp extends SpfApp {
       // Commit all creation state before any presentation. Rendering and
       // notifications are intentionally unable to roll back valid work.
       const grounding = GeneratorApp.#completionContext(this.#manifest);
+      const emptyFeatSlots = GeneratorApp.#emptyFeatSlots(this.#pcResolved);
       this.#pcConcept = null;
       this.#pcResolved = null;
       this.#characterReview = null;
@@ -1817,9 +1840,14 @@ export class GeneratorApp extends SpfApp {
       this.#created = { name: actor.name, actorId: actor.id, count: 1, grounding, statCheck: null };
       created = true;
       committed = true;
-      if (result.manualNotes?.length) {
+      // Localized here because the empty-slot line carries its own arguments.
+      const notes = (result.manualNotes ?? []).map((key) => game.i18n.localize(key));
+      if (emptyFeatSlots.length) {
+        notes.push(game.i18n.format("SIMPLYSF2E.PC.EmptyFeatSlots", { count: emptyFeatSlots.length, slots: emptyFeatSlots.join(", ") }));
+      }
+      if (notes.length) {
         ChatMessage.create({
-          content: manualNotesContent(actor.name, result.manualNotes, (key) => game.i18n.localize(key)),
+          content: manualNotesContent(actor.name, notes, (note) => note),
           whisper: game.users.filter((u) => u.isGM).map((u) => u.id)
         }).catch((err) => console.warn(`${MODULE_ID} | could not whisper the manual follow-up`, err));
       }
