@@ -1930,7 +1930,10 @@ export class GeneratorApp extends SpfApp {
           actors.push(actor);
           checked.push({ concept: member.concept, resolved: member.resolved, actor });
           const update = { folder: folder.id };
-          if (member.count > 1) update.name = `${actor.name} ${i + 1}`;
+          if (member.count > 1) {
+            update.name = `${actor.name} ${i + 1}`;
+            update["prototypeToken.name"] = update.name;
+          }
           await actor.update(update);
           verifyCreatedActor(actor, member.manifest, createdActor.expectedItems);
           created++;
