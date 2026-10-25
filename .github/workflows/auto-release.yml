@@ -103,3 +103,6 @@ jobs:
     uses: ./.github/workflows/release.yml
     with:
       version: ${{ needs.compute-version.outputs.version }}
+      # Every merge to main ships to the beta channel only. Stable installs
+      # update when a maintainer runs Actions -> Release with channel stable.
+      channel: beta

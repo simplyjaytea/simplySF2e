@@ -26,7 +26,13 @@ AI generator for Starfinder 2e in Foundry VTT. Describe a creature, NPC, encount
 2. Launch a world that uses the Starfinder Second Edition system.
 3. Open **Manage Modules**, tick **SimplySF2e**, and save.
 
-Every merge to `main` publishes the next release. See [Releases](https://github.com/simplyjaytea/simplySF2e/releases) for the current version.
+That URL is the **stable** channel: it updates only when a release is promoted to stable. To try every change first, use the **beta** channel manifest instead. Beta builds are tested less.
+
+```
+https://github.com/simplyjaytea/simplySF2e/releases/download/beta/module.json
+```
+
+To roll back, install a specific version's manifest: `https://github.com/simplyjaytea/simplySF2e/releases/download/v<version>/module.json`. See [Releases](https://github.com/simplyjaytea/simplySF2e/releases) for every version.
 
 When a GM logs in and no AI connection works yet, the **Welcome to SimplySF2e** window opens. It checks the Starfinder 2e system version, your compendium content and the AI connection, shows whether fast picks are on, and links to the window that fixes each row. It stops opening by itself once the connection works, or when you tick **Don't show this again at login**. Reopen it any time with **Open Welcome** in the module settings or `/sf2e welcome` in chat.
 

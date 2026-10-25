@@ -14,7 +14,7 @@ The one file every agent (Claude, Codex, anything else) reads first. It holds wh
 
 ## 1. Where we are (rewrite each session)
 
-*Updated 2026-10-25.* Status **Beta**. Every merge to `main` publishes the next release; check GitHub Releases for the version.
+*Updated 2026-10-25.* Status **Beta**. Every merge to `main` publishes a beta release; stable releases are dispatched. Check GitHub Releases for versions.
 
 - **No active feature plan.** The UI polish and Jev tracks (`docs/archive/next-steps.md`) and the GM-ready checklist (`docs/archive/gm-ready-checklist.md`) are complete.
 - **Last sessions (2026-10-25):** cleanup PR #68 (v0.1.2); then this playbook replaced CLAUDE.md, AGENTS.md, HANDOFF.md and HISTORY.md, and the creature art fix landed (borrowed token art and scale kept, placeholder portrait dropped, token named after the new creature, numbered for encounter copies). All 37 merged remote branches were deleted on JT's OK.
@@ -46,7 +46,7 @@ Foundry VTT module `simplysf2e`. An AI generates Starfinder 2e NPCs/monsters, en
 3. **The in-module AI never emits a number or writes code.** It picks scale words and enum slugs; the module supplies values from tables, real documents or pre-written macro bodies.
 4. **Escape AI text before HTML** with `text.mjs` `esc`/`toHtml` (descriptions, actor notes, macro chat).
 5. **Fail closed.** Drop an unresolved pick with `console.warn`; never guess. Exceptions: a PC feat slot or a PC caster's spell list, where empty is worse than approximate. Skill completion may use labeled key-ability defaults; budgets, schedules and unsupported mechanics are never guessed.
-6. **Never push or merge to `main` directly.** Branch + PR. A merge to `main` auto-publishes a public release to every install.
+6. **Never push or merge to `main` directly.** Branch + PR. A merge to `main` auto-publishes a public **beta** release (beta-manifest installs update). Promoting to **stable** (every install) is a separate, deliberate Release dispatch.
 7. **Design choices go to JT first:** UX, scope, balance numbers, and anything this file does not already decide.
 
 ## 4. Commands
@@ -62,7 +62,7 @@ No build step: Foundry loads `scripts/simplysf2e.mjs` and the plain ES modules i
 | UI screenshots | `cd tools/ui-preview && npm install && npm run shoot` → PNGs in `tools/ui-preview/out/` at 720 px and 460 px |
 
 - **`tools/release-check.sh`** reruns every self-checkable check: syntax, all tests, duplicate keys in `module.json`/`lang/en.json`, missing manifest/template paths, merge-conflict markers, duplicate QA row ids, `git diff --check` against `origin/main`, and the UI harness. `tools/` never ships in the release zip.
-- **Versioning:** each merge to `main` auto-publishes the next patch tag. A minor bump (as for v0.1.0) is cut by running Actions > Release > Run workflow with a `version` on the same commit; later merges count up from it.
+- **Versioning and channels (from 2026-10-25):** each merge to `main` auto-publishes the next patch tag as a **beta** pre-release. It also refreshes the rolling `beta` release, whose `module.json` is the beta manifest. Stable installs follow `releases/latest`, which GitHub never points at a pre-release, so a merge no longer reaches them. To promote, run Actions > Release > Run workflow with a `version` and channel `stable` on the commit to ship. A minor bump (as for v0.1.0) works the same way; later merges count up from it.
 - **CI** (`.github/workflows/pull-request.yml`, job `verify`): `node --check` on every `scripts/**/*.mjs`, every `*.test.mjs`, `jq empty module.json lang/en.json`, `git diff --check` base..head. Merging to `main` runs `auto-release.yml`.
 - **Tests are pure logic only.** Anything that needs a live world goes into `docs/qa-checklist.md` and the PR body.
 - **Runtime-built translation keys.** `i18n-keys.test.mjs` sees only literal keys. These families are built at runtime, so a key that looks unused may be live: `Treasure.Amount*` (`treasure-app.mjs`), `TreasureAmount.*` (`generator-app.mjs`, `manage-presets-app.mjs`), `Mode.*`, `Role.*`, `Threat.*`, `StatCheck.*`, `Skills.*`, `Loadout.*`, `Rarity.*`, `Shop.Size*`/`Category*`, `Preview.*`. Grep for the prefix before deleting a key.
@@ -121,7 +121,7 @@ A reviewer that must run tests needs an agent type that can run `node` (`general
 3. **Dispatch:** send all independent tasks in one message.
 4. **Review ladder:** tier 1 → tier 2 (→ tier 3). A finding goes back to the same worker (`SendMessage`) as a **new** commit, never an amend, and the fix climbs again from the tier that found it. Minor findings in coordinator-owned docs are fixed by the coordinator instead.
 5. **Integrate:** make one branch from `main`, `git merge --no-ff` each passed worktree branch, then give the combined diff its own tier 1 + tier 2 review and run `bash tools/release-check.sh` (`--no-ui` only if no template/CSS changed).
-6. **PR and merge:** push, open **one** PR for the batch (each merge is a public release), and wait for `verify`. The PR body lists the QA ids JT must run live. JT's results go into `docs/live-log.md`; a feature is live-verified only when it has a logged PASS there. The coordinator may merge once an independent reviewer has no open blockers and `verify` is green on the current head.
+6. **PR and merge:** push, open **one** PR for the batch (each merge is a public beta release), and wait for `verify`. The PR body lists the QA ids JT must run live. JT's results go into `docs/live-log.md`; a feature is live-verified only when it has a logged PASS there. The coordinator may merge once an independent reviewer has no open blockers and `verify` is green on the current head.
 7. **Tidy:** `git worktree remove` each worktree and delete local `worktree-agent-*` branches. Ask JT before any authenticated GitHub write. JT's standing authority covers push, PR and merge only, so deleting a remote branch needs JT's OK.
 8. **Hand off:** rewrite §1; add lessons to §8.
 

@@ -35,11 +35,22 @@ on:
         description: "Version to publish, e.g. 0.1.1 (the tag becomes v0.1.1)"
         required: true
         type: string
+      channel:
+        description: "stable = every install updates; beta = only installs using the beta manifest"
+        required: true
+        default: stable
+        type: choice
+        options: [stable, beta]
   workflow_call:
     inputs:
       version:
         description: "Version to publish, e.g. 0.1.1 (the tag becomes v0.1.1)"
         required: true
+        type: string
+      channel:
+        description: "stable or beta (auto-release.yml passes beta)"
+        required: false
+        default: beta
         type: string
 
 permissions:
@@ -93,11 +104,19 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Determine release tag
+      - name: Determine release tag and channel
         id: tag
         env:
           INPUT_VERSION: ${{ inputs.version }}
+          INPUT_CHANNEL: ${{ inputs.channel }}
         run: |
+          # A pushed v* tag has no inputs: treat it as a stable release.
+          CHANNEL="${INPUT_CHANNEL:-stable}"
+          if [[ "$CHANNEL" != "stable" && "$CHANNEL" != "beta" ]]; then
+            echo "Invalid channel: $CHANNEL (expected stable or beta)" >&2
+            exit 1
+          fi
+          echo "channel=$CHANNEL" >> "$GITHUB_OUTPUT"
           # Branch on whether a "version" input was actually supplied, NOT on
           # github.event_name — inside a workflow_call'd run, event_name is
           # the CALLER's original triggering event (e.g. "push" for
@@ -119,10 +138,18 @@ jobs:
       - name: Stamp version and download URL into module.json
         env:
           TAG: ${{ steps.tag.outputs.tag }}
+          CHANNEL: ${{ steps.tag.outputs.channel }}
         run: |
           VERSION="${TAG#v}"
+          # Stable installs follow releases/latest, which GitHub never points
+          # at a pre-release. Beta installs follow the rolling "beta" release.
+          if [[ "$CHANNEL" == "beta" ]]; then
+            MANIFEST="https://github.com/${GITHUB_REPOSITORY}/releases/download/beta/module.json"
+          else
+            MANIFEST="https://github.com/${GITHUB_REPOSITORY}/releases/latest/download/module.json"
+          fi
           jq --arg version "$VERSION" \
-             --arg manifest "https://github.com/${GITHUB_REPOSITORY}/releases/latest/download/module.json" \
+             --arg manifest "$MANIFEST" \
              --arg download "https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/module.zip" \
              '.version = $version | .manifest = $manifest | .download = $download' \
              module.json > module.json.tmp
@@ -152,7 +179,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.tag.outputs.tag }}
+          CHANNEL: ${{ steps.tag.outputs.channel }}
         run: |
+          PRERELEASE=()
+          [[ "$CHANNEL" == "beta" ]] && PRERELEASE=(--prerelease)
           set -euo pipefail
           git fetch --tags --force
           EXISTING_TARGET=$(git rev-list -n 1 "$TAG" 2>/dev/null || true)
@@ -179,14 +209,49 @@ jobs:
               --target "$GITHUB_SHA" \
               --title "$TAG" \
               --generate-notes \
-              --draft
+              --draft \
+              "${PRERELEASE[@]}"
           fi
 
       - name: Publish verified release
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.tag.outputs.tag }}
+          CHANNEL: ${{ steps.tag.outputs.channel }}
         # Let GitHub choose Latest automatically by version/date. Forcing
         # --latest here would let an older manual publish or rerun replace the
         # update manifest served from releases/latest/download/module.json.
-        run: gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false
+        # A beta stays a pre-release, so it can never become Latest.
+        run: |
+          set -euo pipefail
+          if [[ "$CHANNEL" == "beta" ]]; then
+            gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease
+          else
+            gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease=false
+          fi
+
+      - name: Refresh the rolling beta channel
+        # The beta manifest URL never changes:
+        #   https://github.com/<repo>/releases/download/beta/module.json
+        # It is served from a pre-release tagged "beta" whose assets are
+        # replaced on every beta publish. Its module.json points `download`
+        # at the versioned zip, so a beta install always gets an exact build.
+        # The "beta" tag is not a version tag, so auto-release.yml's version
+        # bump ignores it.
+        if: steps.tag.outputs.channel == 'beta'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          set -euo pipefail
+          if gh release view beta --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload beta --repo "$GITHUB_REPOSITORY" module.json module.zip --clobber
+            gh release edit beta --repo "$GITHUB_REPOSITORY" --prerelease --title "Beta channel (now $TAG)"
+          else
+            gh release create beta module.json module.zip \
+              --repo "$GITHUB_REPOSITORY" \
+              --target "$GITHUB_SHA" \
+              --prerelease \
+              --title "Beta channel (now $TAG)" \
+              --notes "Rolling beta channel. Install with the manifest URL https://github.com/${GITHUB_REPOSITORY}/releases/download/beta/module.json to get every merge before it reaches stable."
+          fi
