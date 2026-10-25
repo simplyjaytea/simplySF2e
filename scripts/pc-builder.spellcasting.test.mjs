@@ -43,11 +43,12 @@ await createCharacterActor({ ...common, spellcasting: { tradition: "arcane", spe
 const casting = embedded.find((item) => item.type === "spellcastingEntry" && item.name === "Arcane Spells");
 assert.equal(casting.system.prepared.value, "prepared");
 assert.equal(casting.system.ability.value, "int");
-assert.equal(casting.system.slots.slot1.prepared.length, 2, "explicit repeated prepared picks fill two slots from one source");
-assert.equal(casting.system.slots.slot1.prepared[0].id, casting.system.slots.slot1.prepared[1].id);
+// Technomancer: picks form the spell database (each spell once); daily slots prepare from it.
+assert.equal(casting.system.slots.slot1.prepared.length, 1, "a database spell is stored once, so a repeated pick does not add a copy");
 assert.equal(casting.system.slots.slot3.prepared.length, 1);
 assert.equal(casting.system.slots.slot2.prepared.length, 0, "base rank above assigned rank is dropped");
 assert.equal(casting.system.slots.slot0.prepared.length, 1, "a level-1 cantrip occupies its rank-0 prepared slot");
+assert.equal(casting.system.slots.slot2.prepared.length, 0);
 assert.equal(embedded.filter((item) => item.type === "spell" && item.name === "magic-missile").length, 1);
 assert.equal(embedded.filter((item) => item.type === "spell" && item.name === "detect-magic").length, 1);
 assert.ok(embedded.filter((item) => item.type === "spell").every((item) => item.system.location.value === casting._id && item.system.location.heightenedLevel === undefined),
@@ -84,11 +85,10 @@ const prepared = embedded.find((item) => item.type === "spellcastingEntry");
 assert.equal(prepared.system.tradition.value, "arcane", "real fixed tradition overrides a conflicting concept");
 assert.equal(prepared.system.prepared.value, "prepared");
 assert.equal(prepared.system.slots.slot1.max, 3, "builder recomputes real profile, never trusts upstream plannedPicks");
-assert.equal(prepared.system.slots.slot1.prepared.length, 3);
+assert.equal(prepared.system.slots.slot1.prepared.length, 1, "only one rank-1 database spell exists; the shortfall warns, it is not invented");
 assert.equal(prepared.system.slots.slot0.prepared.length, 5, "cantrip preparations are distinct and capped");
-assert.equal(prepared.system.slots.slot1.prepared[0].id, prepared.system.slots.slot2.prepared[0].id,
-  "same real spell may be prepared at multiple ranks without duplicate documents");
-assert.equal(embedded.filter((item) => item.type === "spell").length, 7, "overflow picks do not embed extra sources");
+assert.equal(prepared.system.slots.slot3.prepared.length, 1);
+assert.equal(embedded.filter((item) => item.type === "spell").length, 8, "database holds six cantrips, one rank-1 and one rank-3 spell");
 const spellsById = new Map(embedded.filter((item) => item.type === "spell").map((item) => [item._id, item]));
 for (const slot of Object.values(prepared.system.slots)) {
   for (const preparation of slot.prepared) {

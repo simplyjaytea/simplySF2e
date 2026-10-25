@@ -496,6 +496,9 @@ Give 3-6 lowercase keywords describing the KINDS of spells that fit this creatur
 }
 
 // Model-facing enum slugs; numeric ranks are owned and decoded by the module.
+// Module-derived PC plan counts are bounded by this ceiling, never by model output.
+// The largest is a Technomancer database rank-1 cap (43 at level 20, pc-tables.mjs).
+const PC_SPELL_PLAN_COUNT_CEILING = 50;
 const PC_SPELL_RANKS = ["cantrip", "rank-one", "rank-two", "rank-three", "rank-four", "rank-five",
   "rank-six", "rank-seven", "rank-eight", "rank-nine", "rank-ten"];
 
@@ -549,19 +552,22 @@ function physicalCandidateForPick(candidates, pick) {
  * @param {number[]} [args.signatureRanks] module-owned ordinary signature eligibility
  * @returns {Promise<{spells: {name: string, rank: number}[], usage: object}>}
  */
-export async function selectSpells({ concept, candidates, focusCandidates = [], maxRank, plannedPicks, preparationMode, signatureRanks = [], onProgress, signal, jevConfig = resolveJevConfig() }) {
+export async function selectSpells({ concept, candidates, focusCandidates = [], maxRank, plannedPicks, preparationMode, signatureRanks = [], database = false, onProgress, signal, jevConfig = resolveJevConfig() }) {
   const pcPlan = plannedPicks != null;
   if (pcPlan && (typeof plannedPicks !== "object" || Array.isArray(plannedPicks)
     || !Number.isInteger(maxRank) || maxRank < 0 || maxRank > 10
     || !["prepared", "spontaneous"].includes(preparationMode)
+    || (database && preparationMode !== "prepared")
     || !Object.entries(plannedPicks).every(([rank, count]) => /^(?:[0-9]|10)$/.test(rank)
-      && Number.isInteger(count) && count >= 0 && count <= 5)
+      && Number.isInteger(count) && count >= 0 && count <= PC_SPELL_PLAN_COUNT_CEILING)
     || !Array.isArray(signatureRanks) || !signatureRanks.every((rank) => preparationMode === "spontaneous"
       && Number.isInteger(rank) && rank > 0 && rank <= maxRank && plannedPicks[rank] > 0))) {
     throw new TypeError("Invalid character spell slot plan");
   }
   // PC slot plans: Jev scores every candidate and the module takes the top picks per rank; any doubt runs the chat model below.
-  const jev = pcPlan
+  // Jev takes exactly `plannedPicks[rank]` per rank. A spell database's caps are
+  // maximums, so only the model fills it.
+  const jev = pcPlan && !database
     ? await jevPickSpells({ concept, candidates, focusCandidates, maxRank, plannedPicks, preparationMode, signatureRanks, jevConfig, signal })
     : null;
   if (jev?.spells) {
@@ -589,9 +595,11 @@ ${pcPlan
     ? `"rank" must be one of these enum slugs, never a number: ${PC_SPELL_RANKS.slice(0, maxRank + 1).join(", ")}. Use cantrip only for cantrips; ranked spells use their listed rank or a higher allowed rank to heighten.`
     : `"rank" is the slot the creature casts it from: 0 for cantrips, otherwise at least the listed rank and at most ${maxRank} (choose higher to heighten a spell only when that clearly helps it).`}
 ${pcPlan
-    ? `Fill this module-supplied BASE spell plan (rank enum: number of picks): ${JSON.stringify(Object.fromEntries(Object.entries(plannedPicks).map(([rank, count]) => [PC_SPELL_RANKS[rank], count])))}. Choose five DISTINCT cantrips using the cantrip rank; cantrips must never use ranked slots. ${preparationMode === "prepared"
-      ? "Each array entry prepares ONE daily slot. You may deliberately repeat a ranked spell to prepare it in multiple slots, including at different legal ranks."
-      : "Each array entry is a repertoire spell at its assigned rank, not a spell slot. Do not repeat the same spell at the same rank; it may appear at different legal ranks. At rank-ten choose only common spells. Bracketed rarity annotations are not part of the spell name."} ${signatureRanks.length
+    ? `Fill this module-supplied ${database ? "spell DATABASE plan (rank enum: maximum number of spells learned)" : "BASE spell plan (rank enum: number of picks)"}: ${JSON.stringify(Object.fromEntries(Object.entries(plannedPicks).map(([rank, count]) => [PC_SPELL_RANKS[rank], count])))}. Choose ${database ? "up to " : ""}${plannedPicks[0] ?? 0} DISTINCT cantrips using the cantrip rank; cantrips must never use ranked slots. ${database
+      ? "These are learned database spells, not daily slots: list each spell once, and never repeat a spell at another rank. Learn no more than each rank's maximum."
+      : preparationMode === "prepared"
+        ? "Each array entry prepares ONE daily slot. You may deliberately repeat a ranked spell to prepare it in multiple slots, including at different legal ranks."
+        : "Each array entry is a repertoire spell at its assigned rank, not a spell slot. Do not repeat the same spell at the same rank; it may appear at different legal ranks. At rank-ten choose only common spells. Bracketed rarity annotations are not part of the spell name."} ${signatureRanks.length
         ? `Choose exactly one selected repertoire spell at each of these learned ranks as a signature: ${signatureRanks.map((rank) => PC_SPELL_RANKS[rank]).join(", ")}. Mark those with "signature": "signature" and all others with "signature": "regular". Favor different spells that benefit from flexible heightening. A signature can be learned heightened and still cast at lower legal ranks.`
         : 'No signature choices are available; use "signature": "regular" for every spell.'} Do not add subclass, feat, curriculum, or font bonus slots. Fill each rank where suitable candidates exist; leave unfillable slots empty, never invent names. Favor a useful mix of thematic spells.`
     : "Pick 2-3 cantrips and 4-8 ranked spells for a dedicated caster, weighted toward the highest ranks. Favor spells that express the creature's theme and tactics."}
@@ -634,12 +642,13 @@ ${focusCandidates.length ? "Choose up to three focusSpellIds only from the provi
       const candidate = candidateForPick(candidates, pick);
       const baseRank = candidate?.rank;
       const rank = PC_SPELL_RANKS.indexOf(pick?.rank);
-      const key = JSON.stringify([candidate?.id ?? candidate?.name, rank]);
+      // A database lists each spell once, whatever rank it is learned at.
+      const key = JSON.stringify([candidate?.id ?? candidate?.name, database ? null : rank]);
       if (!Number.isInteger(baseRank) || !Number.isInteger(rank) || rank < 0 || rank > maxRank
         || baseRank > rank || (baseRank === 0) !== (rank === 0)
         || (used.get(rank) ?? 0) >= (plannedPicks[rank] ?? 0)
         || (preparationMode === "spontaneous" && rank === 10 && candidate.rarity !== "common")
-        || ((rank === 0 || preparationMode === "spontaneous") && seen.has(key))) {
+        || ((rank === 0 || preparationMode === "spontaneous" || database) && seen.has(key))) {
         console.warn("simplysf2e | dropping invalid or excess character spell-plan pick", pick);
         continue;
       }
