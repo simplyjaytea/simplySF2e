@@ -929,18 +929,26 @@ export function getHeritageCandidates(maxRarity) {
  * `system.category` ("ancestry"|"class"|"skill"|"general" — the PF2e system's
  * own discriminator) and a trait intersection (e.g. the ancestry's own trait
  * slug for ancestry feats, the class's trait slug for class feats).
+ * A general slot legally holds general or skill feats, so `category` may be
+ * an array; an array matches any listed category. An empty array matches none.
+ * `excludeUuids` keeps feats out by compendium uuid
+ * (`Compendium.<packId>.Item.<_id>`) or by slugified name, for example feats a
+ * class path has already reserved.
  * @param {object} args
  * @param {number} args.level        max item level (the slot's level)
- * @param {string} [args.category]   "ancestry"|"class"|"skill"|"general"
+ * @param {string|string[]} [args.category] "ancestry"|"class"|"skill"|"general", or an array of those
  * @param {string[]} [args.traits]   at least one must appear on the feat
  * @param {string[]} [args.preferredNames] exact legal first-draft picks kept before sampling
+ * @param {string[]} [args.excludeUuids] compendium uuids or slugified names to skip
  * @param {boolean} [args.requireNoPrerequisites] empty-array gate when no staged context is supplied
  * @param {object} [args.prerequisiteContext] staged-actor snapshot from `stagedActorContext()`
  * @returns {Promise<{name: string, level: number, traits: string[]}[]>} sorted by level then name
  */
 export async function getFeatCandidates({
-  level, category, traits = [], preferredNames = [], requireNoPrerequisites = false, prerequisiteContext = null
+  level, category, traits = [], preferredNames = [], excludeUuids = [], requireNoPrerequisites = false, prerequisiteContext = null
 } = {}) {
+  const categories = Array.isArray(category) ? category : (category ? [category] : null);
+  const excluded = new Set(excludeUuids ?? []);
   const candidates = [];
   const seen = new Set();
   for (const packId of getPacksFor("feats")) {
@@ -949,7 +957,8 @@ export async function getFeatCandidates({
     for (const entry of entries) {
       if (entry.type !== "feat") continue;
       if ((entry.system?.level?.value ?? 0) > level) continue;
-      if (category && entry.system?.category !== category) continue;
+      if (categories && !categories.includes(entry.system?.category)) continue;
+      if (excluded.size && (excluded.has(`Compendium.${entry.packId}.Item.${entry._id}`) || excluded.has(slugify(entry.name)))) continue;
       // PF2e stores prerequisite text as authored strings, not an eligibility
       // API. Complete-only catalogs evaluate that text against a staged actor
       // when one is supplied; otherwise they still accept only an explicit
