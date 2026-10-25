@@ -82,6 +82,8 @@ const realWarn = console.warn;
 console.warn = (...parts) => warnings.push(parts.map((p) => (p instanceof Error ? p.message : String(p))).join(" ").replace(/^simplysf2e \| /, ""));
 // The slot-cap drop is a deliberate skip (capacity uncited, PLAYBOOK §9); it is surfaced, so it is classed separately.
 const SURFACED_SLOT_DROP = /no free upgrade slot/;
+// A projectile-only upgrade on a base of another group: skipped by name, never installed, not a slot skip.
+const SURFACED_GROUP_DROP = /cannot be installed/;
 // A base published above commercial keeps its published grade, with a notice (buildRunedItem): expected.
 const KEPT_PUBLISHED_GRADE = /is published at \w+ grade; kept/;
 const out = (...parts) => process.stdout.write(`${parts.join(" ")}\n`);
@@ -223,6 +225,22 @@ const VARIANTS = [
       if (!base) return { na: "no non-projectile base weapon" };
       if (!upgrade) return { na: "no projectile-only upgrade at this level" };
       return { raw: { ...ITEM_TEXT, baseItemName: base.name, grade: grades.at(-1), upgrades: [upgrade.name] } };
+    }
+  },
+  {
+    // Regression control: the projectile-only upgrade is requested first on a non-projectile base. It must be skipped
+    // with a group reason and must not take the one slot from the fitting upgrade behind it.
+    id: "weapon-projectile-misfit-slot", family: "runed", kind: "weapon", label: "projectile upgrade first on non-projectile base (must not take the slot)",
+    expectWarn: /cannot be installed/,
+    stub: ({ baseCandidates, runeCandidates, grades }) => {
+      const base = baseCandidates.filter((c) => groupOf(c.name, "weapon") !== PROJECTILE_WEAPON_GROUP).at(-1);
+      const projectile = runeCandidates.find((u) => u.usage === PROJECTILE_UPGRADE_USAGE);
+      if (!base) return { na: "no non-projectile base weapon" };
+      if (!projectile) return { na: "no projectile-only upgrade at this level" };
+      const group = groupOf(base.name, "weapon");
+      const normal = runeCandidates.find((u) => propertyRuneFitsBase("weapon", u.usage, group));
+      if (!normal) return { na: "no weapon upgrade that fits this base at this level" };
+      return { raw: { ...ITEM_TEXT, baseItemName: base.name, grade: grades.at(-1), upgrades: [projectile.name, normal.name] }, expectInstall: normal.name };
     }
   },
   {
@@ -385,9 +403,19 @@ async function runRuned(v, level, rarity, rec, check, step) {
   // Slot cap: a requested upgrade past the base's slots is skipped, warned, and reported on the preview.
   const requested = plan.raw.upgrades ?? [];
   const skipped = preview.skippedUpgrades ?? [];
-  if (skipped.length) {
-    check(warnings.some((w) => SURFACED_SLOT_DROP.test(w)), "skipped upgrades are not warned");
+  // Group skips (projectile-only upgrade on another base) are expected controls, so they are not WARN.
+  const unfit = preview.unfitUpgrades ?? [];
+  const slotSkipped = skipped.filter((name) => !unfit.includes(name));
+  if (slotSkipped.length) {
+    check(warnings.some((w) => SURFACED_SLOT_DROP.test(w)), "slot skips are not warned");
     rec.warns.push(`upgrade past the base's ${baseCandidate?.upgradeSlots ?? 0} slot(s) skipped and surfaced (item-builder.mjs:258; capacity uncited, PLAYBOOK §9)`);
+  }
+  if (unfit.length) {
+    check(warnings.some((w) => SURFACED_GROUP_DROP.test(w)), "group skips are not warned");
+  }
+  // A control variant names an upgrade that must be installed (a fitting one, not stranded behind a group skip).
+  if (plan.expectInstall) {
+    check(subs.some((sub) => sub.name === plan.expectInstall), `"${plan.expectInstall}" was not installed; a skipped projectile upgrade took its slot`);
   }
   check(concept.upgrades.length + skipped.length <= requested.length, "more upgrades kept and skipped than were requested");
   // Names: one grade label at most, and the base's name is not doubled.

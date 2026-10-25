@@ -136,10 +136,10 @@ export function propertyRuneFitsBase(kind, usage, baseGroup = null) {
 }
 
 /**
- * Whether an upgrade may fit a weapon whose group is not known yet. The candidate
- * list is built before the AI picks a base, and the equipment index does not
- * request system.group, so this only drops what can never fit. buildRunedItem
- * then checks the real base group with propertyRuneFitsBase.
+ * Whether an upgrade may fit a weapon whose group is not known yet. Only the
+ * candidate list uses it: it is built before the AI picks a base, so it drops
+ * what can never fit. Once the base is known, normalizeRunedItemConcept and
+ * buildRunedItem check the real base group with propertyRuneFitsBase.
  */
 export function propertyRuneMayFitBase(kind, usage) {
   return propertyRuneFitsBase(kind, usage, PROJECTILE_WEAPON_GROUP);
@@ -353,8 +353,10 @@ export async function runeGp(runes, kind) {
  * Real ordinary (non-specific) base weapons/armor at or below a target level,
  * so the AI picks a base item that exists instead of naming one from memory.
  * `category` is the base item's real system.category (light/medium/heavy for
- * armor), which gates category-restricted property runes downstream.
- * @returns {Promise<{name: string, level: number, category: string|null}[]>}
+ * armor), which gates category-restricted property runes downstream. `group` is
+ * the real system.group ("projectile", "laser", ...), which gates projectile-only
+ * weapon upgrades.
+ * @returns {Promise<{name: string, level: number, category: string|null, group: string|null, upgradeSlots: number}[]>}
  */
 export async function getBaseItemCandidates(kind, maxLevel) {
   const entries = await getAllEquipmentEntries();
@@ -365,6 +367,7 @@ export async function getBaseItemCandidates(kind, maxLevel) {
       name: e.name,
       level: e.level,
       category: e.category ?? null,
+      group: e.group ?? null,
       upgradeSlots: parseUpgradeCapacity(e.description, kind)
     }));
 }
@@ -392,7 +395,7 @@ export async function getPropertyRuneCandidates(kind, maxLevel) {
   const entries = await getAllEquipmentEntries();
   return entries
     .filter((e) => e.type === "equipment" && usageSet.has(e.usage) && e.level <= maxLevel
-      && !excluded.has(slugify(e.name)))
+      && propertyRuneMayFitBase(kind, e.usage) && !excluded.has(slugify(e.name)))
     .sort((a, b) => a.level - b.level || a.name.localeCompare(b.name))
     .map((e) => ({ name: e.name, level: e.level, usage: e.usage }));
 }

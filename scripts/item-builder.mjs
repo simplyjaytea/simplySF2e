@@ -16,7 +16,7 @@ import {
 } from "./compendium.mjs";
 import { slugify, capitalized, esc } from "./text.mjs";
 import {
-  RUNED_ITEM_KINDS, SECONDARY_ADJECTIVE, SECONDARY_RUNE_FIELD, propertyRuneKey, propertyRuneFitsBase, propertyRuneMayFitBase,
+  RUNED_ITEM_KINDS, SECONDARY_ADJECTIVE, SECONDARY_RUNE_FIELD, propertyRuneKey, propertyRuneFitsBase,
   findFundamentalRune, getBaseItemCandidates, getPropertyRuneCandidates, getFundamentalRuneTiers,
   EQUIPMENT_GRADES, GRADE_LEVELS, GRADE_CREDITS_DELTA, parseUpgradeCapacity, getGradeTiers, getUpgradeCandidates,
   trailingGradeLabel, stripTrailingGradeLabel
@@ -231,6 +231,7 @@ export function normalizeRunedItemConcept(raw, {
   const maxSlots = base.upgradeSlots ?? 0;
   const propertyRunes = [];
   const skippedUpgrades = [];
+  const unfitUpgrades = [];
   const seen = new Set();
   const requestedUpgrades = Array.isArray(c.upgrades) ? c.upgrades
     : Array.isArray(c.propertyRunes) ? c.propertyRunes : [];
@@ -241,13 +242,17 @@ export function normalizeRunedItemConcept(raw, {
       if (name) console.warn(`simplysf2e | itemforge: dropped unmatched upgrade/rune "${name}"`);
       continue;
     }
-    if (!propertyRuneMayFitBase(kind, match.usage)) {
-      console.warn(`simplysf2e | itemforge: dropped upgrade "${match.name}" (${match.usage}) — not installable in ${kind} "${base.name}"`);
-      continue;
-    }
     const key = slugify(match.name);
     if (seen.has(key)) continue;
     seen.add(key);
+    // A projectile-only upgrade on a base of another group never takes a slot:
+    // it is skipped with its own reason, before the slot cap is checked.
+    if (!propertyRuneFitsBase(kind, match.usage, base.group ?? null)) {
+      console.warn(`simplysf2e | itemforge: upgrade "${match.name}" (${match.usage}) cannot be installed in ${kind} "${base.name}" (group ${base.group ?? "unknown"}); skipped`);
+      skippedUpgrades.push(match.name);
+      unfitUpgrades.push(match.name);
+      continue;
+    }
     // Slot capacity is uncited (PLAYBOOK §9), so the cap stays. The skip is kept and shown.
     if (propertyRunes.length >= maxSlots) {
       skippedUpgrades.push(match.name);
@@ -255,8 +260,9 @@ export function normalizeRunedItemConcept(raw, {
     }
     propertyRunes.push(match.name);
   }
-  if (skippedUpgrades.length) {
-    console.warn(`simplysf2e | itemforge: no free upgrade slot on "${base.name}" (${maxSlots} slot${maxSlots === 1 ? "" : "s"}); not installed: ${skippedUpgrades.join(", ")}`);
+  const slotSkipped = skippedUpgrades.filter((name) => !unfitUpgrades.includes(name));
+  if (slotSkipped.length) {
+    console.warn(`simplysf2e | itemforge: no free upgrade slot on "${base.name}" (${maxSlots} slot${maxSlots === 1 ? "" : "s"}); not installed: ${slotSkipped.join(", ")}`);
   }
 
   return {
@@ -266,6 +272,7 @@ export function normalizeRunedItemConcept(raw, {
     propertyRunes,
     upgrades: propertyRunes,
     skippedUpgrades,
+    unfitUpgrades,
     level,
     rarity: RARITIES.has(rarity) ? rarity : RARITIES.has(c.rarity) ? c.rarity : "common",
     description: String(c.description ?? "").slice(0, 800)
@@ -301,18 +308,23 @@ export async function buildRunedItem(concept) {
   }
   const upgradeDocs = [];
   const upgradeNames = concept.upgrades ?? concept.propertyRunes ?? [];
+  const unfitDropped = [];
   for (const name of upgradeNames) {
     const entry = await findEntry(packs, name, (e) => e.type === "equipment");
     const doc = await getDocument(entry);
     // The fuzzy match may land on a different item; install it only if the
-    // graded base would accept it.
+    // graded base would accept it. A drop here is reported on the preview, like
+    // a normalize-time skip, so it never looks like a silent loss.
     if (doc && !propertyRuneFitsBase(concept.kind, doc.system?.usage?.value, baseDoc.system?.group)) {
-      console.warn(`simplysf2e | itemforge: upgrade "${doc.name}" (${doc.system?.usage?.value}) cannot be installed in a ${concept.kind} — dropped`);
+      console.warn(`simplysf2e | itemforge: upgrade "${doc.name}" (${doc.system?.usage?.value}) cannot be installed in ${concept.kind} "${baseDoc.name}" (group ${baseDoc.system?.group ?? "unknown"}); skipped`);
+      unfitDropped.push(name);
       continue;
     }
     if (doc) upgradeDocs.push(doc);
     else console.warn(`simplysf2e | itemforge: upgrade/rune "${name}" could not be resolved — dropped`);
   }
+  const skippedUpgrades = [...new Set([...(concept.skippedUpgrades ?? []), ...unfitDropped])];
+  const unfitUpgrades = [...new Set([...(concept.unfitUpgrades ?? []), ...unfitDropped])];
 
   const data = toItemData(baseDoc);
   // Base price and level are copied on purpose. The system recomputes both on
@@ -393,7 +405,8 @@ export async function buildRunedItem(concept) {
       level,
       grade,
       upgrades: upgradeDocs.map((d) => d.name),
-      skippedUpgrades: concept.skippedUpgrades ?? []
+      skippedUpgrades,
+      unfitUpgrades
     }
   };
 }
