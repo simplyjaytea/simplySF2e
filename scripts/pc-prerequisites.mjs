@@ -228,6 +228,16 @@ export function featPrerequisitesMet(feat, context) {
 }
 
 /**
+ * featPrerequisitesMet for either staged shape: a full entry or an issued
+ * candidate record (`prerequisites: string[]`). Unreadable text is not met.
+ */
+export function evidencePrerequisitesMet(evidence, context) {
+  const prerequisites = featPrerequisiteClauses(evidence);
+  return Array.isArray(prerequisites)
+    && featPrerequisitesMet({ system: { prerequisites: { value: prerequisites } } }, context);
+}
+
+/**
  * Trait list of one feat in any staged shape: a full compendium/index entry
  * (`system.traits.value`) or an issued candidate record (`traits`). Null when
  * unreadable.

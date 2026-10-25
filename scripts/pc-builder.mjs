@@ -17,7 +17,8 @@ import { applyCharacterLoadout } from "./pc-loadout.mjs";
 import { planClassPaths, stageClassPaths } from "./class-paths.mjs";
 import { COMPLETE_PC_CLASS_SLUGS, archetypeTraditionFor, classManualNotes, getMulticlassDedicationSlug, technomancerCacheSpells, technomancerInitialHack, withInitialFocusSpell } from "./pc-support.mjs";
 import {
-  archetypeOfFeat, createDedicationRuleState, dedicationRuleBlock, recordDedicationRulePlacement, stagedActorContext
+  archetypeOfFeat, createDedicationRuleState, dedicationRuleBlock, evidencePrerequisitesMet, recordDedicationRulePlacement,
+  stagedActorContext
 } from "./pc-prerequisites.mjs";
 import { gpToCredits } from "./currency.mjs";
 
@@ -427,20 +428,28 @@ export async function resolvePCConcept(concept, { exactContent = false, pathPlan
   const secondClass = freeArchetype && concept.multiclass && concept.multiclass !== classTrait ? concept.multiclass : null;
   const dedicationSlug = secondClass ? getMulticlassDedicationSlug(secondClass) : null;
   const archetypeMembers = new Map(); // feat slug -> dedication slug of its archetype
+  // Slugs of every archetype candidate offered to an EARLIER archetype slot
+  // (dedications and follow-ups, the pinned dedication included).
+  const offeredArchetypeSlugs = new Set();
   let multiclass = null;
   let firstArchetypeSlotSeen = false;
   for (const slot of buildFeatSlots(concept.level, { freeArchetype, classSystem: classDoc.system })) {
     const isSpecializedSlot = hasSpecializedSkillSet && slot.type === "skill" && [3, 7, 15].includes(slot.level);
-    const prerequisiteContext = stagedActorContext({
+    // The staged facts alone; resolveFeatPicks re-proves archetype picks against these.
+    const stagedContext = stagedActorContext({
       level: slot.level, ancestry: ancestryDoc, heritage: heritageDoc,
       background: backgroundDoc, class: classDoc, features: pathFeatures,
-      // The pinned dedication fills the first archetype slot, so its follow-ups
-      // ("Envoy Dedication" in their prerequisites) are provable from the next slot on.
-      feats: multiclass ? [{ name: multiclass.dedication }] : [],
       skills: { ...(projection ? projection.ranksAt(slot.level) : provenSkills), ...loreSkills },
       abilities: modsAt(slot.level) ?? {},
       allowedSkillFeats: isSpecializedSlot ? (operativeSkill ? [operativeSkill] : []) : null
     });
+    // A follow-up names its dedication ("Envoy Dedication"), which no staged fact
+    // proves yet. Candidate time therefore also accepts the names offered to earlier
+    // archetype slots; the cap in getFeatCandidates still bounds the list. Other
+    // slots keep the pinned dedication, as before.
+    const offeredNames = slot.archetype
+      ? offeredArchetypeSlugs : new Set(multiclass ? [slugify(multiclass.dedication)] : []);
+    const prerequisiteContext = { ...stagedContext, names: new Set([...stagedContext.names, ...offeredNames]) };
     const traits = slot.archetype ? ["archetype"]
       : slot.type === "ancestry" ? [ancestryTrait]
       : slot.type === "class" ? [classTrait] : [];
@@ -474,10 +483,14 @@ export async function resolvePCConcept(concept, { exactContent = false, pathPlan
     } else if (slot.archetype && multiclass) {
       candidates = archetypeFollowUpsFirst(candidates, archetypeMembers);
     }
-    if (candidates.length) featSlots.push({ ...slot, candidates });
+    // Archetype slots carry their staged context to resolveFeatPicks, which proves
+    // each pick's prerequisites against it plus the archetype feats actually taken.
+    const archetypeProof = slot.archetype ? { prerequisiteContext: stagedContext } : {};
+    if (slot.archetype) for (const candidate of candidates) offeredArchetypeSlugs.add(slugify(candidate.name));
+    if (candidates.length) featSlots.push({ ...slot, candidates, ...archetypeProof });
     else {
       console.warn(`simplysf2e | no feat candidates for a ${slot.type}${slot.archetype ? " (archetype)" : ""} slot at level ${slot.level} — slot remains unresolved`);
-      featSlots.push({ ...slot, candidates: [] });
+      featSlots.push({ ...slot, candidates: [], ...archetypeProof });
     }
   }
 
@@ -569,8 +582,10 @@ export async function resolveFeatPicks(featSlots, picks, { exactContent = false 
 
   // Archetype slots also obey the dedication rule in slot order: a dedication
   // is skipped while an earlier one still needs follow-ups, and a slot with no
-  // legal feat stays empty (entry null) rather than taking an illegal one.
+  // legal feat stays empty (entry null) rather than taking an illegal one. Their
+  // prerequisites must also hold against the archetype feats accepted so far.
   const archetypeRule = createDedicationRuleState();
+  const archetypeAccepted = new Set(); // slugs of archetype feats accepted in earlier archetype slots
   const aiPicked = [];
   const evidence = [];
   for (let i = 0; i < featSlots.length; i++) {
@@ -582,7 +597,7 @@ export async function resolveFeatPicks(featSlots, picks, { exactContent = false 
     // One warning per skipped pick, emitted once the slot's outcome is known.
     let skipped = null;
     if (entry && archetypeSlot) {
-      const blocked = dedicationRuleBlock(archetypeRule, evidenceOf(slot, entry));
+      const blocked = archetypeBlock(archetypeRule, slot, evidenceOf(slot, entry), archetypeAccepted);
       if (blocked) {
         skipped = { name, reason: blocked };
         entry = null;
@@ -601,7 +616,7 @@ export async function resolveFeatPicks(featSlots, picks, { exactContent = false 
         ? dedicationRuleOrder(slot.candidates ?? [], archetypeRule)
         : slot.candidates ?? [];
       for (const candidate of candidates) {
-        if (archetypeSlot && dedicationRuleBlock(archetypeRule, candidate)) continue;
+        if (archetypeSlot && archetypeBlock(archetypeRule, slot, candidate, archetypeAccepted)) continue;
         entry = await resolveFor(slot, candidate.name, candidate.ref);
         if (entry) {
           name = candidate.name;
@@ -617,7 +632,10 @@ export async function resolveFeatPicks(featSlots, picks, { exactContent = false 
       // desirable on the strict path.
       name = (slot.candidates ?? []).find((candidate) => candidate?.ref === entry)?.name ?? entry.name ?? name;
       taken.add(slugify(name));
-      if (archetypeSlot) recordDedicationRulePlacement(archetypeRule, slugify(name), evidenceOf(slot, entry));
+      if (archetypeSlot) {
+        recordDedicationRulePlacement(archetypeRule, slugify(name), evidenceOf(slot, entry));
+        archetypeAccepted.add(slugify(name));
+      }
     }
     if (skipped) {
       const outcome = entry ? `took "${name}"` : "no legal feat left, slot left empty";
@@ -649,17 +667,36 @@ function dedicationRuleOrder(candidates, rule) {
 }
 
 /**
- * Whether the archetype slots, in slot order, pass the dedication rule. `assigned[k]`
- * is `{ slug, evidence }` for a filled slot and null for an empty one; empty and
- * non-archetype slots take no part.
+ * Why an archetype slot may not take `evidence` now, or null when it may. The
+ * dedication rule comes first. Then the feat's own prerequisite text must hold
+ * against the slot's staged facts plus the archetype feats already accepted
+ * (`acceptedSlugs`). Candidate time offers a follow-up whose dedication was only
+ * offered, so this is what refuses it when that dedication was not taken. A slot
+ * with no staged context (a hand-built slot) has nothing to prove against.
+ */
+function archetypeBlock(rule, slot, evidence, acceptedSlugs) {
+  const blocked = dedicationRuleBlock(rule, evidence);
+  if (blocked) return blocked;
+  if (!slot.prerequisiteContext) return null;
+  const names = new Set([...slot.prerequisiteContext.names, ...acceptedSlugs]);
+  return evidencePrerequisitesMet(evidence, { ...slot.prerequisiteContext, names })
+    ? null : "prerequisites not met by the staged character or the archetype feats taken before it";
+}
+
+/**
+ * Whether the archetype slots, in slot order, pass the dedication rule and their
+ * prerequisites (archetypeBlock). `assigned[k]` is `{ slug, evidence }` for a
+ * filled slot and null for an empty one; empty and non-archetype slots take no part.
  */
 function archetypeSequenceLegal(featSlots, assigned) {
   const rule = createDedicationRuleState();
+  const accepted = new Set();
   for (let k = 0; k < featSlots.length; k++) {
     const placement = assigned[k];
     if (featSlots[k]?.archetype !== true || !placement) continue;
-    if (dedicationRuleBlock(rule, placement.evidence)) return false;
+    if (archetypeBlock(rule, featSlots[k], placement.evidence, accepted)) return false;
     recordDedicationRulePlacement(rule, placement.slug, placement.evidence);
+    accepted.add(placement.slug);
   }
   return true;
 }
@@ -675,8 +712,9 @@ function archetypeSequenceLegal(featSlots, assigned) {
  * first; an AI-picked slot moves only when no other path fills an empty slot,
  * and only as part of that augmenting path. Each moved slot warns.
  * Mutates `resolved` in place (name and entry only). A move is kept only when the
- * archetype slots still pass the dedication rule in slot order (archetypeSequenceLegal),
- * so a repair never creates an illegal dedication.
+ * archetype slots still pass the dedication rule and their prerequisites in slot
+ * order (archetypeSequenceLegal), so a repair never creates an illegal dedication
+ * or a follow-up whose dedication was not taken.
  * @param {{candidates?: {name: string, ref?: object}[]}[]} featSlots
  * @param {{name: string, entry: object|null}[]} resolved
  * @param {boolean[]} aiPicked true where the slot's own AI pick was kept
