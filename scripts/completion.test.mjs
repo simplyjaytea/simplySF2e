@@ -57,14 +57,41 @@ const focusOnly = completionManifest({ mode: "character", concept: {}, resolved:
 assert.equal(focusOnly.records.filter((record) => record.category === "spellcasting-entry").length, 1,
   "a focus-only character still records its module-built casting entry");
 
-const summary = completionSummary([creature, pc, skippedGear]);
+// A character feat slot with no legal feat left is empty, warned and
+// non-blocking. The same null entry in NPC mode still blocks Create.
+const emptyFeat = completionManifest({ mode: "character", concept: {}, resolved: {
+  ancestryDoc: { name: "Human" }, backgroundDoc: { name: "Soldier" }, classDoc: { name: "Soldier" },
+  spells: [], focusSpells: [], equipment: [], loot: [],
+  feats: [
+    { type: "general", level: 3, archetype: false, name: "Toughness", entry },
+    { type: "skill", level: 18, archetype: false, name: "skill 18", entry: null },
+    { type: "general", level: 19, archetype: true, name: "general 19", entry: null }
+  ]
+} });
+assert.equal(emptyFeat.complete, true, "an empty character feat slot never blocks Create");
+assert.doesNotThrow(() => assertComplete(emptyFeat));
+assert.deepEqual(emptyFeat.records.filter((record) => record.category === "feat"), [
+  { category: "feat", name: "Toughness", status: "compendium", required: true },
+  { category: "feat", name: "skill feat (level 18): no legal feat available", status: "empty", required: false },
+  { category: "feat", name: "general feat (level 19): no legal feat available", status: "empty", required: false }
+]);
+
+const npcEmptyFeat = completionManifest({ mode: "npc", concept: {}, resolved: {
+  spells: [], focusSpells: [], equipment: [], loot: [],
+  feats: [{ type: "general", level: 3, archetype: false, name: "Unplaced Feat", entry: null }]
+} });
+assert.equal(npcEmptyFeat.complete, false, "NPC feat slots still block Create when unresolved");
+assert.throws(() => assertComplete(npcEmptyFeat), /feat: Unplaced Feat/);
+
+const summary = completionSummary([creature, pc, skippedGear, emptyFeat]);
 assert.deepEqual(summary, {
-  total: creature.records.length + pc.records.length + skippedGear.records.length,
-  compendium: 2,
-  native: 3,
+  total: creature.records.length + pc.records.length + skippedGear.records.length + emptyFeat.records.length,
+  compendium: 3,
+  native: 6,
   moduleBuilt: 3,
   customNarrative: 1,
   skipped: 1,
+  empty: 2,
   unresolved: 1
 }, "completion presentation must report every manifest status without exposing mutable documents");
 console.log("completion.test.mjs: manifest statuses and complete-only boundary passed");

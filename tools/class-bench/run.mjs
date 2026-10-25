@@ -237,9 +237,13 @@ for (const classData of classes) {
 function classify(rec) {
   const issues = [];
   if (rec.throws) return { status: "FAIL", n: 0, issues: [`throw@${rec.throwStage}: ${rec.throws}`], tags: [`throw@${rec.throwStage}: ${rec.throws.replace(/"[^"]*"/g, '"..."')}`] };
+  // A feat slot with no legal feat left is created empty and the GM is warned (completion.mjs: never blocking).
+  const empty = [];
+  const emptyTags = [];
   if (rec.unresolvedSlots.length) {
     const kinds = [...new Set(rec.unresolvedSlots.map((slot) => slot.replace(/-\d+$/, "")))];
-    return { status: "FAIL", n: 0, issues: [`${rec.unresolvedSlots.length} unresolved feat slot(s): ${rec.unresolvedSlots.join(", ")}`], tags: kinds.map((k) => `unresolved ${k} feat slot`) };
+    empty.push(`${rec.unresolvedSlots.length} empty feat slot(s), no legal feat available: ${rec.unresolvedSlots.join(", ")}`);
+    emptyTags.push(...kinds.map((k) => `empty ${k} feat slot`));
   }
   if (rec.casting?.isCaster && !rec.casting.profile) issues.push("caster class has no casting profile (legacy spontaneous fallback)");
   for (const s of rec.casting?.shortfall ?? []) issues.push(`spell shortfall rank ${s.rank}: want ${s.want}, have ${s.have}`);
@@ -250,7 +254,10 @@ function classify(rec) {
     const key = w.replace(/\d+/g, "#");
     if (!seen.has(key)) { seen.add(key); issues.push(`warn: ${w}`); }
   }
-  return { status: issues.length ? "WARN" : "PASS", n: issues.length, issues, tags: issues.map((i) => i.replace(/\d+/g, "#")) };
+  return {
+    status: issues.length || empty.length ? "WARN" : "PASS", n: issues.length + empty.length,
+    issues: [...empty, ...issues], tags: [...emptyTags, ...issues.map((i) => i.replace(/\d+/g, "#"))]
+  };
 }
 for (const rec of results) Object.assign(rec, { verdict: classify(rec) });
 

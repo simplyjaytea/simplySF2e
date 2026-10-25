@@ -255,6 +255,7 @@
       "CompletionModuleBuilt": "Module-built currency or spell gems: {count}",
       "CompletionCustomNarrative": "Deliberate custom narrative abilities: {count}",
       "CompletionSkipped": "Skipped gear with no published match: {count}",
+      "CompletionEmpty": "Feat slots left empty, no legal feat available: {count}",
       "OpenSheet": "Open Sheet",
       "GenerateAnother": "Generate Another",
       "DiscardTitle": "Discard preview?",
@@ -448,7 +449,8 @@
       "MissingAmmo": "A ready ranged weapon has no compatible generated ammunition selected."
     },
     "PC": {
-      "DroneManual": "Drone exocortex: set up the drone companion by hand; SimplySF2e does not create companion actors."
+      "DroneManual": "Drone exocortex: set up the drone companion by hand; SimplySF2e does not create companion actors.",
+      "EmptyFeatSlots": "{count} feat slot(s) left empty because no legal feat was available: {slots}. Pick them on the sheet if your table allows."
     },
     "Progress": {
       "Label": "Generation progress",
@@ -530,6 +532,7 @@
       "Average": "(avg {value})",
       "Signature": "Signature",
       "PCSignaturePlan": "Planned signature choices: {selected}/{total}. Choices are rechecked against real spells during creation; missing or rejected choices stay regular and need manual review.",
+      "EmptyFeatSlot": "empty, no legal feat available",
       "PCBaseSpellPlan": "Base spell plan only: prepared classes prepare each listed pick; spontaneous classes learn it at the listed rank. Review empty slots, signature spells, and restricted subclass or feat bonuses (such as curriculum or divine font) in Foundry.",
       "PCVariableSpellPlan": "Base spell plan only. Verify the tradition against your bloodline or patron; if none was selected, configure spellcasting in Foundry. Review empty slots, signature spells, subclass-granted spells, and feat bonuses after creation.",
       "PCApproximateSpellPlan": "This class has no verified casting profile yet. Spellcasting uses a generic spontaneous approximation; review casting mode, tradition, slots, and spells in Foundry before play.",

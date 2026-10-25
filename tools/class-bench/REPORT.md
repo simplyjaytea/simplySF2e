@@ -6,7 +6,7 @@ Pack list from `system.sf2e.json` 1.6.1 (`packs[].name:type`; ids are `sf2e.<nam
 
 ## Headline
 
-**Default matrix after W6: 78 PASS / 0 WARN / 2 FAIL.** Unchanged from W5 on purpose: the default character needs no repair move, so the two FAILs are the same Mystic L20 pair (cause A, below). The W6 change that matters is cause B, which the default matrix does not exercise: Mystic L20 with Free Archetype on and the Bounty Hunter background goes from FAIL to a filled slot (WARN(4), see "Resolved causes" 8).
+**Default matrix after W7: 78 PASS / 2 WARN / 0 FAIL.** The two WARNs are the same Mystic L20 pair (cause A, below). W7 changed what an empty feat slot means: a slot with no legal feat left is created empty and the GM is warned, so it no longer blocks Create and no longer counts as FAIL. Mystic L20 shows WARN(3) without Free Archetype and WARN(7) with it; each count includes the empty-slot finding plus the repair and greedy-pick findings listed in the breakdown. The W6 change that matters is cause B: Mystic L20 with Free Archetype on and the Bounty Hunter background fills its slot chain (WARN(4), see "Resolved causes" 8).
 
 **History (same bench, same pinned source):**
 
@@ -14,12 +14,13 @@ Pack list from `system.sf2e.json` 1.6.1 (`packs[].name:type`; ids are `sf2e.<nam
 - On the base `1f31d21` (C1 merged, Technomancer caster row exists): **48 PASS / 0 WARN / 32 FAIL**.
 - After W5 (`pc-builder.mjs` wiring plus wave-1 modules): **78 PASS / 0 WARN / 2 FAIL**.
 - After W6 (cause B repair in `resolveFeatPicks`): **78 PASS / 0 WARN / 2 FAIL** on the default matrix. Bounty Hunter Mystic L20, Free Archetype on: FAIL -> WARN(4).
+- After W7 (empty feat slots warn instead of block): **78 PASS / 2 WARN / 0 FAIL** on the default matrix. The same two Mystic L20 runs are now WARN(3) and WARN(7).
 
 Every class passes levels 1 to 10 in both Free Archetype modes and every class passes level 20 except Mystic. Level 15 and 19 general slots now fill because general slots also draw from the `skill` category (cause 2, resolved).
 
 Run: `node tools/class-bench/fetch.mjs && node tools/class-bench/run.mjs` (source `be4ab21be8ffed44385c0038c05d41b61dceb68b`, sf2e 1.6.1, Human / Urbanite Human / Athlete).
 
-## Matrix after W6 (identical to W5: no default-matrix run moves a feat)
+## Matrix after W7 (feat picks identical to W6; the two Mystic L20 runs are WARN, not FAIL)
 
 | class | FA | L1 | L2 | L5 | L10 | L20 | in `COMPLETE_PC_CLASS_SLUGS`? |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -27,8 +28,8 @@ Run: `node tools/class-bench/fetch.mjs && node tools/class-bench/run.mjs` (sourc
 | Envoy | on | PASS | PASS | PASS | PASS | PASS | yes |
 | Mechanic | off | PASS | PASS | PASS | PASS | PASS | yes |
 | Mechanic | on | PASS | PASS | PASS | PASS | PASS | yes |
-| Mystic | off | PASS | PASS | PASS | PASS | FAIL | yes |
-| Mystic | on | PASS | PASS | PASS | PASS | FAIL | yes |
+| Mystic | off | PASS | PASS | PASS | PASS | WARN(3) | yes |
+| Mystic | on | PASS | PASS | PASS | PASS | WARN(7) | yes |
 | Operative | off | PASS | PASS | PASS | PASS | PASS | yes |
 | Operative | on | PASS | PASS | PASS | PASS | PASS | yes |
 | Solarian | off | PASS | PASS | PASS | PASS | PASS | yes |
@@ -40,7 +41,15 @@ Run: `node tools/class-bench/fetch.mjs && node tools/class-bench/run.mjs` (sourc
 | Witchwarper | off | PASS | PASS | PASS | PASS | PASS | yes |
 | Witchwarper | on | PASS | PASS | PASS | PASS | PASS | yes |
 
-PASS = no throw, every feat slot filled, no warning-class finding. FAIL = a throw or at least one feat slot with no usable candidate (the completion manifest blocks Create). The bench's `complete?` column is `yes` for all 80 runs.
+PASS = no throw, every feat slot filled, no warning-class finding. WARN(n) = n findings; an empty feat slot (no legal feat left) is one of them. FAIL = a throw at any stage. The bench's `complete?` column is `yes` for all 80 runs, because completion no longer blocks on an empty feat slot.
+
+## What W7 changed
+
+- `completion.mjs` (`completionManifest`): in character mode a feat with a null `entry` is a non-required line with status `empty` (`<type> feat (level N): no legal feat available`), so `assertComplete` passes. NPC and monster feats still block. `completionSummary` counts `empty`.
+- `generator-app.mjs`: the PC preview shows an empty slot with an info icon and "empty, no legal feat available" (not the missing-match icon), adds a warning line naming the slots, and leaves empty slots out of the found/total summary. After a verified create, the completion card gets a "Feat slots left empty" row, and the GM whisper, which already carries manual notes, adds the slot list (`SIMPLYSF2E.PC.EmptyFeatSlots`). It is not sent when verification fails.
+- Lang keys: `SIMPLYSF2E.PC.EmptyFeatSlots`, `SIMPLYSF2E.Generator.CompletionEmpty`, `SIMPLYSF2E.Preview.EmptyFeatSlot`.
+- Bench: `classify` in `run.mjs` makes an empty feat slot a WARN finding; a throw is still FAIL. The Mystic L20 variants with priorities, measured after W7: six priorities WARN(2) / WARN(6); Survival in the top four WARN(3) / WARN(7); six priorities with Bounty Hunter PASS / WARN(4).
+- Tests: `completion.test.mjs` (empty character slot non-blocking, NPC slot still blocks, summary counts); `generator-app.review.test.mjs` (preview rows, whisper after commit, no whisper after failed verify, lang key).
 
 ## What W5 changed
 
@@ -67,9 +76,9 @@ PASS = no throw, every feat slot filled, no warning-class finding. FAIL = a thro
 
 - **8. Cause B, greedy feat slots** (Mystic L20, Bounty Hunter background, Free Archetype on: `archetype-class-20` unresolved). `resolveFeatPicks` now runs `repairUnfilledFeatSlots` (`scripts/pc-builder.mjs`) after its unchanged pass. An empty slot may take a feat held by an earlier slot if that slot moves to another of its own issued candidates (Kuhn's augmenting path over slots x feats, keyed by slugified name). A default-filled slot moves first; an AI-picked slot moves only when no path through default-filled slots fills the empty slot. Each moved or newly filled slot warns. Before: `FAIL unresolved archetype-class feat slot`. After: `WARN(4)`, with `archetype-class-20` taking Augmented Dedication from `archetype-class-4`, which takes Knight of Golarion Dedication from `archetype-class-2`, which moves to the free Grenadier Dedication (a three-slot chain; the bench's greedy duplicate pick starts it). Test: `scripts/pc-builder.featMatching.test.mjs` (seven scenarios, including the no-solution case and a forged reference that never moves).
 
-## Remaining causes (FAIL)
+## Remaining causes (WARN: empty feat slots, not blocking)
 
-### A. Mystic L20: 15 general and skill slots share 13 provable feats (FAIL in the default matrix and with realistic priorities)
+### A. Mystic L20: 15 general and skill slots share 13 provable feats (empty slots, WARN in the default matrix and with realistic priorities)
 
 Mystic at level 20 has 15 general and skill slots: 10 skill (levels 2 to 20) and 5 general (3, 7, 11, 15, 19). Their candidate lists come from the staged prerequisite context at each slot's level. The distinct union across all 15 slots is **13** (10 skill feats plus 3 general-only feats). The per-level and total candidate caps are not the limit: with `FEAT_CANDIDATE_LIMIT` and `FEAT_CANDIDATES_PER_LEVEL` raised in a scratch copy, the union is still 13. With 15 slots and 13 feats no pick order fills all 15 (a feat is never duplicated), so two slots stay empty. The augmenting repair (cause B) cannot help: it moves slots among their own candidates and cannot create feats.
 
@@ -77,19 +86,21 @@ Outcome with realistic skill priorities (`--priorities`, the AI's `concept.skill
 
 | Mystic L20 | priorities | background | FA off | FA on | unresolved (FA off) |
 | --- | --- | --- | --- | --- | --- |
-| default (no priorities) | none | Athlete | FAIL | FAIL | general-19, skill-20 |
-| A: six priorities | athletics, medicine, nature, religion, occultism, diplomacy | Athlete | FAIL | FAIL | skill-18, skill-20 |
-| A, Survival in the top four | athletics, survival, medicine, nature, religion, occultism | Athlete | FAIL | FAIL | not recorded |
+| default (no priorities) | none | Athlete | WARN(3) | WARN(7) | general-19, skill-20 |
+| A: six priorities | athletics, medicine, nature, religion, occultism, diplomacy | Athlete | WARN(2) | WARN(6) | skill-18, skill-20 |
+| A, Survival in the top four | athletics, survival, medicine, nature, religion, occultism | Athlete | WARN(3) | WARN(7) | not recorded |
 | A with the Bounty Hunter background | six priorities | Bounty Hunter | PASS | WARN(4) | none |
 
-**Why A still fails (counted from the module's own projection, `skillPlan` in `results.json`):**
+Before W7 the first three rows were FAIL (the empty slots blocked Create). The FA-off and FA-on columns are the bench re-run after W7; the Bounty Hunter row is unchanged from W6.
+
+**Why A leaves slots empty (counted from the module's own projection, `skillPlan` in `results.json`):**
 
 - Trained skills at L20 under the six priorities: **4** (athletics from the Athlete background; medicine, nature and religion from the three Mystic class trainings, which follow the priorities). Occultism and diplomacy (priorities 5 and 6) are never trained, so no feat that needs them is provable.
 - The nine skill increases (L3 to L19) go to the top three priorities after training (athletics, medicine, nature, each to legendary). Religion stays at trained rank. The priorities change which skills are trained and which reach legendary, but not how many class trainings or increases there are.
 - Provable feats: the 13 above. 15 slots, 13 feats: two slots empty, as observed.
-- The count of trained skills alone does not decide it. Compare: Survival in the top four (Athlete) leaves Nature at trained, so the Nature-gated feats (Amplify Glitch needs legendary, Predator's Eye master, Primal Sabotage expert) drop out: 12 provable, FAIL. The Bounty Hunter background trains Survival and gives Underworld Lore instead of religion, while Nature still reaches legendary: 16 provable, PASS.
+- The count of trained skills alone does not decide it. Compare: Survival in the top four (Athlete) leaves Nature at trained, so the Nature-gated feats (Amplify Glitch needs legendary, Predator's Eye master, Primal Sabotage expert) drop out: 12 provable, so more slots stay empty. The Bounty Hunter background trains Survival and gives Underworld Lore instead of religion, while Nature still reaches legendary: 16 provable, PASS with Free Archetype off and WARN(4) with it on.
 
-Allocation policy was not changed (it is a design choice for JT). If JT wants the Athlete Mystic at L20 to pass, the choices are the increase policy (spread increases beyond the top three priorities), the class-training policy, or accepting two empty feat slots for that build.
+Allocation policy was not changed (it is a design choice for JT). W7 accepts the empty slots (owner decision, 2026-10-25): the Athlete Mystic at L20 is created with them empty and the GM is warned. To fill them instead, the options are the increase policy (spread increases beyond the top three priorities), the class-training policy, or a different background.
 
 ## Stubs that weaken this result
 
