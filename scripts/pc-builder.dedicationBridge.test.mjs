@@ -65,7 +65,7 @@ globalThis.CONFIG = { PF2E: { languages: {} } };
 globalThis.fromUuid = async (id) => docs.get(id) ?? null;
 globalThis.game = {
   i18n: {
-    localize: (key) => key,
+    localize: (key) => (key === "SIMPLYSF2E.PC.ArchetypeChoiceFallback" ? "choice" : key),
     format: (key, data) => "{dedication}: choose its {choice} on the sheet, then add its spellcasting entry by hand."
       .replace(/\{(\w+)\}/g, (_, name) => data[name])
   },
@@ -161,6 +161,16 @@ const pickNamed = (label) => async (groups) => ({ picks: [{ choice: groups[0].id
   embedded = [];
   const { result: created } = await captureWarnings(() => createCharacterActor({ ...common, archetypeSpellcasting: null }, resolved));
   assert.deepEqual(created.manualNotes, [], "no spellcasting, no archetype note");
+}
+
+// 5. A bridge with no named choice gets the localized fallback word in its GM note, never English.
+{
+  const resolved = resolvedWith([dedicationFeat("Mystic Dedication", FEAT_PACK, "mystic")]);
+  resolved.archetypeBridges = { "mystic-dedication": { dedication: "Mystic Dedication", choice: null, option: null } };
+  embedded = [];
+  const { result: created } = await captureWarnings(() => createCharacterActor({ ...common, archetypeSpellcasting: { tradition: "divine" } }, resolved));
+  assert.deepEqual(created.manualNotes, ["Mystic Dedication: choose its choice on the sheet, then add its spellcasting entry by hand."],
+    "the fallback is the localized word, not an English placeholder");
 }
 
 console.log("dedication bridges: all assertions passed");

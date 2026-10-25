@@ -466,6 +466,7 @@
     "PC": {
       "DroneManual": "Drone exocortex: set up the drone companion by hand; SimplySF2e does not create companion actors.",
       "ArchetypeSpellsManual": "{dedication}: choose its {choice} on the sheet, then add its spellcasting entry by hand.",
+      "ArchetypeChoiceFallback": "choice",
       "EmptyFeatSlots": "{count} feat slot(s) left empty because no legal feat was available: {slots}. Pick them on the sheet if your table allows."
     },
     "Progress": {

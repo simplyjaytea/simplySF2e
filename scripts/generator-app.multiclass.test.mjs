@@ -27,6 +27,8 @@ let previewLoot = [], previewFeats = [];
 let mainClass = "Fighter", aiPick = null;
 const conceptArgs = [], resolvedConcepts = [], placementContexts = [];
 let budgetPending = null, budgetStarted = null;
+let spellcastingOn = false, wealthGp = 0, coinValue = 0, bridgesOut = {};
+const createdResolved = [];
 const notices = [];
 function recordPlacement(slots, feats, context) {
   placementContexts.push(context);
@@ -36,7 +38,7 @@ class App {
   element = { querySelector: (selector) => selector.includes('name="mode"') ? { value: "character" }
     : selector.includes('name="level"') ? { value: String(generatorLevel) }
       : selector.includes('name="prompt"') ? { value: "A dwarf fighter" }
-      : selector.includes('name="allowSpellcasting"') ? { checked: false } : null };
+      : selector.includes('name="allowSpellcasting"') ? { checked: spellcastingOn } : null };
   async render() { this.context = await this._prepareContext(); }
   _beginProgress() { this.abort = new AbortController(); return this.abort.signal; }
   async _setStep() {}
@@ -89,9 +91,10 @@ const mocks = {
   generatePCLoot: async () => ({ loot: [] }), normalizeLoot: (loot) => loot,
   dedupeLootAgainstEquipment: (loot) => loot, enforceNamedLootBudget: (loot) => loot,
   applyTreasureBudget: async (loot) => { budgetStarted?.(); if (budgetPending) await budgetPending; return loot; },
-  pcStartingWealthGp: () => 0, equipmentValueGp: () => 0, lootValueGp: () => 0, parseCoins: () => null,
+  pcStartingWealthGp: () => wealthGp, equipmentValueGp: () => 0, lootValueGp: () => coinValue, parseCoins: () => null,
+  resolveArchetypeBridges: async () => bridgesOut, archetypeCasterPlan: () => null,
   describeMissingSources: (missing = []) => missing.join(", "),
-  createCharacterActor: async () => { creates++; if (createFailure) throw createFailure; return { actor, skillReport, manualNotes, expectedItems: [] }; }
+  createCharacterActor: async (concept, resolvedPC) => { creates++; createdResolved.push(resolvedPC); if (createFailure) throw createFailure; return { actor, skillReport, manualNotes, expectedItems: [] }; }
 };
 const source = await readFile(new URL("./generator-app.mjs", import.meta.url), "utf8");
 const pipelineSource = await readFile(new URL("./creature-pipeline.mjs", import.meta.url), "utf8");
@@ -209,4 +212,28 @@ async function runCharacter(updates = {}) {
   }
 }
 
-console.log("generator-app.multiclass.test.mjs: picker gating, GM/AI routing, main-class guard, and placement context passed");
+// 8. Archetype bridges (Connection/Paradox pre-answers) reach the actor on every resolve pass, with and without the coin top-up.
+{
+  freeArchetype = true;
+  spellcastingOn = true;
+  previewFeats = [{ type: "class", level: 2, archetype: true, name: "Mystic Dedication", traits: ["archetype", "dedication"], entry: { packId: "feats", _id: "ded" } }];
+  bridgesOut = { "mystic-dedication": { dedication: "Mystic Dedication", choice: "Connection", choiceType: "feat", grantUuid: "uuid", option: { name: "Akashic" } } };
+  for (const coins of [0, 30]) {
+    // 30 gp of coin is over a quarter of the 100 gp loot budget, so the top-up pass runs only in the second case.
+    coinValue = coins;
+    wealthGp = 100;
+    createdResolved.length = 0;
+    const app = await runCharacter({ multiclass: "none" });
+    await GeneratorApp.DEFAULT_OPTIONS.actions.createActor.call(app);
+    assert.equal(createdResolved.length, 1, `coin ${coins}: the actor is created once`);
+    assert.ok(createdResolved[0].archetypeBridges, `coin ${coins}: the resolved concept carries archetypeBridges`);
+    assert.deepEqual(plain(createdResolved[0].archetypeBridges), plain(bridgesOut),
+      `coin ${coins}: the Mystic bridge survives the resolve passes`);
+  }
+  spellcastingOn = false;
+  coinValue = 0;
+  wealthGp = 0;
+  bridgesOut = {};
+}
+
+console.log("generator-app.multiclass.test.mjs: picker gating, GM/AI routing, main-class guard, placement context, and archetype bridge survival passed");

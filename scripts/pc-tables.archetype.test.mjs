@@ -63,12 +63,13 @@ const db10 = technomancerDatabasePlan(10);
 assert.equal(db10.maxRank, 5);
 assert.equal(db10.size, 38, "10 + 5 + 18 + 5 cache spells");
 assert.deepEqual(db10.caps, { 0: 10, 1: 23, 2: 16, 3: 12, 4: 8, 5: 4 });
-assert.equal(technomancerDatabasePlan(20).size, 63, "10 + 5 + 38 + 10 cache spells");
+assert.equal(technomancerDatabasePlan(20).size, 62, "10 + 5 + 38 + 9 cache spells (ranks 1-9 only)");
+assert.deepEqual(technomancerDatabasePlan(20).cacheRanks, [1, 2, 3, 4, 5, 6, 7, 8, 9], "no rank-10 cache spell");
 assert.equal(technomancerDatabasePlan(20).caps[10], 4, "rank-10 picks are possible at levels 19 and 20 only");
 for (let lv = 1; lv <= 20; lv++) {
   const plan = technomancerDatabasePlan(lv);
   assert.equal(plan.caps[1], 5 + 2 * (lv - 1), `rank-1 cap at level ${lv}`);
-  assert.equal(plan.cacheRanks.length, Math.ceil(lv / 2), `cache ranks at level ${lv}`);
+  assert.equal(plan.cacheRanks.length, Math.min(Math.ceil(lv / 2), 9), `cache ranks at level ${lv}`);
 }
 
 // The prepared profile attaches the database; the prepared slots themselves are unchanged.

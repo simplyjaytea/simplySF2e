@@ -64,5 +64,11 @@ for (const lv of [1, 5, 19]) {
   assert.deepEqual(plan.picks, plan.slots, `technomancer prepares exactly its slots at level ${lv}`);
   assert.deepEqual(plan.signatureRanks, [], "prepared casters have no signature spells");
 }
+// Spell Cache exists for ranks 1-9 only (each programming language), so levels 19-20 add no 10th-rank cache spell.
+for (const lv of [19, 20]) {
+  const { database } = pcSpellPlan(lv, technomancer);
+  assert.deepEqual(database.cacheRanks, [1, 2, 3, 4, 5, 6, 7, 8, 9], `technomancer level ${lv} caches ranks 1-9`);
+  assert.equal(database.size, 10 + 5 + 2 * (lv - 1) + 9, `technomancer level ${lv} database holds 9 cache spells`);
+}
 
 console.log("pc spellcasting profiles and slots: all assertions passed");
