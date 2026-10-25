@@ -179,7 +179,7 @@ Hooks.on("renderActorDirectory", (_directory, html) => {
   if (!game.user.isGM || game.system.id !== "sf2e") return;
   addDirectoryButton(html, {
     markerClass: "spf-generator-directory-button",
-    icon: "fa-dragon",
+    icon: "fa-microchip",
     label: "SIMPLYSF2E.Generator.OpenButton",
     onClick: openGenerator
   });
@@ -222,7 +222,7 @@ Hooks.on("renderItemDirectory", (_directory, html) => {
   if (!game.user.isGM || game.system.id !== "sf2e") return;
   addDirectoryButton(html, {
     markerClass: "spf-itemforge-directory-button",
-    icon: "fa-hammer",
+    icon: "fa-gears",
     label: "SIMPLYSF2E.ItemForge.OpenButton",
     onClick: openItemForge,
     placement: "below-header-actions"
