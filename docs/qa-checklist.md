@@ -644,6 +644,15 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 | 13k.3 | Create the encounter. | Every member is created in the encounter folder, each with its own stats and gear. | Actors sidebar | | |
 
 
+## 13l. Creature art and token name
+
+| # | Do | Expect | Where | Pass | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 13l.1 | With an art module that maps sf2e creature packs (separate portrait and token art), generate and create a creature. | The portrait is the borrowed creature's portrait; the token uses its token art and scale, not the portrait. | Actor sheet, token | | |
+| 13l.2 | Open the new actor's Prototype Token. | The token name is the new creature's name, not the bestiary creature it borrowed from. | Prototype Token | | |
+| 13l.3 | Repeat 13l.1 with no art module. | Portrait and token keep the default sf2e NPC icon; nothing errors. | Actors sidebar | | |
+| 13l.4 | Create an encounter with a member count of 3. | Each copy has the same correct art and its own name; no member shows another's name. | Encounter folder | | |
+
 ## Failure log
 
 One row per failure, so each cluster can become one fix PR.
