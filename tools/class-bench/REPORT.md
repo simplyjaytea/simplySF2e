@@ -6,114 +6,74 @@ Pack list from `system.sf2e.json` 1.6.1 (`packs[].name:type`; ids are `sf2e.<nam
 
 ## Headline
 
-**80 runs (8 classes × levels 1, 2, 5, 10, 20 × Free Archetype off/on): 41 PASS, 7 WARN, 32 FAIL.**
+**Before -> after (W5, same bench, same pinned source):**
 
-Every class passes at levels 1 and 2. **No class passes at level 20, and none passes at level 15 or above** (derived: the fourth general-feat slot arrives at 15, see cause 2). The first failing level is 5 (Envoy, Solarian), 10 (Soldier, Mystic, Operative, and every class with Free Archetype on) or 20 (Mechanic, Witchwarper, Technomancer).
+- Before, as published in the first run on pre-C1 `main`: **41 PASS / 7 WARN / 32 FAIL**.
+- Before, on this branch's base `1f31d21` (C1 already merged, so the Technomancer caster row exists): **48 PASS / 0 WARN / 32 FAIL**. The 7 WARN are gone because `pcSpellcastingProfile` now finds Technomancer; the 32 FAILs are unchanged.
+- After W5 (`pc-builder.mjs` wiring plus wave-1 modules, branch `simplyjaytea/cf-w5`): **78 PASS / 0 WARN / 2 FAIL**. Both FAILs are Mystic at level 20 (Free Archetype off and on); see "Remaining causes".
+
+Every class passes levels 1 to 10 in both Free Archetype modes and every class passes level 20 except Mystic. Level 15 and 19 general slots now fill because general slots also draw from the `skill` category (cause 2, resolved).
+
+Run: `node tools/class-bench/fetch.mjs && node tools/class-bench/run.mjs` (source `be4ab21be8ffed44385c0038c05d41b61dceb68b`, sf2e 1.6.1, Human / Urbanite Human / Athlete).
+
+## Matrix after W5
 
 | class | FA | L1 | L2 | L5 | L10 | L20 | in `COMPLETE_PC_CLASS_SLUGS`? |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Envoy | off | PASS | PASS | FAIL | FAIL | FAIL | yes |
-| Envoy | on | PASS | PASS | FAIL | FAIL | FAIL | yes |
-| Mechanic | off | PASS | PASS | PASS | PASS | FAIL | **no** |
-| Mechanic | on | PASS | PASS | PASS | PASS | FAIL | **no** |
-| Mystic | off | PASS | PASS | PASS | FAIL | FAIL | yes |
-| Mystic | on | PASS | PASS | PASS | FAIL | FAIL | yes |
-| Operative | off | PASS | PASS | PASS | FAIL | FAIL | yes |
-| Operative | on | PASS | PASS | PASS | FAIL | FAIL | yes |
-| Solarian | off | PASS | PASS | FAIL | FAIL | FAIL | yes |
-| Solarian | on | PASS | PASS | FAIL | FAIL | FAIL | yes |
-| Soldier | off | PASS | PASS | PASS | FAIL | FAIL | yes |
-| Soldier | on | PASS | PASS | PASS | FAIL | FAIL | yes |
-| Technomancer | off | WARN(1) | WARN(1) | WARN(1) | WARN(1) | FAIL | **no** |
-| Technomancer | on | WARN(1) | WARN(1) | WARN(1) | FAIL | FAIL | **no** |
-| Witchwarper | off | PASS | PASS | PASS | PASS | FAIL | yes |
-| Witchwarper | on | PASS | PASS | PASS | FAIL | FAIL | yes |
+| Envoy | off | PASS | PASS | PASS | PASS | PASS | yes |
+| Envoy | on | PASS | PASS | PASS | PASS | PASS | yes |
+| Mechanic | off | PASS | PASS | PASS | PASS | PASS | yes |
+| Mechanic | on | PASS | PASS | PASS | PASS | PASS | yes |
+| Mystic | off | PASS | PASS | PASS | PASS | FAIL | yes |
+| Mystic | on | PASS | PASS | PASS | PASS | FAIL | yes |
+| Operative | off | PASS | PASS | PASS | PASS | PASS | yes |
+| Operative | on | PASS | PASS | PASS | PASS | PASS | yes |
+| Solarian | off | PASS | PASS | PASS | PASS | PASS | yes |
+| Solarian | on | PASS | PASS | PASS | PASS | PASS | yes |
+| Soldier | off | PASS | PASS | PASS | PASS | PASS | yes |
+| Soldier | on | PASS | PASS | PASS | PASS | PASS | yes |
+| Technomancer | off | PASS | PASS | PASS | PASS | PASS | yes |
+| Technomancer | on | PASS | PASS | PASS | PASS | PASS | yes |
+| Witchwarper | off | PASS | PASS | PASS | PASS | PASS | yes |
+| Witchwarper | on | PASS | PASS | PASS | PASS | PASS | yes |
 
-PASS = no throw, every feat slot filled, no warning. WARN(n) = n distinct findings. FAIL = a throw or at least one feat slot with no usable candidate left (a required pick; the completion manifest marks an entry-less feat unresolved and blocks Create).
+PASS = no throw, every feat slot filled, no warning-class finding. FAIL = a throw or at least one feat slot with no usable candidate (the completion manifest blocks Create). The bench's `complete?` column is `yes` for all 80 runs.
 
-What the 39 non-PASS runs hit (a run can hit several): 26 unresolved skill slots, 14 unresolved general slots, 12 unresolved Free Archetype slots, 7 caster-without-profile warnings, 4 class-path throws.
+## What W5 changed
 
-**Sensitivity.** The failure set depends on the character's fixed skill training. Same bench with background Bounty Hunter (trains Survival): 50 PASS / 7 WARN / 23 FAIL (skill-slot failures 26 → 14). Android / Biotech Android / Corporate Agent: 56 / 8 / 16. The general-slot failures (14) and the Technomancer warning do not move. Run `--background`, `--ancestry`, `--heritage` to reproduce.
+- `resolvePCConcept` (`scripts/pc-builder.mjs`) projects ability modifiers and skill ranks (`projectAttributeModifiers`, `projectSkillRanks`), passes them to every slot's prerequisite context, passes path and heritage names as `features`, widens general slots to `["general","skill"]`, and excludes class-path `reservedFeats` from every slot. Returns `skillPlan` for diagnostics.
+- `resolveFeatPicks` accepts `general` slots' `skill` feats in its permissive lookup too.
+- Tests: `scripts/pc-builder.wiring.test.mjs` (new) covers general slot with a skill feat, `Charisma +2` offered at +2 and withheld at +1, heritage-keyed feat offered and withheld. `scripts/pc-builder.specializedSkillSet.test.mjs` was updated: its ancestry fixture now has the real `flaws` shape, and it asserts the Sniper's reserved feat (Quiet Move) is never offered to a slot; a second Stealth feat was added so the level-3 Specialized Skill Set slot still has a candidate.
+- Bench: no change to `tools/class-bench/*` code was needed; the fake environment already covered the new paths. This document is the only bench file updated.
 
-## Root causes
+## Resolved causes (from the first run)
 
-### 1. Skill-feat slots run dry: prerequisite proof only counts fixed training (26 runs, FAIL)
+- **1. Skill-feat slots ran dry** (26 FAIL runs before). Prerequisite context now uses projected skill ranks at each slot's level (`scripts/pc-builder.mjs` ~lines 330-345 projection block; `scripts/pc-projection.mjs:178` `projectSkillRanks`). Operative, Soldier, Solarian, Envoy, Witchwarper now fill skill slots at every sampled level except the Mystic L20 pool below.
+- **2. General-feat slots, 3 general feats in sf2e** (14 FAIL runs). sf2e 1.6.1 `feats/collection.ts` lists `supported: ["general", "skill"]` for the general group (cited in the brief). `pc-builder.mjs:407` widens the category; the `resolveFeatPicks` filter accepts both. The `general` pool is 3 feats, so the 95 skill feats now supply most general slots.
+- **3. Free Archetype prerequisites.** `Charisma +2` style clauses are read by `clauseMet` (`scripts/pc-prerequisites.mjs`, wave-1 W1), and the projected Charisma modifier is supplied via `abilities` (`pc-builder.mjs` `abilities: modsAt(slot.level) ?? {}`). Multiclass dedications with a `Wisdom +2`-style clause (Mystic) appear in the archetype lists. Archetype slots fill at every sampled level except Mystic L20 with Free Archetype on (cause B).
+- **4. Operative L10 and L20 class path invalid** (4 FAIL runs). Class-path `reservedFeats` are never excluded from the path's own choice and are excluded from slots (`pc-builder.mjs:~414` `excludeUuids: reservedFeats`; `scripts/class-paths.mjs:377`, wave-1 W3). Operative passes every sampled level in both modes.
+- **5. Technomancer caster profile** (7 WARN runs). Resolved by C1 (already on the base): `pc-tables.mjs` Technomancer caster row.
+- **6. Path- and heritage-keyed feat prerequisites** ("mine exocortex", "DPS++ programming language", "<X> heritage"). `pc-builder.mjs` passes `features` built from `pathPlan` names and `heritageDoc.name` to `stagedActorContext`, so `nameClauseMet` can prove them. Mechanic and Technomancer feats of these families are offered.
+- **7. Mechanic and Technomancer not in `COMPLETE_PC_CLASS_SLUGS`** (information). Resolved by C1 on this base (`scripts/pc-support.mjs` lists eight classes).
 
-`resolvePCConcept` builds the prerequisite context from the class's and background's fixed `trainedSkills.value` plus the class path's own skill upgrade (`scripts/pc-builder.mjs:293` `initialSkillTraining`, `:304-308`, context built at `:340-347`). The class's free training (`trainedSkills.additional`) and every skill increase are allocated later by `allocateCharacterSkills` (`pc-builder.mjs:1061-1066`, `scripts/pc-skills.mjs:75`), so the feat filter never sees them. Nearly every skill feat is gated on training:
+## Remaining causes (FAIL)
 
-```
-feats/skill: Deadlift   "prerequisites": { "value": [ { "value": "trained in Athletics" } ] }
-classes/envoy.json:311  "trainedSkills": { "additional": 6, "value": [] }
-```
+### A. Mystic L20: general and skill slots outnumber the feats the default training can prove (2 runs, FAIL)
 
-Envoy has no fixed class skills, so with the Athlete background its whole skill-feat pool is the Athletics feats. Slots versus distinct feats offered across them (`results.json` → `pools`): Envoy and Solarian 2 slots / 1 feat at level 5 and 10 / 1 at level 20 (Envoy L10: 5 / 1); Mystic 5 / 2 at level 10; Soldier 5 / 4. Feats are not repeatable, so the slots after the pool is used up stay empty whatever the AI picks. `warn` text: `feat pick "Deadlift" for slot 9 (skill, level 6) did not resolve to an unused feat for this slot` (`pc-builder.mjs:457`), then the first-unused fallback finds nothing.
+Default Mystic (the class's first key-ability option, Athlete background, no skill priorities) has four trained skills at level 20: Athletics from the background plus three automatic trainings. `allocateCharacterSkills` gives the three class trainings to Medicine, Nature and Religion (wisdom skills), then spends all nine skill increases on them, reaching legendary (`pc-skills.mjs:56`; projection `scripts/pc-projection.mjs:178`).
 
-### 2. General-feat slots: sf2e ships three `general` feats (14 runs, FAIL, every class at 15+)
+Fifteen general and skill slots (5 general at 3, 7, 11, 15, 19; 10 skill) then share 13 distinct feats whose `trained in`, `expert in`, `master in` or `legendary in` prerequisites those four skills prove (`pools.general` 5 slots / 13 distinct; `pools.skill` 10 / 10). With 15 slots and 13 feats, no pick order fills every slot, and the module correctly does not duplicate a feat, so the last general and skill slots stay empty. A real player's skill priorities would widen the pool.
 
-`buildFeatSlots` makes `general` slots at levels 3, 7, 11, 15, 19 (`scripts/pc-tables.mjs:86-100`, from `generalFeatLevels`) and `getFeatCandidates` filters `system.category === "general"` (`scripts/compendium.mjs:952`). The pack holds exactly three:
+Sensitivity (same bench, `--levels 20 --classes mystic`): background Bounty Hunter (trains Survival) gives Mystic off = PASS; Scholar (no skill background) keeps both FAIL. Verified by running the bench; the widening effect of priorities is expected but not measured here.
 
-```
-packs/sf2e/feats/general/level-1/barricade.json:13        "category": "general",
-packs/sf2e/feats/general/level-1/augmented-body.json:13   "category": "general",
-packs/sf2e/feats/general/level-3/prescient-planner.json:13 "category": "general",
-```
+### B. Mystic L20 Free Archetype (Bounty Hunter variant): greedy fallback can miss a valid assignment (not in the default matrix)
 
-Five general slots at level 19 and 20 against three feats: `general-15` and `general-19` come back unresolved in every class (`pools.general` is 5 slots / 3 feats). **Unverified lead for the coordinator:** PF2e's general feat group may also accept `skill`-category feats; if sf2e's does, the module's category filter is stricter than the system. This needs the real `feats/group.ts` source before anyone acts.
-
-### 3. Free Archetype slots: ability prerequisites unreadable and never supplied, dedication chains unreachable (12 runs, FAIL)
-
-Confirmed lead, **two independent defects**:
-
-- `clauseMet` reads only digits-no-sign ability clauses: `scripts/pc-prerequisites.mjs:134` `/^(strength|...|charisma)\s+(\d+)$/i`. sf2e writes them as modifiers. All six multiclass dedications, plus Knight of Golarion, Nanocyte and Sacrificial Shell: `Envoy Dedication <= "Charisma +2"`, `Mechanic Dedication <= "Intelligence +2"`, `Mystic Dedication <= "Wisdom +2"`, `Soldier Dedication <= "Constitution +2"`, `Solarian Dedication <= "Strength +2"`, `Witchwarper Dedication <= "Intelligence +2 or Charisma +2"` (quoted from `packs/sf2e/feats/archetype/multiclass-archetypes/*/…-dedication.json`, e.g. envoy-dedication.json:20-23 `"prerequisites": { "value": [ { "value": "Charisma +2" } ] }`). A bare `Charisma +2` fails the regex, so it is treated as an unreadable name clause and fails closed.
-- Even a readable clause could not pass: `stagedActorContext({...})` at `pc-builder.mjs:340-347` is never given `abilities`, so `context.abilities` is `{}` (`pc-prerequisites.mjs:148`, `abilities = {}` default) and `Number.isFinite(undefined)` is false.
-
-Result: no multiclass dedication is ever offered. Archetype slots (one per even level, `pc-tables.mjs:99`) see only dedications with no prerequisites (Augmented, Grenadier, Peacekeeper) or a provable trained skill. Typical pool at level 10: 4 distinct feats for 5 slots (Technomancer, Witchwarper, Envoy), 6 for 5 (Soldier); at level 20, 4 for 10 (Mystic). The `Iomedae's Barrage` that fills a fourth place is a Knight of Golarion archetype feat in `sf2e.feats` (`feats/archetype/knight-of-golarion/iomedaes-barrage.json`).
-
-Also: follow-up archetype feats (which require the dedication taken in an earlier slot) are never offered either, because every slot's context is built before any pick exists (`pc-builder.mjs:340-347` passes no `feats`). The comment above `freeArchetypeNeedsPrerequisiteValidation` in `scripts/pc-support.mjs` says archetype slots are "now covered by the staged-actor evaluator"; `validateArchetypeSlotPlacement` could accumulate earlier picks, but `generator-app.mjs:1323` calls it with a null context after the slots were already filled, so chains are not reachable in practice. `audit-prereqs.mjs` (maximal actor: every skill legendary, every ability 30, every name possessed) counts 12 ability-modifier clauses the parser can never prove (ancestry and class feats; 86 class feats and 217 ancestry feats are unprovable even for that maximal actor, mostly the name-shaped clauses of cause 6).
-
-### 4. Operative level 10 and 20: planned class path becomes invalid when feats are picked (4 runs, FAIL)
-
-`resolvePCConcept` plans the class path before any feat exists (`pc-builder.mjs:299-302`, `planClassPaths(..., excludeFeats = [])`), then `createCharacterActor` stages it with `excludeFeats` holding every picked slot feat (`pc-builder.mjs:731-766`, `:767-772`). `stageClassPaths` rejects the plan when the chosen specialization's level-one skill-feat options are all excluded (`scripts/class-paths.mjs:369-373`):
-
-```
-simplysf2e | planned class path "Ghost" is not a valid candidate for "Operative's Specialization"
-```
-
-Both the skill slots and Ghost's own bonus feat draw on the same few Deception feats (Ghost: `"path": "system.skills.deception.rank"` upgrade plus `"choices": {"filter": ["item:category:skill","item:level:1"],"itemType":"feat"}`). Direct check with the real functions: `planClassPaths(operative, { excludeFeats: [] })` returns Ghost; excluding five picked skill feats returns Infiltrator instead. This is a rollback-and-throw at Create, not a warning, and it hits whenever enough skill slots (level ~8+) take the specialization's feats; with a different AI pick order it can happen at lower levels. Related to cause 1 (same tiny pool).
-
-### 5. Technomancer: no casting profile, and the fallback uses the wrong casting mode (7 runs, WARN)
-
-`pcSpellcastingProfile` only recognizes `title === "Starfinder Player Core"` rows (`scripts/pc-tables.mjs:139-150`, matcher `:156-163`). Technomancer is published as `"title": "Starfinder Tech Core"` (`packs/sf2e/classes/technomancer.json:163-166`), so the profile is null. `createCharacterActor` then falls back to `const mode = spellProfile?.mode ?? "spontaneous"` (`pc-builder.mjs:810`), but the class's own text says:
-
-```
-class-features/technomancer/technomancer-spellcasting.json: "…At 1st level, you can prepare up to two 1st-rank spells and five cantrips each morning from the spells in your spell database. Prepared spells remain available to you until you cast them…"
-```
-
-So a Technomancer is built with a spontaneous repertoire entry instead of a prepared one, and the tradition is not derived from any rule (the bench defaulted it to the text's `arcane`). Mystic and Witchwarper profiles are found; their tradition comes from the chosen connection/paradox (`ActiveEffectLike` `flags.system.mystic.tradition`) and is not in the profile. Spell slots and picks for both match the plan at every level; there were no spell shortfalls once lower-rank spells are allowed to be learned heightened (`pc-builder.mjs:838`).
-
-### 6. Class feats keyed to the chosen class path are never offered (information, Mechanic/Technomancer; no FAIL)
-
-Feat prerequisites name the path option in a form that is not the granted feature's name: `critical-explosion.json:20-23` `"value": "mine exocortex"` (also `drone exocortex`, `turret exocortex`: 22 hits), and `"ServoShell programming language"`, `"DPS++ programming language"`, `"Viper programming language"`, `"FORTRUN programming language"` (12 hits). The granted feature is just `class-features/mechanic/drone.json:5 "name": "Drone"`. The path plan is also not passed to `stagedActorContext` (`pc-builder.mjs:340-347` passes no `features`). Those feats are unreachable, leaving the exocortex and programming-language class-feat pools smaller than the rules allow. Same shape for ancestry feats: 153 clauses of the form `"Biotech Android heritage"` against a heritage named `"Biotech Android"` (`heritages/android/biotech-android.json:5`) can never match.
-
-### 7. Mechanic and Technomancer are not in `COMPLETE_PC_CLASS_SLUGS` (information)
-
-`scripts/pc-support.mjs:29-31` lists six classes; `v14-dev` now has eight (mechanic, technomancer added; both ship a level-one `item:tag:` path: `mechanic-exocortex`, `technomancer-programming-language`, so `planClassPaths` works for them as is). In the bench Mechanic passes levels 1 to 10 in both modes and fails only at 20 for causes 1 and 2; Technomancer only fails on cause 5 plus the same feat pools. `SF2E_MULTICLASS_DEDICATIONS` (`pc-support.mjs:47`) also lacks `mechanic` and `technomancer`, though `Mechanic Dedication` and `Technomancer Dedication` exist in the pack.
-
-### 8. Native ChoiceSets the module leaves open (information)
-
-Across all 80 runs the only unanswered ChoiceSet on a built item was `Specialty Crafting` (flag `specialtyCrafting`, a Mechanic level-20 class feat); no class/ABC `system.items` grant carried an open ChoiceSet beyond the staged paths. With the first-candidate picks the bench takes, most feat ChoiceSets never surface; do not read that as proof for AI-chosen feats. Versatile Human's `versatileHeritage` ChoiceSet (`choices.filter`) is left native by design (it showed in an earlier run before the default heritage was changed).
-
-## What is fine
-
-- Class-path planning and staging works for every class at level 1: Envoy From the Front, Mechanic Drone, Mystic Akashic, Operative Ghost, Soldier Action Hero, Technomancer DPS++, Witchwarper Analyst + Core Memories (two tags). Solarian has no `item:tag` path (`{}`), as documented.
-- Free Archetype adds the expected archetype slots (even levels) and `featSlotLocation` ids; the failures are the pool sizes in cause 3, not placement.
-- Class, ancestry, background and heritage resolve for all eight classes; spellcasting plans for Mystic and Witchwarper are fully populated through level 20 (43 spell items at level 20) with every embedded spell passing the module's own checks.
-- Skill allocation never reported a data fault; its `grant-timing` / `unspent-*` notes are ignored because the fake actor has no derived data.
+With `--background "Bounty Hunter" --classes mystic --levels 20`, Free Archetype on leaves `archetype-class-20` unresolved even though a valid assignment exists: `Knight of Golarion Dedication` and `Pharmacologist Dedication` appear only in the level-2 and level-4 archetype lists, so slots 2 and 4 must take them, leaving the other eight slots and slot 20 to share nine entries. `resolveFeatPicks` (`scripts/pc-builder.mjs` ~line 477) fills slots in order, first unused candidate, and never reassigns an earlier slot. The fix is an augmenting-path repair in `resolveFeatPicks`; it was not made in W5 because it changes dedupe behaviour and needs its own tests. Follow-up.
 
 ## Stubs that weaken this result
 
-- No Rule Elements run; `doc.system` is raw source (not prepared); the fake `Actor` has Int 0, HP max 1 and ranks only from class and background.
-- Native ABC grant expansion is not emulated (only inspected); `CONFIG.PF2E` has only `skills`.
-- Feat picks are "first candidate not already taken", not AI picks; spells are the first eligible per rank. Cause 4 in particular depends on pick order; causes 1 to 3 do not (pool smaller than slot count).
+- No Rule Elements run; `doc.system` is raw source (not prepared). The projection (`projectAttributeModifiers`, `projectSkillRanks`) is computed from source, not from Foundry's prepared data; the fake `Actor` still has Int 0 and ranks from class and background only.
+- Feat picks are "first candidate not already taken", not AI picks; cause A depends on the default training, not on pick order.
+- Native grant expansion is not emulated; `CONFIG.PF2E` has only `skills`.
 - One ABC combination per sweep, no equipment, loot, focus spells or languages, no rarity cap.
-- `fromUuid` resolves `Compendium.<scope>.<pack>.Item.<name>` by exact document name when the tail is not an id, as Foundry does for the name-style uuids sf2e class items use (`Compendium.sf2e.class-features.Item.Walking Armory`). This is the one behaviour assumed from core Foundry, which is not public source.
+- `fromUuid` resolves `Compendium.<scope>.<pack>.Item.<name>` by exact document name when the tail is not an id, as Foundry does for the name-style uuids sf2e class items use. This is the one behaviour assumed from core Foundry.

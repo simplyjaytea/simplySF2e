@@ -9,7 +9,7 @@ import { preselectChoiceSets } from "./choice-set.mjs";
 import { PC_WEALTH_BY_LEVEL, buildFeatSlots, featSlotLocation, pcSpellcastingProfile, pcSpellPlan } from "./pc-tables.mjs";
 import { SETTINGS, getSetting } from "./settings.mjs";
 import { CORE_SKILLS, SKILL_ATTRIBUTES, normalizeSkillPriorities, initialSkillTraining, allocateCharacterSkills, characterSkillSnapshot } from "./pc-skills.mjs";
-import { ABILITY_KEYS, normalizeAbilityPriorities, assignAbilityBoosts, assignItemBoosts } from "./pc-projection.mjs";
+import { ABILITY_KEYS, normalizeAbilityPriorities, assignAbilityBoosts, assignItemBoosts, projectAttributeModifiers, projectSkillRanks } from "./pc-projection.mjs";
 import { applyCharacterLoadout } from "./pc-loadout.mjs";
 import { planClassPaths, stageClassPaths } from "./class-paths.mjs";
 import { classManualNotes, technomancerInitialHack, withInitialFocusSpell } from "./pc-support.mjs";
@@ -320,6 +320,46 @@ export async function resolvePCConcept(concept, { exactContent = false, pathPlan
     }
   }
 
+  // Projected ability modifiers and skill ranks, computed with the same key
+  // ability and boosts createCharacterActor applies. Prerequisites such as
+  // "Charisma +2" or "trained in Stealth" are proven at each slot's level.
+  // A null ability projection passes no abilities; a null skill projection
+  // falls back to the staged ABC skills. Either case warns once.
+  const keyAbility = resolveKeyAbility(classDoc.system, concept.keyAbility);
+  const modsByLevel = new Map();
+  const modsAt = (lvl) => {
+    if (!modsByLevel.has(lvl)) {
+      modsByLevel.set(lvl, projectAttributeModifiers({
+        ancestrySystem: ancestryDoc.system, backgroundSystem: backgroundDoc.system,
+        keyAbility, preferences: concept.abilityPriorities, level: lvl
+      }));
+    }
+    return modsByLevel.get(lvl);
+  };
+  const levelMods = modsAt(concept.level);
+  const initialMods = modsAt(1);
+  const projection = levelMods && initialMods ? projectSkillRanks({
+    classSystem: classDoc.system, backgroundSystem: backgroundDoc.system, provenSkills,
+    intelligence: levelMods.int, initialIntelligence: initialMods.int, keyAbility,
+    priorities: concept.skillPriorities, level: concept.level
+  }) : null;
+  if (!levelMods || !initialMods || !projection) {
+    console.warn("simplysf2e | could not project ability modifiers or skill ranks — feat prerequisites use the staged ABC skills only");
+  }
+
+  // Path- and heritage-keyed prerequisites ("drone exocortex", "<X> heritage")
+  // are proven from the planned names only. Feats a class path keeps for its
+  // own choice never fill a general or skill slot.
+  const pathFeatures = [];
+  for (const [tag, planned] of Object.entries(pathPlan ?? {})) {
+    if (!planned?.name) continue;
+    pathFeatures.push({ name: planned.name });
+    if (tag === "mechanic-exocortex") pathFeatures.push({ name: `${planned.name} exocortex` });
+    if (tag === "technomancer-programming-language") pathFeatures.push({ name: `${planned.name} programming language` });
+  }
+  if (heritageDoc) pathFeatures.push({ name: `${heritageDoc.name} heritage` });
+  const reservedFeats = Object.values(pathPlan ?? {}).flatMap((planned) => planned?.reservedFeats ?? []);
+
   const hasSpecializedSkillSet = Object.values(classDoc.system?.items ?? {}).some((feature) =>
     Number(feature?.level) === 3 && (
       [
@@ -352,7 +392,9 @@ export async function resolvePCConcept(concept, { exactContent = false, pathPlan
     const isSpecializedSlot = hasSpecializedSkillSet && slot.type === "skill" && [3, 7, 15].includes(slot.level);
     const prerequisiteContext = stagedActorContext({
       level: slot.level, ancestry: ancestryDoc, heritage: heritageDoc,
-      background: backgroundDoc, class: classDoc, skills: { ...provenSkills, ...loreSkills },
+      background: backgroundDoc, class: classDoc, features: pathFeatures,
+      skills: { ...(projection ? projection.ranksAt(slot.level) : provenSkills), ...loreSkills },
+      abilities: modsAt(slot.level) ?? {},
       allowedSkillFeats: isSpecializedSlot
         ? (operativeSkill ? [operativeSkill] : [])
         : (skillfulLessons && slot.type === "skill" && slot.level >= 3 && slot.level % 2 === 1
@@ -361,14 +403,16 @@ export async function resolvePCConcept(concept, { exactContent = false, pathPlan
     const traits = slot.archetype ? ["archetype"]
       : slot.type === "ancestry" ? [ancestryTrait]
       : slot.type === "class" ? [classTrait] : [];
+    // General slots also accept skill feats (sf2e-1.6.1 feats/collection.ts: supported ["general", "skill"]).
+    const category = slot.type === "general" ? ["general", "skill"] : slot.type;
     let candidates = await getFeatCandidates({
-      level: slot.level, category: slot.type, traits, preferredNames: concept.feats,
-      prerequisiteContext
+      level: slot.level, category, traits, preferredNames: concept.feats,
+      excludeUuids: reservedFeats, prerequisiteContext
     });
     if (!candidates.length && traits.length && !slot.archetype) {
       candidates = await getFeatCandidates({
-        level: slot.level, category: slot.type, preferredNames: concept.feats,
-        prerequisiteContext
+        level: slot.level, category, preferredNames: concept.feats,
+        excludeUuids: reservedFeats, prerequisiteContext
       });
     }
     if (candidates.length) featSlots.push({ ...slot, candidates });
@@ -396,7 +440,7 @@ export async function resolvePCConcept(concept, { exactContent = false, pathPlan
   // pcStartingWealthGp()) is what actually fills it with coins.
   const loot = await resolveLoot(concept, { exactContent, skipped: skippedGear });
 
-  return { ancestryDoc, heritageDoc, backgroundDoc, classDoc, featSlots, spells, focusSpells, equipment, loot, skippedGear, pathPlan };
+  return { ancestryDoc, heritageDoc, backgroundDoc, classDoc, featSlots, spells, focusSpells, equipment, loot, skippedGear, pathPlan, skillPlan: projection?.plan ?? null };
 }
 
 /**
@@ -455,7 +499,7 @@ export async function resolveFeatPicks(featSlots, picks, { exactContent = false 
       allowedPacks,
       name,
       (e) => e.type === "feat"
-        && e.system?.category === slot.type
+        && (slot.type === "general" ? ["general", "skill"] : [slot.type]).includes(e.system?.category)
         && (e.system?.level?.value ?? 0) <= slot.level
         && !taken.has(slugify(e.name))
     );
