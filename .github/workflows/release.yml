@@ -159,14 +159,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for required_path in module.json LICENSE README.md lang scripts styles templates; do
+          for required_path in module.json LICENSE LICENSES.md README.md lang scripts styles templates; do
             if [[ ! -e "$required_path" ]]; then
               echo "Required release path is missing: $required_path" >&2
               exit 1
             fi
           done
           mapfile -t release_files < <(
-            printf '%s\n' module.json LICENSE README.md
+            printf '%s\n' module.json LICENSE LICENSES.md README.md
             find lang scripts styles templates -type f ! -name '*.test.mjs' -print | sort
           )
           zip -q module.zip "${release_files[@]}"
