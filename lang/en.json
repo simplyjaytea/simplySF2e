@@ -148,6 +148,14 @@
       "GotIt": "Got it",
       "Disable": "Don't show for updates",
       "Note": {
+        "TechCore": {
+          "Title": "Mechanic and Technomancer player characters",
+          "Body": "SimplySF2e now needs the Starfinder 2e system 1.6 or later. Player characters can be Mechanics or Technomancers from Tech Core. A Technomancer gets the magic hack that matches its programming language. A Mechanic who picks the Drone exocortex gets a reminder to set up the drone companion by hand."
+        },
+        "UiRefresh": {
+          "Title": "Easier to read, more Starfinder",
+          "Body": "Small labels and table headings are larger, and input fields have clearer borders. After a preview appears, Create is the main button and Generate offers another version. Icons and Item Forge wording now fit Starfinder: a microchip for the Generator, gears for the Item Forge and a bolt for Generate."
+        },
         "CreatureArt": {
           "Title": "Creature art keeps its token",
           "Body": "With an art module installed, a generated creature now keeps the token art and scale of the similar bestiary creature it borrows from, instead of reusing its portrait. Its token is named after the new creature, and encounter copies are numbered in their token name too."
