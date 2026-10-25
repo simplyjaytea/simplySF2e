@@ -68,7 +68,7 @@ export class GeneratorApp extends SpfApp {
     classes: ["simplysf2e"],
     window: {
       title: "SIMPLYSF2E.Generator.Title",
-      icon: "fa-solid fa-dragon",
+      icon: "fa-solid fa-microchip",
       resizable: true
     },
     position: { width: 720, height: "auto" },
