@@ -245,6 +245,9 @@ jobs:
         run: |
           set -euo pipefail
           if gh release view beta --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            # Move the "beta" tag to this build so the release's source
+            # archive matches its assets (gh release edit cannot move a tag).
+            gh api -X PATCH "repos/${GITHUB_REPOSITORY}/git/refs/tags/beta" -f sha="$GITHUB_SHA" -F force=true >/dev/null
             gh release upload beta --repo "$GITHUB_REPOSITORY" module.json module.zip --clobber
             gh release edit beta --repo "$GITHUB_REPOSITORY" --prerelease --title "Beta channel (now $TAG)"
           else
