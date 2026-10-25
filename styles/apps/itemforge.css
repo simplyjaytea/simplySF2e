@@ -57,7 +57,6 @@
 /* Accent, not neon: neon on the selected tile fill is 2.88:1 (audit F7). */
 .simplysf2e .spf-kind-choice.spf-kind-selected > i {
   color: var(--spf-brand-accent);
-  text-shadow: var(--spf-neon-glow);
 }
 
 .simplysf2e .spf-kind-choice-copy {

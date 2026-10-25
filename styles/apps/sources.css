@@ -80,7 +80,6 @@
 /* HUD hooks: must follow the shared .spf-hint / .spf-card rules they refine. */
 .simplysf2e .spf-hud-accent {
   color: var(--spf-brand-accent);
-  text-shadow: 0 0 8px color-mix(in srgb, var(--spf-brand-accent) 55%, transparent);
   letter-spacing: 0.04em;
 }
 
