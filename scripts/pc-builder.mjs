@@ -6,9 +6,10 @@ import {
 } from "./builder.mjs";
 import { slugify, capitalized, toHtml } from "./text.mjs";
 import { preselectChoiceSets } from "./choice-set.mjs";
-import { ABILITY_BOOST_LEVELS, PC_WEALTH_BY_LEVEL, buildFeatSlots, featSlotLocation, pcSpellcastingProfile, pcSpellPlan } from "./pc-tables.mjs";
+import { PC_WEALTH_BY_LEVEL, buildFeatSlots, featSlotLocation, pcSpellcastingProfile, pcSpellPlan } from "./pc-tables.mjs";
 import { SETTINGS, getSetting } from "./settings.mjs";
 import { CORE_SKILLS, SKILL_ATTRIBUTES, normalizeSkillPriorities, initialSkillTraining, allocateCharacterSkills, characterSkillSnapshot } from "./pc-skills.mjs";
+import { ABILITY_KEYS, normalizeAbilityPriorities, assignAbilityBoosts, assignItemBoosts } from "./pc-projection.mjs";
 import { applyCharacterLoadout } from "./pc-loadout.mjs";
 import { planClassPaths, stageClassPaths } from "./class-paths.mjs";
 import { classManualNotes, technomancerInitialHack, withInitialFocusSpell } from "./pc-support.mjs";
@@ -25,17 +26,6 @@ import { gpToCredits } from "./currency.mjs";
  * Spell slots/repertoire plans are supplied separately by verified class
  * profiles: class items expose spell proficiency, not automatic slot counts.
  */
-
-const ABILITY_KEYS = ["str", "dex", "con", "int", "wis", "cha"];
-
-function normalizeAbilityPriorities(value) {
-  const seen = new Set();
-  return (Array.isArray(value) ? value : []).filter((ability) => {
-    if (!ABILITY_KEYS.includes(ability) || seen.has(ability)) return false;
-    seen.add(ability);
-    return true;
-  });
-}
 
 /**
  * Coerce the AI's raw PC concept JSON into a well-formed object. Guarantees
@@ -508,63 +498,6 @@ export async function resolveFeatPicks(featSlots, picks, { exactContent = false 
     });
   }
   return resolved;
-}
-
-/**
- * Deterministic v1 ability-boost assignment: boost the class's key ability
- * and Constitution at every eligible tier, filling the rest of the 4 free
- * boosts from the remaining abilities in a fixed order. This is a reasonable
- * default build, NOT a real point-buy allocation tailored to the concept —
- * out of scope per the plan (no pre-create edit screen in v1); a GM should
- * sanity-check/adjust it before play, same review step as any other preview.
- */
-function boostPriority(keyAbility, preferences = []) {
-  const key = ABILITY_KEYS.includes(keyAbility) ? keyAbility : "str";
-  const preferred = normalizeAbilityPriorities(preferences).filter((ability) => ability !== key);
-  return [key, ...preferred, ...ABILITY_KEYS.filter((ability) => ability !== key && !preferred.includes(ability))];
-}
-
-function assignAbilityBoosts(keyAbility, preferences) {
-  const priority = boostPriority(keyAbility, preferences).slice(0, 4);
-  const boosts = {};
-  for (const level of ABILITY_BOOST_LEVELS) boosts[level] = [...priority];
-  return boosts;
-}
-
-/**
- * Pick a legal `selected` for every ability-boost slot on a cloned ancestry or
- * background item, so the PF2e system actually applies each boost. An unset
- * `selected` contributes NOTHING (verified: ancestry/background document
- * prepareActorData only pushes slots whose `selected` is truthy — that's why
- * a freshly-attached ancestry/background gave the character no attribute
- * boosts, issue #50 item 1). Slot rules verified against foundryvtt/pf2e item
- * source (ancestry/background data.ts + ancestry document prepareBaseData):
- *   value.length === 1 -> fixed boost, selected forced to value[0]
- *   value.length  >  1 -> constrained choice, pick from the listed options
- *   value.length === 0 -> not a real boost in modern data (legacy/voluntary
- *                          placeholder, e.g. Human's third slot); left untouched
- * Free boosts within one item are kept distinct (remaster "two different
- * abilities"), preferring the character's key ability then Constitution.
- */
-function assignItemBoosts(system, keyAbility, preferences) {
-  const boosts = system?.boosts;
-  if (!boosts || typeof boosts !== "object") return;
-  const priority = boostPriority(keyAbility, preferences);
-  const taken = new Set();
-  for (const slot of Object.values(boosts)) {
-    if (Array.isArray(slot?.value) && slot.value.length === 1) {
-      slot.selected = slot.value[0];
-      taken.add(slot.value[0]);
-    }
-  }
-  for (const slot of Object.values(boosts)) {
-    if (!Array.isArray(slot?.value) || slot.value.length <= 1) continue;
-    const pick = priority.find((a) => slot.value.includes(a) && !taken.has(a))
-      ?? slot.value.find((a) => !taken.has(a))
-      ?? slot.value[0];
-    slot.selected = pick;
-    taken.add(pick);
-  }
 }
 
 /**
