@@ -8,7 +8,7 @@
 import { SETTINGS, getSetting } from "./settings.mjs";
 import { featPrerequisitesMet } from "./pc-prerequisites.mjs";
 import { slugify } from "./text.mjs";
-import { withinShopRarity } from "./shop.mjs";
+import { withinShopRarity, hasPositivePrice } from "./shop.mjs";
 
 export const CATEGORIES = [
   "abilities", "spells", "feats", "equipment", "ancestries", "backgrounds", "classes", "classFeatures", "heritages", "bestiaryActors"
@@ -208,7 +208,7 @@ async function getIndex(packId) {
       "name", "type", "system.slug", "system.level.value",
       "system.traits.value", "system.traits.traditions", "system.ritual",
       "system.category", "system.spell", "system.traits.rarity", "system.traits.otherTags", "system.prerequisites.value",
-      "system.group"
+      "system.group", "system.price.value"
     ]
   });
   const entries = index.map((e) => ({ ...e, packId, normalized: normalize(e.name) }));
@@ -782,6 +782,7 @@ export async function getShopCandidates(level, keywords = [], { types, maxRarity
   const maxLevel = Math.max(Number(level) || 0, 0);
   const candidates = [];
   const seen = new Set();
+  const unpriced = [];
   for (const packId of getPacksFor("equipment")) {
     const entries = await getIndex(packId);
     if (!entries) continue;
@@ -792,6 +793,12 @@ export async function getShopCandidates(level, keywords = [], { types, maxRarity
       if (itemLevel > maxLevel) continue;
       const rarity = entry.system?.traits?.rarity ?? "common";
       if (!withinShopRarity(rarity, maxRarity)) continue;
+      // Shop stock and hoards only: an item with no positive price would be
+      // sold or hoarded for 0 credits, so it is left out before the AI sees it.
+      if (!hasPositivePrice(entry.system?.price?.value)) {
+        unpriced.push(entry.name);
+        continue;
+      }
       if (seen.has(entry.normalized)) continue;
       seen.add(entry.normalized);
       candidates.push(candidateRecord(entry, {
@@ -804,6 +811,9 @@ export async function getShopCandidates(level, keywords = [], { types, maxRarity
           ? { group: entry.system.group, category: entry.system?.category ?? null } : {})
       }));
     }
+  }
+  if (unpriced.length) {
+    console.warn(`simplysf2e | ${unpriced.length} equipment item(s) left out of shop and hoard stock: no positive price (${unpriced.join(", ")})`);
   }
   candidates.sort((a, b) => a.level - b.level || a.name.localeCompare(b.name));
   return limitEquipmentCandidates(candidates, keywords, limit, { weaponGroups: types?.has("weapon") ?? false })

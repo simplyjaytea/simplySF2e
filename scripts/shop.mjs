@@ -63,6 +63,20 @@ export function withinShopRarity(rarity, maxRarity = "common") {
   return rank <= (RARITY_RANK[maxRarity] ?? RARITY_RANK.common);
 }
 
+/** Price denominations compendium.mjs priceToGp() reads: coins, credits and UPB. */
+const PRICE_DENOMINATIONS = ["pp", "gp", "sp", "cp", "credits", "upb"];
+
+/**
+ * True when an item's `system.price.value` has a positive amount in some
+ * denomination. sf2e 1.6.1 lists some equipment with `{}` (no price), and zero
+ * is unpriced too: such an item would sell or hoard for 0 credits, so it is
+ * never stocked. Nothing is guessed.
+ */
+export function hasPositivePrice(priceValue) {
+  if (!priceValue || typeof priceValue !== "object") return false;
+  return PRICE_DENOMINATIONS.some((key) => Number(priceValue[key]) > 0);
+}
+
 /**
  * Coerce the AI's shop concept into a safe shape. Flavor only: name, keeper,
  * description, search keywords and category slugs. Nothing here is a number.
