@@ -198,5 +198,96 @@ export function pcSpellPlan(level, profile) {
       : [];
     return { slots, picks, signatureRanks };
   }
+  // Prepared profiles are the Technomancer class: its picks are the daily slots
+  // (the spell database is the wider pool they are prepared from, see below).
+  if (profile?.mode === "prepared") return { slots, picks, signatureRanks: [], database: technomancerDatabasePlan(level) };
   return { slots, picks, signatureRanks: [] };
+}
+
+/**
+ * Spellcasting Archetypes, sf2e-1.6.1 packs/sf2e/journals/archetypes.json
+ * (page "Spellcasting Archetypes", Starfinder Player Core pg. 174). The
+ * dedication grants two cantrips. Each placed Basic/Expert/Master
+ * <Class> Spellcasting feat grants one slot per listed rank, once the PC
+ * reaches the listed level. The feats themselves carry no rules.
+ *   Basic: "usually available at 4th level ... 1st-rank ... 2nd-rank ... 3rd-rank"
+ *   Expert: "typically taken at 12th level ... 4th-rank ... 5th ... 6th"
+ *   Master: "usually found at 18th level ... 7th-rank ... 8th-rank"
+ */
+export const ARCHETYPE_SPELL_GRANTS = {
+  basic: [{ level: 4, rank: 1 }, { level: 6, rank: 2 }, { level: 8, rank: 3 }],
+  expert: [{ level: 12, rank: 4 }, { level: 14, rank: 5 }, { level: 16, rank: 6 }],
+  master: [{ level: 18, rank: 7 }, { level: 20, rank: 8 }]
+};
+
+/**
+ * Archetype spell plan for a dedicated PC: the cited two dedication cantrips
+ * plus one slot per granted rank whose feat is placed and whose level is
+ * reached. `rank` slots are NOT repertoire-scaled; an archetype entry holds
+ * exactly the slots its placed feats grant.
+ * @returns {{cantrips: number, slots: Record<number, number>}}
+ */
+export function archetypeSpellSlots(level, { basic = false, expert = false, master = false } = {}) {
+  const lv = Math.min(Math.max(Math.round(Number(level)) || 1, 1), 20);
+  const slots = {};
+  for (const [feat, placed] of [["basic", basic], ["expert", expert], ["master", master]]) {
+    if (placed !== true) continue;
+    for (const { level: grantLevel, rank } of ARCHETYPE_SPELL_GRANTS[feat]) {
+      if (lv >= grantLevel) slots[rank] = 1;
+    }
+  }
+  return { cantrips: 2, slots };
+}
+
+/**
+ * Caster dedications, keyed by the feat slug (pc-support SF2E_MULTICLASS_DEDICATIONS).
+ * - Mystic: spontaneous, Wisdom, tradition from the granted Connection
+ *   (mystic-dedication: "two common cantrips from the spell list granted by your
+ *   connection"). The connection's tradition must be proven by the build.
+ * - Witchwarper: spontaneous, Intelligence or Charisma (the chosen key attribute),
+ *   tradition from the Paradox ("two common cantrips from the spell list associated
+ *   with your paradox").
+ * - Technomancer: prepared, Intelligence, arcane ("they're arcane technomancer spells").
+ * sf2e-1.6.1 packs/sf2e/feats (dedications) and journals/archetypes.json.
+ */
+export const ARCHETYPE_CASTER_DEDICATIONS = {
+  "mystic-dedication": { mode: "spontaneous", ability: "wis", abilities: null, tradition: null, traditionFrom: "connection" },
+  "witchwarper-dedication": { mode: "spontaneous", ability: null, abilities: ["int", "cha"], tradition: null, traditionFrom: "paradox" },
+  "technomancer-dedication": { mode: "prepared", ability: "int", abilities: null, tradition: "arcane", traditionFrom: null }
+};
+
+/**
+ * Witchwarper dedication key attribute: the higher projected modifier of
+ * Intelligence and Charisma; a tie uses Intelligence. Null when a modifier is
+ * missing, so the caller fails closed.
+ */
+export function witchwarperArchetypeAbility(mods) {
+  const int = mods?.int;
+  const cha = mods?.cha;
+  if (!Number.isFinite(int) || !Number.isFinite(cha)) return null;
+  return cha > int ? "cha" : "int";
+}
+
+/**
+ * Technomancer spell database (sf2e-1.6.1 Technomancer Spellcasting,
+ * classes/vVobwIMADBAIsBUV): "your choice of 10 arcane cantrips and five 1st-rank
+ * arcane spells", plus one 1st-rank programming-language cache spell ("you also
+ * add one 1st-rank spell from your programming language"). Each level after 1st
+ * adds two arcane spells "of any spell rank for which you have spell slots", and
+ * each newly gained rank adds one cache spell of that rank.
+ * `caps` are per-rank upper bounds for the level-up picks: a rank-r pick is
+ * possible only at a level whose max rank is at least r, i.e. level >= 2r-1
+ * (ceil(level/2) >= r), so rank r gets 2 per such level from 2 onward.
+ * @returns {{cantrips: number, rankOne: number, levelUps: number, maxRank: number,
+ *   cacheRanks: number[], size: number, caps: Record<number, number>}}
+ */
+export function technomancerDatabasePlan(level) {
+  const lv = Math.min(Math.max(Math.round(Number(level)) || 1, 1), 20);
+  const maxRank = Math.min(Math.ceil(lv / 2), 10);
+  const levelUps = 2 * (lv - 1);
+  const levelUpCap = (rank) => 2 * Math.max(0, lv - Math.max(2, 2 * rank - 1) + 1);
+  const caps = { 0: 10, 1: 5 + levelUpCap(1) };
+  for (let rank = 2; rank <= maxRank; rank++) caps[rank] = levelUpCap(rank);
+  const cacheRanks = Array.from({ length: maxRank }, (_, i) => i + 1);
+  return { cantrips: 10, rankOne: 5, levelUps, maxRank, cacheRanks, size: 10 + 5 + levelUps + cacheRanks.length, caps };
 }

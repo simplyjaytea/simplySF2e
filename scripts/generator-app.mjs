@@ -22,7 +22,7 @@ import { runPool, encounterConcurrency } from "./pool.mjs";
 import { relevelActorData, clampRelevel, RELEVEL_MIN, RELEVEL_MAX } from "./relevel.mjs";
 import { REROLL_KINDS, rerollTarget, rerollPool, applyRerollPick, rerollKeywords } from "./reroll.mjs";
 import {
-  normalizePCConcept, resolvePCConcept, resolveFeatPicks, createCharacterActor, pcStartingWealthGp
+  normalizePCConcept, resolvePCConcept, resolveFeatPicks, createCharacterActor, pcStartingWealthGp, archetypeCasterPlan
 } from "./pc-builder.mjs";
 import { pcSpellcastingProfile, pcSpellPlan } from "./pc-tables.mjs";
 import { reviewUnresolvedChoices } from "./choice-set.mjs";
@@ -1319,6 +1319,10 @@ export class GeneratorApp extends SpfApp {
           if (castingProfile.tradition) concept.spellcasting.tradition = castingProfile.tradition;
           const plan = pcSpellPlan(concept.level, castingProfile);
           concept.spellcasting.plannedPicks = plan.picks;
+          // A spell database (Technomancer) is selected against its own caps; the
+          // daily slots above stay the completion check for prepared spells.
+          concept.spellcasting.selectionPicks = plan.database ? plan.database.caps : null;
+          concept.spellcasting.database = Boolean(plan.database);
           concept.spellcasting.signatureRanks = plan.signatureRanks;
           concept.spellcasting.preparationMode = castingProfile.mode;
           concept.spellcasting.maxRank = Math.max(...Object.entries(plan.slots)
@@ -1373,6 +1377,14 @@ export class GeneratorApp extends SpfApp {
       // enforced in the AI prompt, so a non-compliant model output can still
       // return a valid tradition.
       if (!this.#input.allowSpellcasting) concept.spellcasting = null;
+      // A placed caster dedication gets its own spell list (a separate archetype
+      // entry, never merged into the class list). Its tradition is proven in
+      // archetypeCasterPlan or the dedication is skipped.
+      const archetype = this.#input.allowSpellcasting ? archetypeCasterPlan(concept, resolved) : null;
+      concept.archetypeSpellcasting = archetype ? {
+        tradition: archetype.tradition, preparationMode: archetype.mode,
+        plannedPicks: archetype.counts, maxRank: archetype.maxRank, spells: []
+      } : null;
 
       // Both refine helpers reuse the NPC pipeline; the PC spell pass also
       // receives a class-qualified plan where supported. The
@@ -1382,6 +1394,7 @@ export class GeneratorApp extends SpfApp {
       // as the NPC pipeline: only call _setStep("spells") when that key exists.
       if (this.#input.allowSpellcasting && concept.spellcasting) await this._setStep("spells");
       await this.#refineSpells(concept, signal);
+      await this.#refineArchetypeSpells(concept, signal);
 
       await this._setStep("equipment");
       await this.#refineEquipment(concept, signal);
@@ -1510,11 +1523,12 @@ export class GeneratorApp extends SpfApp {
         if (err?.cancelled) throw err;
         console.warn(`${MODULE_ID} | spell focus selection failed, using first-draft spell names only`, err);
       }
+      const selectionPicks = spellcasting.selectionPicks ?? spellcasting.plannedPicks;
       const candidates = await getSpellCandidates(
         spellcasting.tradition,
         spellcasting.maxRank,
         [...spellcasting.spells.map((spell) => spell.name), ...keywords],
-        spellcasting.plannedPicks
+        selectionPicks
       );
       const focusCandidates = await getFocusSpellCandidates(
         spellcasting.maxRank,
@@ -1529,9 +1543,10 @@ export class GeneratorApp extends SpfApp {
           candidates,
           focusCandidates,
           maxRank: spellcasting.maxRank,
-          plannedPicks: spellcasting.plannedPicks,
+          plannedPicks: selectionPicks,
           preparationMode: spellcasting.preparationMode,
           signatureRanks: spellcasting.signatureRanks,
+          database: spellcasting.database === true,
           onProgress: (p) => this._onAIProgress({
             ...p,
             call: game.i18n.localize("SIMPLYSF2E.Progress.Spells")
@@ -1552,6 +1567,42 @@ export class GeneratorApp extends SpfApp {
     // records every missing module-owned pick and blocks actor creation.
     if (spellcasting.plannedPicks) return;
     concept.spellcasting = null;
+  }
+
+  /**
+   * Caster dedication spells: the same grounded flow as #refineSpells, with the
+   * archetype's own tradition, per-rank caps and maximum rank. Fail closed: no
+   * candidates or an AI failure leaves the archetype list empty; pc-builder
+   * builds the entry without spells rather than inventing any.
+   */
+  async #refineArchetypeSpells(concept, signal) {
+    const plan = concept?.archetypeSpellcasting;
+    if (!plan) return;
+    try {
+      const candidates = await getSpellCandidates(plan.tradition, plan.maxRank, [], plan.plannedPicks);
+      if (!candidates.length) {
+        console.warn(`${MODULE_ID} | no archetype spell candidates found — archetype spells left empty`);
+        return;
+      }
+      const { spells, usage, timing } = await selectSpells({
+        concept: { ...concept, spellcasting: { tradition: plan.tradition, spells: [] } },
+        candidates,
+        focusCandidates: [],
+        maxRank: plan.maxRank,
+        plannedPicks: plan.plannedPicks,
+        preparationMode: plan.preparationMode,
+        signatureRanks: [],
+        onProgress: (p) => this._onAIProgress({
+          ...p,
+          call: game.i18n.localize("SIMPLYSF2E.Progress.Spells")
+        }), signal
+      });
+      this._recordTokens(game.i18n.localize("SIMPLYSF2E.Progress.Spells"), usage, timing);
+      plan.spells = spells;
+    } catch (err) {
+      if (err?.cancelled) throw err;
+      console.warn(`${MODULE_ID} | archetype spell selection failed — archetype spells left empty`, err);
+    }
   }
 
   /** Resolve published abilities by opaque ID; unlisted concept flavor stays narrative-only. */

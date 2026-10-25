@@ -6,13 +6,16 @@ import {
 } from "./builder.mjs";
 import { slugify, capitalized, toHtml } from "./text.mjs";
 import { preselectChoiceSets } from "./choice-set.mjs";
-import { PC_WEALTH_BY_LEVEL, buildFeatSlots, featSlotLocation, pcSpellcastingProfile, pcSpellPlan } from "./pc-tables.mjs";
+import {
+  PC_WEALTH_BY_LEVEL, buildFeatSlots, featSlotLocation, pcSpellcastingProfile, pcSpellPlan,
+  ARCHETYPE_CASTER_DEDICATIONS, archetypeSpellSlots, witchwarperArchetypeAbility
+} from "./pc-tables.mjs";
 import { SETTINGS, getSetting } from "./settings.mjs";
 import { CORE_SKILLS, normalizeSkillPriorities, initialSkillTraining, allocateCharacterSkills, characterSkillSnapshot } from "./pc-skills.mjs";
 import { ABILITY_KEYS, normalizeAbilityPriorities, assignAbilityBoosts, assignItemBoosts, projectAttributeModifiers, projectSkillRanks } from "./pc-projection.mjs";
 import { applyCharacterLoadout } from "./pc-loadout.mjs";
 import { planClassPaths, stageClassPaths } from "./class-paths.mjs";
-import { classManualNotes, technomancerInitialHack, withInitialFocusSpell } from "./pc-support.mjs";
+import { archetypeTraditionFor, classManualNotes, technomancerCacheSpells, technomancerInitialHack, withInitialFocusSpell } from "./pc-support.mjs";
 import { stagedActorContext } from "./pc-prerequisites.mjs";
 import { gpToCredits } from "./currency.mjs";
 
@@ -410,14 +413,9 @@ export async function resolvePCConcept(concept, { exactContent = false, pathPlan
     }
   }
 
-  const spells = [];
-  if (concept.spellcasting) {
-    for (const spell of concept.spellcasting.spells) {
-      const entry = isIssuedCandidate(spell.candidate, getPacksFor("spells"))
-        ? spell.candidate : (exactContent ? null : await findEntry(getPacksFor("spells"), spell.name, (e) => e.type === "spell"));
-      spells.push({ spell, entry });
-    }
-  }
+  const spells = await groundSpellPicks(concept.spellcasting?.spells ?? [], { exactContent });
+  // Caster dedication picks (archetype entry), grounded the same way.
+  const archetypeSpells = await groundSpellPicks(concept.archetypeSpellcasting?.spells ?? [], { exactContent });
 
   const focusSpells = await resolveFocusSpells(concept.focusSpells ?? [], { exactContent });
 
@@ -428,7 +426,10 @@ export async function resolvePCConcept(concept, { exactContent = false, pathPlan
   // pcStartingWealthGp()) is what actually fills it with coins.
   const loot = await resolveLoot(concept, { exactContent, skipped: skippedGear });
 
-  return { ancestryDoc, heritageDoc, backgroundDoc, classDoc, featSlots, spells, focusSpells, equipment, loot, skippedGear, pathPlan, skillPlan: projection?.plan ?? null };
+  return {
+    ancestryDoc, heritageDoc, backgroundDoc, classDoc, featSlots, spells, archetypeSpells, focusSpells, equipment, loot, skippedGear,
+    pathPlan, skillPlan: projection?.plan ?? null, abilityMods: levelMods ?? null
+  };
 }
 
 /**
@@ -730,6 +731,7 @@ function conceptChoiceNames(concept, resolved) {
     ...(concept.feats ?? []),
     ...(resolved.feats ?? []).map((f) => f?.name),
     ...(concept.spellcasting?.spells ?? []).map((s) => s?.name),
+    ...(concept.archetypeSpellcasting?.spells ?? []).map((s) => s?.name),
     ...(concept.focusSpells ?? []).map((s) => s?.name),
     resolved.ancestryDoc?.name,
     resolved.heritageDoc?.name,
@@ -763,6 +765,244 @@ async function preresolveChoiceSets(itemSources, concept, resolved, keyAbility, 
   };
 
   await preselectChoiceSets(itemSources, context, config, loadItemSource, selectChoices);
+}
+
+/**
+ * Ground AI spell picks: an issued candidate reference wins; otherwise a name
+ * match (never under exactContent, which allows only issued references).
+ * @returns {Promise<{spell: object, entry: object|null}[]>}
+ */
+async function groundSpellPicks(picks, { exactContent = false } = {}) {
+  const grounded = [];
+  for (const spell of Array.isArray(picks) ? picks : []) {
+    const entry = isIssuedCandidate(spell.candidate, getPacksFor("spells"))
+      ? spell.candidate : (exactContent ? null : await findEntry(getPacksFor("spells"), spell.name, (e) => e.type === "spell"));
+    grounded.push({ spell, entry });
+  }
+  return grounded;
+}
+
+/** Document identity for spell de-duplication. Bare `_id`s collide across packs. */
+function spellIdentity(doc, entry) {
+  return doc?.uuid ?? entry?.uuid ?? (entry?.packId && entry?._id ? `${entry.packId}:${entry._id}` : null);
+}
+
+/**
+ * Resolve one Technomancer cache spell by its exact name in sf2e.spells
+ * (pc-support TECHNOMANCER_LANGUAGE_CACHE). Fail closed: a disabled pack, a
+ * name miss, a non-spell, or a base rank other than the cited rank warns and
+ * yields null.
+ */
+async function resolveCacheSpell({ rank, name }) {
+  if (!getPacksFor("spells").includes("sf2e.spells")) {
+    console.warn(`simplysf2e | sf2e.spells is not an enabled spell source — cache spell "${name}" not added`);
+    return null;
+  }
+  const entry = await findEntry(["sf2e.spells"], name, (e) => e.type === "spell" && e.name === name);
+  const doc = entry ? await getDocument(entry) : null;
+  const data = doc ? toItemData(doc) : null;
+  if (!data || data.type !== "spell" || data.name !== name || data.system?.level?.value !== rank) {
+    console.warn(`simplysf2e | cache spell "${name}" (rank ${rank}) not found in sf2e.spells as a rank ${rank} spell — not added`);
+    return null;
+  }
+  return { entry, doc, data };
+}
+
+/**
+ * One spellcasting entry and the spell documents it owns. The class entry and
+ * an archetype (dedication) entry both come through here, so each keeps its
+ * own counts, caps and tradition; nothing is merged between them.
+ *  - spontaneous: each valid pick is a repertoire row at its assigned rank.
+ *  - prepared: each valid pick is a daily slot; a repeated pick repeats the slot.
+ *  - prepared with `plan.database` (Technomancer class): valid picks form the
+ *    spell database, plus the cache spells by exact name. Daily slots are then
+ *    prepared only from database spells of the same rank, in database order
+ *    (cache spells first), and a shortfall warns instead of inventing a spell.
+ * `profiled` is true when the class or dedication has a verified profile; then
+ * trait data is required and tradition, focus/ritual and 10th-rank rules apply.
+ */
+async function buildSpellcastingEntry({ entryId, name, tradition, mode, ability, proficiency, profiled, plan, picks, cacheSpells = [] }) {
+  const database = plan.database ?? null;
+  const counts = plan.slots;
+  const caps = database ? database.caps : plan.picks;
+  const slots = {};
+  for (const [rank, max] of Object.entries(counts)) {
+    slots[`slot${rank}`] = { value: max, max, prepared: [] };
+  }
+
+  const spellSources = new Map();
+  const databaseSpells = [];
+  const seenDatabase = new Set();
+  // The database holds the cited totals: 10 cantrips and 5 + levelUps ranked spells.
+  // Per-rank caps alone would let a model exceed the total, so it is checked here.
+  const databaseTotals = { cantrips: 0, ranked: 0 };
+  const usedCantrips = new Set();
+  const spontaneousSeen = new Set();
+  const usedRanks = new Map();
+  const signatureCandidates = new Map();
+  for (const cache of cacheSpells) {
+    const found = await resolveCacheSpell(cache);
+    if (!found) continue;
+    const identity = spellIdentity(found.doc, found.entry);
+    if (!identity || seenDatabase.has(identity)) continue;
+    seenDatabase.add(identity);
+    found.data._id = foundry.utils.randomID();
+    found.data.system.location = { value: entryId };
+    databaseSpells.push({ rank: cache.rank, data: found.data });
+  }
+
+  for (const { spell, entry } of picks) {
+    const assignedRank = spell?.rank;
+    const reject = (reason) => console.warn(`simplysf2e | dropped planned spell "${spell?.name ?? entry?.name ?? "?"}": ${reason}`);
+    if (typeof assignedRank !== "number" || !Number.isInteger(assignedRank) || assignedRank < 0 || assignedRank > 10 || !caps[assignedRank]) { reject("assigned rank is invalid or has no slot"); continue; }
+    const doc = await getDocument(entry);
+    if (!doc) { reject("could not load grounded spell"); continue; }
+    const source = toItemData(doc);
+    if (source.type !== "spell") { reject("grounded document is not a spell"); continue; }
+    const baseRank = source.system?.level?.value;
+    const traits = source.system?.traits ?? {};
+    const cantrip = Array.isArray(traits.value) && traits.value.includes("cantrip");
+    const traditions = Array.isArray(traits.traditions) ? traits.traditions : [];
+    if (profiled && (!Array.isArray(traits.value) || !Array.isArray(traits.traditions))) { reject("missing spell trait data"); continue; }
+    if (!Number.isInteger(baseRank) || baseRank < 0 || (!cantrip && baseRank > assignedRank)) { reject("base rank cannot occupy assigned rank"); continue; }
+    if (cantrip !== (assignedRank === 0)) { reject("cantrip rank mismatch"); continue; }
+    if ((Array.isArray(traits.value) && traits.value.includes("focus")) || source.system?.ritual) { reject("focus spells and rituals use separate casting entries"); continue; }
+    if (profiled && !traditions.includes(tradition)) { reject("spell tradition does not match caster profile"); continue; }
+    if (profiled && mode === "spontaneous" && assignedRank === 10 && traits.rarity !== "common") {
+      reject("ordinary 10th-rank repertoire picks must be common"); continue;
+    }
+    const identity = spellIdentity(doc, entry);
+    if (!identity) { reject("grounded spell identity is missing"); continue; }
+    if (database) {
+      if (seenDatabase.has(identity)) { reject("spell is already in the database"); continue; }
+      if ((usedRanks.get(assignedRank) ?? 0) >= caps[assignedRank]) { reject("assigned rank is already at its pick cap"); continue; }
+      const kind = assignedRank === 0 ? "cantrips" : "ranked";
+      const limit = kind === "cantrips" ? database.cantrips : database.rankOne + database.levelUps;
+      if (databaseTotals[kind] >= limit) { reject(`database already holds its ${limit} ${kind} spells`); continue; }
+      databaseTotals[kind] += 1;
+      seenDatabase.add(identity);
+      source._id = foundry.utils.randomID();
+      source.system.location = { value: entryId };
+      databaseSpells.push({ rank: assignedRank, data: source });
+      usedRanks.set(assignedRank, (usedRanks.get(assignedRank) ?? 0) + 1);
+      continue;
+    }
+    if (assignedRank === 0 && usedCantrips.has(identity)) { reject("duplicate cantrip"); continue; }
+    const key = `${identity}:${assignedRank}`;
+    if (mode === "spontaneous" && spontaneousSeen.has(key)) { reject("duplicate spontaneous repertoire rank"); continue; }
+    if ((usedRanks.get(assignedRank) ?? 0) >= caps[assignedRank]) { reject("assigned rank is already at its pick cap"); continue; }
+    // A spontaneous repertoire can contain the same source at different
+    // assigned ranks; each needs its own embedded item/location heightening.
+    const sourceKey = mode === "spontaneous" ? key : identity;
+    let data = spellSources.get(sourceKey);
+    if (!data) {
+      data = source;
+      data._id = foundry.utils.randomID();
+      spellSources.set(sourceKey, data);
+    }
+    // A cloned source can carry a stale entry or heightened location from a
+    // compendium/previous embedding. Rebuild it rather than merging one.
+    data.system.location = { value: entryId };
+    if (mode === "spontaneous") {
+      const heightenedLevel = heightenedLevelFor(data.system, assignedRank);
+      if (heightenedLevel) data.system.location.heightenedLevel = heightenedLevel;
+      else delete data.system.location.heightenedLevel;
+      spontaneousSeen.add(key);
+    } else {
+      // PF2e entry/data.ts SpellPrepData; the native entry pads unused
+      // positions with null IDs, and its collection casts at the slot rank.
+      slots[`slot${assignedRank}`].prepared.push({ id: data._id, expended: false });
+    }
+    usedRanks.set(assignedRank, (usedRanks.get(assignedRank) ?? 0) + 1);
+    if (spell?.signature === true) {
+      if (!plan.signatureRanks.includes(assignedRank)) console.warn(`simplysf2e | ignored signature marker on "${source.name}": rank is not eligible`);
+      else signatureCandidates.set(assignedRank, [...(signatureCandidates.get(assignedRank) ?? []), data]);
+    } else if (spell?.signature != null && spell.signature !== false) {
+      console.warn(`simplysf2e | ignored invalid signature marker on "${source.name}"`);
+    }
+    if (assignedRank === 0) usedCantrips.add(identity);
+  }
+
+  if (database) {
+    for (const [rank, max] of Object.entries(counts)) {
+      const ranked = Number(rank);
+      const prepared = databaseSpells.filter((spell) => spell.rank === ranked).slice(0, max);
+      if (prepared.length < max) console.warn(`simplysf2e | ${name}: ${prepared.length} of ${max} rank-${ranked} daily slots can be prepared from the database`);
+      for (const { data } of prepared) slots[`slot${rank}`].prepared.push({ id: data._id, expended: false });
+    }
+    if (databaseSpells.length < database.size) console.warn(`simplysf2e | ${name}: database holds ${databaseSpells.length} of ${database.size} spells`);
+  }
+  for (const [rank, candidates] of signatureCandidates) {
+    // PF2e spell/data.ts location.signature; collection.ts expands native
+    // virtual casting rows from the spell's original rank, not learned rank.
+    if (candidates.length === 1) candidates[0].system.location.signature = true;
+    else console.warn(`simplysf2e | ignored ${candidates.length} signature markers at rank ${rank}: only one is allowed`);
+  }
+  const entry = {
+    _id: entryId,
+    name,
+    type: "spellcastingEntry",
+    img: systemIcon("icons/default-icons/spellcastingEntry.svg"),
+    system: {
+      tradition: { value: tradition },
+      prepared: { value: mode, flexible: false },
+      ability: { value: ability },
+      proficiency: { value: proficiency },
+      slots,
+      spelldc: { value: 0, dc: 0, mod: 0 },
+      showSlotlessLevels: { value: false }
+    }
+  };
+  const sources = database ? databaseSpells.map((spell) => spell.data) : [...spellSources.values()];
+  return { entry, sources };
+}
+
+/**
+ * The one caster dedication (Mystic, Witchwarper or Technomancer) a build
+ * places, with its archetype spell plan, or null. Two placed caster
+ * dedications get no archetype entry. An unproven tradition (Mystic connection,
+ * Witchwarper paradox: archetypeTraditionFor) or key attribute returns null
+ * with a warning, never a guess. Grants: the dedication's two cantrips plus one
+ * slot per rank from each placed Basic/Expert/Master <Class> Spellcasting feat
+ * (archetypeSpellSlots). Proficiency is trained, or expert/master with those feats.
+ * @returns {{dedication: string, mode: string, tradition: string, ability: string,
+ *   proficiency: number, counts: Record<number, number>, maxRank: number} | null}
+ */
+export function archetypeCasterPlan(concept, resolved) {
+  const placed = (resolved?.feats ?? []).filter((feat) => feat?.entry);
+  const placedSlugs = new Set(placed.map((feat) => slugify(feat.name ?? "")));
+  const dedications = [...placedSlugs].filter((slug) => Object.hasOwn(ARCHETYPE_CASTER_DEDICATIONS, slug));
+  if (dedications.length > 1) {
+    console.warn("simplysf2e | more than one caster dedication placed — archetype spellcasting skipped");
+    return null;
+  }
+  if (dedications.length !== 1) return null;
+  const dedication = dedications[0];
+  const profile = ARCHETYPE_CASTER_DEDICATIONS[dedication];
+  const classSlug = dedication.replace(/-dedication$/, "");
+  const grants = {
+    basic: placedSlugs.has(`basic-${classSlug}-spellcasting`),
+    expert: placedSlugs.has(`expert-${classSlug}-spellcasting`),
+    master: placedSlugs.has(`master-${classSlug}-spellcasting`)
+  };
+  const tradition = archetypeTraditionFor(dedication, null);
+  if (!tradition) return null;
+  const ability = profile.ability ?? witchwarperArchetypeAbility(resolved.abilityMods);
+  if (!ability) {
+    console.warn(`simplysf2e | ${dedication}: key attribute not proven — archetype spellcasting skipped`);
+    return null;
+  }
+  const archetype = archetypeSpellSlots(concept?.level, grants);
+  const counts = { 0: archetype.cantrips, ...archetype.slots };
+  return {
+    dedication,
+    mode: profile.mode,
+    tradition,
+    ability,
+    proficiency: grants.master ? 3 : grants.expert ? 2 : 1,
+    counts,
+    maxRank: Math.max(0, ...Object.keys(archetype.slots).map(Number))
+  };
 }
 
 /**
@@ -896,101 +1136,39 @@ export async function createCharacterActor(concept, resolved, { img = null, sele
   // fallback until a source-qualified profile is added.
   const spellProfile = concept.spellcasting ? pcSpellcastingProfile(resolved.classDoc) : null;
   if (concept.spellcasting && (spellProfile || resolved.spells?.some((s) => s.entry))) {
-    const entryId = foundry.utils.randomID();
-    const mode = spellProfile?.mode ?? "spontaneous";
-    const tradition = spellProfile?.tradition ?? concept.spellcasting.tradition;
-    const ability = spellProfile?.ability ?? keyAbility;
     const plan = pcSpellPlan(concept.level, spellProfile);
-    const counts = plan.slots;
-    const slots = {};
-    for (const [rank, max] of Object.entries(counts)) {
-      slots[`slot${rank}`] = { value: max, max, prepared: [] };
-    }
-
-    const spellSources = new Map();
-    const usedCantrips = new Set();
-    const spontaneousSeen = new Set();
-    const usedRanks = new Map();
-    const signatureCandidates = new Map();
-    for (const { spell, entry } of resolved.spells ?? []) {
-      const assignedRank = spell?.rank;
-      const reject = (reason) => console.warn(`simplysf2e | dropped planned spell "${spell?.name ?? entry?.name ?? "?"}": ${reason}`);
-      if (typeof assignedRank !== "number" || !Number.isInteger(assignedRank) || assignedRank < 0 || assignedRank > 10 || !counts[assignedRank]) { reject("assigned rank is invalid or has no slot"); continue; }
-      const doc = await getDocument(entry);
-      if (!doc) { reject("could not load grounded spell"); continue; }
-      const source = toItemData(doc);
-      if (source.type !== "spell") { reject("grounded document is not a spell"); continue; }
-      const baseRank = source.system?.level?.value;
-      const traits = source.system?.traits ?? {};
-      const cantrip = Array.isArray(traits.value) && traits.value.includes("cantrip");
-      const traditions = Array.isArray(traits.traditions) ? traits.traditions : [];
-      if (spellProfile && (!Array.isArray(traits.value) || !Array.isArray(traits.traditions))) { reject("missing spell trait data"); continue; }
-      if (!Number.isInteger(baseRank) || baseRank < 0 || (!cantrip && baseRank > assignedRank)) { reject("base rank cannot occupy assigned rank"); continue; }
-      if (cantrip !== (assignedRank === 0)) { reject("cantrip rank mismatch"); continue; }
-      if ((Array.isArray(traits.value) && traits.value.includes("focus")) || source.system?.ritual) { reject("focus spells and rituals use separate casting entries"); continue; }
-      if (spellProfile && !traditions.includes(tradition)) { reject("spell tradition does not match caster profile"); continue; }
-      if (spellProfile && mode === "spontaneous" && assignedRank === 10 && traits.rarity !== "common") {
-        reject("ordinary 10th-rank repertoire picks must be common"); continue;
-      }
-      const identity = doc.uuid ?? entry?.uuid ?? (entry?.packId && entry?._id ? `${entry.packId}:${entry._id}` : null);
-      if (!identity) { reject("grounded spell identity is missing"); continue; }
-      if (assignedRank === 0 && usedCantrips.has(identity)) { reject("duplicate cantrip"); continue; }
-      const key = `${identity}:${assignedRank}`;
-      if (mode === "spontaneous" && spontaneousSeen.has(key)) { reject("duplicate spontaneous repertoire rank"); continue; }
-      if ((usedRanks.get(assignedRank) ?? 0) >= plan.picks[assignedRank]) { reject("assigned rank is already at its pick cap"); continue; }
-      // A spontaneous repertoire can contain the same source at different
-      // assigned ranks; each needs its own embedded item/location heightening.
-      const sourceKey = mode === "spontaneous" ? key : identity;
-      let data = spellSources.get(sourceKey);
-      if (!data) {
-        data = source;
-        data._id = foundry.utils.randomID();
-        spellSources.set(sourceKey, data);
-      }
-      // A cloned source can carry a stale entry or heightened location from a
-      // compendium/previous embedding. Rebuild it rather than merging one.
-      data.system.location = { value: entryId };
-      if (mode === "spontaneous") {
-        const heightenedLevel = heightenedLevelFor(data.system, assignedRank);
-        if (heightenedLevel) data.system.location.heightenedLevel = heightenedLevel;
-        else delete data.system.location.heightenedLevel;
-        spontaneousSeen.add(key);
-      } else {
-        // PF2e entry/data.ts SpellPrepData; the native entry pads unused
-        // positions with null IDs, and its collection casts at the slot rank.
-        slots[`slot${assignedRank}`].prepared.push({ id: data._id, expended: false });
-      }
-      usedRanks.set(assignedRank, (usedRanks.get(assignedRank) ?? 0) + 1);
-      if (spell?.signature === true) {
-        if (!plan.signatureRanks.includes(assignedRank)) console.warn(`simplysf2e | ignored signature marker on "${source.name}": rank is not eligible`);
-        else signatureCandidates.set(assignedRank, [...(signatureCandidates.get(assignedRank) ?? []), data]);
-      } else if (spell?.signature != null && spell.signature !== false) {
-        console.warn(`simplysf2e | ignored invalid signature marker on "${source.name}"`);
-      }
-      if (assignedRank === 0) usedCantrips.add(identity);
-    }
-    for (const [rank, candidates] of signatureCandidates) {
-      // PF2e spell/data.ts location.signature; collection.ts expands native
-      // virtual casting rows from the spell's original rank, not learned rank.
-      if (candidates.length === 1) candidates[0].system.location.signature = true;
-      else console.warn(`simplysf2e | ignored ${candidates.length} signature markers at rank ${rank}: only one is allowed`);
-    }
-    items.push({
-      _id: entryId,
-      name: `${capitalized(tradition)} Spells`,
-      type: "spellcastingEntry",
-      img: systemIcon("icons/default-icons/spellcastingEntry.svg"),
-      system: {
-        tradition: { value: tradition },
-        prepared: { value: mode, flexible: false },
-        ability: { value: ability },
-        proficiency: { value: 1 },
-        slots,
-        spelldc: { value: 0, dc: 0, mod: 0 },
-        showSlotlessLevels: { value: false }
-      }
+    const built = await buildSpellcastingEntry({
+      entryId: foundry.utils.randomID(),
+      name: `${capitalized(spellProfile?.tradition ?? concept.spellcasting.tradition)} Spells`,
+      tradition: spellProfile?.tradition ?? concept.spellcasting.tradition,
+      mode: spellProfile?.mode ?? "spontaneous",
+      ability: spellProfile?.ability ?? keyAbility,
+      proficiency: 1,
+      profiled: Boolean(spellProfile),
+      plan,
+      picks: resolved.spells ?? [],
+      cacheSpells: plan.database ? technomancerCacheSpells(stagedClassPaths.items, plan.database.cacheRanks) : []
     });
-    items.push(...spellSources.values());
+    items.push(built.entry, ...built.sources);
+  }
+
+  // Caster dedication: a SEPARATE archetype entry built by the same code path,
+  // never merged into the class entry. Planned only when the generator allowed
+  // spellcasting (concept.archetypeSpellcasting), so a disabled concept gets none.
+  const archetype = concept.archetypeSpellcasting ? archetypeCasterPlan(concept, resolved) : null;
+  if (archetype) {
+    const built = await buildSpellcastingEntry({
+      entryId: foundry.utils.randomID(),
+      name: `${capitalized(archetype.tradition)} Archetype Spells`,
+      tradition: archetype.tradition,
+      mode: archetype.mode,
+      ability: archetype.ability,
+      proficiency: archetype.proficiency,
+      profiled: true,
+      plan: { slots: archetype.counts, picks: archetype.counts, signatureRanks: [] },
+      picks: resolved.archetypeSpells ?? []
+    });
+    items.push(built.entry, ...built.sources);
   }
 
   // Focus spells: a separate `prepared.value: "focus"` entry — how the real

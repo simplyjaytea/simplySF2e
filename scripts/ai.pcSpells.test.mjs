@@ -144,6 +144,21 @@ try {
     { name: "Common Ten A", rank: 10, signature: true }, { name: "Common Ten B", rank: 10 }
   ], "two common repertoire picks survive even though native rank-ten casting has one slot");
   assert.match(requests.at(-1).messages[0].content, /"rank-ten":2/);
+
+  // Technomancer spell database: module caps above five, each spell learned once, database prompt.
+  const databaseArgs = { ...args, plannedPicks: { 0: 10, 1: 13, 2: 6, 3: 2 }, preparationMode: "prepared", database: true };
+  replies.push({ spells: [
+    { name: "Force Barrage", rank: "rank-one" }, { name: "Force Barrage", rank: "rank-two" },
+    { name: "Detect Magic", rank: "cantrip" }, { name: "Fireball", rank: "rank-three" }
+  ] });
+  assert.deepEqual((await selectSpells(databaseArgs)).spells, [
+    { name: "Force Barrage", rank: 1 }, { name: "Detect Magic", rank: 0 }, { name: "Fireball", rank: 3 }
+  ], "a database spell is learned once, at its first valid rank");
+  assert.match(requests.at(-1).messages[0].content, /spell DATABASE plan/);
+  assert.match(requests.at(-1).messages[0].content, /Choose up to 10 DISTINCT cantrips/);
+  assert.match(requests.at(-1).messages[0].content, /never repeat a spell at another rank/);
+  await assert.rejects(selectSpells({ ...databaseArgs, plannedPicks: { 0: 10, 1: 51 } }), /Invalid character/);
+  await assert.rejects(selectSpells({ ...databaseArgs, preparationMode: "spontaneous" }), /Invalid character/);
   assert.equal(replies.length, 0);
 } finally { globalThis.fetch = originalFetch; }
 
@@ -153,7 +168,9 @@ const generator = readFileSync(new URL("./generator-app.mjs", import.meta.url), 
 const template = readFileSync(new URL("../templates/generator.hbs", import.meta.url), "utf8");
 const locale = JSON.parse(readFileSync(new URL("../lang/en.json", import.meta.url), "utf8"));
 assert.match(generator, /pcSpellcastingProfile\(resolved\.classDoc\)/);
-assert.match(generator, /plannedPicks: spellcasting\.plannedPicks/);
+assert.match(generator, /plannedPicks: selectionPicks/);
+assert.match(generator, /selectionPicks = spellcasting\.selectionPicks \?\? spellcasting\.plannedPicks/);
+assert.match(generator, /database: spellcasting\.database === true/);
 assert.match(generator, /preparationMode: spellcasting\.preparationMode/);
 assert.match(generator, /signatureRanks: spellcasting\.signatureRanks/);
 assert.match(generator, /const \{ spells, focusSpells, usage, timing \} = await selectSpells\(/,
