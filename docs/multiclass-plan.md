@@ -4,9 +4,9 @@ Status: **draft; JT's decisions recorded in §4.** Nothing here is built. Build 
 
 ## 1. What v14-dev publishes
 
-**System version.** `system.sf2e.json` on v14-dev is now `"version": "1.6.1"`, compatibility `minimum 14.361`, `verified 14.369`. The module targets 1.5.x (PLAYBOOK §2).
+**System version.** `system.sf2e.json` on v14-dev is now `"version": "1.6.1"`, compatibility `minimum 14.361`, `verified 14.369`. The module now requires 1.6.0 (PLAYBOOK §2).
 
-**Classes.** `packs/sf2e/classes/` holds 8 classes: envoy, **mechanic**, mystic, operative, solarian, soldier, **technomancer**, witchwarper. Mechanic and Technomancer are `"title": "Starfinder Tech Core"`. The module supports 6 (`COMPLETE_PC_CLASS_SLUGS`, `scripts/pc-support.mjs:29`) and maps 6 dedications (`SF2E_MULTICLASS_DEDICATIONS`, `pc-support.mjs:47`).
+**Classes.** `packs/sf2e/classes/` holds 8 classes: envoy, **mechanic**, mystic, operative, solarian, soldier, **technomancer**, witchwarper. Mechanic and Technomancer are `"title": "Starfinder Tech Core"`. Since the Tech Core batch, the module supports all 8 (`COMPLETE_PC_CLASS_SLUGS`) and maps all 8 dedications (`SF2E_MULTICLASS_DEDICATIONS`), both in `scripts/pc-support.mjs`.
 
 **Multiclass archetypes.** `packs/sf2e/feats/archetype/multiclass-archetypes/<class>-archetype/*.json`, 75 feats in 8 folders. Every dedication is level 2, `category: "class"`, traits `["archetype","dedication","multiclass"]`:
 
