@@ -22,7 +22,7 @@ import { runPool, encounterConcurrency } from "./pool.mjs";
 import { relevelActorData, clampRelevel, RELEVEL_MIN, RELEVEL_MAX } from "./relevel.mjs";
 import { REROLL_KINDS, rerollTarget, rerollPool, applyRerollPick, rerollKeywords } from "./reroll.mjs";
 import {
-  normalizePCConcept, resolvePCConcept, resolveFeatPicks, createCharacterActor, pcStartingWealthGp, archetypeCasterPlan
+  normalizePCConcept, resolvePCConcept, resolveFeatPicks, createCharacterActor, pcStartingWealthGp, archetypeCasterPlan, resolveArchetypeBridges
 } from "./pc-builder.mjs";
 import { pcSpellcastingProfile, pcSpellPlan } from "./pc-tables.mjs";
 import { reviewUnresolvedChoices } from "./choice-set.mjs";
@@ -1477,6 +1477,11 @@ export class GeneratorApp extends SpfApp {
       // A placed caster dedication gets its own spell list (a separate archetype
       // entry, never merged into the class list). Its tradition is proven in
       // archetypeCasterPlan or the dedication is skipped.
+      // Pre-answer a Mystic/Witchwarper dedication's Connection/Paradox first:
+      // the chosen option carries the archetype entry's tradition.
+      if (this.#input.allowSpellcasting) {
+        resolved.archetypeBridges = await resolveArchetypeBridges(concept, resolved, { selectChoices: choiceSelector });
+      }
       const archetype = this.#input.allowSpellcasting ? archetypeCasterPlan(concept, resolved) : null;
       concept.archetypeSpellcasting = archetype ? {
         tradition: archetype.tradition, preparationMode: archetype.mode,
