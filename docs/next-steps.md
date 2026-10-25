@@ -1,6 +1,6 @@
 # Next-steps plan — UI polish (U) and Jev fast picks (J)
 
-Written 2026-10-02 after every Claude-doable GM-ready item (G1–G10, G14) merged. The GM-ready checklist in [HANDOFF.md](../HANDOFF.md) still owns G11–G13 (JT's live QA, live fixes, Beta). This file owns the next two tracks. Tick items (`[x]` + PR link) rather than deleting them. IDs are stable; use them in branch names and PR titles.
+Written 2026-10-02 after every Claude-doable GM-ready item (G1–G10, G14) merged. This plan is complete: U1–U6 and J1a–J6 are merged, U7 was settled as a decision with no code change, JD1 was skipped, and G11–G13 of the GM-ready checklist in [HANDOFF.md](../HANDOFF.md) are closed. Tick items (`[x]` + PR link) rather than deleting them. IDs are stable; use them in branch names and PR titles.
 
 Each step below is sized for **one Sonnet 5.5 thread** that starts cold. Read "How a step thread works" at the bottom before starting any step.
 
@@ -79,7 +79,7 @@ Ground rules for every J step (they extend CLAUDE.md's invariants):
   - `buildChoiceQuestion({ instructions, candidates })` → `{ type: "choice", instructions, criteria: { [id]: name } }`, rejecting more than 255 options (caller falls back).
   - `parseJevAnswers(json, questionIds)` → validates the cited response shape; returns `null` on any mismatch.
   - `requestJevDecision({ endpoint, apiKey, state, questions, signal })`: `fetch` with an `AbortSignal` combined with a timeout constant (4 s), returns `{ answers, usage, model, ms }` or `null`. Never throws to the caller. Never logs the key.
-  - A pure `normalizeJevUsage(usage)` in `tokens.mjs` (input tokens; cost from `usage.cost` when OpenRouter returns it). Nothing calls it yet; the report line itself (`app-base.mjs` `_tokenUsage`) is added in J2 and shown in J6.
+  - A pure `normalizeJevUsage(usage)` in `tokens.mjs` (input tokens; cost from `usage.cost` when OpenRouter returns it). `scripts/jev-picks.mjs` calls it (`ask`, line ~72); the report line itself (`app-base.mjs` `_tokenUsage`) is added in J2 and shown in J6.
   - Tests: `scripts/jev.test.mjs` for resolver order (inject fake `provider`/`dedicated`; an unbound OpenRouter key returns `null`), question building (keyed criteria, 255 cap), response parsing (cited example passes; missing `answers`, wrong `type`, unknown id all return `null`).
   No call sites and no UI. **Review:** independent; reviewer re-fetches the two cited doc pages and checks every field name.
 - [x] **J1b · Separate Jev key in Provider Setup (D-J2 b).** (done: PR #28) Needs J1a merged. **Before building, post JT a decision card on the section's look and wording** (attach a U1 harness screenshot if U1 has merged; the card does not wait for U1); **do not merge J1b until JT answers.** Mechanism, settled here (not part of the card):
@@ -111,6 +111,8 @@ Ground rules for every J step (they extend CLAUDE.md's invariants):
 
 ## Order and dependencies
 
+All steps below are done. The block is kept as a record of the plan.
+
 ```
 Now (parallel):        U1   U2   U4   J1a
 After U1:              U3
@@ -123,14 +125,14 @@ After U5a and J2:      J6
 
 U2 and U4 both touch `lang/en.json`; whichever merges second merges `main` in and resolves (additive keys, no logic conflict). U2 and U5a both touch `generator.hbs`; U5a starts after U2 merges. J1b adds a section to Provider Setup and strings to `lang/en.json`, so U5b (which also edits `provider-setup.hbs`) starts after J1b merges, and J1b merges `main` in if U2/U4 landed first. Every step ticks its own box in this file, so parallel PRs conflict here trivially: merge `main` in and keep both ticks.
 
-Every step that changes behavior adds its rows to `docs/qa-checklist.md`, because nothing here is live-tested until JT runs G11.
+Every step that changes behavior adds its rows to `docs/qa-checklist.md`, because nothing here is live-tested until JT runs it (G11 closed on JT's verbal OK on 2026-10-08).
 
 ## How a step thread works
 
 Sonnet 5.5 thread, one step ID, starting cold.
 
 1. Read `AGENTS.md`, `CLAUDE.md` (Invariants, Files, How to work here), this file's entry for your step, and the ground rules for your track. `git log --oneline -10`. If a step you depend on is not merged, stop and say so.
-2. You are a full thread, not a worktree worker: you push your own branch and open your own PR (the CLAUDE.md "Sonnet worker recipe" still applies to any subagents *you* start). Work on your session's designated branch; name the PR `<ID>: <title>`. Git identity `jt` / `jt_f@ymail.com`.
+2. You are a full thread, not a worktree worker: you push your own branch and open your own PR (any subagents *you* start follow [docs/playbook.md](playbook.md); that replaced the old CLAUDE.md "Sonnet worker recipe" on 2026-10-25). Work on your session's designated branch; name the PR `<ID>: <title>`. Git identity `jt` / `jt_f@ymail.com`.
 3. Build exactly the step. No extra features. If you hit a choice that changes look, layout, wording or flow and this file doesn't settle it, ask JT with a decision card, recommend an option, and keep building the rest.
 4. Verify: `node --check` every touched `.mjs`; `for f in scripts/*.test.mjs; do node "$f" || echo FAIL $f; done` shows no FAIL; for UI steps, run the U1 harness and attach before/after screenshots to the PR or thread.
 5. Tick your item in this file (`[x]` + PR link) inside the same PR. Open the PR (ready for review) and subscribe to its activity.

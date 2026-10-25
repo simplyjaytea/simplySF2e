@@ -106,7 +106,7 @@ export function normalizePCConcept(raw, { level }) {
     languages: (Array.isArray(c.languages) ? c.languages : []).map((l) => String(l)).filter(Boolean).slice(0, 6),
     feats: (Array.isArray(c.feats) ? c.feats : []).map((f) => String(f)).filter(Boolean).slice(0, 8),
     spellcasting,
-    // Focus spells are independent of `spellcasting` (a Champion has focus
+    // Focus spells are independent of `spellcasting` (a character can have focus
     // spells but no slots). Cap at 3 AFTER filtering — the hard focus-pool
     // ceiling — so the first 3 VALID names are kept, not the first 3 raw ones.
     focusSpells: (Array.isArray(c.focusSpells) ? c.focusSpells : [])

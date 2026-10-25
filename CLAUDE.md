@@ -1,8 +1,28 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 # simplySF2e — project brief
 
 Foundry VTT module. An AI generates Starfinder 2e NPCs/monsters, Player Characters, and magic items from a text prompt. Every named pick is grounded against the real installed `sf2e` compendium. Repo: `simplyjaytea/simplySF2e`.
 
-**Session history, the full bug log, and PR narrative are in [HISTORY.md](HISTORY.md) — check there before re-investigating anything.** This file holds only what is true right now.
+**Session history, the full bug log, and PR narrative are in [HISTORY.md](HISTORY.md) — check there before re-investigating anything.** This file holds only what is true right now. **How work is planned, delegated, reviewed and merged: [docs/playbook.md](docs/playbook.md).**
+
+## Commands
+
+No build step and no package manager for the module itself: Foundry loads `scripts/simplysf2e.mjs` and the plain ES modules it imports. Node 22+ (CI uses 22). Run from the repo root in bash (Git Bash on Windows).
+
+| Task | Command |
+| --- | --- |
+| One test | `node scripts/<name>.test.mjs` (each test is a standalone script using `node:assert`; non-zero exit = fail) |
+| All tests | `for f in scripts/*.test.mjs; do node "$f" >/dev/null 2>&1 \|\| echo FAIL $f; done` (no output = all pass) |
+| Syntax | `node --check scripts/<file>.mjs` |
+| Full pre-release gate | `git fetch origin main && bash tools/release-check.sh` (`--no-ui` skips the screenshot harness; bash 4.4+) |
+| UI screenshots | `cd tools/ui-preview && npm install && npm run shoot` → PNGs in `tools/ui-preview/out/` at 720 px and 460 px |
+
+CI (`.github/workflows/pull-request.yml`, job `verify`) runs `node --check` on every `scripts/**/*.mjs`, every `*.test.mjs`, `jq empty module.json lang/en.json`, and `git diff --check` base..head. A merge to `main` runs `auto-release.yml`, which publishes a public release. Tests are pure-logic only: there is no Foundry runtime here, so anything that needs a live world goes in `docs/qa-checklist.md`.
+
+`scripts/i18n-keys.test.mjs` only sees literal translation keys. Several keys are built at runtime (for example `` `SIMPLYSF2E.Treasure.Amount${Value}` `` in `treasure-app.mjs`, `SIMPLYSF2E.TreasureAmount.*` in `generator-app.mjs`, `manage-presets-app.mjs` and the ui-preview generator fixture, plus the `Mode.*`, `Role.*`, `Threat.*`, `StatCheck.*`, `Skills.*`, `Loadout.*`, `Rarity.*`, `Shop.Size*`/`Category*` and `Preview.*` families), so a key that looks unused may still be live. Grep for its prefix before deleting it.
 
 ## Glossary
 
@@ -31,7 +51,7 @@ Foundry VTT module. An AI generates Starfinder 2e NPCs/monsters, Player Characte
 Three pipelines over shared compendium/table infrastructure.
 
 **1. NPC / creature** (`builder.mjs`, the most battle-tested path)
-1. `generateConcept()` (`ai.mjs`) — one call against SYSTEM_PROMPT; returns a concept in *scales*, not numbers.
+1. `generateConcept()` (`ai.mjs`) — one call against `systemPrompt()`; returns a concept in *scales*, not numbers.
 2. `normalizeConcept()` — coerce/clamp into a safe shape.
 3. Spells (2 extra calls): `chooseSpellFocus()` → keywords → `getSpellCandidates()` narrows the real tradition list → `selectSpells()` picks from it.
 4. Equipment (1 extra call): keywords tokenized locally → `getEquipmentCandidates()` → `selectEquipment()`. Failure keeps first-draft names.
@@ -52,17 +72,19 @@ Encounter mode: `designEncounter()` picks a theme + per-role briefs once, then t
 | `simplysf2e.mjs` | Module entry: settings registration, app launchers, `/sf2e` / `/simplysf2e` chat command, first-run welcome auto-open. |
 | `whats-new.mjs` / `whats-new-app.mjs` | Pure release-note list (`RELEASE_NOTES`, newest first, i18n keys) + unseen/auto-open rules, and the window. Opens once per GM browser after an update with unseen notes (silently seeds on a fresh install). **Every PR with a change a GM can see adds one `RELEASE_NOTES` entry (new unique id, i18n title/body) at the top.** |
 | `welcome.mjs` / `welcome-app.mjs` | First-run welcome: pure readiness rows + auto-open rule (opens for a GM until the AI connection works or "Don't show again"), and the window over them. |
-| `ai.mjs` | All AI calls, SYSTEM_PROMPT, `pcSystemPrompt()`, `lootGuide()`. Streaming SSE, retry-once, fail-closed JSON parsing. |
+| `ai.mjs` | All AI calls, `systemPrompt()`, `pcSystemPrompt()`, `lootGuide()`. Streaming SSE, retry-once, fail-closed JSON parsing. |
 | `ai-response-validation.mjs` | Per-task required-key shape checks on parsed AI responses (`taskResponseProblem`). |
 | `ai-task-profiles.mjs` / `ai-candidate-format.mjs` | Pure per-operation token/sampling caps (`taskMaxTokens`) and compact grounded-candidate encoding. |
 | `settings.mjs` | Foundry settings, exact-endpoint API-key binding, local/keyless provider readiness, and the client-side named connection bank. |
-| `builder.mjs` | NPC pipeline + shared resolve/build helpers used by both actor pipelines (`resolveEquipment`, `resolveLoot`, `resolveFocusSpells`, `buildEquipmentItems`, `buildLootItems`, `filterItemTypes`, `applyTreasureBudget`, `enrichDescription`). `reskinActorData()` builds a Reskin copy via `reskin.mjs`. |
+| `builder.mjs` | NPC pipeline + shared resolve/build helpers used by both actor pipelines (`resolveEquipment`, `resolveLoot`, `resolveFocusSpells`, `buildEquipmentItems`, `buildLootItems`, `filterItemTypes`, `applyTreasureBudget`). `reskinActorData()` builds a Reskin copy via `reskin.mjs`. |
 | `reroll.mjs` | Pure reroll-one-pick rules for the creature preview: `rerollPool` offers only issued catalog entries of the same kind that are not on the creature or already rejected for that slot (a spell keeps its cantrip/ranked slot), `applyRerollPick` swaps one slot. The AI picks one ID via `selectRerollPick` (`ai.mjs`). |
 | `reskin.mjs` | Pure Reskin validation/copy: `normalizeReskin` drops unknown/duplicate renames, `applyReskin` changes only prose and strike/ability display names, pinning each renamed item's original slug (`pf2eSluggify`, a port of v14-dev `sluggify`). |
 | `relevel.mjs` | Pure Reskin re-level: each NPC number moves by its nearest GM Core scale's step between levels (HP by ratio, first damage instance by the damage table); spells, ability text and gear unchanged. Source fields cited to v14-dev `npc/data.ts`, `melee/data.ts`, `spellcasting-entry/data.ts`, `lore.ts`. |
 | `stat-check.mjs` | Stat check after Create: reads a new NPC's prepared AC/HP/Perception/saves/strikes/spell DC (accessors cited to v14-dev), compares with `adjustedStats(computeStats())` and the GM Core band for its level. Report only; the Generator shows it in the finished panel and whispers the GM when something is off. |
-| `art.mjs` | Borrows token art/structure from the closest-matching bestiary creature (`findBestiaryScaffold`, `findBestiaryArt`). |
-| `currency.mjs` | Cited SF2e Credstick/UPB templates and gold-to-credit mapping. |
+| `art.mjs` | Borrows token art/structure from the closest-matching bestiary creature. Production calls only `findBestiaryScaffold` and uses its `img` as is; `findBestiaryArt` (which treats default icons as no art) is tested but has no production caller. |
+| `currency.mjs` / `currency/credstick.mjs`, `currency/upb.mjs` | Cited SF2e Credstick/UPB templates and gold-to-credit mapping. The two templates are verbatim v14-dev JSON as `.mjs` default exports, because Firefox ESR 128 cannot parse JSON import attributes (`import-attributes.test.mjs` blocks new ones). |
+| `jev.mjs` / `jev-picks.mjs` | Jev fast picks: the TypeSafe System One client (via OpenRouter or a TypeSafe endpoint) and the catalog picks it answers (equipment/loot, creature feats/abilities, PC feats/choices, spells). It returns picks only, never text, and any doubt returns null so the chat model runs instead. |
+| `bug-report.mjs` | "Copy bug report" text for a failed run: redacts secrets, never includes API keys, reads Foundry globals defensively. |
 | `pc-builder.mjs` | PC pipeline. First file to check when PC generation misbehaves. |
 | `completion.mjs` / `post-create.mjs` | Required-content manifests, persisted-source checks, and new-document commit/rollback boundaries. |
 | `pc-support.mjs` / `class-paths.mjs` | Complete-only class eligibility (plus the unwired multiclass dedication map) and cited SF2e L1 `item:tag:` class-path staging. |
@@ -75,7 +97,7 @@ Encounter mode: `designEncounter()` picks a theme + per-role briefs once, then t
 | `text.mjs` | `slugify`, `capitalized`, `esc`, `toHtml`. Pure shared HTML escaping with no Foundry dependency; node-testable. |
 | `tables.mjs` | Building Creatures / Treasure by Level numbers, cited against *Starfinder GM Core* pp. 116–128. |
 | `pc-tables.mjs` | PC leveling cadence (boost/skill/feat-slot levels), source-qualified Remaster casting profiles, and base spell-slot counts. |
-| `rule-templates.mjs` | Harvests real RE exemplars from installed packs at runtime. Used by the Item Forge. |
+| `rule-templates.mjs` | `getForgeEffectCatalog`: the Item Forge's passive-effect catalog, built at runtime from supported, unchanged rules on published `sf2e.equipment` items. |
 | `item-builder.mjs` | Item forge: normalize, empirical pricing, item assembly (incl. augmentation and solarian crystal kinds). |
 | `macro-templates.mjs` | Pre-written activation macro bodies for forged 1/day items; AI supplies only enum slugs/prose. |
 | `generator-app.mjs` / `itemforge-app.mjs` / `manage-presets-app.mjs` / `sources-app.mjs` / `provider-setup-app.mjs` | UI apps over `app-base.mjs` (token tracking + progress). |
@@ -84,7 +106,7 @@ Encounter mode: `designEncounter()` picks a theme + per-role briefs once, then t
 | `treasure.mjs` / `treasure-app.mjs` | Treasure hoard window: pure budget/concept/fill rules, and the window. Budget in credits is only `gpToCredits` of `treasureBudget` (one encounter) or the `TREASURE_BY_LEVEL` total (whole level); the AI writes flavor + keyword/category slugs then picks IDs from `getShopCandidates`; `fillHoard` keeps issued, unique picks in AI order while each fits the remaining budget, and leftover becomes a Credstick (`assembleCurrency`). Create makes a native `loot` actor with `lootSheetType: "Loot"` filed under Treasure. |
 | `recent-generations.mjs` | Pure in-memory Recent previews list helpers (cap 5, newest first). The Generator stashes the on-screen preview there before any new run replaces it; nothing is persisted. |
 | `party.mjs` | Pure `partySummary` of the world's Party actor (`game.actors.party`, v14-dev `collection/actors.ts`) for Encounter mode's "Use my party": character count and mean level. |
-| `folders.mjs` | Files generated actors under a flagged SimplySF2e folder (Creatures, NPCs, Characters, Shops; encounter folders inside the root). Found by module flag, not name. Never fails a create. |
+| `folders.mjs` | Files generated actors under a flagged SimplySF2e folder (Creatures, NPCs, Characters, Shops, Treasure; encounter folders inside the root). Found by module flag, not name. Never fails a create. |
 | `handout.mjs` | NPC-mode player handout journal: portrait, blurb and read-aloud only (never description/tactics), escaped and with enricher syntax broken (`inertProse`). |
 | `generator-memory.mjs` | Pure validation of the Generator's remembered settings (client setting `generatorInput`); the prompt is never remembered. |
 | `progress.mjs` | Pure weighted/monotonic generation-progress math (step budgets, stream mapping). |
@@ -98,14 +120,15 @@ Encounter mode: `designEncounter()` picks a theme + per-role briefs once, then t
 
 Cross-tool operating rules live in [AGENTS.md](AGENTS.md); the live session baton is [HANDOFF.md](HANDOFF.md) — read it at session start, overwrite it at session end. Codex sessions read those same two files.
 
-Claude-side orchestration (when running as Fable/Opus with subagent tools):
+**The full procedure, roles, prompt templates and review ladder are in [docs/playbook.md](docs/playbook.md).** JT's standing rules (2026-10-25), in short:
 
-- **Fable acts as coordinator**: plans, delegates, verifies, integrates, and owns the final report. It writes HANDOFF.md itself.
-- **Delegate down aggressively**: Sonnet for mechanical execution of an already-specified plan (apply a mapped-out fix, write a test mirroring an existing one, mechanical renames). Opus for open-ended design, hard debugging, or anything where the plan itself is the hard part. Haiku only for trivial bulk text operations — this repo rarely has any.
-- **Never delegate the two things that bite this repo**: (1) sf2e schema verification — the delegate must be explicitly told to fetch real `foundryvtt/pf2e` **v14-dev** source (`system.sf2e.json` / `packs/sf2e/`), and the coordinator spot-checks the citation; (2) release/workflow `.yml` reasoning.
-- **Every schema-dependent or balance-sensitive diff gets an independent reviewer agent** (fresh context, not the builder) before the PR is called done — proven to catch real bugs three separate times (HISTORY.md process notes).
+- **Opus 5.5 at high effort makes every plan** and coordinates: it plans, delegates, verifies, integrates, merges, and writes HANDOFF.md.
+- **Workers are Haiku 5.5 at high effort** (`model: "haiku"`, `effort: "high"`). Tasks that touch sf2e schema go to **Sonnet** workers at high effort instead. The coordinator always fetches the cited v14-dev source itself and pastes it into the worker prompt; workers never look up schema.
+- **One task = one git worktree** (`isolation: "worktree"`), with no file overlap between parallel tasks. Workers commit in their worktree and never push.
+- **Review ladder for every finished worktree:** Haiku reviewer, then Sonnet reviewer, plus an Opus reviewer when the diff is schema- or balance-sensitive. Every reviewer is fresh-context, never the builder. A finding goes back to the same worker as a new commit and climbs the ladder again from the tier that found it.
+- **Never delegate release/workflow `.yml` reasoning.**
 - Subagent claims of "verified" require a quoted source line; treat unquoted verification claims as recalled, i.e. unverified.
-- **Sonnet worker recipe:** `Agent` with `model: "sonnet"`, `isolation: "worktree"`, `run_in_background: true`, one checklist ID per worker. Use the prompt template in HANDOFF.md "How to run this with Sonnet workers". The coordinator pastes any cited upstream values into the prompt; workers never look up schema themselves. Workers commit in their worktree and never push, because cloud sessions can push only to the designated branch. The coordinator merges their commits, reruns all tests, gets independent review where required, then pushes and opens the PR.
+- Optional extra capacity: the Orca `orchestration` skill can open opencode terminals running DeepSeek Flash 4.1 (free tier, per JT) for bulk read-only or mechanical work; its output gets the same review ladder.
 
 ## How to work here
 
@@ -125,9 +148,9 @@ Inherited PF2e-era notes for the scaffolded builders. They are **not** SF2e sche
 - A character's `resources.focus.max` is reset to 0 every prep (`character/document.ts`), then each embedded non-cantrip focus spell adds 1 (`item/spell/document.ts` `prepareActorData`), clamped to 3. So the PC pool needs no rule; cloning one would double-count. An NPC's pool is plain actor data (`npc/document.ts`). Re-verified against v14-dev 2026-10-02.
 - v14-dev `ActorInventory.addCurrency` clones bundled `credstick.json` / `upb.json` for credits/UPB and still lists classic coin UUIDs on `pf2e.equipment-srd` (`src/module/actor/inventory/index.ts`). Credits quantity is stored on `system.price.value` (`sp` on create; prepared `.credits`). Do not invent sf2e gold-piece UUIDs. This module maps gold-piece loot language onto Credstick and assembles those cited templates.
 
-## Current state (2026-10-11)
+## Current state (2026-10-25)
 
-**Active plan: [docs/next-steps.md](docs/next-steps.md)** (UI polish U1–U7, Jev fast picks J1–J6). G11 of the GM-ready checklist in [HANDOFF.md](HANDOFF.md) is closed on JT's verbal OK (2026-10-08) and G12 has no findings to fix per that report; G13 (Alpha to Beta) is done: Beta from 2026-10-11 on JT's request.
+**No active feature plan.** [docs/next-steps.md](docs/next-steps.md) (UI polish U1–U7, Jev fast picks J1–J6) is complete, and the GM-ready checklist in [HANDOFF.md](HANDOFF.md) is closed: G11 on JT's verbal OK (2026-10-08), G12 with no findings, and G13 (Alpha to Beta) on 2026-10-11. The 2026-10-25 cleanup removed dead code (the unused rule exemplar scan in `rule-templates.mjs`, the never-wired `enrichDescription` in `builder.mjs`) and unused translation keys. Open follow-ups are listed in HANDOFF.md.
 
 **Starfinder 2e "Neon Drift" UI overhaul.** simplySF2e identity is `simplysf2e` / SimplySF2e, targeting system **`sf2e` 1.5.0 or later** (cited against 1.5.1). Status is **Beta** (since 2026-10-11). Every merge to `main` publishes the next tag; check GitHub Releases for the current version rather than pinning it here. Git is authoritative for branch state; [HANDOFF.md](HANDOFF.md) is the live baton.
 
@@ -141,7 +164,7 @@ Inherited PF2e-era notes for the scaffolded builders. They are **not** SF2e sche
 - **Rest hook residual:** v14-dev still fires `Hooks.callAll("pf2e.restForTheNight", actor)`. No `sf2e.restForTheNight` is cited. The module keeps that exact string.
 - **Generator extras:** Elite/Weak adjustment selector (Alien Core pp. 204/207) and the `/sf2e` chat command are wired end to end; a chat command with a prompt starts a preview at once. Right-clicking an NPC in the Actors sidebar opens Reskin with it loaded (`getActorContextOptions`, v14-dev `apps/sidebar/actor-directory.ts`). The **Reskin** generator mode (G6) is wired: the GM drops an NPC from the Actors sidebar or a compendium, the AI writes new fiction and may rename strikes/abilities by id, and the module creates a copy (stats, rules, traits, items unchanged). The multiclass dedication map is still a tested helper only.
 - **Compendium-first creature mechanics (2026-10-03):** a strike named after a carried published weapon takes that weapon's damage type, traits, reload/expend and range (`alignStrikesToWeapons`); Recall Knowledge skills follow the SF2e GM Core pg. 54 table incl. Robot, with no guessed skill; speeds and sense ranges snap to values the 452 NPCs of the seven sf2e creature packs use (widened from Alien Core's 243 on 2026-10-08), and senses take the v14-dev `values.ts` shape; generated casters get 3 slots per rank (`NPC_SLOTS_PER_RANK`, from published casters, not a table); `custom` IWR is not pickable; narrative abilities with dice/DC/HP text are dropped; Item Forge model traits must be real `equipmentTraits`. PC wealth and leveling cadence are now cited to the sf2e journals. Slot count and speed/sense snapping were JT card decisions (thread "Compendium-first check").
-- **Still later:** see the GM-ready checklist. Deferred past GM-ready: full Free Archetype graphs, upgrade prerequisite validation, shields/ammo.
+- **Still later:** deferred past GM-ready: full Free Archetype graphs, upgrade prerequisite validation, shields/ammo.
 - **Inherited code:** NPC/PC/forge pipelines, fail-closed grounding, cloned Rule Elements. Treat [HISTORY.md](HISTORY.md) as parent-project history, not simplySF2e releases.
 
 **Recorded live evidence:** JT reported on 2026-10-08 that the live QA run of `docs/qa-checklist.md` was OK. This is a verbal report: no Foundry/sf2e versions, world or per-row results were recorded.

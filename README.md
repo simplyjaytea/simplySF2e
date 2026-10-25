@@ -90,7 +90,7 @@ These appear directly in **Configure Settings → SimplySF2e**:
 | **Request timeout (seconds)** | 90 | Abort if the provider sends **no data** for this long. Responses stream, so a slow model that keeps sending text is not cut off. |
 | **Free Archetype variant rule** | Off | Gives generated player characters the variant's extra archetype feat slot at each even level. Picks that cannot be proven legal are left empty, not guessed. |
 
-The **Compendium Sources** menu (button **Configure Sources**) chooses which compendium packs each category draws from: Bestiary Abilities, Spells, Feats, Equipment, Ancestries, Backgrounds, Classes, Class Features, Heritages and Bestiary Actors. Homebrew and module packs work too. A category left empty uses the SF2e system defaults (`sf2e.classes`, `class-features`, `feats`, `spells`, `equipment`, `ancestries`, `heritages`, `backgrounds`, `bestiary-ability-glossary-srd`, `alien-core-bestiary`). **Reset to defaults** restores them.
+The **Compendium Sources** menu (button **Configure Sources**) chooses which compendium packs each category draws from: Bestiary Abilities, Spells, Feats, Equipment, Ancestries, Backgrounds, Classes, Class Features, Heritages and Bestiary Actors. Homebrew and module packs work too. A category left empty uses the SF2e system defaults (`sf2e.classes`, `class-features`, `feats`, `spells`, `equipment`, `ancestries`, `heritages`, `backgrounds`, `bestiary-ability-glossary-srd`). Bestiary Actors defaults to all seven creature packs: `alien-core-bestiary`, `guilt-of-the-grave-world-bestiary`, `secrets-of-the-swarm-bestiary`, `standalone-adventure-bestiary`, `starfinder-society-bestiary`, `rulebook-bestiaries`, `tales-from-the-vast-bestiary`. **Reset to defaults** restores them.
 
 ### 4. Open the tools
 
@@ -237,7 +237,7 @@ SimplySF2e builds from real content and **fails closed**: when it cannot match s
 - **Spells.** Review empty slots, signature spells and subclass or feat spell bonuses on casters after creation.
 - **Upgrade slots.** The number of upgrade slots on forged weapons and armor (1 for weapons and 0 for armor when the item text names none) is a module default. No published source has been cited for it, and this is on hold.
 - **Not built yet:** multiclass dedications, upgrade prerequisite checks, shields and ammunition in the Item Forge, and custom art.
-- **Live checks.** The QA checklist passed live on 2026-10-08. The features added since then (scrolling button rows, the TypeSafe endpoint field, the http key rule, party fill, right-click Reskin, folders, handouts, remembered settings and the one-step chat command) are not yet checked live. This is Beta.
+- **Live checks.** The QA checklist passed live on 2026-10-08. The features added since then (scrolling button rows, the TypeSafe endpoint field, the http key rule, party fill, right-click Reskin, folders, handouts, remembered settings, the one-step chat command, Re-level in Reskin, the Treasure hoard window, faster encounters and the What's new window) are not yet checked live. This is Beta.
 
 ## Troubleshooting
 
