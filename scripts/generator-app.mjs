@@ -1107,8 +1107,9 @@ export class GeneratorApp extends SpfApp {
         preset: isRandom ? null : findPreset(this.#input.preset)?.prompt ?? null,
         treasureAmount: this.#input.treasureAmount,
         ...this.#creatureContext(signal),
+        // The draft is shown as soon as it exists, before its grounding steps.
+        onDraft: (concept) => { this.#concept = concept; },
         onStep: (id, state) => {
-          // The draft is shown as soon as it exists, before its grounding steps.
           if (state.concept) this.#concept = state.concept;
           return this._setStep(id);
         }
@@ -1401,7 +1402,7 @@ export class GeneratorApp extends SpfApp {
       // cheap and index-cached, so redoing them here is harmless; keep the
       // feat picks already made).
       const final = await resolvePCConcept(concept, { exactContent: true, pathPlan: resolved.pathPlan });
-      resolved = { ...final, feats: resolved.feats, pathPlan: resolved.pathPlan };
+      resolved = { ...final, feats: resolved.feats, pathPlan: resolved.pathPlan, archetypeBridges: resolved.archetypeBridges };
       // Cross-bucket dedup BEFORE any budget math sees the loot list: the AI
       // sometimes lists the same named item as both starting equipment and
       // loot (issue found in live QA — a "+1 Striking Dwarven War Axe" and a
@@ -1455,7 +1456,7 @@ export class GeneratorApp extends SpfApp {
           concept.loot = [...concept.loot.filter((l) => !parseCoins(l.name)), ...normalizeLoot(draft)];
           await this.#refineLoot(concept, signal);
           const topUp = await resolvePCConcept(concept, { exactContent: true, pathPlan: resolved.pathPlan });
-          resolved = { ...topUp, feats: resolved.feats, pathPlan: resolved.pathPlan };
+          resolved = { ...topUp, feats: resolved.feats, pathPlan: resolved.pathPlan, archetypeBridges: resolved.archetypeBridges };
           resolved.loot = dedupeLootAgainstEquipment(resolved.loot, resolved.equipment);
           resolved.loot = enforceNamedLootBudget(resolved.loot, lootBudget);
           resolved.loot = await applyTreasureBudget(resolved.loot, lootBudget);

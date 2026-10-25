@@ -288,6 +288,7 @@ export function technomancerDatabasePlan(level) {
   const levelUpCap = (rank) => 2 * Math.max(0, lv - Math.max(2, 2 * rank - 1) + 1);
   const caps = { 0: 10, 1: 5 + levelUpCap(1) };
   for (let rank = 2; rank <= maxRank; rank++) caps[rank] = levelUpCap(rank);
-  const cacheRanks = Array.from({ length: maxRank }, (_, i) => i + 1);
+  // Each programming language lists Spell Cache 1st through 9th only, so rank 10 has no cache spell.
+  const cacheRanks = Array.from({ length: Math.min(maxRank, 9) }, (_, i) => i + 1);
   return { cantrips: 10, rankOne: 5, levelUps, maxRank, cacheRanks, size: 10 + 5 + levelUps + cacheRanks.length, caps };
 }

@@ -1392,7 +1392,7 @@ export async function createCharacterActor(concept, resolved, { img = null, sele
   const bridges = Object.values(resolved.archetypeBridges ?? {});
   if (concept.archetypeSpellcasting) {
     for (const bridge of bridges.filter((entry) => !entry.option)) {
-      manualNotes.push(game.i18n.format("SIMPLYSF2E.PC.ArchetypeSpellsManual", { dedication: bridge.dedication, choice: bridge.choice ?? "bridge choice" }));
+      manualNotes.push(game.i18n.format("SIMPLYSF2E.PC.ArchetypeSpellsManual", { dedication: bridge.dedication, choice: bridge.choice ?? game.i18n.localize("SIMPLYSF2E.PC.ArchetypeChoiceFallback") }));
     }
   }
 

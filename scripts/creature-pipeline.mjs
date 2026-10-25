@@ -35,11 +35,12 @@ const DEFAULT_AI = {
  * token rows and progress detail; a missing label stays undefined, so a
  * headless caller can omit them.
  */
-function makeContext({ ai, labels, onStep, onProgress, onTokens, signal } = {}) {
+function makeContext({ ai, labels, onStep, onDraft, onProgress, onTokens, signal } = {}) {
   return {
     ai: { ...DEFAULT_AI, ...ai },
     labels: labels ?? {},
     onStep,
+    onDraft,
     onProgress: onProgress ?? (() => {}),
     onTokens: onTokens ?? (() => {}),
     signal
@@ -308,6 +309,8 @@ export async function generateCreature(input) {
     adjustment,
     gmPrompt: prompt
   };
+  // The draft is shown as soon as it exists, before its grounding steps.
+  ctx.onDraft?.(concept);
   // Gate on the SAME condition the step list was built from: the "spells" step
   // key only exists when allowSpellcasting was true.
   if (allowSpellcasting && concept.spellcasting) await step("spells", concept);
