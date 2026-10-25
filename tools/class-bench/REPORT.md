@@ -4,7 +4,21 @@ Run of `node tools/class-bench/run.mjs` against **foundryvtt/pf2e `v14-dev` @ `b
 
 Pack list from `system.sf2e.json` 1.6.1 (`packs[].name:type`; ids are `sf2e.<name>`): alien-core-bestiary:Actor, guilt-of-the-grave-world-bestiary:Actor, secrets-of-the-swarm-bestiary:Actor, iconics:Actor, paizo-pregens:Actor, standalone-adventure-bestiary:Actor, starfinder-society-bestiary:Actor, rulebook-bestiaries:Actor, tales-from-the-vast-bestiary:Actor, actions:Item, ancestries:Item, **ancestry-features:Item**, backgrounds:Item, classes:Item, class-features:Item, feats:Item, heritages:Item, spells:Item, conditions:Item, bestiary-effects:Item, equipment-effects:Item, other-effects:Item, feat-effects:Item, spell-effects:Item, equipment:Item, deities:Item, macros:Macro, bestiary-ability-glossary-srd:Item, starfinder-society-boons:Item, journals:JournalEntry. (`ancestry-features` is not in `DEFAULT_PACKS`; ancestry grants resolve to it by uuid only.)
 
-## Headline
+## Cache now includes duplicated PF2e content (latest run)
+
+`fetch.mjs` now also copies the PF2e documents that the sf2e build copies into sf2e packs (`build/duplicates.json`, 654 documents in 13 Item packs; see `README.md` "Duplicated PF2e content"). Same pinned source (`be4ab21`, sf2e 1.6.1), same character, same branch (`batch/m2-m4` at `ccb9a92`), run before and after the change:
+
+| run | default matrix | Technomancer off L1 / L2 / L5 / L10 / L20 | Technomancer on L1 / L2 / L5 / L10 / L20 |
+| --- | --- | --- | --- |
+| cache without the copies (`cache/` with copies removed) | 48 PASS / 32 WARN / 0 FAIL | WARN(1) / WARN(1) / WARN(2) / WARN(4) / WARN(8) | WARN(1) / WARN(1) / WARN(4) / WARN(9) / WARN(18) |
+| cache with the copies (`fetch.mjs` + `run.mjs`) | **49 PASS / 31 WARN / 0 FAIL** | WARN(1) / WARN(1) / WARN(1) / WARN(1) / WARN(3) | WARN(1) / WARN(1) / WARN(3) / WARN(6) / WARN(13) |
+
+- **Cache names.** The 36 Technomancer cache spells (`TECHNOMANCER_LANGUAGE_CACHE`, 4 languages x 9 ranks) resolve by exact name at their cited rank in the cache: **36 of 36**. Without the copies, **24 of 36** were missing, because those names are PF2e spells that only `build/duplicates.json` puts in `sf2e.spells`. (B3 counted 26 of 54 missing in a different count; this is the count for the 36 cache names.)
+- **Matrix.** Two rows change, both only toward fewer warnings: Mystic off L20 WARN(3) → PASS, Mystic on L20 WARN(15) → WARN(13); Technomancer as in the table. Everything else is identical. No run throws. The remaining warnings are the Free Archetype dedication rule ("finish the current dedication with two more of its feats first") and the Technomancer database shortfall below. So the 78/2 headline further down is from an earlier base and is not what this branch gives; that gap predates this change (the B2 session recorded 55 PASS / 25 WARN on a clean `batch/m2-m4` checkout).
+- **Technomancer L1 still warns: "database holds 8 of 16 spells".** The database size is 10 cantrips + 5 rank-1 + 1 cache spell. `run.mjs` feeds only `plan.picks` (5 cantrips + 2 rank-1 at L1) into the database, so the shortfall is in the bench's pick feed (`run.mjs` line 189-202), not in the cache. The cache spell is there. Not changed here: `run.mjs` is outside this task.
+- **Dropped picks at L20.** Two picks (`Electrotether`, `Arctic Rift`) are now dropped as "already in the database": the first-eligible pick feed happens to choose cache spells that the cache also adds. Expected with the cache complete; it is a duplicate, not a failure.
+
+## Headline (earlier base; see the section above for the current cache)
 
 **Default matrix after W7: 78 PASS / 2 WARN / 0 FAIL.** The two WARNs are the same Mystic L20 pair (cause A, below). W7 changed what an empty feat slot means: a slot with no legal feat left is created empty and the GM is warned, so it no longer blocks Create and no longer counts as FAIL. Mystic L20 shows WARN(3) without Free Archetype and WARN(7) with it; each count includes the empty-slot finding plus the repair and greedy-pick findings listed in the breakdown. The W6 change that matters is cause B: Mystic L20 with Free Archetype on and the Bounty Hunter background fills its slot chain (WARN(4), see "Resolved causes" 8).
 
