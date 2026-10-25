@@ -248,4 +248,38 @@ assert.equal(languagePlan["technomancer-programming-language"].uuid, uuid("KWVSf
 await assert.rejects(stageClassPaths(technomancerClass(), "technomancer-id", { context: {} }), /was not selected/,
   "an unanswered Programming Language blocks before Actor.create");
 
+// Feat reservation: slots can take every level-one skill feat a specialization
+// offers at high level. The plan reserves the first offered feat per feat
+// ChoiceSet, and staging keeps it offerable to that path alone.
+const pickLabel = (label) => async (groups) => ({
+  picks: groups.map((group) => ({ choice: group.id, option: group.options.find((entry) => entry.label === label).id }))
+});
+const ghostPlan = await planClassPaths(operativeClass(), { context: { names: ["Ghost"] }, selectChoices: pickLabel("Ghost") });
+assert.deepEqual(ghostPlan["operative-specialization"].reservedFeats, [featUuid("face")],
+  "the plan reserves the first level-one skill feat the specialization offers");
+const allSkillFeats = ["face", "favored", "trace", "terrain", "skeptic"].map(featUuid);
+await assert.rejects(stageClassPaths(operativeClass(), "operative-id", { context: { names: ["Ghost"] }, excludeFeats: allSkillFeats }),
+  /no fully resolvable/, "without a reservation, slots that take every skill feat close no Ghost candidate");
+const reservedGhost = await stageClassPaths(operativeClass(), "operative-id", {
+  context: { names: ["Ghost"] }, excludeFeats: allSkillFeats, pathPlan: ghostPlan
+});
+assert.equal(reservedGhost.items[0].system.rules[0].selection, uuid("ghost"));
+assert.deepEqual(reservedGhost.items[0].system.rules[1].preselectChoices, { feat: featUuid("face") },
+  "with every level-one skill feat excluded, the reserved feat is the only one the path can select");
+assert.deepEqual(reservedGhost.expectedPaths.map((entry) => entry._stats.compendiumSource), [uuid("ghost"), featUuid("face")],
+  "the reserved feat is verified as the native grant after create");
+
+const sniperPlan = await planClassPaths(operativeClass(), { context: { names: ["Sniper"] }, selectChoices: pickLabel("Sniper") });
+assert.deepEqual(sniperPlan["operative-specialization"].reservedFeats, [featUuid("trace"), featUuid("keep")],
+  "each feat ChoiceSet contributes its first option, including the class-gated bonus feat");
+
+const soldierPlan = await planClassPaths({ system: { items: { style: { level: 1, uuid: uuid("style") } } } }, { context: {} });
+assert.deepEqual(soldierPlan["soldier-fighting-style"].reservedFeats, [],
+  "a path whose choices offer no feats reserves nothing");
+
+await assert.rejects(stageClassPaths(operativeClass(), "operative-id", {
+  context: { names: ["Ghost"] },
+  pathPlan: { "operative-specialization": { tag: "operative-specialization", uuid: uuid("nope"), name: "Nope", skills: {}, trainedSkill: null, reservedFeats: [featUuid("face")] } }
+}), /not a valid candidate/, "a planned uuid outside the enabled candidates still blocks, even with reservations");
+
 console.log("class-paths.test.mjs: exact closed class-path staging passed");
