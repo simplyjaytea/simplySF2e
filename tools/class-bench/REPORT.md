@@ -136,6 +136,25 @@ No other skill-category feat at level 15 or below names Athletics or Stealth, so
 
 **Claim scope:** "every class builds cleanly" is measured on each class's default path (Ghost for Operative), in the default matrix (80 runs: 78 PASS, 2 WARN, 0 FAIL), plus the path coverage above. Other specializations of other classes are not measured. The prerequisite change (legacy score form removed from `pc-prerequisites.mjs`) left the default matrix unchanged, and its result is the same 78 PASS / 2 WARN.
 
+## Multiclass coverage (`--multiclass`, Free Archetype on)
+
+`run.mjs --multiclass <class>` sets `concept.multiclass` and runs Free Archetype on only. The second class's dedication is pinned to the first archetype slot (level 2); the bench reports `not pinned` when the dedication is not provable. Each dedication needs a main class that proves its attribute at level 2. Where no other class keys that attribute, `--abilities <key>` supplies the free-boost preference, as the AI's `abilityPriorities` would. Measured against the same source (`be4ab21`, sf2e 1.6.1), Human / Urbanite Human / Athlete, levels 2, 6 and 10.
+
+| dedication (prerequisite) | main class (key) | command | L2 | L6 | L10 |
+| --- | --- | --- | --- | --- | --- |
+| Envoy (Charisma +2) | Witchwarper (cha) | `--classes witchwarper --multiclass envoy --levels 2,6,10` | PASS, pinned | PASS, pinned | PASS, pinned |
+| Mechanic (Intelligence +2) | Technomancer (int) | `--classes technomancer --multiclass mechanic --levels 2,6,10` | PASS, pinned | PASS, pinned | PASS, pinned |
+| Technomancer (Intelligence +2) | Mechanic (int) | `--classes mechanic --multiclass technomancer --levels 2,6,10` | PASS, pinned | PASS, pinned | PASS, pinned |
+| Witchwarper (Intelligence or Charisma +2) | Envoy (cha) | `--classes envoy --multiclass witchwarper --levels 2,6,10` | PASS, pinned | PASS, pinned | PASS, pinned |
+| Mystic (Wisdom +2) | Envoy (cha) | `--classes envoy --multiclass mystic --abilities wis --levels 2,6,10` | PASS, pinned | PASS, pinned | PASS, pinned |
+| Operative (Dexterity +2) | Envoy (cha) | `--classes envoy --multiclass operative --abilities dex --levels 2,6,10` | PASS, pinned | PASS, pinned | PASS, pinned |
+| Solarian (Strength +2) | Envoy (cha) | `--classes envoy --multiclass solarian --abilities str --levels 2,6,10` | PASS, pinned | PASS, pinned | PASS, pinned |
+| Soldier (Constitution +2) | Envoy (cha) | `--classes envoy --multiclass soldier --abilities con --levels 2,6,10` | PASS, pinned | PASS, pinned | PASS, pinned |
+
+All 24 runs pin and PASS: no empty feat slot and no warning. Witchwarper (Envoy) at L10 shows the chain the placement rule needs: the level-2 Envoy Dedication, then the level-4 follow-up Basic Leadership (listed first in its slot), two more archetype feats, and a second dedication (AbadarCorp Rep Dedication) accepted only after two follow-ups.
+
+**Default matrix at HEAD, not a change from this work.** On a clean HEAD worktree, the default `run.mjs` reads **55 PASS / 25 WARN**, the same as with this branch. The 25 WARNs are `dedication rule` drops (sometimes with `empty archetype-class feat slot`). The bench's first-candidate picks take the dedications first, because they sort first at level 2, so consecutive dedications are dropped. The model's real picks could also stack dedications without a pin, so this is a real gap, not only a bench artifact. The headline (78 PASS / 2 WARN) predates the dedication rule and is out of date; this section does not rewrite it.
+
 ## Stubs that weaken this result
 
 - No Rule Elements run; `doc.system` is raw source (not prepared). The projection (`projectAttributeModifiers`, `projectSkillRanks`) is computed from source, not from Foundry's prepared data; the fake `Actor` still has Int 0 and ranks from class and background only.

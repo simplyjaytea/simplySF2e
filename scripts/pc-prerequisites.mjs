@@ -253,6 +253,19 @@ function isDedicationFeat(value) {
 }
 
 /**
+ * Prerequisite clauses of one feat in either staged shape: a full entry
+ * (`system.prerequisites.value[].value`) or an issued candidate record
+ * (`prerequisites: string[]`, from getFeatCandidates). Null when unreadable.
+ */
+function featPrerequisiteClauses(value) {
+  if (Array.isArray(value?.system?.prerequisites?.value)) return value.system.prerequisites.value;
+  if (Array.isArray(value?.prerequisites)) {
+    return value.prerequisites.filter((text) => typeof text === "string").map((text) => ({ value: text }));
+  }
+  return null;
+}
+
+/**
  * The archetype a non-dedication feat belongs to, read from its prerequisite
  * text: the first clause that names a feat already placed in an archetype
  * (`acceptedArchetypeFeats` maps placed feat slug -> that archetype's
@@ -260,7 +273,7 @@ function isDedicationFeat(value) {
  * the same archetype. Null when no clause names one.
  */
 export function archetypeOfFeat(evidence, acceptedArchetypeFeats) {
-  const prerequisites = evidence?.system?.prerequisites?.value;
+  const prerequisites = featPrerequisiteClauses(evidence);
   if (!Array.isArray(prerequisites) || !(acceptedArchetypeFeats instanceof Map)) return null;
   for (const clause of prerequisites) {
     const named = slugify(typeof clause?.value === "string" ? clause.value : "");
@@ -394,7 +407,7 @@ export function validateArchetypeSlotPlacement(slots, feats, context = null) {
       drop(index, name, "dedication rule: finish the current dedication with two more of its feats first");
       continue;
     }
-    const prerequisites = evidence?.system?.prerequisites?.value ?? null;
+    const prerequisites = featPrerequisiteClauses(evidence);
     if (names !== null && Array.isArray(prerequisites)) {
       const proof = { ...context, names: new Set(names) };
       if (!featPrerequisitesMet({ system: { prerequisites: { value: prerequisites } } }, proof)) {
