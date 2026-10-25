@@ -37,6 +37,7 @@ try {
     const system = calls[0].messages[0].content;
     assert.match(system, /"skillPriorities": string\[\]/);
     assert.match(system, /Never provide ranks, counts, scores/);
+    assert.match(system, /Classes are Envoy, Mechanic, Mystic, Operative, Solarian, Soldier, Technomancer, and Witchwarper only/);
     for (const slug of CORE_SKILLS) assert.ok(system.includes(slug));
     assert.doesNotMatch(system, /Power Attack|Sudden Charge|Ki Strike|"\+1 striking longsword"|Thieves' Tools|Spacious Pouch/);
     assert.deepEqual(normalizePCConcept(result.concept, { level: 5 }).skillPriorities, expected);

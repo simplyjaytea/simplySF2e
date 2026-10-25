@@ -10,7 +10,7 @@
   ],
   "compatibility": {
     "minimum": "14.361",
-    "verified": "14.367"
+    "verified": "14.369"
   },
   "relationships": {
     "systems": [
@@ -18,7 +18,7 @@
         "id": "sf2e",
         "type": "system",
         "compatibility": {
-          "minimum": "1.5.0"
+          "minimum": "1.6.0"
         }
       }
     ]

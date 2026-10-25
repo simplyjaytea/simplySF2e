@@ -7,7 +7,7 @@ AI generator for Starfinder 2e in Foundry VTT. Describe a creature, NPC, encount
 ## Requirements
 
 - Foundry VTT v14 (minimum 14.361, verified 14.367).
-- The **Starfinder Second Edition** game system (`sf2e`) 1.5.0 or later. Checked against 1.5.1.
+- The **Starfinder Second Edition** game system (`sf2e`) 1.6.0 or later. Checked against 1.6.1.
 - An AI provider that speaks the OpenAI-compatible Chat Completions API. This can be a hosted service (DeepSeek, OpenAI, OpenRouter, or another compatible gateway) or a model running on your own machine (Ollama, LM Studio).
 - A GM account. Players cannot open the generator, the Item Forge or provider setup.
 
@@ -159,7 +159,7 @@ The preview shows each member's level and role (**Boss**, **Minion**) with **Add
 
 ### Player Character
 
-Fill **Describe the character** and set **Level** (1–20). Character generation is **complete-only**: it supports only the six published Starfinder 2e classes (Envoy, Mystic, Operative, Solarian, Soldier, Witchwarper). If none of them is available in your enabled packs, the generator says so.
+Fill **Describe the character** and set **Level** (1–20). Character generation is **complete-only**: it supports only the eight published Starfinder 2e classes (Envoy, Mechanic, Mystic, Operative, Solarian, Soldier, Technomancer, Witchwarper). If none of them is available in your enabled packs, the generator says so.
 
 SimplySF2e picks a real ancestry, heritage, background and class, plus feats, skills, equipment, starting wealth and (for Mystic and Witchwarper) spells. It puts them on a character actor, and the sf2e system works out AC, HP, saves and proficiencies itself. The preview shows **Skill priorities** and the picks with their match marks.
 
@@ -267,7 +267,7 @@ When a run fails, the red error box in the Generator or Item Forge has a **Copy 
 
 ## Status
 
-**Beta.** Identity `simplysf2e`, targeting system `sf2e` 1.5.0 or later, checked against 1.5.1 (Foundry 14.361+, verified 14.367). Live Foundry QA passed on 2026-10-08 (reported by the author; no per-row log was kept).
+**Beta.** Identity `simplysf2e`, targeting system `sf2e` 1.6.0 or later, checked against 1.6.1 (Foundry 14.361+, verified 14.369). Live Foundry QA passed on 2026-10-08 on sf2e 1.5.x (reported by the author; no per-row log was kept).
 
 - Building Creatures and Treasure-by-Level numbers are cited against *Starfinder GM Core* pp. 116–128.
 - Character generation covers all six published classes. Level 1 class paths (including Operative's specialization skill feat and Sniper's bonus feat) are settled before creation. Solarian has no level 1 path choice.
@@ -279,4 +279,4 @@ When a run fails, the red error box in the Generator or Item Forge has a **Copy 
 
 - Repository: https://github.com/simplyjaytea/simplySF2e
 - Foundry: v14 (compat minimum 14.361)
-- Game system: [`sf2e`](https://foundryvtt.com/packages/sf2e) 1.5.0 or later, checked against 1.5.1 (Starfinder Second Edition)
+- Game system: [`sf2e`](https://foundryvtt.com/packages/sf2e) 1.6.0 or later, checked against 1.6.1 (Starfinder Second Edition)
