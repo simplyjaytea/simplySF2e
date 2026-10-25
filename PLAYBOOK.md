@@ -27,7 +27,7 @@ The one file every agent (Claude, Codex, anything else) reads first. It holds wh
 
 ## 2. The project
 
-Foundry VTT module `simplysf2e`. An AI generates Starfinder 2e NPCs/monsters, encounters, player characters, magic items, shops and treasure from a text prompt. Every named pick is grounded against the real installed `sf2e` compendium. Repo `simplyjaytea/simplySF2e`. Targets system **`sf2e` 1.5.0+** (cited against `system.sf2e.json` 1.5.1, Foundry 14.361 min / 14.367 verified).
+Foundry VTT module `simplysf2e`. An AI generates Starfinder 2e NPCs/monsters, encounters, player characters, magic items, shops and treasure from a text prompt. Every named pick is grounded against the real installed `sf2e` compendium. Repo `simplyjaytea/simplySF2e`. Targets system **`sf2e` 1.6.0+** (cited against tag `sf2e-1.6.1` of the pf2e repo, Foundry 14.361 min / 14.369 verified). The 1.5.1→1.6.1 diff changed no pack ids; it added the Tech Core classes Mechanic and Technomancer.
 
 **Glossary.**
 - **sf2e system**: built from the PF2e monorepo branch **v14-dev**. Pack ids are `sf2e.<packs[].name>`. "Real source" = that repo's TS/JSON fetched live: `https://raw.githubusercontent.com/foundryvtt/pf2e/v14-dev/<path>`.
@@ -154,7 +154,7 @@ The first four bullets are PF2e-era checks inherited with the builders (re-verif
 - A PC spellcasting entry's `proficiency.value` is a floor, not a cap (`spellcasting-entry/document.ts` takes `Math.max` with `base-spellcasting`).
 - `details.languages.value` is not truncated; the system adds Int mod to `build.languages.max`.
 - Do not write `system.price`/`system.level` on a graded/runed item: `physical/document.ts` `computeLevelRarityPrice()` recomputes both.
-- A PC's focus pool needs no rule: `resources.focus.max` resets to 0 each prep and each embedded non-cantrip focus spell adds 1, capped at 3 (`item/spell/document.ts`, `creature/document.ts`; re-verified 2026-10-02). An NPC pool is plain actor data. Only Mystic and Witchwarper have focus spells.
+- A PC's focus pool needs no rule: `resources.focus.max` resets to 0 each prep and each embedded non-cantrip focus spell adds 1, capped at 3 (`item/spell/document.ts`, `creature/document.ts`; re-verified 2026-10-02). An NPC pool is plain actor data. Mystic, Witchwarper and Technomancer have focus spells. A Technomancer's initial magic hack is not GrantItem'd by the data; `pc-support.mjs` maps each programming language `_id` to its hack (cited from each language's description, tag `sf2e-1.6.1`).
 - Credits/UPB: `ActorInventory.addCurrency` clones bundled `credstick.json`/`upb.json`; the credit amount is `system.price.value`. No sf2e gold-piece UUIDs exist.
 - G1 skills: sf2e adds `computers` (int) and `piloting` (dex) (`src/scripts/config/index.ts`). NPC core skills are written to `system.skills.<slug>.base`, never as lore items (`item/lore.ts` appends `-lore`).
 - Spell consumables are spell **gems**, not scrolls (`config/spell-consumables.ts`).
@@ -191,6 +191,9 @@ Each line is a bug class that already cost a fix. The full story is in `docs/arc
 - Parallel workers need one worktree each and disjoint files; shared worktrees collided before. Inline `git -c user.name=...` flags misparse in this shell; set identity with `git config` in the worktree.
 - JT sometimes merges while a review is still running. Say when one is in flight; fixes for a merged PR go in a new PR.
 - Scripts are CRLF on Windows checkouts. Keep each file's existing endings; `git diff --check` must stay clean.
+- The `waterfall` plugin's `wf-auth` hook blocks Write/Edit from every non-waterfall subagent (`unknown agent_type=general-purpose`), even with no waterfall run. Workers then run as Orca workers (`orca orchestration worker-start --agent claude --model claude-haiku-5-5 --worktree new-top-level`), which are top-level sessions. Never route around the hook with shell writes.
+- `tools/release-check.sh` UI step runs `npm install`, which drops a `--no-save` Playwright; run `node tools/ui-preview/shoot.mjs` directly after `npm install --no-save playwright` if it reports `Cannot find module 'playwright'`.
+- The offline class bench (`tools/class-bench/`, fetch then run) builds every class x level against real pack JSON; use it before claiming a PC-pipeline fix works.
 - Squash merges hide merged branches from `git branch --merged`; match branch tips to merged PR heads through the GitHub API.
 
 ## 9. Known gaps (by design or deferred)
@@ -198,9 +201,9 @@ Each line is a bug class that already cost a fix. The full story is in `docs/arc
 - **Focus:** a focus-only NPC (no tradition, so no DC) is unsupported. The NPC pool size (spell count, max 3) is a module default.
 - **Item Forge passives** exist only for kinds with a published `sf2e.equipment` exemplar: item bonus, resistance, sense. Weakness, immunity and speed are hidden. No sf2e item uses an `etched-onto-*` usage.
 - **Upgrades:** only `installed-in-a-weapon` / `installed-in-armor` usages are offered (`runes.mjs`, cited to `usage.ts`). Upgrade slot counts are **uncited and on hiatus** (`parseUpgradeCapacity` defaults to weapon 1 / armor 0). Prerequisites and exclusivity are not validated; shields and ammo are out of scope.
-- **PC skills/feats:** unknown grant timing and missing class data are warned, not inferred. Duplicate native feat grants and new Lore replacements stay manual; not live-tested. Class-path details (Operative specialization, Sniper; Solarian has no `item:tag` path) are in `class-paths.mjs`; Mystic/Witchwarper casting (3 slots per rank, 5 cantrips, 10th rank at 19) in `pc-tables.mjs`. Free Archetype slot placement and ordinary prerequisites are checked (`pc-prerequisites.mjs`); a full prerequisite graph is unbuilt.
+- **PC skills/feats:** unknown grant timing and missing class data are warned, not inferred. Duplicate native feat grants and new Lore replacements stay manual; not live-tested. Class-path details (Operative specialization, Sniper; Solarian has no `item:tag` path) are in `class-paths.mjs`; Mystic/Witchwarper casting (spontaneous, 3 slots per rank, 5 cantrips, 10th rank at 19) and Technomancer (prepared arcane, base 2 slots) in `pc-tables.mjs`. Mechanic's Drone exocortex needs a companion the module does not create; the GM gets a whisper after Create. Exocortex and Programming Language are ordinary `item:tag` class paths. Free Archetype slot placement and ordinary prerequisites are checked (`pc-prerequisites.mjs`); a full prerequisite graph is unbuilt.
 - **Rarity cap** covers ancestry/background/heritage only, by design.
-- **Multiclass** is unbuilt: sf2e has dedications for all six classes and `pc-support.mjs` maps them, but nothing calls the map.
+- **Multiclass** is unbuilt: sf2e has dedications for all eight classes and `pc-support.mjs` maps them, but nothing calls the map. JT's decisions (2026-10-25): GM picker and AI both allowed, caster dedications built too, Free Archetype required. Draft plan and cited sources: the `multiclass-plan.md` notes from the 2026-10-25 session (re-fetch before building).
 
 ## 10. Archive (read only when needed)
 
