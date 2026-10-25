@@ -65,8 +65,8 @@
   --spf-space-lg: 0.75rem;
   --spf-space-xl: 1rem;
   /* Type + shape: sans + sharper corners, not PF2e parchment */
-  --spf-text-sm: 0.85em;
-  --spf-text-xs: 0.72em;
+  --spf-text-sm: 0.85rem;
+  --spf-text-xs: 0.85rem;
   --spf-font-display: var(--font-sans, "Signika", sans-serif);
   --spf-font-mono: var(--font-monospace, ui-monospace, "Cascadia Code", monospace);
   --spf-radius: 2px;
@@ -568,7 +568,7 @@
 .simplysf2e .spf-inputs input[type="number"],
 .simplysf2e .spf-preset-controls select {
   background: color-mix(in srgb, var(--spf-brand-dark) 55%, rgba(8, 16, 26, 0.88));
-  border: 1px solid var(--spf-border);
+  border: 1px solid var(--spf-control-border);
   color: var(--spf-text);
   border-radius: var(--spf-radius-sm);
 }
@@ -1042,7 +1042,7 @@
 .simplysf2e .spf-error-notice button.spf-bug-report {
   flex: 0 0 auto;
   width: auto;
-  font-size: var(--font-size-12, 0.75rem);
+  font-size: var(--spf-text-sm);
 }
 
 /* Manual-copy fallback dialog (not inside a .simplysf2e window). */
@@ -1050,7 +1050,7 @@ textarea.spf-bug-report-text {
   width: 100%;
   min-height: 14rem;
   font-family: var(--font-mono, monospace);
-  font-size: var(--font-size-11, 0.7rem);
+  font-size: 0.85rem;
   white-space: pre;
   resize: vertical;
 }

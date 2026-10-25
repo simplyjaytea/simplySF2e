@@ -285,9 +285,9 @@
     </details>
     {{/unless}}
     <div class="spf-generate-row">
-      <button type="button" class="spf-primary" data-action="generate" {{#if busy}}disabled{{/if}}>
+      <button type="button" class="{{#if preview}}spf-secondary{{else if encounterPreview}}spf-secondary{{else if pcPreview}}spf-secondary{{else if reskinPreview}}spf-secondary{{else}}spf-primary{{/if}}" data-action="generate" {{#if busy}}disabled{{/if}}>
         <i aria-hidden="true" class="fa-solid fa-wand-sparkles"></i>
-        {{#if monsterMode}}{{localize "SIMPLYSF2E.Generator.GenerateMonster"}}{{else if npcMode}}{{localize "SIMPLYSF2E.Generator.GenerateNpc"}}{{else if encounterMode}}{{localize "SIMPLYSF2E.Generator.GenerateEncounter"}}{{else if reskinMode}}{{localize "SIMPLYSF2E.Generator.GenerateReskin"}}{{else}}{{localize "SIMPLYSF2E.Generator.GenerateCharacter"}}{{/if}}
+        {{#if preview}}{{localize "SIMPLYSF2E.Generator.GenerateAnotherVersion"}}{{else if encounterPreview}}{{localize "SIMPLYSF2E.Generator.GenerateAnotherVersion"}}{{else if pcPreview}}{{localize "SIMPLYSF2E.Generator.GenerateAnotherVersion"}}{{else if reskinPreview}}{{localize "SIMPLYSF2E.Generator.GenerateAnotherVersion"}}{{else}}{{#if monsterMode}}{{localize "SIMPLYSF2E.Generator.GenerateMonster"}}{{else if npcMode}}{{localize "SIMPLYSF2E.Generator.GenerateNpc"}}{{else if encounterMode}}{{localize "SIMPLYSF2E.Generator.GenerateEncounter"}}{{else if reskinMode}}{{localize "SIMPLYSF2E.Generator.GenerateReskin"}}{{else}}{{localize "SIMPLYSF2E.Generator.GenerateCharacter"}}{{/if}}{{/if}}
       </button>
       <button type="button" class="spf-secondary" data-action="previewPlan" {{#if busy}}disabled{{/if}}>{{localize "SIMPLYSF2E.Generator.PreviewPlan"}}</button>
       {{#unless reskinMode}}

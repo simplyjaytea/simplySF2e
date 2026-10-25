@@ -25,7 +25,7 @@
   gap: 0.2rem;
   margin: 0;
   padding: var(--spf-space-sm) var(--spf-space-md);
-  border-left: 3px solid var(--spf-accent, currentColor);
+  border-left: 3px solid var(--spf-brand-accent);
   background: rgba(255, 255, 255, 0.04);
   overflow-wrap: anywhere;
 }

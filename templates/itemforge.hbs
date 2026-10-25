@@ -84,9 +84,9 @@
       </div>
     </div>
     <div class="spf-generate-row">
-      <button type="button" class="spf-primary" data-action="generate" {{#if busy}}disabled{{/if}}>
+      <button type="button" class="{{#if preview}}spf-secondary{{else}}spf-primary{{/if}}" data-action="generate" {{#if busy}}disabled{{/if}}>
         <i aria-hidden="true" class="fa-solid fa-wand-sparkles"></i>
-        {{localize "SIMPLYSF2E.Generator.Generate"}}
+        {{#if preview}}{{localize "SIMPLYSF2E.Generator.GenerateAnotherVersion"}}{{else}}{{localize "SIMPLYSF2E.Generator.Generate"}}{{/if}}
       </button>
     </div>
   </fieldset>
