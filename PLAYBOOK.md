@@ -199,6 +199,7 @@ Each line is a bug class that already cost a fix. The full story is in `docs/arc
 - The `waterfall` plugin's `wf-auth` hook blocks Write/Edit from every non-waterfall subagent (`unknown agent_type=general-purpose`), even with no waterfall run. Workers then run as Orca workers (`orca orchestration worker-start --agent claude --model claude-haiku-5-5 --worktree new-top-level`), which are top-level sessions. Never route around the hook with shell writes.
 - `tools/release-check.sh` UI step runs `npm install`, which drops a `--no-save` Playwright; run `node tools/ui-preview/shoot.mjs` directly after `npm install --no-save playwright` if it reports `Cannot find module 'playwright'`.
 - The offline class bench (`tools/class-bench/`, fetch then run) builds every class x level against real pack JSON; use it before claiming a PC-pipeline fix works.
+- Promoting an existing beta pre-release to stable does not make GitHub recompute Latest (v0.1.4 stayed behind v0.1.3 until `gh release edit v0.1.4 --latest`). `release.yml` now sets Latest on a stable publish when the tag is the highest stable version. Always check `releases/latest/download/module.json` after a stable dispatch.
 - Squash merges hide merged branches from `git branch --merged`; match branch tips to merged PR heads through the GitHub API.
 
 ## 9. Known gaps (by design or deferred)
