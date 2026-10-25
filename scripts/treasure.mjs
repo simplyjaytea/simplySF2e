@@ -8,7 +8,6 @@ import { esc, toHtml } from "./text.mjs";
 import { gpToCredits } from "./currency.mjs";
 import { TREASURE_BY_LEVEL, treasureBudget, lookup } from "./tables.mjs";
 import { shopTypesFor } from "./shop.mjs";
-import credstickJSON from "./currency/credstick.mjs";
 
 /**
  * Party levels the table covers: GM Core's Treasure by Level table is
@@ -141,26 +140,6 @@ export function hoardLeftover(budget, items) {
   const spent = (Array.isArray(items) ? items : [])
     .reduce((sum, row) => sum + (Number(row.credits) || 0) * (Number(row.quantity) || 1), 0);
   return Math.max(Math.floor(Number(budget) || 0) - spent, 0);
-}
-
-/**
- * The hoard's whole leftover as ONE Credstick: the cited bundled template
- * (currency/credstick.mjs), quantity 1, the credit amount on
- * `system.price.value.sp` as `addCurrency` writes it. Null when nothing is
- * left, or when the template is the wrong shape (fail closed). The sum is
- * never split: currency.mjs CURRENCY_ITEM_MAX is a module sanity cap, not a
- * game rule, so it gives no reason for several sticks.
- * @param {number} leftover credits left after the items
- */
-export function hoardCredstick(leftover) {
-  const credits = Math.max(Math.floor(Number(leftover) || 0), 0);
-  if (!credits) return null;
-  if (credstickJSON?.type !== "treasure" || credstickJSON?.system?.category !== "credstick") return null;
-  const stick = JSON.parse(JSON.stringify(credstickJSON));
-  delete stick._id;
-  stick.system.quantity = 1;
-  stick.system.price.value = { sp: credits };
-  return stick;
 }
 
 /** The loot sheet description: escaped AI prose. */

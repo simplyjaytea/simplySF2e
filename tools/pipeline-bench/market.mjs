@@ -165,12 +165,14 @@ async function runHoard({ level, amount, rarity }) {
     return { key: pick.id, name: doc.name, type: doc.type, level: doc.system?.level?.value ?? pick.level,
       rarity: doc.system?.traits?.rarity ?? pick.rarity ?? "common", credits: pick.credits, quantity: 1, doc, itemData };
   });
-  // Create (treasure-app.mjs:348-358): ONE Credstick for the leftover (treasure.mjs hoardCredstick).
-  // OPEN: treasure-app.mjs still splits the leftover by CURRENCY_ITEM_MAX; this mirror follows the
-  // single-credstick rule until that app line is switched (see MARKET-REPORT.md "Open").
+  // Create (treasure-app.mjs:352-355): the leftover is split by CURRENCY_ITEM_MAX, one Credstick per part.
+  // A null stick throws, as the app does (its NoItems error).
   const leftover = treasure.hoardLeftover(budget, rows);
-  const stick = treasure.hoardCredstick(leftover);
-  const sticks = stick ? [stick] : [];
+  const sticks = currency.splitCurrency(leftover).map((part) => {
+    const stick = currency.assembleCurrency("credits", part);
+    if (!stick) throw new Error("assembleCurrency returned no Credstick for a hoard part");
+    return stick;
+  });
   const items = [...rows.map((r) => structuredClone(r.itemData)), ...sticks];
   const actorData = treasure.treasureActorData(concept, level, items); // treasure-app.mjs:360
   return { budget, candidates, types, hoard, rows, sticks, leftover, actorData };
@@ -194,10 +196,11 @@ function checkHoard(run, { level, rarity, amount }) {
     if (!(row.credits > 0)) add("unpriced item stocked at 0 credits", row.name);
   }
   const sticks = run.sticks;
-  if (sticks.length > 1) add("several credsticks for one hoard", `${sticks.length} sticks`);
   const stickTotal = sticks.reduce((sum, s) => sum + s.system.price.value.sp, 0);
   for (const s of sticks) {
     if (s.type !== "treasure" || s.system.category !== "credstick" || s.system.quantity !== 1) add("credstick template shape wrong", s.name);
+    if (s.system.price.value.sp > currency.CURRENCY_ITEM_MAX) add("credstick over CURRENCY_ITEM_MAX", `${s.system.price.value.sp}`);
+    if (!(s.system.price.value.sp > 0)) add("credstick holds no credits", s.name);
   }
   if (stickTotal !== run.leftover) add("credstick amount off leftover", `${stickTotal} vs ${run.leftover}`);
   if (spent + stickTotal !== run.budget) add("items + credstick != budget", `${spent} + ${stickTotal} vs ${run.budget}`);

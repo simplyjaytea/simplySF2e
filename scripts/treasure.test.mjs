@@ -4,10 +4,9 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
   TREASURE_AMOUNTS, TREASURE_PICKS, clampTreasureLevel, clampPartySize, treasureBudgetCredits, creditsEach,
-  normalizeTreasureConcept, resolveIssuedPicks, fillHoard, hoardLeftover, hoardCredstick, treasureDescriptionHtml,
+  normalizeTreasureConcept, resolveIssuedPicks, fillHoard, hoardLeftover, treasureDescriptionHtml,
   treasureActorData
 } from "./treasure.mjs";
-import credstickJSON from "./currency/credstick.mjs";
 
 // Budgets: TREASURE_BY_LEVEL level 4 total is 850 gp = 8,500 credits; one
 // encounter is that / ENCOUNTERS_PER_LEVEL (12.5) = 68 gp = 680 credits.
@@ -71,19 +70,6 @@ assert.equal(fillHoard("nope", candidates, 100).leftover, 100);
 assert.equal(fillHoard(["a"], candidates, 70).leftover, 0, "an exact fit is allowed");
 assert.equal(resolveIssuedPicks(["a", "Medkit"], candidates).issued.length, 2);
 assert.equal(resolveIssuedPicks(["x"], [{ id: "p", name: "Dup" }, { id: "q", name: "Dup" }]).issued.length, 0, "ambiguous names are rejected");
-
-// One Credstick for the whole leftover, never split: the bundled template,
-// quantity 1, the credit sum on system.price.value.
-assert.equal(hoardCredstick(0), null, "nothing left, no Credstick");
-assert.equal(hoardCredstick(-5), null);
-assert.equal(hoardCredstick(680.9).system.price.value.sp, 680, "fractional credits floor");
-const stick = hoardCredstick(4900000);
-assert.equal(stick.type, "treasure");
-assert.equal(stick.system.category, "credstick");
-assert.equal(stick.system.quantity, 1);
-assert.deepEqual(stick.system.price.value, { sp: 4900000 }, "a whole-level hoard is one Credstick");
-assert.equal("_id" in stick, false, "the template's id is not copied");
-assert.deepEqual(credstickJSON.system.price.value, { sp: 1 }, "the bundled template is not mutated");
 
 // Escaping.
 const html = treasureDescriptionHtml({ name: "n", description: "<script>x</script>" });
