@@ -421,7 +421,7 @@ JSON schema (all keys required unless marked optional):
 Design guidance:
 - Pick an ancestry, background and class that together tell a coherent, thematic character matching the GM's concept.
 - Default to common ancestries unless the concept specifically calls for something exotic — use rare or uncommon ancestries sparingly, only when they genuinely fit.
-- "keyAbility" MUST be a legal key ability for the Starfinder 2e class you chose. Classes are Envoy, Mystic, Operative, Solarian, Soldier, and Witchwarper only — never Pathfinder classes.
+- "keyAbility" MUST be a legal key ability for the Starfinder 2e class you chose. Classes are Envoy, Mechanic, Mystic, Operative, Solarian, Soldier, Technomancer, and Witchwarper only — never Pathfinder classes.
 - Only include "spellcasting" for classes that actually cast spells (Mystic, Witchwarper) and only when spellcasting is allowed.
 - "focusSpells": name 1-3 published Starfinder 2e focus spells that plausibly fit this build when the class grants them; leave [] if the class/concept doesn't have any.
 - Give the character real personality texture, not just combat stats: mannerisms, likes/dislikes, and at least one named ally, enemy, or organization tying them into a wider world — a blank or generic answer for these is a worse answer than a specific, concept-fitting one.

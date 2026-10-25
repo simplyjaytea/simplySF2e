@@ -3,7 +3,7 @@
 // app (welcome-app.mjs) gathers the live inputs and passes them in.
 
 /** Lowest sf2e version the module allows. Must match module.json relationships. */
-export const MIN_SYSTEM_VERSION = "1.5.0";
+export const MIN_SYSTEM_VERSION = "1.6.0";
 
 /**
  * Compare dotted numeric versions ("1.5.1" vs "1.5.0"). Missing parts count as
