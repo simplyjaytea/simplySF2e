@@ -4,21 +4,21 @@ import {
 } from "./settings.mjs";
 import { rememberedInput, restoreGeneratorInput } from "./generator-memory.mjs";
 import {
-  generateConcept, generateLoot, selectSpells, chooseSpellFocus, selectEquipment, selectLoot, designEncounter,
-  generatePCConcept, generatePCLoot, selectAncestryBackgroundClass, selectFeats, selectCreatureFeats, selectCreatureAbilities, selectCharacterChoices,
+  generateLoot, selectSpells,
+  generatePCConcept, generatePCLoot, selectAncestryBackgroundClass, selectFeats, selectCharacterChoices,
   generateReskin, selectRerollPick
 } from "./ai.mjs";
+import { generateCreature, generateEncounter, refineSpells, refineEquipment, refineLoot } from "./creature-pipeline.mjs";
 import {
-  getSpellCandidates, getEquipmentCandidates, getLootCandidates, getScrollSpellCandidates,
-  getAncestryCandidates, getBackgroundCandidates, getClassCandidates, getHeritageCandidates, getFocusSpellCandidates, getFeatCandidates, getAbilityCandidates, sourceReadiness, describeMissingSources
+  getSpellCandidates,
+  getAncestryCandidates, getBackgroundCandidates, getClassCandidates, getHeritageCandidates, getFeatCandidates, getAbilityCandidates, sourceReadiness, describeMissingSources
 } from "./compendium.mjs";
 import {
-  normalizeConcept, normalizeLoot, resolveConcept, resolveLoot, computeStats, adjustedStats, createActor,
-  applyTreasureBudget, equipmentValueGp, lootValueGp, parseCoins, parseScroll, slugify,
-  dedupeLootAgainstEquipment, enforceNamedLootBudget, reskinActorData, narrativeHasMechanics
+  normalizeLoot, resolveLoot, computeStats, adjustedStats, createActor,
+  applyTreasureBudget, equipmentValueGp, lootValueGp, parseCoins, slugify,
+  dedupeLootAgainstEquipment, enforceNamedLootBudget, reskinActorData
 } from "./builder.mjs";
 import { normalizeReskin, reskinRenameTargets } from "./reskin.mjs";
-import { runPool, encounterConcurrency } from "./pool.mjs";
 import { relevelActorData, clampRelevel, RELEVEL_MIN, RELEVEL_MAX } from "./relevel.mjs";
 import { REROLL_KINDS, rerollTarget, rerollPool, applyRerollPick, rerollKeywords } from "./reroll.mjs";
 import {
@@ -1094,67 +1094,29 @@ export class GeneratorApp extends SpfApp {
       ["match", game.i18n.localize("SIMPLYSF2E.Progress.Match")]
     ]);
     try {
-      await this._setStep("concept");
       const gmPrompt = isRandom ? randomBrief(this.#input.mode) : this.#input.prompt;
-      const { concept: raw, usage } = await generateConcept({
-        // Random mode rolls a fresh local brief each generation, so
-        // Regenerate gives a genuinely different creature every time.
+      const { concept, resolved, manifest } = await generateCreature({
+        mode: this.#input.mode,
         prompt: gmPrompt,
         level: this.#input.level,
         rarity: this.#input.rarity,
         allowSpellcasting: this.#input.allowSpellcasting,
-        preset: isRandom ? null : findPreset(this.#input.preset)?.prompt ?? null,
-        amount: this.#input.treasureAmount,
-        intent: this.#input.mode,
-        onProgress: (p) => this._onAIProgress(p), signal
-      });
-      this._recordTokens(game.i18n.localize("SIMPLYSF2E.Progress.Concept"), usage);
-      this.#concept = {
-        ...normalizeConcept(raw, { level: this.#input.level, rarity: this.#input.rarity }),
         adjustment: this.#input.adjustment ?? null,
-        gmPrompt
-      };
-      // so a non-compliant model output can still return a valid tradition.
-      // Strip it here (focus spells ride on it — normalizeConcept already
-      // ties focusSpells to spellcasting, and every downstream resolve/build
-      // step re-checks concept.spellcasting, so nulling it here is enough).
-      if (!this.#input.allowSpellcasting) {
-        this.#concept.spellcasting = null;
-        this.#concept.focusSpells = [];
-      }
-      // Gate on the SAME condition the step list above was built from — the
-      // "spells" step key only exists when allowSpellcasting was true.
-      // applyStep no-ops on a missing key, but we still skip the call so the
-      // UI does not leave a phantom spells step active.
-      if (this.#input.allowSpellcasting && this.#concept.spellcasting) await this._setStep("spells");
-      await this.#refineSpells(this.#concept, signal);
-      if (this.#concept.specialAbilities.length) await this._setStep("abilities");
-      await this.#refineCreatureAbilities(this.#concept, signal);
-      if (this.#concept.feats.length) await this._setStep("feats");
-      await this.#refineCreatureFeats(this.#concept, signal);
-      if (this.#concept.equipment.length) await this._setStep("equipment");
-      await this.#refineEquipment(this.#concept, signal);
-      if (this.#concept.loot.length) await this._setStep("loot");
-      await this.#refineLoot(this.#concept, signal);
-      await this._setStep("match");
-      this.#resolved = await resolveConcept(this.#concept, { exactContent: true });
-      // Treasure budget: the module owns the numbers (level + rarity from the
-      // tables, scaled by the Treasure amount control); only coins flex.
-      this.#resolved.loot = await applyTreasureBudget(
-        this.#resolved.loot,
-        this.#concept.loot.length ? treasureBudget(this.#concept.level, this.#concept.rarity, this.#input.treasureAmount) : 0
-      );
-      const manifest = completionManifest({ mode: this.#input.mode, concept: this.#concept, resolved: this.#resolved });
-      this._throwIfCancelled();
-      assertComplete(manifest);
+        // Random mode rolls a fresh local brief each generation, so
+        // Regenerate gives a genuinely different creature every time.
+        preset: isRandom ? null : findPreset(this.#input.preset)?.prompt ?? null,
+        treasureAmount: this.#input.treasureAmount,
+        ...this.#creatureContext(signal),
+        onStep: (id, state) => {
+          // The draft is shown as soon as it exists, before its grounding steps.
+          if (state.concept) this.#concept = state.concept;
+          return this._setStep(id);
+        }
+      });
+      this.#concept = concept;
+      this.#resolved = resolved;
       this.#manifest = manifest;
       this.#markPreview();
-      const eq = this.#resolved.equipment;
-      const misses = (this.#resolved.skippedGear ?? []).filter((g) => g.category === "equipment").map((g) => g.name);
-      if (eq.length || misses.length) {
-        console.debug(`${MODULE_ID} | equipment matches: ${eq.length}/${eq.length + misses.length}`,
-          misses.length ? { skipped: misses } : "");
-      }
       console.debug(`${MODULE_ID} | token usage`, this._tokenUsage);
     } catch (err) {
       this.#noteGenerationFailure(err, "generation");
@@ -1196,98 +1158,26 @@ export class GeneratorApp extends SpfApp {
         ...composition.members.map((_, i) => [`member${i}`, memberLabel(i)]),
         ["match", game.i18n.localize("SIMPLYSF2E.Progress.Match")]
       ]);
-      await this._setStep("design");
       // Random mode always rolls a fresh theme, even over a typed prompt —
       // same contract as the other modes' dice button (#onGenerateRandom).
       const theme = isRandom ? randomBrief(this.#input.mode) : (this.#input.prompt.trim() || randomBrief(this.#input.mode));
-      const design = await designEncounter({
+      const context = this.#creatureContext(signal);
+      context.labels.member = memberLabel;
+      this.#encounter = await generateEncounter({
+        composition,
         theme,
         partyLevel,
-        slots: composition.members,
-        onProgress: (p) => this._onAIProgress(p), signal
+        rarity,
+        allowSpellcasting: this.#input.allowSpellcasting,
+        // The preset row is now a stable slot in every mode: a selected
+        // preset shapes each member the same way it shapes a single
+        // creature (and, matching the Single dice button, Random ignores it).
+        preset: isRandom ? null : findPreset(this.#input.preset)?.prompt ?? null,
+        treasureAmount: this.#input.treasureAmount,
+        local: isLikelyKeylessLocalEndpoint(getSetting(SETTINGS.apiBaseUrl)),
+        ...context,
+        onStep: (id) => this._setStep(id)
       });
-      this._recordTokens(game.i18n.localize("SIMPLYSF2E.Progress.Design"), design.usage);
-
-      const members = [];
-      // Creatures are independent, so build a few at once (pool.mjs). The
-      // first failure aborts the rest instead of paying for creatures that
-      // will be thrown away.
-      const memberAbort = new AbortController();
-      const memberSignal = AbortSignal.any([signal, memberAbort.signal]);
-      // Several creatures run at once, so the progress list counts finished
-      // creatures: step N is active until N creatures are done.
-      let finished = 0;
-      await this._setStep("member0");
-      const local = isLikelyKeylessLocalEndpoint(getSetting(SETTINGS.apiBaseUrl));
-      const built = await runPool(composition.members.length, encounterConcurrency({ local }), async (i) => {
-        const slot = composition.members[i];
-        const signal = memberSignal;
-        this._throwIfCancelled();
-        const { concept: raw, usage } = await generateConcept({
-          prompt: `${design.briefs[i]} (Part of the encounter "${design.name}": ${theme})`,
-          level: slot.level,
-          rarity,
-          allowSpellcasting: this.#input.allowSpellcasting,
-          // The preset row is now a stable slot in every mode: a selected
-          // preset shapes each member the same way it shapes a single
-          // creature (and, matching the Single dice button, Random ignores it).
-          preset: isRandom ? null : findPreset(this.#input.preset)?.prompt ?? null,
-          amount: this.#input.treasureAmount,
-          intent: "monster",
-          onProgress: (p) => this._onAIProgress(p), signal
-        });
-        this._recordTokens(memberLabel(i), usage);
-        const concept = { ...normalizeConcept(raw, { level: slot.level, rarity }), gmPrompt: theme };
-        // Same defensive filter as the single-creature pipeline: the prompt
-        // asks for no spellcasting, but a non-compliant model can still
-        // return a valid tradition.
-        if (!this.#input.allowSpellcasting) {
-          concept.spellcasting = null;
-          concept.focusSpells = [];
-        }
-        await this.#refineSpells(concept, signal);
-        await this.#refineCreatureAbilities(concept, signal);
-        await this.#refineCreatureFeats(concept, signal);
-        await this.#refineEquipment(concept, signal);
-        await this.#refineLoot(concept, signal);
-        finished++;
-        if (finished < composition.members.length) await this._setStep(`member${finished}`);
-        return { ...slot, concept };
-      }, { onError: () => memberAbort.abort() });
-      members.push(...built);
-
-      await this._setStep("match");
-      for (const member of members) {
-        member.resolved = await resolveConcept(member.concept, { exactContent: true });
-        // Treasure is calibrated to the PARTY level and the WHOLE encounter:
-        // treasureBudget() returns one encounter's total, split evenly across
-        // groups. A group keeps its constant share (treasureGroupBudget)
-        // regardless of copy count — only the per-copy split changes
-        // (#stepMemberCount recomputes it the same way).
-        member.treasureGroupBudget =
-          member.concept.loot.length ? treasureBudget(partyLevel, member.concept.rarity, this.#input.treasureAmount) / members.length : 0;
-        member.treasureBudgetEach = member.treasureGroupBudget / Math.max(member.count, 1);
-        member.resolved.loot = await applyTreasureBudget(member.resolved.loot, member.treasureBudgetEach);
-        member.manifest = completionManifest({ mode: "monster", concept: member.concept, resolved: member.resolved });
-        assertComplete(member.manifest);
-        member.treasureEach = lootValueGp(member.resolved.loot);
-      }
-      const allEq = members.flatMap((m) => m.resolved.equipment);
-      const misses = members.flatMap((m) => m.resolved.skippedGear ?? [])
-        .filter((g) => g.category === "equipment").map((g) => g.name);
-      if (allEq.length || misses.length) {
-        console.debug(`${MODULE_ID} | equipment matches: ${allEq.length}/${allEq.length + misses.length}`,
-          misses.length ? { skipped: misses } : "");
-      }
-      this._throwIfCancelled();
-      this.#encounter = {
-        name: design.name,
-        budget: composition.budget,
-        spent: composition.spent,
-        treasureBudget: members.reduce((sum, m) => sum + m.count * (m.treasureBudgetEach ?? 0), 0),
-        treasureSpent: members.reduce((sum, m) => sum + m.count * (m.treasureEach ?? 0), 0),
-        members
-      };
       this.#markPreview();
       console.debug(`${MODULE_ID} | token usage`, this._tokenUsage);
     } catch (err) {
@@ -1596,6 +1486,30 @@ export class GeneratorApp extends SpfApp {
   }
 
   /**
+   * Hooks the shared creature steps (creature-pipeline.mjs) report through:
+   * localized token-row and progress labels, live AI progress, and the run's
+   * abort signal. The PC and loot-reroll paths reuse the same grounding steps.
+   */
+  #creatureContext(signal) {
+    return {
+      signal,
+      labels: {
+        concept: game.i18n.localize("SIMPLYSF2E.Progress.Concept"),
+        spellFocus: game.i18n.localize("SIMPLYSF2E.Progress.SpellFocus"),
+        spells: game.i18n.localize("SIMPLYSF2E.Progress.Spells"),
+        abilities: game.i18n.localize("SIMPLYSF2E.Progress.Abilities"),
+        feats: game.i18n.localize("SIMPLYSF2E.Progress.Feats"),
+        equipment: game.i18n.localize("SIMPLYSF2E.Progress.Equipment"),
+        loot: game.i18n.localize("SIMPLYSF2E.Progress.Loot"),
+        design: game.i18n.localize("SIMPLYSF2E.Progress.Design"),
+        cancelled: game.i18n.localize("SIMPLYSF2E.Errors.Cancelled")
+      },
+      onProgress: (p) => this._onAIProgress(p),
+      onTokens: (usage, { label, timing }) => this._recordTokens(label, usage, timing)
+    };
+  }
+
+  /**
    * Grounded spell selection: first ask the AI for a thematic focus (so the
    * compendium query below can be narrowed instead of dumping every spell in
    * the tradition), then fetch that narrowed, level-capped list and let the
@@ -1605,70 +1519,8 @@ export class GeneratorApp extends SpfApp {
    * compendium-backed list, spells are dropped rather than left as unvetted
    * draft names, same fail-closed behavior as feats elsewhere in the pipeline.
    */
-  async #refineSpells(concept, signal) {
-    const spellcasting = concept?.spellcasting;
-    if (!spellcasting) return;
-    try {
-      // Two AI calls share the "Spell selection" step. Sub-labels distinguish
-      // them in the detail line; the bar stays on phase fill, not extra steps.
-      let keywords = [];
-      try {
-        const focusLabel = game.i18n.localize("SIMPLYSF2E.Progress.SpellFocus");
-        const focus = await chooseSpellFocus({
-          concept,
-          tradition: spellcasting.tradition,
-          onProgress: (p) => this._onAIProgress({ ...p, call: focusLabel }), signal
-        });
-        keywords = focus.keywords;
-        this._recordTokens(focusLabel, focus.usage);
-      } catch (err) {
-        if (err?.cancelled) throw err;
-        console.warn(`${MODULE_ID} | spell focus selection failed, using first-draft spell names only`, err);
-      }
-      const selectionPicks = spellcasting.selectionPicks ?? spellcasting.plannedPicks;
-      const candidates = await getSpellCandidates(
-        spellcasting.tradition,
-        spellcasting.maxRank,
-        [...spellcasting.spells.map((spell) => spell.name), ...keywords],
-        selectionPicks
-      );
-      const focusCandidates = await getFocusSpellCandidates(
-        spellcasting.maxRank,
-        [...concept.focusSpells.map((spell) => spell.name), ...keywords]
-      );
-      if (!candidates.length) {
-        console.warn(`${MODULE_ID} | no spell candidates found, dropping spellcasting (unconstrained first-draft spells discarded)`);
-        spellcasting.spells = [];
-      } else {
-        const { spells, focusSpells, usage, timing } = await selectSpells({
-          concept,
-          candidates,
-          focusCandidates,
-          maxRank: spellcasting.maxRank,
-          plannedPicks: selectionPicks,
-          preparationMode: spellcasting.preparationMode,
-          signatureRanks: spellcasting.signatureRanks,
-          database: spellcasting.database === true,
-          onProgress: (p) => this._onAIProgress({
-            ...p,
-            call: game.i18n.localize("SIMPLYSF2E.Progress.Spells")
-          }), signal
-        });
-        this._recordTokens(game.i18n.localize("SIMPLYSF2E.Progress.Spells"), usage, timing);
-        spellcasting.spells = spells;
-        concept.focusSpells = focusSpells;
-      }
-    } catch (err) {
-      if (err?.cancelled) throw err;
-      console.warn(`${MODULE_ID} | grounded spell selection failed, dropping spellcasting (unconstrained first-draft spells discarded)`, err);
-      spellcasting.spells = [];
-      concept.focusSpells = [];
-    }
-    if (spellcasting.spells.length) return;
-    // A known class spell plan stays visible as empty: completionManifest()
-    // records every missing module-owned pick and blocks actor creation.
-    if (spellcasting.plannedPicks) return;
-    concept.spellcasting = null;
+  #refineSpells(concept, signal) {
+    return refineSpells(concept, this.#creatureContext(signal));
   }
 
   /**
@@ -1707,59 +1559,6 @@ export class GeneratorApp extends SpfApp {
     }
   }
 
-  /** Resolve published abilities by opaque ID; unlisted concept flavor stays narrative-only. */
-  async #refineCreatureAbilities(concept, signal) {
-    if (!concept?.specialAbilities?.length) return;
-    const draft = concept.specialAbilities;
-    const narratives = draft.filter((ability) => !ability.glossary)
-      .filter((ability) => {
-        if (!narrativeHasMechanics(ability.description)) return true;
-        console.warn(`${MODULE_ID} | dropped narrative ability "${ability.name}": its text names dice, a DC or Hit Points`);
-        return false;
-      })
-      .map((ability) => ({ ...ability, narrative: true }));
-    try {
-      const keywords = draft.flatMap((ability) => [ability.glossary, ability.name])
-        .map((name) => String(name ?? "").toLowerCase()).filter(Boolean);
-      const candidates = await getAbilityCandidates(keywords);
-      if (!candidates.length) {
-        concept.specialAbilities = [...draft.filter((ability) => ability.glossary), ...narratives].slice(0, 6);
-        return;
-      }
-      const { abilities, usage, timing } = await selectCreatureAbilities({
-        concept, candidates, onProgress: (p) => this._onAIProgress(p), signal
-      });
-      this._recordTokens(game.i18n.localize("SIMPLYSF2E.Progress.Abilities"), usage, timing);
-      concept.specialAbilities = [...abilities, ...narratives].slice(0, 6);
-    } catch (err) {
-      if (err?.cancelled) throw err;
-      console.warn(`${MODULE_ID} | grounded creature ability selection failed; unresolved glossary abilities will block creation`, err);
-      concept.specialAbilities = [...draft.filter((ability) => ability.glossary), ...narratives].slice(0, 6);
-    }
-  }
-
-  /** Ground a creature's class-like feats against an issued, level-capped list. */
-  async #refineCreatureFeats(concept, signal) {
-    if (!concept?.feats?.length) return;
-    try {
-      const candidates = await getFeatCandidates({
-        level: Math.max(concept.level, 1), category: "class",
-        preferredNames: concept.feats.map((feat) => typeof feat === "string" ? feat : feat.name)
-      });
-      if (!candidates.length) return;
-      const { feats, omitted, usage, timing } = await selectCreatureFeats({
-        concept, candidates, onProgress: (p) => this._onAIProgress(p), signal
-      });
-      this._recordTokens(game.i18n.localize("SIMPLYSF2E.Progress.Feats"), usage, timing);
-      // An explicit empty selection is allowed for this optional wishlist;
-      // invalid picks/provider failures must not silently erase requirements.
-      if (feats.length || omitted === true) concept.feats = feats;
-    } catch (err) {
-      if (err?.cancelled) throw err;
-      console.warn(`${MODULE_ID} | grounded creature feat selection failed; unresolved draft feats will block creation`, err);
-    }
-  }
-
   /**
    * Grounded equipment selection: fetch real, level-capped items from the
    * equipment compendium (narrowed by keywords drawn from the first-draft
@@ -1768,28 +1567,8 @@ export class GeneratorApp extends SpfApp {
    * final creation resolver accepts only retained candidate references.
    * Creatures designed to carry nothing (beasts, mindless) are skipped.
    */
-  async #refineEquipment(concept, signal) {
-    if (!concept?.equipment?.length) return;
-    try {
-      const draftNames = [...concept.equipment.map((e) => e.name), ...concept.strikes.map((s) => s.name)]
-        .map((name) => String(name).toLowerCase()).filter(Boolean);
-      const keywords = [...new Set([
-        ...draftNames,
-        ...draftNames.flatMap((name) => name.split(/[^a-z0-9]+/)).filter((token) => token.length > 2)
-      ])];
-      const candidates = await getEquipmentCandidates(concept.level, keywords);
-      if (!candidates.length) return;
-      const { equipment, omitted, usage, timing } = await selectEquipment({
-        concept,
-        candidates,
-        onProgress: (p) => this._onAIProgress(p), signal
-      });
-      this._recordTokens(game.i18n.localize("SIMPLYSF2E.Progress.Equipment"), usage, timing);
-      if (equipment.length || omitted === true) concept.equipment = equipment;
-    } catch (err) {
-      if (err?.cancelled) throw err;
-      console.warn(`${MODULE_ID} | grounded equipment selection failed; draft equipment with no published match will be skipped`, err);
-    }
+  #refineEquipment(concept, signal) {
+    return refineEquipment(concept, this.#creatureContext(signal));
   }
 
   /**
@@ -1803,38 +1582,8 @@ export class GeneratorApp extends SpfApp {
    * request. The final creation resolver accepts only retained candidate
    * references for all non-coin loot.
    */
-  async #refineLoot(concept, signal) {
-    if (!concept?.loot?.length) return;
-    if (concept.loot.every((l) => parseCoins(l.name))) return;
-    try {
-      const draftNames = concept.loot.map((loot) => String(loot.name).toLowerCase()).filter(Boolean);
-      const keywords = [...new Set([
-        ...draftNames,
-        ...draftNames.flatMap((name) => name.split(/[^a-z0-9]+/)).filter((token) => token.length > 2)
-      ])];
-      const scrollKeywords = concept.loot
-        .map((loot) => parseScroll(loot.name)?.spellName)
-        .filter(Boolean);
-      const [candidates, scrollCandidates] = await Promise.all([
-        getLootCandidates(concept.level, keywords),
-        scrollKeywords.length ? getScrollSpellCandidates(10, scrollKeywords) : []
-      ]);
-      if (!candidates.length && !scrollCandidates.length) return;
-      const { loot, omitted, usage, timing } = await selectLoot({
-        concept,
-        candidates,
-        scrollCandidates,
-        onProgress: (p) => this._onAIProgress(p), signal
-      });
-      this._recordTokens(game.i18n.localize("SIMPLYSF2E.Progress.Loot"), usage, timing);
-      if (loot.length || omitted === true) {
-        const coins = concept.loot.filter((item) => parseCoins(item.name));
-        concept.loot = normalizeLoot([...coins, ...loot]);
-      }
-    } catch (err) {
-      if (err?.cancelled) throw err;
-      console.warn(`${MODULE_ID} | grounded loot selection failed; draft loot with no published match will be skipped`, err);
-    }
+  #refineLoot(concept, signal) {
+    return refineLoot(concept, this.#creatureContext(signal));
   }
 
   /**

@@ -8,7 +8,7 @@ import { readFile } from "node:fs/promises";
 const root = new URL("../", import.meta.url);
 const read = (path) => readFile(new URL(path, root), "utf8");
 
-const [generator, itemForge, providerSetup, managePresets, sources, progress, generatorApp, itemForgeApp, appBase, css, langJson] = await Promise.all([
+const [generator, itemForge, providerSetup, managePresets, sources, progress, generatorApp, itemForgeApp, appBase, css, langJson, creaturePipeline] = await Promise.all([
   read("templates/generator.hbs"),
   read("templates/itemforge.hbs"),
   read("templates/provider-setup.hbs"),
@@ -20,7 +20,8 @@ const [generator, itemForge, providerSetup, managePresets, sources, progress, ge
   read("scripts/app-base.mjs"),
   read("module.json").then(async (manifest) =>
     (await Promise.all(JSON.parse(manifest).styles.map(read))).join("\n")),
-  read("lang/en.json")
+  read("lang/en.json"),
+  read("scripts/creature-pipeline.mjs")
 ]);
 
 for (const [name, template] of [
@@ -187,7 +188,9 @@ assert.match(generatorApp, /_beginProgress\(\[\s*\["apply", applyLabel\]\s*\], \
   "PC apply must stay on progress chrome and must not arm Cancel during Foundry writes");
 assert.match(generator, /created\.grounding\.rows/, "completion card must report the validated content grounding");
 assert.match(generator, /\{\{#if tokenReport\}\}[\s\S]*?Tokens\.Heading/, "completion card must retain the generation token report");
-assert.match(generatorApp, /const manifest = completionManifest\([\s\S]*?assertComplete\(manifest\);[\s\S]*?this\.#manifest = manifest;/,
+assert.match(creaturePipeline, /const manifest = completionManifest\([\s\S]*?assertComplete\(manifest\);/,
+  "a single generation must validate its manifest before returning it");
+assert.match(generatorApp, /const \{ concept, resolved, manifest \} = await generateCreature\([\s\S]*?this\.#manifest = manifest;/,
   "a single generation must retain its validated manifest until creation commits");
 assert.doesNotMatch(generatorApp, /this\.#created = \{ name: actor\.name, actorId: actor\.id, count: 1 \};\s*\}\s*finally/,
   "generation failure handling must not fabricate a creation result from an unavailable actor");
@@ -297,7 +300,7 @@ assert.match(
 assert.match(appBase, /_paintProgress\(\)/, "stream ticks must patch the existing fill instead of re-rendering the app");
 assert.match(appBase, /streamFraction\(\{ phase, prior:/, "intra-step fill is phase-based, not chars-vs-unknown-length");
 assert.match(appBase, /exact \? "SIMPLYSF2E\.Progress\.WritingExact"/, "live copy drops ≈ only for provider usage");
-assert.match(generatorApp, /call: focusLabel/, "multi-call spell steps sub-label the detail line without extra bar steps");
+assert.match(creaturePipeline, /progressFor\(ctx, focusLabel\)/, "multi-call spell steps sub-label the detail line without extra bar steps");
 assert.match(messages.Tokens.StepEstimated, /estimated/);
 assert.match(messages.Tokens.StepTotal, /\{total\} tokens/);
 assert.match(messages.Tokens.LastRun, /^last: \{total\} tokens$/);
