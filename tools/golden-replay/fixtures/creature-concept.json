@@ -1,0 +1,8 @@
+{
+  "id": "creature-concept-commander",
+  "task": "creatureConcept",
+  "note": "full creature concept passes validator",
+  "args": { "prompt": "commander", "level": 5, "rarity": "common", "allowSpellcasting": false, "intent": "monster" },
+  "responses": [ { "choices": [ { "message": { "content": "{\"name\":\"Cmdr\",\"blurb\":\"b\",\"description\":\"d\",\"readAloud\":\"r\",\"recallKnowledge\":\"rk\",\"size\":\"Medium\",\"traits\":[],\"languages\":[],\"abilityScales\":{},\"acScale\":\"moderate\",\"hpScale\":\"moderate\",\"perceptionScale\":\"moderate\",\"saveScales\":{},\"speeds\":[],\"senses\":[],\"skills\":[],\"strikes\":[{\"name\":\"sword\"},{\"name\":\"bow\"}],\"specialAbilities\":[{\"name\":\"a\"},{\"name\":\"b\"}],\"spellcasting\":null,\"focusSpells\":[],\"feats\":[],\"equipment\":[\"sword\"],\"loot\":[\"gold\"],\"resistances\":[],\"weaknesses\":[],\"immunities\":[]}" }, "finish_reason": "stop" } ], "usage": { "prompt_tokens": 10, "completion_tokens": 20, "total_tokens": 30 } } ],
+  "expect": { "ok": true, "requestCount": 1 }
+}
