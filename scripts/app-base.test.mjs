@@ -65,6 +65,10 @@ const mocks = {
     if (testProviderShouldThrow) throw testProviderShouldThrow;
     return testProviderResult;
   },
+  getSetting: () => 0,
+  SETTINGS: { runTokenBudget: "runTokenBudget", runDeadline: "runDeadline" },
+  beginRunBudget: () => null,
+  endRunBudget: () => {},
   getProviderRequestConfig: () => ({
     connectionId: currentConnection,
     provider: { name: "OpenAI" },

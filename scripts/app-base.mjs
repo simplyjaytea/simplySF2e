@@ -4,10 +4,12 @@ import {
   getJevRequestConfig,
   getProviderRequestConfig,
   getSetting,
-  selectProviderConnection
+  selectProviderConnection,
+  SETTINGS
 } from "./settings.mjs";
 import { captureFailure, formatBugReport, gatherEnvironment } from "./bug-report.mjs";
 import { esc } from "./text.mjs";
+import { beginRunBudget, endRunBudget } from "./run-budget.mjs";
 import { ProviderSetupApp } from "./provider-setup-app.mjs";
 import {
   PHASE_FILL,
@@ -305,10 +307,18 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._disarmCancel();
     this._generationAbort = new AbortController();
     this._canCancel = true;
-    return this._generationAbort.signal;
+    const signal = this._generationAbort.signal;
+    const minutes = Number(getSetting(SETTINGS.runDeadline)) || 0;
+    beginRunBudget(signal, {
+      tokenBudget: Number(getSetting(SETTINGS.runTokenBudget)),
+      deadlineMs: minutes > 0 ? minutes * 60000 : 0
+    });
+    return signal;
   }
 
   _disarmCancel() {
+    const signal = this._generationAbort?.signal;
+    if (signal) endRunBudget(signal);
     this._canCancel = false;
     this._generationAbort = null;
   }

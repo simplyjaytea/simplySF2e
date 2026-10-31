@@ -37,6 +37,14 @@
         "Name": "Request timeout (seconds)",
         "Hint": "Abort a generation if the AI provider sends no data for this long. Responses are streamed, so slow models keep working as long as data keeps arriving — this only catches genuinely stalled connections."
       },
+      "RunTokenBudget": {
+        "Name": "Run token budget",
+        "Hint": "A run stops once it spends this many tokens across all its AI calls (default 60000). Raise it or set 0 to disable; reached limit stops the run instead of retrying forever."
+      },
+      "RunDeadline": {
+        "Name": "Run deadline (minutes)",
+        "Hint": "Minutes before a run times out; 0 disables it."
+      },
       "FreeArchetype": {
         "Name": "Free Archetype variant rule",
         "Hint": "When enabled, one-click characters gain the variant's extra archetype feat slot at each even level. Picks are validated staged — candidate-time prerequisite filtering plus slot-placement checks — and unprovable placements are left unresolved instead of guessed."
@@ -148,6 +156,10 @@
       "GotIt": "Got it",
       "Disable": "Don't show for updates",
       "Note": {
+        "RunBudget": {
+          "Title": "Per-run token budget",
+          "Body": "A run now stops at a token budget (60,000 by default) instead of retrying forever. The limit is a world setting."
+        },
         "ProviderRetry": {
           "Title": "More resilient provider requests",
           "Body": "When the AI provider reports a rate limit or a transient server error, SimplySF2e can wait (honoring the provider's Retry-After when given) and try the request once. Ambiguous server errors that may already have been billed are not retried. Cancelling stops the retry."
@@ -682,6 +694,8 @@
       "EmptyResponse": "The AI provider returned an empty response. This was retried once already — check the provider's status page and your model name.",
       "ReasoningWithoutJson": "The AI returned reasoning but no JSON in the message content. Try generating again, disable extra reasoning, or use a model that puts JSON in the content field.",
       "Truncated": "The AI ran out of tokens before finishing its answer ({max} allowed). Try a model with efficient structured output or shorten the prompt; raise \"Max response tokens\" only when it is below this operation's safety cap.",
+      "RunBudgetExceeded": "This run reached its {limit}-token budget and stopped. Raise the Run token budget setting or start a new run.",
+      "RunDeadline": "This run exceeded its time limit and stopped. Raise the Run deadline setting or start a new run.",
       "Timeout": "The AI provider sent no data for {seconds} seconds and the request was aborted. Check the model name and provider status. For a local model, make sure it is loaded and the server is not busy; then retry or raise the timeout in module settings.",
       "Cancelled": "Generation cancelled.",
       "BadJson": "The AI response was not valid JSON. Try generating again.",

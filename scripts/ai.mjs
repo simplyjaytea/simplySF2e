@@ -5,6 +5,7 @@ import {
 import { AI_TASK, completionOptionsFor } from "./ai-task-profiles.mjs";
 import { fetchWithBackoff } from "./ai-transport.mjs";
 import { estimateTokens, normalizeUsage } from "./tokens.mjs";
+import { runBudgetProblem, spendRunTokens, remainingDeadlineMs, getRunBudget } from "./run-budget.mjs";
 import { encodeFeatCandidateSlots, resolveEncodedFeatPicks } from "./ai-candidate-format.mjs";
 import { normalizeMulticlassPick, taskResponseProblem } from "./ai-response-validation.mjs";
 import { validateChoicePicks } from "./choice-set.mjs";
@@ -1548,6 +1549,15 @@ Pick up to ${count} DISTINCT items this hoard would plausibly contain, matching 
  */
 async function requestCompletion({ task, system, user, onProgress, signal, retryAttempt = 0, retryBudget = { remaining: 1 } }) {
   throwIfGenerationCancelled(signal);
+  const problem = runBudgetProblem(signal);
+  if (problem === "budget") {
+    const entryBudget = getRunBudget(signal)?.tokenBudget;
+    const limit = (typeof entryBudget === "number" && Number.isFinite(entryBudget)) ? entryBudget : Number(getSetting(SETTINGS.runTokenBudget));
+    throw new AIRequestError(game.i18n.format("SIMPLYSF2E.Errors.RunBudgetExceeded", { limit: limit.toLocaleString() }), { retryable: false });
+  }
+  if (problem === "deadline") {
+    throw new AIRequestError(game.i18n.localize("SIMPLYSF2E.Errors.RunDeadline"), { retryable: false });
+  }
   // The client-scoped key is returned only when it was explicitly saved for
   // this exact normalized base URL. A world-level provider change can never
   // redirect a legacy or previously authorized key to another endpoint.
@@ -1590,6 +1600,10 @@ async function requestCompletion({ task, system, user, onProgress, signal, retry
   };
 
   const idleSeconds = Math.max(10, Number(getSetting(SETTINGS.requestTimeout)) || 90);
+  const deadlineMs = remainingDeadlineMs(signal);
+  const idleAllowance = Math.min(idleSeconds * 1000, deadlineMs ?? Infinity);
+  const idleMs = Math.max(1000, Math.floor(idleAllowance));
+  let deadlineFired = false;
   const controller = new AbortController();
   const userSignal = signal;
   const onUserAbort = () => controller.abort();
@@ -1598,7 +1612,10 @@ async function requestCompletion({ task, system, user, onProgress, signal, retry
   let idleTimer = null;
   const resetIdle = () => {
     clearTimeout(idleTimer);
-    idleTimer = setTimeout(() => controller.abort(), idleSeconds * 1000);
+    const deadlineLeft = remainingDeadlineMs(signal);
+    const allowance = Math.min(idleMs, deadlineLeft ?? Infinity);
+    deadlineFired = deadlineLeft != null && deadlineLeft <= idleMs;
+    idleTimer = setTimeout(() => controller.abort(), Math.max(1000, Math.floor(allowance)));
   };
 
   try {
@@ -1686,7 +1703,7 @@ async function requestCompletion({ task, system, user, onProgress, signal, retry
         game.i18n.format("SIMPLYSF2E.Errors.Truncated", { max: maxTokens }),
         {
           retryable: true,
-          usage: normalizeUsage(usage, { content, system, user, reasoningChars }),
+          usage: (() => { const normalized = normalizeUsage(usage, { content, system, user, reasoningChars }); spendRunTokens(signal, normalized); return normalized; })(),
           details
         }
       );
@@ -1700,14 +1717,14 @@ async function requestCompletion({ task, system, user, onProgress, signal, retry
         game.i18n.localize(emptyKey),
         {
           retryable: true,
-          usage: normalizeUsage(usage, { content, system, user, reasoningChars }),
+          usage: (() => { const normalized = normalizeUsage(usage, { content, system, user, reasoningChars }); spendRunTokens(signal, normalized); return normalized; })(),
           details
         }
       );
     }
     return {
       content,
-      usage: normalizeUsage(usage, { content, system, user, reasoningChars }),
+      usage: (() => { const normalized = normalizeUsage(usage, { content, system, user, reasoningChars }); spendRunTokens(signal, normalized); return normalized; })(),
       finishReason,
       reasoningChars
     };
@@ -1716,6 +1733,9 @@ async function requestCompletion({ task, system, user, onProgress, signal, retry
     if (err.name === "AbortError" || controller.signal.aborted) {
       if (userSignal?.aborted) {
         throw new AIRequestError(game.i18n.localize("SIMPLYSF2E.Errors.Cancelled"), { cancelled: true });
+      }
+      if (deadlineFired) {
+        throw new AIRequestError(game.i18n.localize("SIMPLYSF2E.Errors.RunDeadline"), { retryable: false });
       }
       throw new AIRequestError(game.i18n.format("SIMPLYSF2E.Errors.Timeout", { seconds: idleSeconds }));
     }
