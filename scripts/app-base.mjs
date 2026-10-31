@@ -4,10 +4,12 @@ import {
   getJevRequestConfig,
   getProviderRequestConfig,
   getSetting,
-  selectProviderConnection
+  selectProviderConnection,
+  SETTINGS
 } from "./settings.mjs";
 import { captureFailure, formatBugReport, gatherEnvironment } from "./bug-report.mjs";
 import { esc } from "./text.mjs";
+import { beginRunBudget, endRunBudget } from "./run-budget.mjs";
 import { ProviderSetupApp } from "./provider-setup-app.mjs";
 import {
   PHASE_FILL,
@@ -301,14 +303,24 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
     );
   }
 
-  _armCancel() {
+  _armCancel({ cancellable = true } = {}) {
     this._disarmCancel();
     this._generationAbort = new AbortController();
-    this._canCancel = true;
-    return this._generationAbort.signal;
+    // A non-cancellable step still runs AI calls, so it still gets a run budget
+    // and deadline; it just must not offer a cancel affordance.
+    this._canCancel = Boolean(cancellable);
+    const signal = this._generationAbort.signal;
+    const minutes = Number(getSetting(SETTINGS.runDeadline)) || 0;
+    beginRunBudget(signal, {
+      tokenBudget: Number(getSetting(SETTINGS.runTokenBudget)),
+      deadlineMs: minutes > 0 ? minutes * 60000 : 0
+    });
+    return signal;
   }
 
   _disarmCancel() {
+    const signal = this._generationAbort?.signal;
+    if (signal) endRunBudget(signal);
     this._canCancel = false;
     this._generationAbort = null;
   }
@@ -352,10 +364,17 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   /** Initialize the step list shown while generating. */
-  _beginProgress(defs, { cancellable = true } = {}) {
+  _beginProgress(defs, { cancellable = true, reuseRunSignal = false } = {}) {
+    // A continuation step inside one run (choice rounds, the apply step after
+    // them) must not open a second budget window: reuse the live run signal so
+    // tokens already spent and the run's deadline still apply.
+    if (reuseRunSignal && this._generationAbort) {
+      this._progress = createProgress(defs);
+      return this._generationAbort.signal;
+    }
     this._disarmCancel();
     this._progress = createProgress(defs);
-    return cancellable ? this._armCancel() : null;
+    return this._armCancel({ cancellable });
   }
 
   /** Mark `key` active, everything before it done, and paint without remounting the bar. */

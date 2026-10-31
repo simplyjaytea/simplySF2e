@@ -1,0 +1,19 @@
+{
+  "id": "negative-scales-not-object",
+  "task": "creatureConcept",
+  "note": "An array where the schema requires an object (abilityScales) fails the object check specifically, so that check cannot be dropped without this fixture going red.",
+  "base": "creature-concept-commander",
+  "patch": { "abilityScales": [] },
+  "args": {
+    "prompt": "a shape-invalid response",
+    "level": 5,
+    "rarity": "common",
+    "allowSpellcasting": false,
+    "intent": "monster"
+  },
+  "expect": {
+    "ok": false,
+    "requestCount": 2,
+    "errorKey": "Errors.BadStructure"
+  }
+}

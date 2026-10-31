@@ -1,0 +1,40 @@
+{
+  "id": "creature-feat-selection",
+  "task": "creatureFeatSelection",
+  "note": "Feat picks are capped at the draft wishlist length and resolved only from the issued catalog: a 4-id reply against a 3-feat wishlist yields 3 published names.",
+  "args": {
+    "concept": {
+      "name": "Vesk Siege Marshal",
+      "level": 5,
+      "blurb": "A scarred vesk veteran who holds the breach.",
+      "description": "Patched boarding plate, battering pike, assault rifle.",
+      "traits": ["humanoid", "vesk"],
+      "feats": ["Power Attack", "Cleave", "Intimidating Strike"]
+    },
+    "candidates": [
+      { "id": "f1", "name": "Power Attack" },
+      { "id": "f2", "name": "Cleave" },
+      { "id": "f3", "name": "Intimidating Strike" },
+      { "id": "f4", "name": "Shield Block" }
+    ]
+  },
+  "responses": [
+    {
+      "choices": [
+        {
+          "message": { "content": "{\"featIds\":[\"f1\",\"f-forged\",\"f2\",\"f3\",\"f4\"]}" },
+          "finish_reason": "stop"
+        }
+      ],
+      "usage": { "prompt_tokens": 260, "completion_tokens": 18, "total_tokens": 278 }
+    }
+  ],
+  "expect": {
+    "ok": true,
+    "requestCount": 1,
+    "contains": ["Power Attack", "Cleave", "Intimidating Strike"],
+    "excludes": ["Shield Block"],
+    "lengths": { "feats": 3 },
+    "bodyContains": ["f1 | Power Attack", "First-draft feat ideas"]
+  }
+}

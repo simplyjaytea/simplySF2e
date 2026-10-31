@@ -5,6 +5,7 @@ import {
 import { AI_TASK, completionOptionsFor } from "./ai-task-profiles.mjs";
 import { fetchWithBackoff } from "./ai-transport.mjs";
 import { estimateTokens, normalizeUsage } from "./tokens.mjs";
+import { runBudgetProblem, spendRunTokens, remainingDeadlineMs, getRunBudget } from "./run-budget.mjs";
 import { encodeFeatCandidateSlots, resolveEncodedFeatPicks } from "./ai-candidate-format.mjs";
 import { normalizeMulticlassPick, taskResponseProblem } from "./ai-response-validation.mjs";
 import { validateChoicePicks } from "./choice-set.mjs";
@@ -192,12 +193,16 @@ Design guidance (scale road maps):
 }
 
 export class AIRequestError extends Error {
-  constructor(message, { retryable = false, usage = null, details = null, cancelled = false } = {}) {
+  constructor(message, { retryable = false, usage = null, details = null, cancelled = false, runLimit = false } = {}) {
     super(message);
     this.cancelled = Boolean(cancelled);
     this.retryable = this.cancelled ? false : retryable;
     this.usage = usage;
     this.details = details;
+    // A run-level limit (token budget or deadline) means the whole run is over,
+    // not just this step: pipelines that degrade gracefully on a failed pick
+    // must rethrow it instead of carrying on with a half-built actor.
+    this.runLimit = Boolean(runLimit);
   }
 }
 
@@ -1548,6 +1553,15 @@ Pick up to ${count} DISTINCT items this hoard would plausibly contain, matching 
  */
 async function requestCompletion({ task, system, user, onProgress, signal, retryAttempt = 0, retryBudget = { remaining: 1 } }) {
   throwIfGenerationCancelled(signal);
+  const problem = runBudgetProblem(signal);
+  if (problem === "budget") {
+    const entryBudget = getRunBudget(signal)?.tokenBudget;
+    const limit = (typeof entryBudget === "number" && Number.isFinite(entryBudget)) ? entryBudget : Number(getSetting(SETTINGS.runTokenBudget));
+    throw new AIRequestError(game.i18n.format("SIMPLYSF2E.Errors.RunBudgetExceeded", { limit: limit.toLocaleString() }), { retryable: false, runLimit: true });
+  }
+  if (problem === "deadline") {
+    throw new AIRequestError(game.i18n.localize("SIMPLYSF2E.Errors.RunDeadline"), { retryable: false, runLimit: true });
+  }
   // The client-scoped key is returned only when it was explicitly saved for
   // this exact normalized base URL. A world-level provider change can never
   // redirect a legacy or previously authorized key to another endpoint.
@@ -1596,10 +1610,22 @@ async function requestCompletion({ task, system, user, onProgress, signal, retry
   if (userSignal?.aborted) throwIfGenerationCancelled(userSignal);
   userSignal?.addEventListener("abort", onUserAbort, { once: true });
   let idleTimer = null;
+  let deadlineTimer = null;
+  let deadlineFired = false;
   const resetIdle = () => {
     clearTimeout(idleTimer);
     idleTimer = setTimeout(() => controller.abort(), idleSeconds * 1000);
   };
+  // The run deadline is an absolute wall-clock limit, so it is armed once per
+  // request and deliberately NOT reset by streaming chunks: a provider that
+  // keeps sending tokens must still stop when the run's time is up.
+  const deadlineLeft = remainingDeadlineMs(signal);
+  if (deadlineLeft != null) {
+    deadlineTimer = setTimeout(() => {
+      deadlineFired = true;
+      controller.abort();
+    }, Math.min(Math.max(0, deadlineLeft), 2147483647));
+  }
 
   try {
     resetIdle();
@@ -1686,7 +1712,7 @@ async function requestCompletion({ task, system, user, onProgress, signal, retry
         game.i18n.format("SIMPLYSF2E.Errors.Truncated", { max: maxTokens }),
         {
           retryable: true,
-          usage: normalizeUsage(usage, { content, system, user, reasoningChars }),
+          usage: (() => { const normalized = normalizeUsage(usage, { content, system, user, reasoningChars }); spendRunTokens(signal, normalized); return normalized; })(),
           details
         }
       );
@@ -1700,14 +1726,14 @@ async function requestCompletion({ task, system, user, onProgress, signal, retry
         game.i18n.localize(emptyKey),
         {
           retryable: true,
-          usage: normalizeUsage(usage, { content, system, user, reasoningChars }),
+          usage: (() => { const normalized = normalizeUsage(usage, { content, system, user, reasoningChars }); spendRunTokens(signal, normalized); return normalized; })(),
           details
         }
       );
     }
     return {
       content,
-      usage: normalizeUsage(usage, { content, system, user, reasoningChars }),
+      usage: (() => { const normalized = normalizeUsage(usage, { content, system, user, reasoningChars }); spendRunTokens(signal, normalized); return normalized; })(),
       finishReason,
       reasoningChars
     };
@@ -1717,12 +1743,16 @@ async function requestCompletion({ task, system, user, onProgress, signal, retry
       if (userSignal?.aborted) {
         throw new AIRequestError(game.i18n.localize("SIMPLYSF2E.Errors.Cancelled"), { cancelled: true });
       }
+      if (deadlineFired) {
+        throw new AIRequestError(game.i18n.localize("SIMPLYSF2E.Errors.RunDeadline"), { retryable: false, runLimit: true });
+      }
       throw new AIRequestError(game.i18n.format("SIMPLYSF2E.Errors.Timeout", { seconds: idleSeconds }));
     }
     throw err;
   } finally {
     userSignal?.removeEventListener("abort", onUserAbort);
     clearTimeout(idleTimer);
+    clearTimeout(deadlineTimer);
   }
 }
 

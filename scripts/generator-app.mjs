@@ -1461,7 +1461,7 @@ export class GeneratorApp extends SpfApp {
           resolved.loot = enforceNamedLootBudget(resolved.loot, lootBudget);
           resolved.loot = await applyTreasureBudget(resolved.loot, lootBudget);
         } catch (err) {
-          if (err?.cancelled) throw err;
+          if (err?.cancelled || err?.runLimit) throw err;
           console.warn(`${MODULE_ID} | extra PC purchase pass failed, leaving remaining wealth as coin`, err);
         }
       }
@@ -1555,7 +1555,7 @@ export class GeneratorApp extends SpfApp {
       this._recordTokens(game.i18n.localize("SIMPLYSF2E.Progress.Spells"), usage, timing);
       plan.spells = spells;
     } catch (err) {
-      if (err?.cancelled) throw err;
+      if (err?.cancelled || err?.runLimit) throw err;
       console.warn(`${MODULE_ID} | archetype spell selection failed — archetype spells left empty`, err);
     }
   }
@@ -1608,7 +1608,7 @@ export class GeneratorApp extends SpfApp {
       concept.loot = normalizeLoot(draft);
       await this.#refineLoot(concept, signal);
     } catch (err) {
-      if (err?.cancelled) throw err;
+      if (err?.cancelled || err?.runLimit) throw err;
       console.warn(`${MODULE_ID} | PC starting-wealth item drafting failed, wealth will be all coin`, err);
     }
   }
@@ -1713,7 +1713,7 @@ export class GeneratorApp extends SpfApp {
           const signal = this._beginProgress([
             ["apply", applyLabel],
             ["choices", label]
-          ], { cancellable: false });
+          ], { cancellable: false, reuseRunSignal: true });
           try {
             await this._setStep("choices");
             const { picks, usage, timing } = await selectCharacterChoices({
@@ -1726,10 +1726,13 @@ export class GeneratorApp extends SpfApp {
             return picks;
           } catch (err) {
             this._recordTokens(label, err.usage);
+            // A cancelled run or a run-level limit must stop the run with its
+            // own message; only an ordinary failure leaves choices to the GM.
+            if (err?.cancelled || err?.runLimit) throw err;
             ui.notifications.warn(game.i18n.localize("SIMPLYSF2E.Generator.ChoicesNeedInput"));
             throw err; // The builder leaves unanswered choices to PF2e.
           } finally {
-            this._beginProgress([["apply", applyLabel]], { cancellable: false });
+            this._beginProgress([["apply", applyLabel]], { cancellable: false, reuseRunSignal: true });
             this.#busyMessage = applyingMessage;
             await this._setStep("apply");
             if (this._progress) this._progress.detail = applyingMessage;

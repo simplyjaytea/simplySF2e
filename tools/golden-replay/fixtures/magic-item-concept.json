@@ -1,0 +1,39 @@
+{
+  "id": "magic-item-concept",
+  "task": "magicItemConcept",
+  "note": "An item concept passes the validator with enum-only bulk/usage and no invented numbers; the module supplies every mechanical value later.",
+  "args": {
+    "prompt": "a ring that lets a scout drift silently across a hull breach",
+    "level": 5,
+    "rarity": "common",
+    "availableKinds": ["item-bonus"],
+    "usageOptions": ["worn"],
+    "effectCatalog": [],
+    "kind": "wondrous"
+  },
+  "responses": [
+    {
+      "choices": [
+        {
+          "message": {
+            "content": "{\"name\":\"Ring of the Quiet Drift\",\"description\":\"A dull ceramic band worn smooth by vacuum exposure. It hums faintly when the wearer's boots leave a surface.\",\"rarity\":\"common\",\"usage\":\"worn\",\"traits\":[\"magical\",\"invested\"],\"bulk\":\"negligible\",\"invested\":true,\"effects\":[]}"
+          },
+          "finish_reason": "stop"
+        }
+      ],
+      "usage": { "prompt_tokens": 780, "completion_tokens": 120, "total_tokens": 900 }
+    }
+  ],
+  "expect": {
+    "ok": true,
+    "requestCount": 1,
+    "contains": ["Ring of the Quiet Drift"],
+    "equals": {
+      "concept.name": "Ring of the Quiet Drift",
+      "concept.bulk": "negligible",
+      "concept.usage": "worn",
+      "concept.rarity": "common"
+    },
+    "bodyContains": ["a ring that lets a scout drift silently across a hull breach"]
+  }
+}

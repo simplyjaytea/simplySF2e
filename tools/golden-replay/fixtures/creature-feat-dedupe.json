@@ -1,0 +1,36 @@
+{
+  "id": "creature-feat-dedupe",
+  "task": "creatureFeatSelection",
+  "note": "A repeated id resolves once: with a 2-feat wishlist and a reply of [f1, f1, f2], the pick list still contains Cleave once rather than Power Attack twice.",
+  "args": {
+    "concept": {
+      "name": "Vesk Siege Marshal",
+      "level": 5,
+      "blurb": "A scarred vesk veteran who holds the breach.",
+      "description": "Patched boarding plate, battering pike, assault rifle.",
+      "traits": ["humanoid", "vesk"],
+      "feats": ["Power Attack", "Cleave"]
+    },
+    "candidates": [
+      { "id": "f1", "name": "Power Attack" },
+      { "id": "f2", "name": "Cleave" }
+    ]
+  },
+  "responses": [
+    {
+      "choices": [
+        {
+          "message": { "content": "{\"featIds\":[\"f1\",\"f1\",\"f2\"]}" },
+          "finish_reason": "stop"
+        }
+      ],
+      "usage": { "prompt_tokens": 240, "completion_tokens": 16, "total_tokens": 256 }
+    }
+  ],
+  "expect": {
+    "ok": true,
+    "requestCount": 1,
+    "lengths": { "feats": 2 },
+    "equals": { "feats.0.name": "Power Attack", "feats.1.name": "Cleave" }
+  }
+}

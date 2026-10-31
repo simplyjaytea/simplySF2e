@@ -195,6 +195,21 @@ const failedChoice = { name: "Failure", system: { rules: [structuredClone(NUMBER
 await preselectChoiceSets([failedChoice], {}, {}, null, async () => { throw new Error("provider unavailable"); });
 assert.equal(failedChoice.system.rules[0].selection, undefined);
 
+// A run-level limit or a user cancel ends the whole generation: it must escape
+// instead of degrading to a native ChoiceSet and letting the run continue.
+for (const [label, failure] of [
+  ["runLimit", Object.assign(new Error("budget"), { runLimit: true })],
+  ["cancelled", Object.assign(new Error("cancelled"), { cancelled: true })]
+]) {
+  const limited = { name: `Limited ${label}`, system: { rules: [structuredClone(NUMBER_CHOICE)] } };
+  await assert.rejects(
+    preselectChoiceSets([limited], {}, {}, null, async () => { throw failure; }),
+    (error) => error === failure,
+    `a ${label} error must propagate out of preselectChoiceSets`
+  );
+  assert.equal(limited.system.rules[0].selection, undefined, `nothing is applied on a ${label} abort`);
+}
+
 // Bound the batch, never an individual legal catalog. Overflow must remain
 // native instead of becoming a smaller, misleading list of choices.
 const makeBatch = (count, options) => Array.from({ length: count }, (_, index) => ({

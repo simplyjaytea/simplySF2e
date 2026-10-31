@@ -1,0 +1,52 @@
+{
+  "id": "equipment-selection",
+  "task": "equipmentSelection",
+  "note": "Equipment resolves strictly by issued id and quantity is clamped into the module's 1-10 range: a reply of 99 becomes 10, a reply of 0 becomes 1, and an unissued id is dropped.",
+  "args": {
+    "concept": {
+      "name": "Vesk Siege Marshal",
+      "level": 5,
+      "blurb": "A scarred vesk veteran who holds the breach.",
+      "description": "Patched boarding plate, battering pike, assault rifle.",
+      "traits": ["humanoid", "vesk"],
+      "strikes": [
+        { "name": "battering pike", "type": "melee" },
+        { "name": "assault rifle", "type": "ranged" }
+      ],
+      "equipment": [{ "name": "assault rifle" }]
+    },
+    "candidates": [
+      { "id": "e1", "name": "Assault Rifle", "type": "weapon", "level": 3 },
+      { "id": "e2", "name": "Baton", "type": "weapon", "level": 0 },
+      { "id": "e3", "name": "Medpatch", "type": "consumable", "level": 2 }
+    ]
+  },
+  "responses": [
+    {
+      "choices": [
+        {
+          "message": {
+            "content": "{\"equipment\":[{\"id\":\"e1\",\"quantity\":99},{\"id\":\"e3\",\"quantity\":0},{\"id\":\"e2\",\"quantity\":-3},{\"id\":\"e-bogus\",\"quantity\":9}]}"
+          },
+          "finish_reason": "stop"
+        }
+      ],
+      "usage": { "prompt_tokens": 340, "completion_tokens": 40, "total_tokens": 380 }
+    }
+  ],
+  "expect": {
+    "ok": true,
+    "requestCount": 1,
+    "excludes": ["bogus"],
+    "lengths": { "equipment": 3 },
+    "equals": {
+      "equipment.0.name": "Assault Rifle",
+      "equipment.0.quantity": 10,
+      "equipment.1.name": "Medpatch",
+      "equipment.1.quantity": 1,
+      "equipment.2.name": "Baton",
+      "equipment.2.quantity": 1
+    },
+    "bodyContains": ["weapon: e1 | Assault Rifle (L3)", "consumable: e3 | Medpatch (L2)"]
+  }
+}

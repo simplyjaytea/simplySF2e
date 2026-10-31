@@ -12,6 +12,8 @@ export const SETTINGS = {
   temperature: "temperature",
   maxTokens: "maxTokens",
   requestTimeout: "requestTimeout",
+  runTokenBudget: "runTokenBudget",
+  runDeadline: "runDeadline",
   sourcePacks: "sourcePacks",
   customPresets: "customPresets",
   freeArchetype: "freeArchetype",
@@ -250,6 +252,25 @@ export function registerSettings(SourcesConfigApp, ProviderSetupApp, WelcomeApp,
     restricted: true,
     type: Number,
     default: 90
+  });
+
+  game.settings.register(MODULE_ID, SETTINGS.runTokenBudget, {
+    name: "SIMPLYSF2E.Settings.RunTokenBudget.Name",
+    hint: "SIMPLYSF2E.Settings.RunTokenBudget.Hint",
+    scope: "world",
+    config: true,
+    restricted: true,
+    type: Number,
+    default: 60000
+  });
+  game.settings.register(MODULE_ID, SETTINGS.runDeadline, {
+    name: "SIMPLYSF2E.Settings.RunDeadline.Name",
+    hint: "SIMPLYSF2E.Settings.RunDeadline.Hint",
+    scope: "world",
+    config: true,
+    restricted: true,
+    type: Number,
+    default: 0
   });
 
   // Free Archetype is a GM campaign-rule choice, so it is world-scoped and

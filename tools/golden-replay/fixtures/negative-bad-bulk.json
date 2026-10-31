@@ -1,0 +1,21 @@
+{
+  "id": "negative-bad-bulk",
+  "task": "magicItemConcept",
+  "note": "An out-of-enum bulk value fails the enum check specifically, so a new bulk word cannot slip through the item pipeline.",
+  "base": "magic-item-concept",
+  "patch": { "bulk": "heavy" },
+  "args": {
+    "prompt": "a shape-invalid response",
+    "level": 5,
+    "rarity": "common",
+    "availableKinds": ["item-bonus"],
+    "usageOptions": ["worn"],
+    "effectCatalog": [],
+    "kind": "wondrous"
+  },
+  "expect": {
+    "ok": false,
+    "requestCount": 2,
+    "errorKey": "Errors.BadStructure"
+  }
+}
