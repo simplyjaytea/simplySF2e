@@ -364,7 +364,14 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   /** Initialize the step list shown while generating. */
-  _beginProgress(defs, { cancellable = true } = {}) {
+  _beginProgress(defs, { cancellable = true, reuseRunSignal = false } = {}) {
+    // A continuation step inside one run (choice rounds, the apply step after
+    // them) must not open a second budget window: reuse the live run signal so
+    // tokens already spent and the run's deadline still apply.
+    if (reuseRunSignal && this._generationAbort) {
+      this._progress = createProgress(defs);
+      return this._generationAbort.signal;
+    }
     this._disarmCancel();
     this._progress = createProgress(defs);
     return this._armCancel({ cancellable });

@@ -15,7 +15,7 @@
       "choices": [
         {
           "message": {
-            "content": "{\"name\":\"Hangar Ambush\",\"briefs\":[\"A hulking salvage golem built from a wrecked freighter's spine.\",\"Skittering repair drones that swarm around the golem and patch it as it takes damage.\"]}"
+            "content": "{\"name\":\"Hangar Ambush\",\"briefs\":[\"A hulking salvage golem built from a wrecked freighter's spine.\",\"Skittering repair drones that swarm around the golem and patch it as it takes damage.\",\"A third concept that must be discarded because the composition has only two slots.\"]}"
           },
           "finish_reason": "stop"
         }
@@ -27,6 +27,7 @@
     "ok": true,
     "requestCount": 1,
     "contains": ["Hangar Ambush", "salvage golem"],
+    "excludes": ["must be discarded"],
     "lengths": { "briefs": 2 },
     "equals": {
       "name": "Hangar Ambush",

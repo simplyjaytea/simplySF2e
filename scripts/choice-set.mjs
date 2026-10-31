@@ -449,6 +449,9 @@ export async function preselectChoiceSets(itemSources, context = {}, config = {}
   let result;
   try { result = await selectChoices(pending.map((entry) => entry.group)); }
   catch (error) {
+    // A cancelled run or a run-level limit (token budget / deadline) ends the
+    // whole generation, so it must not be degraded into "leave choices native".
+    if (error?.cancelled || error?.runLimit) throw error;
     console.warn("simplysf2e | choice-selection callback failed; leaving static ChoiceSets native", error);
     return applied;
   }

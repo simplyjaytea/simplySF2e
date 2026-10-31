@@ -106,22 +106,39 @@ const args = (signal) => ({ concept, tradition: "arcane", signal });
   assert.equal(calls, 0);
 }
 
-// (e) In flight: the deadline aborts a request that is still streaming, so a
-// provider that keeps the socket open cannot outlive the run deadline.
+// (e) In flight: a keep-alive stream is aborted at the run deadline. The
+// deadline must be an absolute limit, not re-armed by incoming chunks, or a
+// provider that keeps trickling tokens could hold the run open indefinitely.
 {
   const clock = 0;
   const sig = new AbortController().signal;
-  beginRunBudget(sig, { tokenBudget: 1000, deadlineMs: 30, now: () => clock });
-  let inFlight = 0;
+  beginRunBudget(sig, { tokenBudget: 1000, deadlineMs: 60, now: () => clock });
+  let chunks = 0;
+  let closed = false;
   const stubbed = globalThis.fetch;
-  globalThis.fetch = (_url, options) => new Promise((_resolve, reject) => {
-    inFlight += 1;
-    options.signal?.addEventListener("abort", () => {
-      const err = new Error("aborted");
-      err.name = "AbortError";
-      reject(err);
-    }, { once: true });
-  });
+  globalThis.fetch = (_url, options) => {
+    const body = new ReadableStream({
+      start(controller) {
+        const timer = setInterval(() => {
+          if (closed) return;
+          chunks += 1;
+          controller.enqueue(new TextEncoder().encode('data: {"choices":[{"delta":{"content":"x"}}]}\n\n'));
+        }, 10);
+        options.signal?.addEventListener("abort", () => {
+          closed = true;
+          clearInterval(timer);
+          try {
+            controller.error(Object.assign(new Error("aborted"), { name: "AbortError" }));
+          } catch { /* stream already closed */ }
+        }, { once: true });
+      }
+    });
+    return Promise.resolve(new Response(body, {
+      status: 200,
+      headers: { "content-type": "text/event-stream" }
+    }));
+  };
+  const startedAt = Date.now();
   try {
     await assert.rejects(chooseSpellFocus(args(sig)), (err) => {
       assert.match(err.message, /RunDeadline/);
@@ -131,7 +148,9 @@ const args = (signal) => ({ concept, tradition: "arcane", signal });
   } finally {
     globalThis.fetch = stubbed;
   }
-  assert.equal(inFlight, 1);
+  const elapsed = Date.now() - startedAt;
+  assert.ok(chunks > 0, "the stubbed stream must have produced chunks before the deadline");
+  assert.ok(elapsed < 900, `the deadline must not wait for the idle timeout (took ${elapsed}ms)`);
 }
 
 console.log("ai.runBudget.test.mjs passed");

@@ -26,7 +26,7 @@
       "choices": [
         {
           "message": {
-            "content": "{\"equipment\":[{\"id\":\"e1\",\"quantity\":99},{\"id\":\"e3\",\"quantity\":0},{\"id\":\"e-bogus\",\"quantity\":9}]}"
+            "content": "{\"equipment\":[{\"id\":\"e1\",\"quantity\":99},{\"id\":\"e3\",\"quantity\":0},{\"id\":\"e2\",\"quantity\":-3},{\"id\":\"e-bogus\",\"quantity\":9}]}"
           },
           "finish_reason": "stop"
         }
@@ -37,13 +37,15 @@
   "expect": {
     "ok": true,
     "requestCount": 1,
-    "excludes": ["Baton", "bogus"],
-    "lengths": { "equipment": 2 },
+    "excludes": ["bogus"],
+    "lengths": { "equipment": 3 },
     "equals": {
       "equipment.0.name": "Assault Rifle",
       "equipment.0.quantity": 10,
       "equipment.1.name": "Medpatch",
-      "equipment.1.quantity": 1
+      "equipment.1.quantity": 1,
+      "equipment.2.name": "Baton",
+      "equipment.2.quantity": 1
     },
     "bodyContains": ["weapon: e1 | Assault Rifle (L3)", "consumable: e3 | Medpatch (L2)"]
   }

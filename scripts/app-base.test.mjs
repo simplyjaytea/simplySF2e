@@ -193,7 +193,17 @@ assert.equal(app._generationAbort, null);
 assert.doesNotThrow(() => app._throwIfCancelled(), "Does not throw after disarm");
 
 // 3. Progress step transitions & in-place DOM painting
-app._beginProgress(stepDefs, { cancellable: false });
+// A non-cancellable step still needs a live run signal (budget + deadline) but
+// must not offer a cancel affordance; a continuation step reuses that signal so
+// one run cannot open a second budget window.
+const noCancelSignal = app._beginProgress(stepDefs, { cancellable: false });
+assert.ok(noCancelSignal, "a non-cancellable step still gets a live run signal");
+assert.equal(app._canCancel, false, "a non-cancellable step must not offer cancel");
+assert.equal(
+  app._beginProgress(stepDefs, { cancellable: false, reuseRunSignal: true }),
+  noCancelSignal,
+  "a continuation step reuses the run signal instead of opening a new budget window"
+);
 
 const domSteps = [
   { className: "", querySelector: () => ({ className: "" }) },

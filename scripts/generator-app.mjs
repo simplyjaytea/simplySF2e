@@ -1713,7 +1713,7 @@ export class GeneratorApp extends SpfApp {
           const signal = this._beginProgress([
             ["apply", applyLabel],
             ["choices", label]
-          ], { cancellable: false });
+          ], { cancellable: false, reuseRunSignal: true });
           try {
             await this._setStep("choices");
             const { picks, usage, timing } = await selectCharacterChoices({
@@ -1729,7 +1729,7 @@ export class GeneratorApp extends SpfApp {
             ui.notifications.warn(game.i18n.localize("SIMPLYSF2E.Generator.ChoicesNeedInput"));
             throw err; // The builder leaves unanswered choices to PF2e.
           } finally {
-            this._beginProgress([["apply", applyLabel]], { cancellable: false });
+            this._beginProgress([["apply", applyLabel]], { cancellable: false, reuseRunSignal: true });
             this.#busyMessage = applyingMessage;
             await this._setStep("apply");
             if (this._progress) this._progress.detail = applyingMessage;

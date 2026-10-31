@@ -22,7 +22,7 @@
     {
       "choices": [
         {
-          "message": { "content": "{\"featIds\":[\"f1\",\"f2\",\"f3\",\"f4\"]}" },
+          "message": { "content": "{\"featIds\":[\"f1\",\"f-forged\",\"f2\",\"f3\",\"f4\"]}" },
           "finish_reason": "stop"
         }
       ],

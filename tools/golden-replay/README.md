@@ -51,14 +51,15 @@ The test is discovered by the normal CI loop (`scripts/*.test.mjs`), so it gates
 | `creature-concept` | A full concept passes the shape validator with the schema's own shapes (strikes, abilities, equipment, loot) and a Credits loot entry as `lootGuide()` asks. |
 | `normalizer-fallbacks` | `normalizeConcept` applies its fallbacks: default name, invalid size/HP/AC scales, nearest published speed, default strike. |
 | `ability-selection` | Bestiary actions resolve only from the issued catalog; an unissued id is dropped. |
-| `creature-feat-selection` | Feat picks are capped at the draft wishlist length. |
+| `creature-feat-selection` | Feat picks are capped at the draft wishlist length and resolved only from the issued catalog, filtering before the cap. |
 | `creature-feat-dedupe` | A repeated id resolves once. |
-| `equipment-selection` | Equipment resolves by id, quantity clamps to 1-10, an unissued id is dropped. |
+| `equipment-selection` | Equipment resolves by id, quantity clamps to 1-10 (both ends), an unissued id is dropped. |
 | `magic-item-concept` | An item concept passes with an in-enum `bulk` and the offered `usage`. |
-| `encounter-design` | Exactly one brief per fixed slot, in slot order. |
+| `encounter-design` | Exactly one brief per fixed slot, in slot order, with extra briefs discarded. |
 | `negative-truncated` | A length-truncated reply fails closed after exactly one retry. |
 | `negative-missing-field` | One missing required key fails the presence check. |
 | `negative-traits-not-array` | A scalar where an array is required fails the array check. |
+| `negative-scales-not-object` | An array where an object is required fails the object check. |
 | `negative-empty-name` | An empty required string fails the non-empty-string check. |
 | `negative-bad-bulk` | An out-of-enum `bulk` fails the enum check. |
 | `negative-forged-candidates` | A reply naming only unissued ids resolves to nothing: no pick is invented. |
