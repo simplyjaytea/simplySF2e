@@ -53,7 +53,9 @@ export async function fetchWithBackoff(url, options, {
 
   const after = retryAfterMs(response);
   const rawDelay = (after != null) ? after : baseDelay;
-  const jitter = Math.floor(Math.random() * Math.max(1, Math.ceil(rawDelay * 0.25)));
+  // Honor a provider-supplied Retry-After exactly; only add jitter to our own
+  // default delay so a rate-limited provider is not kept waiting longer.
+  const jitter = (after != null) ? 0 : Math.floor(Math.random() * Math.max(1, Math.ceil(rawDelay * 0.25)));
   const delay = Math.min(rawDelay + jitter, maxDelayMs);
 
   await new Promise((resolve, reject) => {
