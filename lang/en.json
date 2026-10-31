@@ -150,7 +150,7 @@
       "Note": {
         "ProviderRetry": {
           "Title": "More resilient provider requests",
-          "Body": "When the AI provider reports a rate limit or server error, SimplySF2e can wait briefly and try the request once more. Cancelling stops the retry."
+          "Body": "When the AI provider reports a rate limit or a transient server error, SimplySF2e can wait (honoring the provider's Retry-After when given) and try the request once. Ambiguous server errors that may already have been billed are not retried. Cancelling stops the retry."
         },
         "Multiclass": {
           "Title": "Multiclass, Tech Core ancestries and more",
