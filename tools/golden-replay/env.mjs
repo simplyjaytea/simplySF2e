@@ -3,8 +3,13 @@ import { SETTINGS } from "../../scripts/settings.mjs";
 const settingsMap = new Map();
 let fetchQueue = [];
 const captured = { urls: [], bodies: [], headers: [] };
+let prevGame = undefined, prevFetch = undefined, hadGame = false, hadFetch = false;
 
 export function installEnv({ settings = {} } = {}) {
+  hadGame = Object.prototype.hasOwnProperty.call(globalThis, "game");
+  hadFetch = Object.prototype.hasOwnProperty.call(globalThis, "fetch");
+  prevGame = globalThis.game;
+  prevFetch = globalThis.fetch;
   settingsMap.clear();
   // defaults disable Jev
   settingsMap.set(SETTINGS.apiBaseUrl, "http://localhost:11434/v1");
@@ -44,5 +49,6 @@ export function capturedRequests() {
 }
 
 export function restoreEnv() {
-  // no-op; tests process exits
+  if (hadGame) globalThis.game = prevGame; else delete globalThis.game;
+  if (hadFetch) globalThis.fetch = prevFetch; else delete globalThis.fetch;
 }

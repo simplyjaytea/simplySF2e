@@ -18,12 +18,13 @@ export async function runScenario(fixture) {
   queueResponses(fixture.responses || []);
   const mod = await import("../../scripts/ai.mjs");
   const fnName = FUNC_MAP[fixture.task];
-  if (!fnName) { restoreEnv(); return { result: null, requests: capturedRequests(), error: new Error("unknown task " + fixture.task) }; }
-  const fn = mod[fnName];
   let result = null, error = null;
-  try { result = await fn(fixture.args || {}); }
-  catch (e) { error = e; }
+  try {
+    if (!fnName) throw new Error("unknown task " + fixture.task);
+    const fn = mod[fnName];
+    result = await fn(fixture.args || {});
+  } catch (e) { error = e; }
+  finally { restoreEnv(); }
   const requests = capturedRequests();
-  restoreEnv();
   return { result, requests, error };
 }
