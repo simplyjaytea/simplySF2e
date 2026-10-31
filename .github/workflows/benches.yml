@@ -1,0 +1,73 @@
+name: Benches
+
+# The offline benches run the real pipelines against the real sf2e pack JSON.
+# They are a regression gate: a throw anywhere fails the job. WARN is the
+# documented steady state (see PLAYBOOK §1 baselines), so it never fails here.
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  benches:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      # The packs are ~5,000 small files pinned to one v14-dev commit. Cache them
+      # across runs; fetch.mjs re-pins (and re-downloads) when upstream moves.
+      - name: Restore the pinned sf2e pack cache
+        uses: actions/cache@v4
+        with:
+          path: tools/class-bench/cache
+          key: sf2e-packs-${{ hashFiles('tools/class-bench/fetch.mjs') }}
+          restore-keys: |
+            sf2e-packs-
+
+      - name: Fetch the sf2e packs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node tools/class-bench/fetch.mjs
+
+      - name: Class bench (8 classes x 5 levels x Free Archetype)
+        run: node tools/class-bench/run.mjs
+
+      - name: Item Forge bench
+        run: node tools/pipeline-bench/forge.mjs
+
+      - name: Shop and Treasure bench
+        run: node tools/pipeline-bench/market.mjs
+
+      - name: Creature bench
+        run: node tools/pipeline-bench/creature.mjs
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "## Bench summary"
+            echo ""
+            echo '```'
+            sed -n '/^| class |/,$p' tools/class-bench/cache/matrix.md 2>/dev/null | head -30 || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload bench reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bench-reports
+          path: |
+            tools/class-bench/cache/matrix.md
+            tools/class-bench/cache/results.json
+            tools/pipeline-bench/out/
+          if-no-files-found: warn
