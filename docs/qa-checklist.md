@@ -34,7 +34,7 @@ Conventions: "Generator" = the **SimplySF2e — Generator** window. "Forge" = th
 
 | # | Step | Expected | Where to look | Result | Evidence |
 |---|------|----------|---------------|--------|----------|
-| 1.1 | Generator → Preset dropdown. | Groups: "Standard classes" (Envoy, Mystic, Operative, Solarian, Soldier, Witchwarper), "Starfinder Archetypes" (Corp Enforcer, Free Captain (Pirate), Street Cyberdoc, Bounty Hunter), "Custom presets". | Preset dropdown | | |
+| 1.1 | Generator → Preset dropdown. | Groups: "Standard classes" (Envoy, Mechanic, Mystic, Operative, Solarian, Soldier, Technomancer, Witchwarper), "Starfinder Archetypes" (Corp Enforcer, Free Captain (Pirate), Street Cyberdoc, Bounty Hunter), "Custom presets". | Preset dropdown | | |
 | 1.2 | Click the save-preset button, name it "QA Test", add guidance text, **Save Preset**. | "Preset "QA Test" saved." It appears under Custom presets and is selected. | Dropdown, notification | | |
 | 1.3 | Duplicate it, then open **Manage Presets**. | "QA Test (copy)" exists. **Manage Custom Presets** lists both with edit and export buttons. | Manage window | | |
 | 1.4 | **Export All**, delete both presets, then **Import** the exported JSON. | "Presets imported: 2 added, 0 skipped." Both are back. | Manage window | | |

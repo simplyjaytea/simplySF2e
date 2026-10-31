@@ -11,7 +11,7 @@ A GM uses a live Foundry v14 (14.361+) world on sf2e 1.6.x with one hosted provi
 | P1 | Install from the manifest, connect a provider, Welcome readiness, Sources defaults | qa 0.1-0.12 and 12t all PASS |
 | P2 | Monster/NPC generate and create, levels -1 to 24, Elite/Weak applied once, stat check | 9 of 10 runs create an actor whose every item is a real compendium copy. Stat check is green or explained (qa 2.x at L1/5/12, 3.x, 12x, 12s) |
 | P3 | Encounter: budget, pooled build, create all, all-or-nothing rollback, cancel | qa 4.1-4.8, 13k |
-| P4 | Player Character: all 8 classes, L1-20, Free Archetype off and on | Offline bench 80/80. Live: each class at L1 and L5 creates with no unexpected native prompt, every feat slot filled, and casters' slots and focus right (qa 7, 7a, 7b, 7c). One L20 caster live |
+| P4 | Player Character: all 8 classes, L1-20, Free Archetype off and on | Offline bench 48 PASS / 32 WARN, 0 FAIL (sf2e 1.6.1). Live: each class at L1 and L5 creates with no unexpected native prompt, every feat slot filled, and casters' slots and focus right (qa 7, 7a, 7b, 7c). One L20 caster live |
 | P5 | Reskin and re-level | qa 5.3-5.11, 13j.1-13j.5 |
 | P6 | Item Forge, all 5 kinds, and the item works on a sheet (Activate macro, rest recharge, strike, AC) | qa 6a-6e, 9.1-9.6 |
 | P7 | Shop and Treasure create real loot actors on budget; merchant buy flow | qa 12z.1-12z.6, 13h.1-13h.5 |
@@ -27,13 +27,13 @@ A GM uses a live Foundry v14 (14.361+) world on sf2e 1.6.x with one hosted provi
 | P1 setup, welcome | Works, unverified on 1.6 | sf2e gate `scripts/welcome.mjs`; `module.json` min 1.6.0. Last live pass was 2026-10-08 on 1.5.x, verbal only |
 | P2 NPC pipeline | Works (most tested); stat check and art fix unverified | 37 `builder.*` tests. Stat check 12x never logged. Art fix #69 never live |
 | P3 encounter | Works, unverified | Pooled build in `generator-app.mjs`; "faster encounters" never live |
-| P4 PC | 78/80 offline; everything since #70 unverified live | `tools/class-bench/REPORT.md`. Hardlight Body and SRO Frame have object-valued ChoiceSets that are left native (`choice-set.mjs` accepts only string/number values). Technomancer spell database not modelled (slots only). Drone companion is a manual whisper. Archetype placement is checked with a `null` context in `generator-app.mjs`. PF2e dead rows remain in `pc-tables.mjs`, plus Skillful Lessons in `pc-builder.mjs`. Presets cover 6 classes |
+| P4 PC | 48 PASS / 32 WARN, 0 FAIL offline; everything since #70 unverified live | `tools/class-bench/REPORT.md`. Object-valued ChoiceSets (Hardlight Body, SRO Frame) are pre-answered (`choice-set.mjs`). Technomancer spell database is modelled (qa 7c.4). Drone companion is a manual whisper. Archetype placement uses a real staged context in `generator-app.mjs`. PF2e dead paths and Skillful Lessons removed (M4). Presets cover 8 classes (1.6) |
 | P4 multiclass | Missing (planned) | `docs/multiclass-plan.md` |
 | P5 reskin, re-level | Works, unverified | Reskin rows never confirmed one by one; re-level never live |
-| P6 Forge | Works, unverified live; has gaps | Only the `installed-in-a-weapon`/`installed-in-armor` usages are offered (`runes.mjs`), so 5 Tech Core projectile upgrades are unreachable. Slot capacity uncited. No shields or ammunition |
+| P6 Forge | Works, unverified live; has gaps | Projectile-weapon usage added (`installed-in-a-weapon-that-uses-projectiles`, gated on the base weapon's group), so Tech Core projectile upgrades are reachable (qa 6d.7). Slot capacity uncited. No shields or ammunition |
 | P7 shop, treasure | Shop live 2026-10-08 (verbal); treasure never live | README "Live checks" |
 | P8 safety | Works, unverified since 10-08 (http key rule, bug report) | README "Live checks" |
-| P9 verification | Partial | `tools/release-check.sh`. The class bench covers PCs only. No live log exists. The creature step chain lives inside a Foundry `ApplicationV2` subclass, so no offline bench can reach it today |
+| P9 verification | Partial | `tools/release-check.sh`. Benches exist for PCs, creatures, forge and market (`tools/pipeline-bench/`). `docs/live-log.md` exists (one verbal 2026-10-08 session; no RC entry yet). Creature pipeline extracted to `scripts/creature-pipeline.mjs` |
 
 ## 3. Milestones
 
@@ -41,11 +41,11 @@ One PR per milestone, and each merge is a public release. JT's live time is batc
 
 ### M0: land Tech Core and class fixes as one release
 
-- **Goal:** PR #70 and class-fixes merge as one release, with the bench at 80/80 or a JT-accepted exception.
+- **Goal:** PR #70 and class-fixes merge as one release, with the bench at 48 PASS / 32 WARN, 0 FAIL (or a JT-accepted exception).
 - **Tasks:** the class-fixes batch (done: W1-W6), a Fable audit, and a fast-forward of #70's branch.
 - **Pre-merge gate (JT):**
   - Confirm the VPS runs sf2e 1.6.x.
-  - Do a release-candidate install of the branch (`git clone -b <branch>` into `Data/modules/simplysf2e`).
+  - (No release-candidate install step: JT decided 2026-10-25 to merge first, then test live; fixes go in a follow-up PR.)
 - **Live pass A** (JT, about 3 h):
   - `docs/live-pass.md` rows 1-18.
   - qa 7.1-7.9 for all eight classes at L1 and L5.
@@ -91,7 +91,7 @@ Each task touches separate files.
   - The five Tech Core upgrade JSONs and one projectile weapon JSON.
 - **Live pass B** (JT, about 1.5 h): re-run fixed rows, plus 7d, 6d.7, 1.1, the T1 smoke rows and 13i.2-13i.3.
 
-### M3: PC depth (multiclass and Technomancer spell database); can be cut to 1.1
+### M3: PC depth (multiclass and Technomancer spell database); cannot be cut (JT decision 2026-10-25)
 
 - **Multiclass** per `docs/multiclass-plan.md`:
   - The dedication rule and a real context for archetype placement.
@@ -131,22 +131,22 @@ Each task touches separate files.
 
 ## 4. JT decisions needed (Fable's recommendation in brackets)
 
-1. Install a release candidate before each merge? [Yes. Every merge updates every install.]
+1. Install a release candidate before each merge? [No — decided 2026-10-25: merge first, then test live; no release-candidate install step.]
 2. Does the VPS run sf2e 1.6.x? [It must, before #70 merges.]
-3. Multiclass in 1.0 or 1.1? [1.0 only if pass B is clean on the first run.]
-4. Pre-answer object-valued ChoiceSets (Hardlight Body, SRO Frame)? [Yes: small, cited.]
-5. Add the projectile-weapon upgrade usage? [Yes.]
-6. Model the Technomancer spell database for 1.0? [Yes, in M3.]
-7. Mechanic and Technomancer presets? [Yes, in M2.]
+3. Multiclass in 1.0 or 1.1? [1.0 — decided 2026-10-25: multiclass must be in 1.0; M3 cannot be cut.]
+4. Pre-answer object-valued ChoiceSets (Hardlight Body, SRO Frame)? [Yes — decided 2026-10-25: build both in M2.]
+5. Add the projectile-weapon upgrade usage? [Yes — decided 2026-10-25: build it in M2.]
+6. Model the Technomancer spell database for 1.0? [Yes — decided 2026-10-25, in M3.]
+7. Mechanic and Technomancer presets? [Yes — decided 2026-10-25, in M2.]
 8. Light theme? [Already decided: always dark.]
-9. Remove the PF2e-only rows and the Skillful Lessons branch? [Yes, in M4.]
+9. Remove the PF2e-only rows and the Skillful Lessons branch? [Yes — decided 2026-10-25, in M4; done.]
 10. Reference QA model for P2? [DeepSeek.]
 11. Live time budget: passes A (3 h), B (1.5 h), RC (3 h), M3 (1.5 h, can be folded in)?
 
 ## 5. Top risks
 
 1. **Live-verification debt.** Run pass A before any new feature; nothing counts as verified without a live-log row.
-2. **Public auto-release of a breaking requirement (sf2e 1.6).** Contain it with the VPS check, a release-candidate install, the release note and the Welcome gate.
+2. **Public auto-release of a breaking requirement (sf2e 1.6).** Contain it with the VPS check, the release note and the Welcome gate (no release-candidate install step per JT's 2026-10-25 decision).
 3. **Silent schema failures.** Contain them with cited v14-dev source pasted into prompts, Sonnet for schema tasks, tier 3 review, and benches on real pack JSON.
 4. **False confidence from benches.** Each README states its limits; derived stats stay live rows.
 5. **Process: scope creep, file collisions, mid-review merges.** One PR per milestone, disjoint files, and M3 can be cut.
