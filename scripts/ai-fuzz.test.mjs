@@ -240,6 +240,11 @@ assert.equal(forgedFeat[0].entry, null, "a forged feat reference cannot fill a s
 const badManifest = completionManifest({ mode: "npc", concept: null, resolved: null });
 assert.equal(badManifest.complete, true, "an empty manifest has no unresolved required rows");
 assert.equal(badManifest.unresolved.length, 0);
+const unresolvedManifest = completionManifest({ mode: "npc", concept: {}, resolved: { feats: [{ name: "Missing Feat" }] } });
+assert.equal(unresolvedManifest.complete, false, "a manifest with an unresolved required row must be incomplete");
+assert.equal(unresolvedManifest.unresolved.length, 1);
+assert.throws(() => assertComplete(unresolvedManifest), /Generation is incomplete/,
+  "assertComplete must reject a manifest with an unresolved required row");
 assert.throws(() => assertComplete({ complete: false, unresolved: [{ category: "feat", name: "X" }] }),
   /Generation is incomplete/);
 const summary = completionSummary([null, { records: [{ status: "unresolved" }, { status: "compendium" }] }]);
@@ -257,6 +262,95 @@ assert.equal(normalizedLoot[0].name, "<script>alert(1)</script>", "loot names re
 assert.equal(normalizedLoot[0].quantity, 10, "quantity is capped");
 assert.equal(normalizedLoot[0].value, 0, "negative values are clamped");
 assert.equal(isIssuedCandidate(normalizedLoot[0].candidate), false, "a forged loot candidate is not an issued reference");
+
+// Seeded fuzzing: deterministic grammar-driven adversarial payloads.
+const FUZZ_SEED = 0x5f3759df;
+function mulberry32(seed) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const rand = mulberry32(FUZZ_SEED);
+const pick = (list) => list[Math.floor(rand() * list.length)];
+const randInt = (n) => Math.floor(rand() * n);
+function randomString() {
+  const chars = ["a", "Z", "0", " ", "\"", "\\", "\n", "\r", "\t", "é", "😀", "\u0000", "\uD800", "{", "}", "[", "]"];
+  let out = "";
+  const len = randInt(12) + 1;
+  for (let i = 0; i < len; i++) out += pick(chars);
+  return out;
+}
+function randomValue(depth = 0) {
+  const choice = randInt(depth > 3 ? 4 : 6);
+  if (choice === 0) return randomString();
+  if (choice === 1) return randInt(1000) - 500;
+  if (choice === 2) return rand() > 0.5;
+  if (choice === 3) return null;
+  if (choice === 4) return Array.from({ length: randInt(4) }, () => randomValue(depth + 1));
+  const obj = {};
+  const keys = ["name", "traits", "__proto__", "constructor", "prototype", "nested", randomString()];
+  for (let i = 0; i < randInt(4) + 1; i++) obj[pick(keys)] = randomValue(depth + 1);
+  return obj;
+}
+function randomObject() {
+  const obj = {};
+  for (let i = 0; i < randInt(5) + 1; i++) obj[pick(["keywords", "name", "traits", "nested", "value", "__proto__"])] = randomValue(1);
+  return obj;
+}
+function mutate(text) {
+  const ops = randInt(4);
+  if (ops === 0) return text;
+  if (ops === 1 && text.length) {
+    const at = randInt(text.length);
+    return text.slice(0, at) + text.slice(at + 1);
+  }
+  if (ops === 2) {
+    const at = randInt(text.length + 1);
+    return text.slice(0, at) + pick(["{", "}", "[", "]", "\"", "\\", "x", " "]) + text.slice(at);
+  }
+  return text;
+}
+function generateCase() {
+  const kind = randInt(10);
+  const base = JSON.stringify(randomObject());
+  if (kind === 0) return mutate(base);
+  if (kind === 1) return base.slice(0, randInt(base.length));
+  if (kind === 2) return pick(["```json\n", "", "data: ", "Here is the result: ", "\uFEFF"]) + base + pick(["\n```", "\ntrailing prose", ""]);
+  if (kind === 3) {
+    const depth = 200 + randInt(20);
+    return "[".repeat(depth) + base + "]".repeat(depth);
+  }
+  if (kind === 4) return `{"name":"${"x".repeat(64 * 1024)}"}`;
+  if (kind === 5) return `{"note":"${pick(["unbalanced { inside", "escaped \\\" quote", "emoji 😀", "\u0000 nul"])}"}`;
+  if (kind === 6) return `{"__proto__":{"polluted":true},"constructor":{"prototype":{}}}`;
+  if (kind === 7) return "{\r\n" + base.slice(1);
+  if (kind === 8) return `{${randomString()}}`;
+  return base;
+}
+
+const FUZZ_CASES = 300;
+for (let index = 0; index < FUZZ_CASES; index++) {
+  const payload = generateCase();
+  const label = `seed=${FUZZ_SEED} case=${index}`;
+  let result;
+  let outcome = "ok";
+  try {
+    result = parseConceptJSON(payload);
+  } catch (error) {
+    outcome = "throw";
+    assert.ok(error instanceof AIRequestError, `${label}: threw a non-AIRequestError: ${error?.message}`);
+    assert.equal(error.retryable, true, `${label}: thrown error must be retryable`);
+  }
+  if (outcome === "ok") {
+    assert.ok(result !== null && typeof result === "object" && !Array.isArray(result),
+      `${label}: parseConceptJSON must return a plain object, got ${Array.isArray(result) ? "array" : typeof result}`);
+  }
+}
 
 console.log("ai-fuzz adversarial regression: all assertions passed");
 console.warn = originalWarn;
