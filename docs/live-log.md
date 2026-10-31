@@ -23,3 +23,6 @@ Pass document: <docs/release-pass.md | docs/live-pass.md | other>
 
 ### 2026-10-08, JT (verbal, recorded later)
 Versions not recorded. JT reported that the full `docs/qa-checklist.md` passed live. No per-row results were kept, so no row from that session counts as live-verified for 1.0.
+
+### 2026-10-31, JT (verbal)
+JT reported generating an NPC. Versions, provider, and QA row details were not recorded, so this is a smoke observation rather than a recorded QA PASS.

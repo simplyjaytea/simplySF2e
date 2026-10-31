@@ -3,6 +3,7 @@ import {
   isOfficialOpenAIEndpoint, modelsUrl, resolveProviderModel
 } from "./settings.mjs";
 import { AI_TASK, completionOptionsFor } from "./ai-task-profiles.mjs";
+import { fetchWithBackoff } from "./ai-transport.mjs";
 import { estimateTokens, normalizeUsage } from "./tokens.mjs";
 import { encodeFeatCandidateSlots, resolveEncodedFeatPicks } from "./ai-candidate-format.mjs";
 import { normalizeMulticlassPick, taskResponseProblem } from "./ai-response-validation.mjs";
@@ -1816,7 +1817,7 @@ async function postChatCompletion(baseUrl, apiKey, body, signal) {
   const headers = { "Content-Type": "application/json" };
   if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
   try {
-    return await fetch(chatCompletionsUrl(baseUrl), {
+    return await fetchWithBackoff(chatCompletionsUrl(baseUrl), {
       method: "POST",
       headers,
       body: JSON.stringify(body),

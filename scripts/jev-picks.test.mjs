@@ -23,6 +23,28 @@ const concept = (extra = {}) => ({
   loot: [], ...extra
 });
 
+// Exercise the actual request and response parser through a generation picker.
+// The HTTP boundary is mocked; this does not establish that a provider is reachable.
+{
+  const originalFetch = globalThis.fetch;
+  let sent;
+  try {
+    globalThis.fetch = async (url, init) => {
+      sent = { url, init, body: JSON.parse(init.body) };
+      return { ok: true, json: async () => ({ answers: { draft0: choice("W0") } }) };
+    };
+    const out = await jevPickEquipment({
+      concept: concept({ equipment: [{ name: "pistol" }], strikes: [] }), candidates, jevConfig
+    });
+    assert.equal(sent.url, jevConfig.endpoint);
+    assert.equal(sent.init.headers.Authorization, "Bearer k");
+    assert.ok(Object.hasOwn(sent.body.questions.draft0.criteria, "W0"));
+    assert.equal(out.equipment[0].candidate, candidates[0].ref);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+}
+
 // Confident draft picks keep the issued ref and key criteria by id.
 {
   const { request, calls } = scripted(response({ draft0: choice("W0"), draft1: choice("E0") }));
