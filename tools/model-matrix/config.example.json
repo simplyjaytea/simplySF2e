@@ -1,0 +1,7 @@
+{
+  "baseUrl": "http://localhost:11434/v1",
+  "apiKeyEnv": "SIMPLY_MATRIX_KEY",
+  "models": [ { "id": "test-model", "label": "local" } ],
+  "tasks": [ "creatureConcept" ],
+  "runs": 1
+}
