@@ -1,0 +1,33 @@
+{
+  "id": "encounter-design",
+  "task": "encounterDesign",
+  "note": "Encounter design produces exactly one brief per fixed slot, in slot order, so the per-member creature pipeline always has a brief to consume.",
+  "args": {
+    "theme": "a derelict hangar taken over by salvage drones",
+    "partyLevel": 5,
+    "slots": [
+      { "level": 5, "count": 1, "role": "boss" },
+      { "level": 3, "count": 2, "role": "minion" }
+    ]
+  },
+  "responses": [
+    {
+      "choices": [
+        {
+          "message": {
+            "content": "{\"name\":\"Hangar Ambush\",\"briefs\":[\"A hulking salvage golem built from a wrecked freighter's spine.\",\"Skittering repair drones that swarm around the golem and patch it as it takes damage.\"]}"
+          },
+          "finish_reason": "stop"
+        }
+      ],
+      "usage": { "prompt_tokens": 180, "completion_tokens": 70, "total_tokens": 250 }
+    }
+  ],
+  "expect": {
+    "ok": true,
+    "requestCount": 1,
+    "contains": ["Hangar Ambush", "salvage golem"],
+    "lengths": { "briefs": 2 },
+    "bodyContains": ["Slot 1: 1 creature of level 5 (boss)", "Slot 2: 2 creatures of level 3 (minion)"]
+  }
+}

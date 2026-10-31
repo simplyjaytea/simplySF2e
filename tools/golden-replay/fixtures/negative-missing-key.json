@@ -1,0 +1,37 @@
+{
+  "id": "negative-missing-key",
+  "task": "creatureConcept",
+  "note": "A reply that is valid JSON but missing required keys fails the per-task shape check instead of reaching Create with a partial concept; one retry, then stop.",
+  "args": {
+    "prompt": "a shape-invalid response",
+    "level": 5,
+    "rarity": "common",
+    "allowSpellcasting": false,
+    "intent": "monster"
+  },
+  "responses": [
+    {
+      "choices": [
+        {
+          "message": { "content": "{\"name\":\"Name Only\",\"description\":\"no other required keys\"}" },
+          "finish_reason": "stop"
+        }
+      ],
+      "usage": { "prompt_tokens": 900, "completion_tokens": 30, "total_tokens": 930 }
+    },
+    {
+      "choices": [
+        {
+          "message": { "content": "{\"name\":\"Name Only\",\"description\":\"no other required keys\"}" },
+          "finish_reason": "stop"
+        }
+      ],
+      "usage": { "prompt_tokens": 900, "completion_tokens": 30, "total_tokens": 930 }
+    }
+  ],
+  "expect": {
+    "ok": false,
+    "requestCount": 2,
+    "errorKey": "Errors.BadStructure"
+  }
+}

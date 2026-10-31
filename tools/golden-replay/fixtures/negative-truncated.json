@@ -1,0 +1,37 @@
+{
+  "id": "negative-truncated",
+  "task": "creatureConcept",
+  "note": "A length-truncated reply is never parsed as a partial concept: it fails closed as retryable, and the internal retry spends exactly one more provider request before the run stops.",
+  "args": {
+    "prompt": "a broken response",
+    "level": 5,
+    "rarity": "common",
+    "allowSpellcasting": false,
+    "intent": "monster"
+  },
+  "responses": [
+    {
+      "choices": [
+        {
+          "message": { "content": "{\"name\":\"Half Written\",\"blurb\":\"cuts off mid" },
+          "finish_reason": "length"
+        }
+      ],
+      "usage": { "prompt_tokens": 900, "completion_tokens": 8000, "total_tokens": 8900 }
+    },
+    {
+      "choices": [
+        {
+          "message": { "content": "{\"name\":\"Half Written\",\"blurb\":\"cuts off mid" },
+          "finish_reason": "length"
+        }
+      ],
+      "usage": { "prompt_tokens": 900, "completion_tokens": 8000, "total_tokens": 8900 }
+    }
+  ],
+  "expect": {
+    "ok": false,
+    "requestCount": 2,
+    "errorKey": "Errors.Truncated"
+  }
+}

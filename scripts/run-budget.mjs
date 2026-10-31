@@ -19,7 +19,10 @@ export function beginRunBudget(signal, { tokenBudget, deadlineMs, now = Date.now
     tokenBudget,
     tokensSpent: 0,
     startedAt: now(),
-    deadlineMs
+    deadlineMs,
+    // Kept on the entry so deadline reads share the clock that started the run;
+    // tests inject it, production gets Date.now.
+    now
   };
   REGISTRY.set(signal, entry);
   return entry;
@@ -80,9 +83,9 @@ export function remainingRunTokens(signal) {
 export function remainingDeadlineMs(signal) {
   const entry = getRunBudget(signal);
   if (!entry) return null;
-  const { deadlineMs, startedAt } = entry;
+  const { deadlineMs, startedAt, now } = entry;
   if (typeof deadlineMs !== "number" || !Number.isFinite(deadlineMs) || deadlineMs <= 0) return null;
-  return Math.max(0, deadlineMs - (Date.now() - startedAt));
+  return Math.max(0, deadlineMs - (now() - startedAt));
 }
 
 /**
@@ -92,11 +95,11 @@ export function remainingDeadlineMs(signal) {
 export function runBudgetProblem(signal) {
   const entry = getRunBudget(signal);
   if (!entry) return null;
-  const { tokenBudget, tokensSpent, deadlineMs, startedAt } = entry;
+  const { tokenBudget, tokensSpent, deadlineMs, startedAt, now } = entry;
   // deadline first
   const deadlineActive = typeof deadlineMs === "number" && Number.isFinite(deadlineMs) && deadlineMs > 0;
   if (deadlineActive) {
-    const remaining = deadlineMs - (Date.now() - startedAt);
+    const remaining = deadlineMs - (now() - startedAt);
     if (remaining <= 0) return "deadline";
   }
   const budgetActive = typeof tokenBudget === "number" && Number.isFinite(tokenBudget) && tokenBudget > 0;

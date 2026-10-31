@@ -1,11 +1,39 @@
 {
   "id": "creature-feat-selection",
   "task": "creatureFeatSelection",
-  "note": "featIds from offered candidates",
+  "note": "Class-like creature feats are capped at the draft wishlist and resolved only from the issued catalog; a repeated id resolves once.",
   "args": {
-    "concept": { "name": "Monster", "level": 5 },
-    "candidates": [ { "id": "power-attack", "name": "Power Attack" } ]
+    "concept": {
+      "name": "Vesk Siege Marshal",
+      "level": 5,
+      "blurb": "A scarred vesk veteran who holds the breach.",
+      "description": "Patched boarding plate, battering pike, assault rifle.",
+      "traits": ["humanoid", "vesk"],
+      "feats": ["Power Attack", "Cleave"]
+    },
+    "candidates": [
+      { "id": "f1", "name": "Power Attack" },
+      { "id": "f2", "name": "Cleave" },
+      { "id": "f3", "name": "Intimidating Strike" }
+    ]
   },
-  "responses": [ { "choices": [ { "message": { "content": "{\"featIds\":[\"power-attack\"]}" }, "finish_reason": "stop" } ], "usage": { "prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2 } } ],
-  "expect": { "ok": true, "requestCount": 0 }
+  "responses": [
+    {
+      "choices": [
+        {
+          "message": { "content": "{\"featIds\":[\"f1\",\"f2\",\"f1\"]}" },
+          "finish_reason": "stop"
+        }
+      ],
+      "usage": { "prompt_tokens": 260, "completion_tokens": 18, "total_tokens": 278 }
+    }
+  ],
+  "expect": {
+    "ok": true,
+    "requestCount": 1,
+    "contains": ["Power Attack", "Cleave"],
+    "excludes": ["Intimidating Strike"],
+    "lengths": { "feats": 2 },
+    "bodyContains": ["f1 | Power Attack", "First-draft feat ideas"]
+  }
 }

@@ -1,11 +1,43 @@
 {
   "id": "ability-selection",
   "task": "abilitySelection",
-  "note": "abilityIds from offered candidates",
+  "note": "Bestiary actions are resolved strictly against the issued catalog: offered ids resolve to their published names, and an id the module never issued is dropped instead of invented.",
   "args": {
-    "concept": { "name": "Monster", "level": 5 },
-    "candidates": [ { "id": "bite", "name": "Bite" } ]
+    "concept": {
+      "name": "Vesk Siege Marshal",
+      "level": 5,
+      "blurb": "A scarred vesk veteran who holds the breach.",
+      "description": "Patched boarding plate, battering pike, assault rifle.",
+      "traits": ["humanoid", "vesk"],
+      "specialAbilities": [
+        { "name": "Rally the Line" },
+        { "name": "Breach Brace" },
+        { "name": "Suppressing Fire" }
+      ]
+    },
+    "candidates": [
+      { "id": "a1", "name": "Rally" },
+      { "id": "a2", "name": "Shield Block" },
+      { "id": "a3", "name": "Frightful Presence" }
+    ]
   },
-  "responses": [ { "choices": [ { "message": { "content": "{\"abilityIds\":[\"bite\"]}" }, "finish_reason": "stop" } ], "usage": { "prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2 } } ],
-  "expect": { "ok": true, "requestCount": 0 }
+  "responses": [
+    {
+      "choices": [
+        {
+          "message": { "content": "{\"abilityIds\":[\"a1\",\"a3\",\"a-forged-id\"]}" },
+          "finish_reason": "stop"
+        }
+      ],
+      "usage": { "prompt_tokens": 300, "completion_tokens": 20, "total_tokens": 320 }
+    }
+  ],
+  "expect": {
+    "ok": true,
+    "requestCount": 1,
+    "contains": ["Rally", "Frightful Presence"],
+    "excludes": ["forged", "Shield Block"],
+    "lengths": { "abilities": 2 },
+    "bodyContains": ["a1 | Rally", "a3 | Frightful Presence"]
+  }
 }

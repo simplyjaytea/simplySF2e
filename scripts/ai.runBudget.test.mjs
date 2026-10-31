@@ -1,6 +1,10 @@
+// Production-path run budget: a spent budget stops the run before any provider
+// request, a failed attempt still costs tokens, and an elapsed deadline reports
+// itself instead of the idle timeout. Stubs only the Foundry globals and fetch.
+// Run: node scripts/ai.runBudget.test.mjs
 import assert from "node:assert/strict";
 import { SETTINGS } from "./settings.mjs";
-import { beginRunBudget } from "./run-budget.mjs";
+import { beginRunBudget, spendRunTokens, getRunBudget } from "./run-budget.mjs";
 
 const settings = new Map([
   [SETTINGS.apiBaseUrl, "http://localhost:11434/v1"],
@@ -15,68 +19,89 @@ const settings = new Map([
 ]);
 
 globalThis.game = {
-  settings: { get: (_m, key) => settings.get(key) },
-  i18n: { localize: (k) => k, format: (k, d) => `${k}:${JSON.stringify(d)}` }
+  settings: { get: (_moduleId, key) => settings.get(key) },
+  i18n: {
+    localize: (key) => key,
+    format: (key, data) => `${key}:${JSON.stringify(data)}`
+  }
 };
 
-const providerReplies = [{ choices: [{ message: { content: '{"keywords":["fire","control"]}' }, finish_reason: "stop" }], usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 } }];
+const provider = (content, finishReason = "stop", total = 2) => ({
+  choices: [{ message: { content }, finish_reason: finishReason }],
+  usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: total }
+});
+
+// A fresh queue per case: a leftover reply from an earlier case would let a
+// later assertion pass without exercising the code it claims to test.
+let queue = [];
+let calls = 0;
+const queueResponses = (replies) => { queue = replies.slice(); calls = 0; };
 globalThis.fetch = async () => {
-  const r = providerReplies.shift();
-  return new Response(JSON.stringify(r), { status: 200, headers: { "content-type": "application/json" } });
+  calls += 1;
+  const reply = queue.shift();
+  assert.ok(reply, "unexpected provider request: this case should not reach the network");
+  return new Response(JSON.stringify(reply), {
+    status: 200,
+    headers: { "content-type": "application/json" }
+  });
 };
 
 const { chooseSpellFocus } = await import("./ai.mjs");
+const concept = { name: "Watcher", level: 1, blurb: "b", description: "d", traits: ["fire"] };
+const args = (signal) => ({ concept, tradition: "arcane", signal });
 
-// (a) over budget -> 0 requests
+// (a) A spent budget makes no provider request and fails closed without retrying.
 {
   const sig = new AbortController().signal;
-  beginRunBudget(sig, { tokenBudget: 1, deadlineMs: 0 });
-  // spend budget
-  const { spendRunTokens } = await import("./run-budget.mjs");
+  beginRunBudget(sig, { tokenBudget: 5, deadlineMs: 0 });
   spendRunTokens(sig, { total: 5 });
-  let reqCount = 0;
-  const origFetch = globalThis.fetch;
-  globalThis.fetch = async () => { reqCount++; return origFetch(); };
-  try {
-    await assert.rejects(
-      chooseSpellFocus({ concept: { name: "X", level: 1, blurb: "b", description: "d", traits: ["fire"] }, tradition: "arcane", signal: sig }),
-      (e) => { assert.equal(e.retryable, false); assert.match(e.message, /RunBudgetExceeded/); return true; }
-    );
-  } finally { globalThis.fetch = origFetch; }
-  assert.equal(reqCount, 0);
+  queueResponses([provider('{"keywords":["fire"]}')]);
+  await assert.rejects(chooseSpellFocus(args(sig)), (err) => {
+    assert.equal(err.retryable, false);
+    assert.match(err.message, /RunBudgetExceeded/);
+    assert.match(err.message, /5/);
+    return true;
+  });
+  assert.equal(calls, 0);
 }
 
-// (b) no budget entry -> behaves as today
+// (b) Without a budget entry the run behaves exactly as before.
 {
   const sig = new AbortController().signal;
-  providerReplies.push({ choices: [{ message: { content: '{"keywords":["a","b"]}' }, finish_reason: "stop" }], usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 } });
-  const r = await chooseSpellFocus({ concept: { name: "Y", level: 1, blurb: "b", description: "d", traits: ["fire"] }, tradition: "arcane", signal: sig });
-  assert.ok(Array.isArray(r.keywords));
+  queueResponses([provider('{"keywords":["fire","control"]}')]);
+  const result = await chooseSpellFocus(args(sig));
+  assert.deepEqual(result.keywords, ["fire", "control"]);
+  assert.equal(calls, 1);
+  assert.equal(getRunBudget(sig), null);
 }
 
-// (c) truncated attempt counted
+// (c) Usage from a truncated attempt still counts against the run: 5 + 2 tokens.
 {
   const sig = new AbortController().signal;
   beginRunBudget(sig, { tokenBudget: 1000, deadlineMs: 0 });
-  providerReplies.length = 0;
-  providerReplies.push(
-    { choices: [{ message: { content: '{"keywords":["t"' }, finish_reason: "length" }], usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 5 } },
-    { choices: [{ message: { content: '{"keywords":["t","ok"]}' }, finish_reason: "stop" }], usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 } }
-  );
-  const beforeC = globalThis.fetch ? 0 : 0;
-  await chooseSpellFocus({ concept: { name: "Z", level: 1, blurb: "b", description: "d", traits: ["fire"] }, tradition: "arcane", signal: sig });
-  const { getRunBudget } = await import("./run-budget.mjs");
+  queueResponses([
+    provider('{"keywords":["fire"', "length", 5),
+    provider('{"keywords":["fire","control"]}', "stop", 2)
+  ]);
+  const result = await chooseSpellFocus(args(sig));
+  assert.deepEqual(result.keywords, ["fire", "control"]);
+  assert.equal(calls, 2);
   assert.equal(getRunBudget(sig).tokensSpent, 7);
 }
 
-// (d) deadline elapsed -> deadline message
+// (d) An elapsed deadline reports the deadline, not the idle timeout.
 {
+  let clock = 0;
   const sig = new AbortController().signal;
-  beginRunBudget(sig, { tokenBudget: 1000, deadlineMs: 1, now: () => Date.now() - 100000 });
-  await assert.rejects(
-    chooseSpellFocus({ concept: { name: "W", level: 1, blurb: "b", description: "d", traits: ["fire"] }, tradition: "arcane", signal: sig }),
-    (e) => { assert.match(e.message, /RunDeadline/); return true; }
-  );
+  beginRunBudget(sig, { tokenBudget: 1000, deadlineMs: 500, now: () => clock });
+  clock = 1000; // the run deadline has passed before the next call
+  queueResponses([provider('{"keywords":["fire"]}')]);
+  await assert.rejects(chooseSpellFocus(args(sig)), (err) => {
+    assert.match(err.message, /RunDeadline/);
+    assert.equal(err.retryable, false);
+    return true;
+  });
+  assert.equal(calls, 0);
 }
 
 console.log("ai.runBudget.test.mjs passed");

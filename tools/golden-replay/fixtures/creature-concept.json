@@ -1,8 +1,33 @@
 {
   "id": "creature-concept-commander",
   "task": "creatureConcept",
-  "note": "full creature concept passes validator",
-  "args": { "prompt": "commander", "level": 5, "rarity": "common", "allowSpellcasting": false, "intent": "monster" },
-  "responses": [ { "choices": [ { "message": { "content": "{\"name\":\"Cmdr\",\"blurb\":\"b\",\"description\":\"d\",\"readAloud\":\"r\",\"recallKnowledge\":\"rk\",\"size\":\"Medium\",\"traits\":[],\"languages\":[],\"abilityScales\":{},\"acScale\":\"moderate\",\"hpScale\":\"moderate\",\"perceptionScale\":\"moderate\",\"saveScales\":{},\"speeds\":[],\"senses\":[],\"skills\":[],\"strikes\":[{\"name\":\"sword\"},{\"name\":\"bow\"}],\"specialAbilities\":[{\"name\":\"a\"},{\"name\":\"b\"}],\"spellcasting\":null,\"focusSpells\":[],\"feats\":[],\"equipment\":[\"sword\"],\"loot\":[\"gold\"],\"resistances\":[],\"weaknesses\":[],\"immunities\":[]}" }, "finish_reason": "stop" } ], "usage": { "prompt_tokens": 10, "completion_tokens": 20, "total_tokens": 30 } } ],
-  "expect": { "ok": true, "requestCount": 1 }
+  "note": "A full creature concept survives the shape validator and normalizer unchanged: scale words only, no stat numbers, strike and loot shapes as the prompt asks for.",
+  "args": {
+    "prompt": "a vesk siege marshal commanding a breached orbital station",
+    "level": 5,
+    "rarity": "common",
+    "allowSpellcasting": false,
+    "intent": "monster"
+  },
+  "responses": [
+    {
+      "choices": [
+        {
+          "message": {
+            "content": "{\"name\":\"Vesk Siege Marshal\",\"blurb\":\"A scarred vesk veteran who holds the breach until the last squad is through.\",\"description\":\"The marshal wears a patched boarding plate and carries a battering pike in one hand, an assault rifle slung across the other shoulder.\",\"readAloud\":\"A voice booms through the smoke: 'Line up, hold the corridor, and nothing gets past us.'\",\"recallKnowledge\":\"Vesk siege marshals are disciplined line-breakers, not duelists; they fight behind barricades and let their squad carry the flanks.\",\"size\":\"med\",\"traits\":[\"humanoid\",\"vesk\"],\"languages\":[\"common\",\"vesk\"],\"abilityScales\":{\"str\":\"high\",\"dex\":\"moderate\",\"con\":\"high\",\"int\":\"moderate\",\"wis\":\"low\",\"cha\":\"low\"},\"acScale\":\"high\",\"hpScale\":\"high\",\"perceptionScale\":\"moderate\",\"saveScales\":{\"fortitude\":\"high\",\"reflex\":\"moderate\",\"will\":\"low\"},\"speeds\":[{\"type\":\"land\",\"value\":25}],\"senses\":[],\"skills\":[{\"name\":\"athletics\",\"scale\":\"high\"},{\"name\":\"intimidation\",\"scale\":\"moderate\"}],\"strikes\":[{\"name\":\"battering pike\",\"type\":\"melee\",\"attackScale\":\"high\",\"damageScale\":\"high\",\"damageType\":\"piercing\",\"traits\":[\"reach\"]},{\"name\":\"assault rifle\",\"type\":\"ranged\",\"attackScale\":\"moderate\",\"damageScale\":\"moderate\",\"damageType\":\"piercing\",\"traits\":[],\"range\":60}],\"specialAbilities\":[{\"name\":\"Rally the Line\",\"actionType\":\"action\",\"actions\":1,\"description\":\"The marshal barks an order; nearby allies steady themselves.\"},{\"name\":\"Breach Brace\",\"actionType\":\"reaction\",\"description\":\"Planting the pike, the marshal braces against a charge.\"}],\"spellcasting\":null,\"focusSpells\":[],\"feats\":[\"Toughness\"],\"equipment\":[{\"name\":\"assault rifle\",\"quantity\":1,\"value\":0},{\"name\":\"tactical pike\",\"quantity\":1,\"value\":0}],\"loot\":[{\"name\":\"credstick\",\"quantity\":2,\"value\":500}],\"resistances\":[],\"weaknesses\":[],\"immunities\":[]}"
+          },
+          "finish_reason": "stop"
+        }
+      ],
+      "usage": { "prompt_tokens": 900, "completion_tokens": 420, "total_tokens": 1320 }
+    }
+  ],
+  "expect": {
+    "ok": true,
+    "requestCount": 1,
+    "contains": ["Vesk Siege Marshal", "battering pike", "Rally the Line"],
+    "excludes": ["Unnamed Creature"],
+    "lengths": { "concept.strikes": 2, "concept.specialAbilities": 2, "concept.equipment": 2, "concept.loot": 1 },
+    "bodyContains": ["vesk siege marshal commanding a breached orbital station"]
+  }
 }
