@@ -5,7 +5,7 @@ import {
 import { AI_TASK, completionOptionsFor } from "./ai-task-profiles.mjs";
 import { fetchWithBackoff } from "./ai-transport.mjs";
 import { estimateTokens, normalizeUsage } from "./tokens.mjs";
-import { runBudgetProblem, spendRunTokens, remainingDeadlineMs } from "./run-budget.mjs";
+import { runBudgetProblem, spendRunTokens, remainingDeadlineMs, getRunBudget } from "./run-budget.mjs";
 import { encodeFeatCandidateSlots, resolveEncodedFeatPicks } from "./ai-candidate-format.mjs";
 import { normalizeMulticlassPick, taskResponseProblem } from "./ai-response-validation.mjs";
 import { validateChoicePicks } from "./choice-set.mjs";
@@ -1551,7 +1551,8 @@ async function requestCompletion({ task, system, user, onProgress, signal, retry
   throwIfGenerationCancelled(signal);
   const problem = runBudgetProblem(signal);
   if (problem === "budget") {
-    const limit = Number(getSetting(SETTINGS.runTokenBudget));
+    const entryBudget = getRunBudget(signal)?.tokenBudget;
+    const limit = (typeof entryBudget === "number" && Number.isFinite(entryBudget)) ? entryBudget : Number(getSetting(SETTINGS.runTokenBudget));
     throw new AIRequestError(game.i18n.format("SIMPLYSF2E.Errors.RunBudgetExceeded", { limit: limit.toLocaleString() }), { retryable: false });
   }
   if (problem === "deadline") {
@@ -1609,13 +1610,12 @@ async function requestCompletion({ task, system, user, onProgress, signal, retry
   if (userSignal?.aborted) throwIfGenerationCancelled(userSignal);
   userSignal?.addEventListener("abort", onUserAbort, { once: true });
   let idleTimer = null;
-  const deadlineWasSmaller = deadlineMs !== null && deadlineMs < idleSeconds * 1000;
   const resetIdle = () => {
     clearTimeout(idleTimer);
-    idleTimer = setTimeout(() => {
-      deadlineFired = deadlineWasSmaller;
-      controller.abort();
-    }, idleMs);
+    const deadlineLeft = remainingDeadlineMs(signal);
+    const allowance = Math.min(idleMs, deadlineLeft ?? Infinity);
+    deadlineFired = deadlineLeft != null && deadlineLeft <= idleMs;
+    idleTimer = setTimeout(() => controller.abort(), Math.max(1000, Math.floor(allowance)));
   };
 
   try {
@@ -1703,7 +1703,7 @@ async function requestCompletion({ task, system, user, onProgress, signal, retry
         game.i18n.format("SIMPLYSF2E.Errors.Truncated", { max: maxTokens }),
         {
           retryable: true,
-          usage: (u => (spendRunTokens(signal, u), u))(normalizeUsage(usage, { content, system, user, reasoningChars })),
+          usage: (() => { const normalized = normalizeUsage(usage, { content, system, user, reasoningChars }); spendRunTokens(signal, normalized); return normalized; })(),
           details
         }
       );
@@ -1717,14 +1717,14 @@ async function requestCompletion({ task, system, user, onProgress, signal, retry
         game.i18n.localize(emptyKey),
         {
           retryable: true,
-          usage: (u => (spendRunTokens(signal, u), u))(normalizeUsage(usage, { content, system, user, reasoningChars })),
+          usage: (() => { const normalized = normalizeUsage(usage, { content, system, user, reasoningChars }); spendRunTokens(signal, normalized); return normalized; })(),
           details
         }
       );
     }
     return {
       content,
-      usage: (u => (spendRunTokens(signal, u), u))(normalizeUsage(usage, { content, system, user, reasoningChars })),
+      usage: (() => { const normalized = normalizeUsage(usage, { content, system, user, reasoningChars }); spendRunTokens(signal, normalized); return normalized; })(),
       finishReason,
       reasoningChars
     };

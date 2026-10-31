@@ -2,6 +2,9 @@
  * Per-run token budget + deadline registry, keyed by the run's AbortSignal.
  *
  * Dependency-free. No Foundry globals, no network, no timers.
+ *
+ * Known limitation: Jev fast-pick calls (jev.mjs) are not counted against
+ * the run budget; no enforcement is applied there in this task.
  */
 
 const REGISTRY = new WeakMap();
