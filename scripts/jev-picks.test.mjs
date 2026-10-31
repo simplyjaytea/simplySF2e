@@ -28,8 +28,10 @@ const concept = (extra = {}) => ({
 {
   const originalFetch = globalThis.fetch;
   let sent;
+  let calls = 0;
   try {
     globalThis.fetch = async (url, init) => {
+      calls++;
       sent = { url, init, body: JSON.parse(init.body) };
       return { ok: true, json: async () => ({ answers: { draft0: choice("W0") } }) };
     };
@@ -40,6 +42,7 @@ const concept = (extra = {}) => ({
     assert.equal(sent.init.headers.Authorization, "Bearer k");
     assert.ok(Object.hasOwn(sent.body.questions.draft0.criteria, "W0"));
     assert.equal(out.equipment[0].candidate, candidates[0].ref);
+    assert.equal(calls, 1, "a confident single draft pick should make exactly one HTTP call");
   } finally {
     globalThis.fetch = originalFetch;
   }

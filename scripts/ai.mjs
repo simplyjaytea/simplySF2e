@@ -214,6 +214,10 @@ function throwIfGenerationCancelled(signal) {
  */
 async function requestJSON(args) {
   let lastError = null;
+  // One retry allowance for the whole logical request: a transport-level retry
+  // (429/5xx) and a JSON-level retry (empty/truncated) share it, so they can
+  // never multiply into dozens of requests.
+  const retryBudget = { remaining: 1 };
   // Tokens spent by failed attempts are still spent — sum usage across every
   // attempt that returned one, so the report reflects the real total.
   const total = { prompt: 0, completion: 0, total: 0, estimated: false };
@@ -227,11 +231,14 @@ async function requestJSON(args) {
   for (let attempt = 0; attempt < 2; attempt++) {
     throwIfGenerationCancelled(args.signal);
     try {
-      const requestArgs = attempt === 0 ? args : {
-        ...args,
-        retryAttempt: attempt,
-        user: `${args.user}\n\nIMPORTANT RETRY: the previous response was truncated, invalid, or incomplete. Return one complete JSON object with every required field. No commentary.`
-      };
+      const requestArgs = attempt === 0
+        ? { ...args, retryBudget }
+        : {
+            ...args,
+            retryBudget,
+            retryAttempt: attempt,
+            user: `${args.user}\n\nIMPORTANT RETRY: the previous response was truncated, invalid, or incomplete. Return one complete JSON object with every required field. No commentary.`
+          };
       const { content, usage, finishReason, reasoningChars } = await requestCompletion(requestArgs);
       addUsage(usage);
       let data;
@@ -265,14 +272,19 @@ async function requestJSON(args) {
         err.usage = { ...total };
       }
       if (!(err instanceof AIRequestError) || !err.retryable) throw err;
-      lastError = err;
-      if (attempt === 0) {
+      // Spend the single retry allowance before attempting again; a transport
+      // retry may already have consumed it.
+      if (attempt === 0 && retryBudget.remaining > 0) {
+        retryBudget.remaining = 0;
+        lastError = err;
         console.warn(
           "simplysf2e | generation attempt failed, retrying once:",
           err.message,
           err.details ?? null
         );
+        continue;
       }
+      throw err;
     }
   }
   throw lastError;
@@ -1534,7 +1546,7 @@ Pick up to ${count} DISTINCT items this hoard would plausibly contain, matching 
  * @param {(p: {phase: "thinking"|"writing", tokens: number}) => void} [args.onProgress]
  * @returns {Promise<{content: string, usage: object}>}
  */
-async function requestCompletion({ task, system, user, onProgress, signal, retryAttempt = 0 }) {
+async function requestCompletion({ task, system, user, onProgress, signal, retryAttempt = 0, retryBudget = { remaining: 1 } }) {
   throwIfGenerationCancelled(signal);
   // The client-scoped key is returned only when it was explicitly saved for
   // this exact normalized base URL. A world-level provider change can never
@@ -1591,7 +1603,7 @@ async function requestCompletion({ task, system, user, onProgress, signal, retry
 
   try {
     resetIdle();
-    let response = await postChatCompletion(baseUrl, apiKey, body, controller.signal);
+    let response = await postChatCompletion(baseUrl, apiKey, body, controller.signal, retryBudget);
     const rejectedParameters = new Set();
     // Some OpenAI-compatible providers reject stream_options, response_format
     // or streaming. Retry without a parameter ONLY when a 400/422 body actually
@@ -1613,7 +1625,7 @@ async function requestCompletion({ task, system, user, onProgress, signal, retry
         body.messages[0].role = "system";
         rejectedParameters.add("developer_role");
         resetIdle();
-        response = await postChatCompletion(baseUrl, apiKey, body, controller.signal);
+        response = await postChatCompletion(baseUrl, apiKey, body, controller.signal, retryBudget);
         continue;
       }
       const offending = [
@@ -1634,7 +1646,7 @@ async function requestCompletion({ task, system, user, onProgress, signal, retry
         if (!rejectedParameters.has(alternate)) body[alternate] = value;
       }
       resetIdle();
-      response = await postChatCompletion(baseUrl, apiKey, body, controller.signal);
+      response = await postChatCompletion(baseUrl, apiKey, body, controller.signal, retryBudget);
     }
     if (!response.ok) {
       throw await providerApiError(response);
@@ -1813,7 +1825,7 @@ async function readEventStream(response, { onProgress, resetIdle }) {
   return { content, finishReason, usage, reasoningChars };
 }
 
-async function postChatCompletion(baseUrl, apiKey, body, signal) {
+async function postChatCompletion(baseUrl, apiKey, body, signal, retryBudget = null) {
   const headers = { "Content-Type": "application/json" };
   if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
   try {
@@ -1822,7 +1834,7 @@ async function postChatCompletion(baseUrl, apiKey, body, signal) {
       headers,
       body: JSON.stringify(body),
       signal
-    });
+    }, { retryBudget });
   } catch (err) {
     if (err.name === "AbortError") throw err;
     // fetch throws on network/CORS failures before we get a Response
