@@ -1,47 +1,112 @@
+// Provider/model matrix: pure reporting, config validation, and an offline proof
+// that every task entry is invocable with the real production signature.
+// No network: the provider is stubbed. Run: node scripts/model-matrix.test.mjs
 import assert from "node:assert/strict";
-import { summarizeRuns, renderMatrix, validateConfig } from "../tools/model-matrix/report.mjs";
+import { SETTINGS } from "./settings.mjs";
+import { estimateRunCost, renderMatrix, summarizeRuns, validateConfig } from "../tools/model-matrix/report.mjs";
 import { TASKS } from "../tools/model-matrix/tasks.mjs";
 
+// --- Aggregation is per task AND per model --------------------------------
 const runs = [
-  { model: "m1", task: "t", run: 0, ok: true, errorKey: null, ms: 10, usage: { total: 5 } },
-  { model: "m1", task: "t", run: 1, ok: false, errorKey: "SIMPLYSF2E.Errors.BadStructure", ms: 20, usage: { total: 7 } },
-  { model: "m2", task: "t", run: 0, ok: true, errorKey: null, ms: 12, usage: { total: 6 } },
+  { model: "m1", task: "t", run: 0, ok: true, ms: 10, usage: { prompt: 100, completion: 20, total: 120 } },
+  { model: "m1", task: "t", run: 1, ok: false, errorKey: "SIMPLYSF2E.Errors.BadStructure", ms: 30, usage: { prompt: 100, completion: 0, total: 100 } },
+  { model: "m1", task: "t", run: 2, ok: true, ms: 20, usage: { prompt: 100, completion: 40, total: 140 } },
+  { model: "m2", task: "t", run: 0, ok: false, errorKey: "SIMPLYSF2E.Errors.RunDeadline", ms: 50, usage: null },
+  { model: "m2", task: "t", run: 1, ok: true, ms: 40, usage: { prompt: 200, completion: 30, total: 230 } }
 ];
-const s = summarizeRuns(runs);
-assert.equal(s.t.models.m1.pass, 1);
-assert.equal(s.t.models.m2.pass, 1);
-const md = renderMatrix(s, { configPath: "cfg.json", utc: "now", runs: 2, pricePerMTok: { m1: { input: 1, output: 2 } } });
-assert.ok(md.includes("m1"));
-assert.ok(md.includes("m2"));
-assert.ok(md.includes("1")); // pass count
+const summary = summarizeRuns(runs);
+assert.deepEqual(Object.keys(summary), ["t"]);
+assert.deepEqual(Object.keys(summary.t.models).sort(), ["m1", "m2"], "a row per model, not one aggregate row");
+assert.equal(summary.t.models.m1.runs, 3);
+assert.equal(summary.t.models.m1.pass, 2);
+assert.equal(summary.t.models.m1.fail, 1);
+assert.deepEqual(summary.t.models.m1.failKeys, { "SIMPLYSF2E.Errors.BadStructure": 1 });
+assert.equal(summary.t.models.m1.medianMs, 20, "odd count median is the middle value");
+assert.equal(summary.t.models.m2.medianMs, 45, "even count median averages the two middles");
+assert.equal(summary.t.models.m1.avgTokens, (120 + 100 + 140) / 3);
+assert.equal(summary.t.models.m1.avgPrompt, 100);
+assert.equal(summary.t.models.m1.avgCompletion, 20);
 
-const z = summarizeRuns([]);
-assert.deepEqual(z, {});
+// A run missing its model/task cannot silently land in a row.
+assert.deepEqual(summarizeRuns([{ task: "t", ok: true }, { model: "m", ok: true }, null]), {});
+assert.deepEqual(summarizeRuns([]), {});
+assert.deepEqual(summarizeRuns(undefined), {});
 
-// cost case
-const md2 = renderMatrix(summarizeRuns(runs), { configPath: "c", utc: "u", runs: 1, pricePerMTok: { m1: { input: 1, output: 1 } } });
-assert.ok(md2.includes("n/a") === false || md2.includes("."));
+// --- Rendering: per-model rows, cost from the prompt/completion split ------
+const meta = { configPath: "cfg.json", utc: "2026-11-01T00:00:00Z", runs: 3, pricePerMTok: { m1: { input: 10, output: 30 } } };
+const md = renderMatrix(summary, meta);
+assert.match(md, /\| m1 \| 3 \| 2 \| 1 \|/, "m1 has its own row");
+assert.match(md, /\| m2 \| 2 \| 1 \| 1 \|/, "m2 has its own row");
+assert.ok(!md.includes("| (all) |"), "no aggregate row replaces the per-model rows");
+// 100 prompt @ $10/M + 20 completion @ $30/M. The old (input+output)/2 x total
+// formula would give 0.0024, so this also guards the pricing split.
+assert.equal(estimateRunCost(summary.t.models.m1, { input: 10, output: 30 }), 0.0016);
+const costLine = md.split("\n").find((line) => line.startsWith("| m1 "));
+assert.ok(costLine.includes("$0.001600"), `cost uses prompt and completion prices separately: ${costLine}`);
+const m2Line = md.split("\n").find((line) => line.startsWith("| m2 "));
+assert.ok(m2Line.includes("n/a"), "a model with no price entry reports n/a, never a guess");
+assert.equal(estimateRunCost(summary.t.models.m1, null), null);
+assert.equal(estimateRunCost(summary.t.models.m1, { input: 1 }), null);
 
-// redaction two-model
-const fakeKey = "SECRETKEY123";
-const r2 = [
-  { model: "m1", task: "t", run: 0, ok: false, errorKey: fakeKey, ms: 1, usage: { total: 1 } },
-  { model: "m2", task: "t", run: 0, ok: false, errorKey: fakeKey, ms: 1, usage: { total: 1 } },
-];
-const md3 = renderMatrix(summarizeRuns(r2), { configPath: "c", utc: "u", runs: 1 });
-assert.ok(!md3.includes(fakeKey));
+// A provider string that is not a module error key never reaches the report.
+const fakeKey = "sk-live-SECRETKEY123";
+const redacted = renderMatrix(summarizeRuns([{ model: "m", task: "t", ok: false, errorKey: fakeKey, ms: 1 }]), { configPath: "c", utc: "u", runs: 1 });
+assert.ok(!redacted.includes(fakeKey), "the raw provider text must not be rendered");
+assert.ok(redacted.includes("redacted"), "an unknown failure is labelled redacted");
 
-assert.throws(() => validateConfig({ baseUrl: "x", apiKeyEnv: "Y", models: [], tasks: ["t"] }), /models/);
+// --- Config validation -----------------------------------------------------
+const base = { baseUrl: "https://example.test/v1", apiKeyEnv: "KEY", models: [{ id: "m" }], tasks: ["t"] };
+assert.equal(validateConfig(base), true);
+assert.throws(() => validateConfig({ ...base, models: [] }), /models/);
+assert.throws(() => validateConfig({ ...base, models: [{}] }), /non-empty id/);
+assert.throws(() => validateConfig({ ...base, tasks: [] }), /tasks/);
+assert.throws(() => validateConfig({ ...base, tasks: [""] }), /non-empty string/);
+assert.throws(() => validateConfig({ ...base, baseUrl: "" }), /baseUrl/);
+assert.throws(() => validateConfig({ ...base, apiKeyEnv: "" }), /apiKeyEnv/);
+assert.throws(() => validateConfig({ ...base, runs: 0 }), /positive integer/);
+assert.throws(() => validateConfig({ ...base, pricePerMTok: { m: { input: 1 } } }), /numeric input and output/);
+assert.throws(() => validateConfig([]), /object/);
 
-// TASKS invocability test
-globalThis.game = { settings: { get: () => undefined }, i18n: { localize: x=>x, format: (k,d)=>k } };
-globalThis.fetch = async () => new Response(JSON.stringify({ choices: [{ message: { content: "{}" } }], usage: {} }), { status: 200, headers: { "content-type": "application/json" } });
-const ai = await import("../scripts/ai.mjs");
-for (const [id, t] of Object.entries(TASKS)) {
-  try { await ai[t.fn](t.args); } catch (e) {
-    // AIRequestError acceptable; TypeError not
-    assert.ok(!(e instanceof TypeError), `${id} threw TypeError: ${e.message}`);
+// --- Every task entry matches its production signature --------------------
+// A wrong argument shape throws a TypeError before any provider request; a
+// missing keys/bad shape throws AIRequestError. Only the latter is a pass here.
+const settings = new Map([
+  [SETTINGS.apiBaseUrl, "https://example.test/v1"],
+  [SETTINGS.apiKey, ""],
+  [SETTINGS.apiKeyBaseUrl, ""],
+  [SETTINGS.model, "test-model"],
+  [SETTINGS.temperature, 0.8],
+  [SETTINGS.maxTokens, 8000],
+  [SETTINGS.requestTimeout, 90]
+]);
+globalThis.game = {
+  settings: { get: (_moduleId, key) => settings.get(key) },
+  i18n: { localize: (key) => key, format: (key) => key }
+};
+let requests = 0;
+const requestedUrls = [];
+globalThis.fetch = async (url) => {
+  requests += 1;
+  requestedUrls.push(String(url));
+  return new Response(JSON.stringify({ choices: [{ message: { content: "{}" }, finish_reason: "stop" }], usage: {} }), {
+    status: 200,
+    headers: { "content-type": "application/json" }
+  });
+};
+
+const ai = await import("./ai.mjs");
+for (const [id, task] of Object.entries(TASKS)) {
+  const before = requests;
+  let error = null;
+  try {
+    await ai[task.fn](structuredClone(task.args));
+  } catch (err) {
+    error = err;
   }
+  assert.ok(!(error instanceof TypeError), `${id}: args do not match ${task.fn} (TypeError: ${error?.message})`);
+  assert.ok(error instanceof ai.AIRequestError, `${id}: expected the shape check to reject "{}", got ${error ?? "no error"}`);
+  assert.ok(requests > before, `${id}: no provider request was made, so the task never reached the pipeline`);
 }
+assert.ok(requestedUrls.every((url) => url === "https://example.test/v1/chat/completions"), "the matrix must hit the configured chat path");
 
-console.log("PASS model-matrix");
+console.log("model-matrix.test.mjs passed");

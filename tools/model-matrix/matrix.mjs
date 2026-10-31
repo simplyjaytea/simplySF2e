@@ -1,69 +1,123 @@
+// Provider/model matrix: run every task against every configured model and
+// report pass rate per task per model. MANUAL tool — it needs a live key, does
+// not run in CI, and is never included in the release zip.
+//
+//   node tools/model-matrix/matrix.mjs --config my-config.json [--task <id>] [--runs N] [--out out]
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
-import { validateConfig } from "./report.mjs";
-import { TASKS } from "./tasks.mjs";
 import { SETTINGS } from "../../scripts/settings.mjs";
+import { validateConfig, summarizeRuns, renderMatrix } from "./report.mjs";
+import { TASKS } from "./tasks.mjs";
 
 function parseArgs(argv) {
-  const out = { runs: null, task: null, out: "out" };
+  const out = { runs: null, task: null, out: "out", config: null };
   for (let i = 0; i < argv.length; i++) {
-    if (argv[i] === "--config") out.config = argv[++i];
-    else if (argv[i] === "--task") out.task = argv[++i];
-    else if (argv[i] === "--runs") out.runs = Number(argv[++i]);
-    else if (argv[i] === "--out") out.out = argv[++i];
+    const flag = argv[i];
+    if (flag === "--config") out.config = argv[++i];
+    else if (flag === "--task") out.task = argv[++i];
+    else if (flag === "--runs") out.runs = Number(argv[++i]);
+    else if (flag === "--out") out.out = argv[++i];
   }
   return out;
 }
 
 const args = parseArgs(process.argv.slice(2));
-if (!args.config) { console.error("missing --config"); process.exit(1); }
-const cfg = JSON.parse(readFileSync(args.config, "utf8"));
-try { validateConfig(cfg); } catch (e) { console.error(e.message); process.exit(1); }
-const key = process.env[cfg.apiKeyEnv];
-if (!key) { console.error(`API key env var ${cfg.apiKeyEnv} is unset or empty`); process.exit(1); }
+if (!args.config) {
+  console.error("usage: node tools/model-matrix/matrix.mjs --config <path> [--task <id>] [--runs N] [--out <dir>]");
+  process.exit(1);
+}
+
+let cfg;
+try {
+  cfg = JSON.parse(readFileSync(args.config, "utf8"));
+} catch (err) {
+  console.error(`could not read ${args.config}: ${err?.message ?? err}`);
+  process.exit(1);
+}
+try {
+  validateConfig(cfg);
+} catch (err) {
+  console.error(`invalid config: ${err.message}`);
+  process.exit(1);
+}
+
+const apiKey = process.env[cfg.apiKeyEnv];
+if (!apiKey) {
+  console.error(`API key env var ${cfg.apiKeyEnv} is unset or empty; nothing was requested`);
+  process.exit(1);
+}
 
 const tasks = args.task ? [args.task] : cfg.tasks;
-const runs = args.runs || cfg.runs || 1;
+for (const task of tasks) {
+  if (!TASKS[task]) {
+    console.error(`unknown task ${task}; known: ${Object.keys(TASKS).join(", ")}`);
+    process.exit(1);
+  }
+}
+const runs = Number.isInteger(args.runs) ? args.runs : (cfg.runs ?? 1);
 
-const settingsMap = new Map();
-globalThis.game = { settings: { get: (_m, k) => settingsMap.get(k) }, i18n: { localize: x=>x, format: (k,d)=>k } };
-settingsMap.set(SETTINGS.apiBaseUrl, cfg.baseUrl);
-settingsMap.set(SETTINGS.apiKey, key);
-settingsMap.set(SETTINGS.apiKeyBaseUrl, cfg.baseUrl);
-settingsMap.set(SETTINGS.model, "");
-settingsMap.set(SETTINGS.temperature, 0.8);
-settingsMap.set(SETTINGS.maxTokens, 8000);
-settingsMap.set(SETTINGS.requestTimeout, 90);
+// One fake settings map for the whole process; the model changes per loop.
+const settings = new Map([
+  [SETTINGS.apiBaseUrl, cfg.baseUrl],
+  [SETTINGS.apiKey, apiKey],
+  [SETTINGS.apiKeyBaseUrl, cfg.baseUrl],
+  [SETTINGS.model, ""],
+  [SETTINGS.temperature, 0.8],
+  [SETTINGS.maxTokens, 8000],
+  [SETTINGS.requestTimeout, 120],
+  [SETTINGS.runTokenBudget, 0],
+  [SETTINGS.runDeadline, 0]
+]);
+globalThis.game = {
+  settings: { get: (_moduleId, key) => settings.get(key) },
+  i18n: { localize: (key) => key, format: (key) => key }
+};
 
 const ai = await import("../../scripts/ai.mjs");
-
 const allRuns = [];
+
 for (const model of cfg.models) {
-  settingsMap.set(SETTINGS.model, model.id);
+  settings.set(SETTINGS.model, model.id);
   console.log(`model: ${model.id}`);
   for (const task of tasks) {
-    const t = TASKS[task];
-    if (!t) { console.error(`unknown task ${task}`); continue; }
-    for (let r = 0; r < runs; r++) {
-      const start = Date.now();
-      let ok = false, errorKey = null, usage = null;
+    const definition = TASKS[task];
+    let passes = 0;
+    for (let run = 0; run < runs; run++) {
+      // A fresh argument object per run: a production call may attach to it.
+      const taskArgs = structuredClone(definition.args);
+      const startedAt = Date.now();
+      let ok = false;
+      let errorKey = null;
+      let crash = false;
+      let usage = null;
       try {
-        const res = await ai[t.fn](t.args);
+        const result = await ai[definition.fn](taskArgs);
         ok = true;
-        usage = res?.usage || null;
-      } catch (e) {
-        errorKey = (e?.message || "").match(/SIMPLYSF2E\.Errors\.\w+/)?.[0] || "crash";
+        usage = result?.usage ?? null;
+      } catch (err) {
+        crash = !(err instanceof ai.AIRequestError);
+        errorKey = crash
+          ? "crash"
+          : (String(err?.message ?? "").match(/SIMPLYSF2E\.Errors\.\w+/)?.[0] ?? "SIMPLYSF2E.Errors.Unknown");
       }
-      const ms = Date.now() - start;
-      const run = { model: model.id, task, run: r, ok, errorKey, ms, usage };
-      allRuns.push(run);
+      if (ok) passes += 1;
+      allRuns.push({ model: model.id, task, run, ok, errorKey, crash, ms: Date.now() - startedAt, usage });
     }
+    console.log(`  ${task}: ${passes}/${runs}`);
   }
 }
 
 mkdirSync(args.out, { recursive: true });
-writeFileSync(`${args.out}/matrix.json`, JSON.stringify(allRuns, null, 2));
-const { summarizeRuns, renderMatrix } = await import("./report.mjs");
+writeFileSync(`${args.out}/matrix.json`, `${JSON.stringify(allRuns, null, 2)}\n`);
 const summary = summarizeRuns(allRuns);
-const md = renderMatrix(summary, { configPath: args.config, utc: new Date().toISOString(), runs });
-writeFileSync(`${args.out}/MATRIX.md`, md);
-console.log("done");
+const markdown = renderMatrix(summary, {
+  configPath: args.config,
+  utc: new Date().toISOString(),
+  runs,
+  pricePerMTok: cfg.pricePerMTok
+});
+writeFileSync(`${args.out}/MATRIX.md`, markdown);
+
+const failures = allRuns.filter((run) => !run.ok).length;
+const crashes = allRuns.filter((run) => run.crash).length;
+console.log(`done: ${allRuns.length} runs, ${failures} failed, ${crashes} crashed`);
+console.log(`reports: ${args.out}/matrix.json and ${args.out}/MATRIX.md`);
