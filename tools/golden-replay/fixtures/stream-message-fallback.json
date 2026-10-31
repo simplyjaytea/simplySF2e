@@ -1,0 +1,62 @@
+{
+  "id": "stream-message-fallback",
+  "task": "creatureConcept",
+  "note": "SSE deltas carry no text; the only answer is message.content on the final chunk, proving the fallback at ai.mjs:1853.",
+  "args": {
+    "prompt": "a vesk siege marshal commanding a breached orbital station",
+    "level": 5,
+    "rarity": "common",
+    "allowSpellcasting": false,
+    "intent": "monster"
+  },
+  "responses": [
+    {
+      "sse": [
+        {
+          "choices": [
+            {
+              "delta": {},
+              "finish_reason": null
+            }
+          ]
+        },
+        {
+          "choices": [
+            {
+              "message": {
+                "content": "{\"name\":\"Vesk Siege Marshal\",\"blurb\":\"A scarred vesk veteran who holds the breach until the last squad is through.\",\"description\":\"The marshal wears a patched boarding plate and carries a battering pike in one hand, an assault rifle slung across the other shoulder.\",\"readAloud\":\"A voice booms through the smoke: 'Line up, hold the corridor, and nothing gets past us.'\",\"recallKnowledge\":\"Vesk siege marshals are disciplined line-breakers, not duelists; they fight behind barricades and let their squad carry the flanks.\",\"size\":\"med\",\"traits\":[\"humanoid\",\"vesk\"],\"languages\":[\"common\",\"vesk\"],\"abilityScales\":{\"str\":\"high\",\"dex\":\"moderate\",\"con\":\"high\",\"int\":\"moderate\",\"wis\":\"low\",\"cha\":\"low\"},\"acScale\":\"high\",\"hpScale\":\"high\",\"perceptionScale\":\"moderate\",\"saveScales\":{\"fortitude\":\"high\",\"reflex\":\"moderate\",\"will\":\"low\"},\"speeds\":[{\"type\":\"land\",\"value\":25}],\"senses\":[],\"skills\":[{\"name\":\"athletics\",\"scale\":\"high\"},{\"name\":\"intimidation\",\"scale\":\"moderate\"}],\"strikes\":[{\"name\":\"battering pike\",\"type\":\"melee\",\"attackScale\":\"high\",\"damageScale\":\"high\",\"damageType\":\"piercing\",\"traits\":[\"reach\"],\"range\":null,\"attackEffects\":[]},{\"name\":\"assault rifle\",\"type\":\"ranged\",\"attackScale\":\"moderate\",\"damageScale\":\"moderate\",\"damageType\":\"piercing\",\"traits\":[],\"range\":60,\"attackEffects\":[]}],\"specialAbilities\":[{\"name\":\"Rally the Line\",\"glossary\":null,\"description\":\"The marshal barks an order and the squad steadies itself.\"},{\"name\":\"Breach Brace\",\"glossary\":null,\"description\":\"Bracing the pike against a bulkhead, the marshal becomes immovable.\"}],\"spellcasting\":null,\"focusSpells\":[],\"feats\":[\"Toughness\"],\"equipment\":[{\"name\":\"Assault Rifle\",\"quantity\":1,\"value\":0},{\"name\":\"Tactical Pike\",\"quantity\":1,\"value\":0},{\"name\":\"Boarding Plate\",\"quantity\":1,\"value\":0},{\"name\":\"Medpatch\",\"quantity\":2,\"value\":0}],\"loot\":[{\"name\":\"Credits\",\"quantity\":350,\"value\":1},{\"name\":\"Trail Ration\",\"quantity\":3,\"value\":0},{\"name\":\"Holo-Signet\",\"quantity\":1,\"value\":0},{\"name\":\"Frag Grenade\",\"quantity\":2,\"value\":0}],\"resistances\":[],\"weaknesses\":[],\"immunities\":[]}"
+              },
+              "finish_reason": "stop"
+            }
+          ],
+          "usage": {
+            "prompt_tokens": 900,
+            "completion_tokens": 420,
+            "total_tokens": 1320
+          }
+        }
+      ]
+    }
+  ],
+  "expect": {
+    "ok": true,
+    "requestCount": 1,
+    "streamed": true,
+    "contains": [
+      "Vesk Siege Marshal",
+      "battering pike",
+      "Rally the Line"
+    ],
+    "lengths": {
+      "concept.strikes": 2,
+      "concept.specialAbilities": 2,
+      "concept.equipment": 4,
+      "concept.loot": 4
+    },
+    "equals": {
+      "concept.size": "med",
+      "concept.hpScale": "high",
+      "concept.spellcasting": null
+    }
+  }
+}

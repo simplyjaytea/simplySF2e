@@ -5,7 +5,7 @@ import { SETTINGS } from "../../scripts/settings.mjs";
 
 const settingsMap = new Map();
 let fetchQueue = [];
-const captured = { urls: [], bodies: [], headers: [] };
+const captured = { urls: [], bodies: [], headers: [], contentTypes: [] };
 let prevGame;
 let prevFetch;
 let hadGame = false;
@@ -49,6 +49,7 @@ export function installEnv({ settings = {} } = {}) {
   captured.urls = [];
   captured.bodies = [];
   captured.headers = [];
+  captured.contentTypes = [];
 
   globalThis.fetch = async (url, options) => {
     captured.urls.push(String(url));
@@ -56,12 +57,61 @@ export function installEnv({ settings = {} } = {}) {
     captured.headers.push(options?.headers ?? null);
     const reply = fetchQueue.shift();
     if (!reply) throw new Error(`golden-replay: unscripted provider request to ${url}`);
+
+    if (Array.isArray(reply.sse)) {
+      captured.contentTypes.push("text/event-stream");
+      return sseResponse(reply.sse);
+    }
+
+    captured.contentTypes.push(reply.contentType ?? "application/json");
     const body = Object.hasOwn(reply, "rawBody") ? reply.rawBody : JSON.stringify(reply.body ?? reply);
     return new Response(body, {
       status: reply.httpStatus ?? 200,
       headers: { "content-type": reply.contentType ?? "application/json" }
     });
   };
+}
+
+// Serve SSE records in small groups so the producer's buffering and the
+// reader's final-unterminated-line handling are actually exercised.
+function sseResponse(records) {
+  const lines = records.map((record) => (typeof record === "string" ? record : `data: ${JSON.stringify(record)}`));
+  if (!lines.some((line) => line.includes("[DONE]"))) lines.push("data: [DONE]");
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    start(controller) {
+      for (let i = 0; i < lines.length; i += 2) {
+        controller.enqueue(encoder.encode(`${lines.slice(i, i + 2).join("\n\n")}\n\n`));
+      }
+      controller.close();
+    }
+  });
+  return new Response(stream, {
+    status: 200,
+    headers: { "content-type": "text/event-stream" }
+  });
+}
+
+/**
+ * Build an SSE queue entry from a normal provider payload. The content string is
+ * split into 3 deltas; the finish reason rides the last text chunk and usage
+ * arrives in its own final chunk.
+ */
+export function sse(payload) {
+  const choice = payload.choices?.[0] ?? {};
+  const content = choice.message?.content ?? "";
+  const size = Math.max(1, Math.ceil(content.length / 3));
+  const parts = [];
+  for (let i = 0; i < content.length; i += size) parts.push(content.slice(i, i + size));
+  if (!parts.length) parts.push("");
+  const chunks = parts.map((part, index) => ({
+    choices: [{
+      delta: { content: part },
+      finish_reason: index === parts.length - 1 ? (choice.finish_reason ?? "stop") : null
+    }]
+  }));
+  if (payload.usage) chunks.push({ choices: [], usage: payload.usage });
+  return { sse: chunks };
 }
 
 /** Queue the provider payloads this scenario is allowed to consume, in order. */
@@ -71,7 +121,17 @@ export function queueResponses(payloads) {
 
 /** Everything the stubbed provider was asked for during the current scenario. */
 export function capturedRequests() {
-  return { urls: captured.urls, bodies: captured.bodies, headers: captured.headers };
+  return {
+    urls: captured.urls,
+    bodies: captured.bodies,
+    headers: captured.headers,
+    contentTypes: captured.contentTypes
+  };
+}
+
+/** Content type of the last response the stub served. */
+export function lastServedContentType() {
+  return captured.contentTypes[captured.contentTypes.length - 1] ?? null;
 }
 
 /** Put back whatever globals existed before installEnv(). */

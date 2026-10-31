@@ -1,0 +1,39 @@
+{
+  "id": "negative-stream-error",
+  "task": "creatureConcept",
+  "note": "SSE record carries a provider error object mid-stream; production must surface ProviderError and not retry the non-retryable failure.",
+  "args": {
+    "prompt": "a vesk siege marshal commanding a breached orbital station",
+    "level": 5,
+    "rarity": "common",
+    "allowSpellcasting": false,
+    "intent": "monster"
+  },
+  "responses": [
+    {
+      "sse": [
+        {
+          "choices": [
+            {
+              "delta": {
+                "content": "{\"name\":\"Half"
+              },
+              "finish_reason": null
+            }
+          ]
+        },
+        {
+          "error": {
+            "message": "insufficient credits"
+          }
+        }
+      ]
+    }
+  ],
+  "expect": {
+    "ok": false,
+    "requestCount": 1,
+    "streamed": true,
+    "errorKey": "SIMPLYSF2E.Errors.ProviderError"
+  }
+}
