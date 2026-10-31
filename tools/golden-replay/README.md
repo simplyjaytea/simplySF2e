@@ -67,6 +67,24 @@ The test is discovered by the normal CI loop (`scripts/*.test.mjs`), so it gates
 
 Each negative fixture exists so that deleting the single validator check it targets turns the suite red; a payload that trips several checks at once would hide that.
 
+## Recording real fixtures
+
+`record.mjs` turns one real provider reply into a fixture, so the suite can carry recorded traffic instead of hand-authored stand-ins:
+
+```
+$env:SIMPLY_BASE_URL = "https://openrouter.ai/api/v1"
+$env:SIMPLY_MODEL    = "<model id>"
+$env:SIMPLY_API_KEY  = "<key>"
+
+node tools/golden-replay/record.mjs --task creatureConcept --id live-creature-commander `
+  --args '{"prompt":"a vesk siege marshal","level":5,"rarity":"common","allowSpellcasting":false,"intent":"monster"}' `
+  --note "recorded from <model> on <date>"
+```
+
+It runs the real production function once, captures both streamed (SSE) and non-streamed replies, and writes a fixture with `expect: { ok: true, requestCount: 1 }`. The API key is never written to the file. Use `--out` to choose the path.
+
+Recordable tasks are the ones with a direct production entry point and no must-be-issued candidates (`RECORDABLE` in `record.mjs`). Selector tasks need candidate arrays that only the live compendium can produce, so they are not recordable this way.
+
 ## What this cannot prove
 
 Fixtures are **hand-authored stand-ins shaped like provider output**, not recorded live traffic. There is no live model call, so the suite cannot detect provider drift, latency, cost, or a model that stops obeying the schema. It proves the module's parsing, validation, grounding, normalization and fail-closed behavior for the payloads shown — nothing about a real provider.
