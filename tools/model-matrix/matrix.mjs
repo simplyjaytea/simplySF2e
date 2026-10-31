@@ -5,7 +5,8 @@
 //   node tools/model-matrix/matrix.mjs --config my-config.json [--task <id>] [--runs N] [--out out]
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { SETTINGS } from "../../scripts/settings.mjs";
-import { validateConfig, summarizeRuns, renderMatrix, requireApiKey, errorKeyFor } from "./report.mjs";
+import { renderMatrix, requireApiKey, summarizeRuns, validateConfig } from "./report.mjs";
+import { runMatrix } from "./runner.mjs";
 import { TASKS } from "./tasks.mjs";
 
 function parseArgs(argv) {
@@ -75,40 +76,21 @@ globalThis.game = {
 };
 
 const ai = await import("../../scripts/ai.mjs");
-const allRuns = [];
 
-for (const model of cfg.models) {
-  settings.set(SETTINGS.model, model.id);
-  console.log(`model: ${model.id}`);
-  for (const task of tasks) {
-    const definition = TASKS[task];
-    let passes = 0;
-    for (let run = 0; run < runs; run++) {
-      // A fresh argument object per run: a production call may attach to it.
-      const taskArgs = structuredClone(definition.args);
-      const startedAt = Date.now();
-      let ok = false;
-      let errorKey = null;
-      let crash = false;
-      let usage = null;
-      try {
-        const result = await ai[definition.fn](taskArgs);
-        ok = true;
-        usage = result?.usage ?? null;
-      } catch (err) {
-        // A failed attempt still spent tokens; requestJSON attaches the summed
-        // usage to the error, and a cost table that hides it lies.
-        const isAiError = err instanceof ai.AIRequestError;
-        crash = !isAiError;
-        errorKey = errorKeyFor(err, { isAiError });
-        usage = isAiError ? (err.usage ?? null) : null;
-      }
-      if (ok) passes += 1;
-      allRuns.push({ model: model.id, task, run, ok, errorKey, crash, ms: Date.now() - startedAt, usage });
-    }
-    console.log(`  ${task}: ${passes}/${runs}`);
+const allRuns = await runMatrix({
+  cfg,
+  tasks,
+  runs,
+  ai,
+  env: process.env,
+  setModel: (id) => {
+    settings.set(SETTINGS.model, id);
+    console.log(`model: ${id}`);
+  },
+  onRun: (run) => {
+    if (!run.ok) console.log(`  ${run.task} #${run.run + 1}: FAIL ${run.errorKey}`);
   }
-}
+});
 
 mkdirSync(args.out, { recursive: true });
 writeFileSync(`${args.out}/matrix.json`, `${JSON.stringify(allRuns, null, 2)}\n`);
@@ -120,6 +102,12 @@ const markdown = renderMatrix(summary, {
   pricePerMTok: cfg.pricePerMTok
 });
 writeFileSync(`${args.out}/MATRIX.md`, markdown);
+
+for (const [task, info] of Object.entries(summary)) {
+  for (const [model, row] of Object.entries(info.models)) {
+    console.log(`  ${task} ${model}: ${row.pass}/${row.runs}`);
+  }
+}
 
 const failures = allRuns.filter((run) => !run.ok).length;
 const crashes = allRuns.filter((run) => run.crash).length;

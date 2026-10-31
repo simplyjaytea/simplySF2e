@@ -36,12 +36,20 @@ assert.equal(
 assert.equal(Object.hasOwn(sseToProviderPayload(`data: ${JSON.stringify({ choices: [{ delta: { content: "{}" } }] })}\n\n`), "usage"), false);
 
 // A provider that sends deltas AND an echoed full message must not double the text.
+// Two deltas plus an earlier partial message copy: preferring the message would
+// silently truncate the answer, which is the failure this guards.
 assert.equal(
   sseToProviderPayload(
-    chunk("{\"a\":1}") + `data: ${JSON.stringify({ choices: [{ message: { content: "{\"a\":1}" }, finish_reason: "stop" }] })}\n\n`
+    chunk("{\"a\":") + chunk("1}") + `data: ${JSON.stringify({ choices: [{ message: { content: "{" } }] })}\n\n`
   ).choices[0].message.content,
   "{\"a\":1}",
-  "streamed deltas win over a last-chunk message copy"
+  "streamed deltas win over an earlier message copy"
+);
+// Some relays attach a benign `error: {}` to every chunk; that is not a failure.
+assert.equal(
+  sseToProviderPayload(`data: ${JSON.stringify({ choices: [{ delta: { content: "{}" } }], error: {} })}\n\n`).choices[0].message.content,
+  "{}",
+  "an empty provider error object must not abort the recording"
 );
 // A message-only stream still yields its content.
 assert.equal(
@@ -123,6 +131,12 @@ await assert.rejects(
   /base URL is required/
 );
 assert.equal(requested, 0, "no request may be made without credentials");
+await assert.rejects(
+  recordFixture({ id: "x", task: "creatureConcept", args: {}, baseUrl: "https://example.test/v1", model: "m", apiKey: "k", fetchImpl: async () => { requested += 1; } }),
+  /non-empty --args/,
+  "an empty args object must not be recorded as a paid call"
+);
+assert.equal(requested, 0, "no request may be made without args");
 
 // A retried run captures every exchange: the fixture must replay the sequence,
 // not claim a single request and drop the first reply.

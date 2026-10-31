@@ -30,15 +30,19 @@ jobs:
         with:
           node-version: 22
 
-      # ~5,000 small files. Keyed by source + pinned sha + run id so a cache is
-      # always written and a restored-but-stale tree is refreshed by fetch.mjs.
+      # ~5,000 small files. Keyed by source + pinned sha. Cached report files are
+      # removed after restore so a run that dies early cannot present a previous
+      # run's matrix as green.
       - name: Restore the pinned sf2e pack cache
         uses: actions/cache@v4
         with:
           path: tools/class-bench/cache
-          key: sf2e-packs-${{ hashFiles('tools/class-bench/fetch.mjs') }}-${{ env.BENCH_SHA }}-${{ github.run_id }}
+          key: sf2e-packs-${{ hashFiles('tools/class-bench/fetch.mjs') }}-${{ env.BENCH_SHA }}
           restore-keys: |
-            sf2e-packs-${{ hashFiles('tools/class-bench/fetch.mjs') }}-${{ env.BENCH_SHA }}-
+            sf2e-packs-${{ hashFiles('tools/class-bench/fetch.mjs') }}-
+
+      - name: Discard cached reports
+        run: rm -f tools/class-bench/cache/*matrix.md tools/class-bench/cache/*results.json
 
       - name: Fetch the sf2e packs
         env:
@@ -62,13 +66,13 @@ jobs:
         run: |
           {
             echo "## Bench summary (pinned sf2e source $BENCH_SHA)"
-            for file in tools/class-bench/cache/*matrix.md; do
+            for file in tools/class-bench/cache/*matrix.md tools/pipeline-bench/out/matrix.md; do
               [ -f "$file" ] || continue
               echo ""
-              echo "### $(basename "$file")"
+              echo "### $(basename "$(dirname "$file")")/$(basename "$file")"
               echo ""
               echo '```'
-              tail -n 6 "$file" || true
+              grep -m1 -E '[0-9]+ PASS' "$file" || tail -n 4 "$file"
               echo '```'
             done
           } >> "$GITHUB_STEP_SUMMARY"

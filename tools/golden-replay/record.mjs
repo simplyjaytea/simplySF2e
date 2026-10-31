@@ -31,6 +31,16 @@ export const RECORDABLE = {
 
 const isRecord = (value) => Boolean(value) && typeof value === "object" && !Array.isArray(value);
 
+// Mirrors scripts/ai.mjs isRealProviderError: some relays attach a benign
+// `error: {}` to every chunk. Only a real message is a stream failure.
+function isRealProviderError(error) {
+  if (typeof error === "string") return error.trim().length > 0;
+  if (error && typeof error === "object") {
+    return typeof error.message === "string" && error.message.trim().length > 0;
+  }
+  return false;
+}
+
 // Mirrors scripts/ai.mjs visibleTextContent: providers may send a string or an
 // array of content parts. Copied deliberately so a recorded fixture carries what
 // the production reader would have produced.
@@ -64,7 +74,7 @@ export function sseToProviderPayload(text) {
     if (!data || data === "[DONE]") continue;
     let chunk;
     try { chunk = JSON.parse(data); } catch { continue; }
-    if (isRecord(chunk?.error)) throw new Error(`provider stream error: ${JSON.stringify(chunk.error).slice(0, 200)}`);
+    if (isRealProviderError(chunk?.error)) throw new Error(`provider stream error: ${JSON.stringify(chunk.error).slice(0, 200)}`);
     if (isRecord(chunk?.usage)) usage = chunk.usage;
     const choice = chunk?.choices?.[0];
     if (!choice) continue;
@@ -119,6 +129,11 @@ export async function recordFixture({
 } = {}) {
   const fn = RECORDABLE[task];
   if (!fn) throw new Error(`record: task ${task} has no recordable production entry point`);
+  // Refuse a paid call with no arguments: the fixture would replay a prompt the
+  // recorder never meant to send.
+  if (!isRecord(args) || Object.keys(args).length === 0) {
+    throw new Error("record: non-empty --args are required for a live capture");
+  }
   if (!baseUrl) throw new Error("record: a base URL is required");
   if (!apiKey) throw new Error("record: an API key is required");
   if (!model) throw new Error("record: a model is required");

@@ -31,9 +31,11 @@ export const TASKS = {
       prompt: "a worn ring that keeps a scout steady on a hull breach",
       level: 5,
       rarity: "common",
+      // Production derives the offered kinds from the catalog (itemforge-app.mjs:269-271),
+      // so the two must agree or the prompt offers a schema with no exemplars.
       availableKinds: ["itemBonus"],
       usageOptions: ["worn", "held in one hand"],
-      effectCatalog: [],
+      effectCatalog: [{ kind: "itemBonus", statistic: "stealth" }],
       kind: "wondrous"
     }
   },

@@ -119,6 +119,13 @@ assert.ok(TASKS.magicItemConcept.args.availableKinds.length > 0);
 for (const kind of TASKS.magicItemConcept.args.availableKinds) {
   assert.ok(Object.hasOwn(ai.ITEM_EFFECT_DOCS, kind), `availableKinds "${kind}" must be an ITEM_EFFECT_DOCS key`);
 }
+// Production derives the offered kinds from the catalog, so a catalog that does
+// not cover availableKinds sends a self-contradictory prompt.
+assert.deepEqual(
+  [...new Set(TASKS.magicItemConcept.args.effectCatalog.map((effect) => effect.kind))].sort(),
+  [...TASKS.magicItemConcept.args.availableKinds].sort(),
+  "the effect catalog must cover exactly the offered kinds"
+);
 assert.ok(TASKS.magicItemConcept.args.usageOptions.length > 0);
 assert.ok(TASKS.magicItemConcept.args.usageOptions.every((usage) => typeof usage === "string" && usage));
 assert.equal(TASKS.magicItemConcept.args.kind, "wondrous");
@@ -145,5 +152,67 @@ for (const [id, task] of Object.entries(TASKS)) {
   assert.ok(requests > before, `${id}: no provider request was made, so the task never reached the pipeline`);
 }
 assert.ok(requestedUrls.every((url) => url === "https://example.test/v1/chat/completions"), "the matrix must hit the configured chat path");
+
+// --- The run loop: key refusal, classification, failed-attempt usage -------
+const { runMatrix } = await import("../tools/model-matrix/runner.mjs");
+class FakeAIRequestError extends Error {
+  constructor(message, { usage = null } = {}) {
+    super(message);
+    this.usage = usage;
+  }
+}
+let taskCalls = 0;
+const makeAi = (impl) => ({
+  AIRequestError: FakeAIRequestError,
+  generateConcept: async () => { taskCalls += 1; return impl(); }
+});
+const cfgFor = (overrides = {}) => ({ apiKeyEnv: "MATRIX_KEY", models: [{ id: "m" }], tasks: ["creatureConcept"], ...overrides });
+
+// No key: refuse before a model or a task is touched.
+let modelsTouched = 0;
+taskCalls = 0;
+await assert.rejects(
+  runMatrix({ cfg: cfgFor(), tasks: ["creatureConcept"], runs: 1, ai: makeAi(() => ({ usage: { total: 1 } })), env: {}, setModel: () => { modelsTouched += 1; } }),
+  /unset or empty/
+);
+assert.equal(modelsTouched, 0, "no model is selected without a key");
+assert.equal(taskCalls, 0, "no task runs without a key");
+
+// A shape failure keeps its module key and the tokens it already spent.
+const shapeRuns = await runMatrix({
+  cfg: cfgFor(), tasks: ["creatureConcept"], runs: 2, env: { MATRIX_KEY: "k" }, setModel: () => {},
+  ai: makeAi(() => { throw new FakeAIRequestError("wrapped SIMPLYSF2E.Errors.BadStructure detail", { usage: { prompt: 100, completion: 0, total: 100 } }); })
+});
+assert.equal(shapeRuns.length, 2);
+for (const run of shapeRuns) {
+  assert.equal(run.ok, false);
+  assert.equal(run.errorKey, "SIMPLYSF2E.Errors.BadStructure");
+  assert.equal(run.crash, false);
+  assert.equal(run.usage.total, 100, "a failed attempt keeps the tokens it spent");
+}
+
+// A non-AI throw is a harness crash, not a model failure.
+const crashRuns = await runMatrix({
+  cfg: cfgFor(), tasks: ["creatureConcept"], runs: 1, env: { MATRIX_KEY: "k" }, setModel: () => {},
+  ai: makeAi(() => { throw new TypeError("slots is null"); })
+});
+assert.equal(crashRuns[0].crash, true);
+assert.equal(crashRuns[0].errorKey, "crash");
+
+// Provider text never becomes an error key, even on the failure path.
+const secretRuns = await runMatrix({
+  cfg: cfgFor(), tasks: ["creatureConcept"], runs: 1, env: { MATRIX_KEY: "k" }, setModel: () => {},
+  ai: makeAi(() => { throw new FakeAIRequestError("401 for key sk-SECRET-abc123"); })
+});
+assert.equal(secretRuns[0].errorKey, "SIMPLYSF2E.Errors.Unknown");
+assert.ok(!JSON.stringify(secretRuns).includes("sk-SECRET"), "the raw provider message must not survive");
+
+// A successful run keeps its usage too.
+const okRuns = await runMatrix({
+  cfg: cfgFor(), tasks: ["creatureConcept"], runs: 1, env: { MATRIX_KEY: "k" }, setModel: () => {},
+  ai: makeAi(() => ({ usage: { prompt: 10, completion: 5, total: 15 } }))
+});
+assert.equal(okRuns[0].ok, true);
+assert.equal(okRuns[0].usage.total, 15);
 
 console.log("model-matrix.test.mjs passed");

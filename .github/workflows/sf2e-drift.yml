@@ -33,7 +33,7 @@ jobs:
           set -o pipefail
           rm -f drift.txt
           set +e
-          node tools/drift-check.mjs | tee drift.txt
+          node tools/drift-check.mjs 2>&1 | tee drift.txt
           code=${PIPESTATUS[0]}
           set -e
           echo "code=$code" >> "$GITHUB_OUTPUT"
@@ -58,7 +58,12 @@ jobs:
             const fs = require('node:fs');
             const report = fs.existsSync('drift.txt')
               ? fs.readFileSync('drift.txt', 'utf8').trim()
-              : '(the check produced no output)';
+              : '';
+            // A crash with exit 1 and no report must not masquerade as drift.
+            if (!report.includes('MISSING')) {
+              core.warning('drift check exited 1 without a MISSING section; not filing an issue');
+              return;
+            }
             const title = 'sf2e drift: an expected compendium pack is missing';
             const body = [
               'The weekly sf2e drift check failed. The module reads pack ids that the live system manifest no longer lists, so those lookups now fail silently.',
