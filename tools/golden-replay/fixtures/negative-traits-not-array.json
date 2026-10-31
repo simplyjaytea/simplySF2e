@@ -1,0 +1,19 @@
+{
+  "id": "negative-traits-not-array",
+  "task": "creatureConcept",
+  "note": "A string where the schema requires an array of strings fails the array check on its own, so that check cannot be dropped without this fixture going red.",
+  "base": "creature-concept-commander",
+  "patch": { "traits": "humanoid" },
+  "args": {
+    "prompt": "a shape-invalid response",
+    "level": 5,
+    "rarity": "common",
+    "allowSpellcasting": false,
+    "intent": "monster"
+  },
+  "expect": {
+    "ok": false,
+    "requestCount": 2,
+    "errorKey": "Errors.BadStructure"
+  }
+}

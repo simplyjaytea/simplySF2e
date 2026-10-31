@@ -1,0 +1,19 @@
+{
+  "id": "negative-missing-field",
+  "task": "creatureConcept",
+  "note": "Exactly one required key removed from an otherwise valid concept still fails the shape check, so the presence check cannot be silently dropped. One retry, then fail closed.",
+  "base": "creature-concept-commander",
+  "remove": ["perceptionScale"],
+  "args": {
+    "prompt": "a shape-invalid response",
+    "level": 5,
+    "rarity": "common",
+    "allowSpellcasting": false,
+    "intent": "monster"
+  },
+  "expect": {
+    "ok": false,
+    "requestCount": 2,
+    "errorKey": "Errors.BadStructure"
+  }
+}

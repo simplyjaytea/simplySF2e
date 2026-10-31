@@ -1,7 +1,7 @@
 {
   "id": "equipment-selection",
   "task": "equipmentSelection",
-  "note": "Carried equipment is resolved against the issued catalog by id; quantity is clamped into the module's 1-10 range and an unissued id is dropped, never guessed.",
+  "note": "Equipment resolves strictly by issued id and quantity is clamped into the module's 1-10 range: a reply of 99 becomes 10, a reply of 0 becomes 1, and an unissued id is dropped.",
   "args": {
     "concept": {
       "name": "Vesk Siege Marshal",
@@ -26,7 +26,7 @@
       "choices": [
         {
           "message": {
-            "content": "{\"equipment\":[{\"id\":\"e1\",\"quantity\":1},{\"id\":\"e3\",\"quantity\":3},{\"id\":\"e-bogus\",\"quantity\":9}]}"
+            "content": "{\"equipment\":[{\"id\":\"e1\",\"quantity\":99},{\"id\":\"e3\",\"quantity\":0},{\"id\":\"e-bogus\",\"quantity\":9}]}"
           },
           "finish_reason": "stop"
         }
@@ -37,9 +37,14 @@
   "expect": {
     "ok": true,
     "requestCount": 1,
-    "contains": ["Assault Rifle", "Medpatch"],
     "excludes": ["Baton", "bogus"],
     "lengths": { "equipment": 2 },
+    "equals": {
+      "equipment.0.name": "Assault Rifle",
+      "equipment.0.quantity": 10,
+      "equipment.1.name": "Medpatch",
+      "equipment.1.quantity": 1
+    },
     "bodyContains": ["weapon: e1 | Assault Rifle (L3)", "consumable: e3 | Medpatch (L2)"]
   }
 }

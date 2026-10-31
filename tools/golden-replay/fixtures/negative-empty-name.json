@@ -1,0 +1,19 @@
+{
+  "id": "negative-empty-name",
+  "task": "creatureConcept",
+  "note": "An empty name fails the non-empty-string check specifically; the rest of the payload is untouched.",
+  "base": "creature-concept-commander",
+  "patch": { "name": "" },
+  "args": {
+    "prompt": "a shape-invalid response",
+    "level": 5,
+    "rarity": "common",
+    "allowSpellcasting": false,
+    "intent": "monster"
+  },
+  "expect": {
+    "ok": false,
+    "requestCount": 2,
+    "errorKey": "Errors.BadStructure"
+  }
+}

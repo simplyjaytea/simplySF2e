@@ -108,7 +108,7 @@ export async function refineSpells(concept, ctxIn) {
       keywords = focus.keywords;
       recordUsage(ctx, focusLabel, focus.usage);
     } catch (err) {
-      if (err?.cancelled) throw err;
+      if (err?.cancelled || err?.runLimit) throw err;
       console.warn(`${MODULE_ID} | spell focus selection failed, using first-draft spell names only`, err);
     }
     const selectionPicks = spellcasting.selectionPicks ?? spellcasting.plannedPicks;
@@ -142,7 +142,7 @@ export async function refineSpells(concept, ctxIn) {
       concept.focusSpells = focusSpells;
     }
   } catch (err) {
-    if (err?.cancelled) throw err;
+    if (err?.cancelled || err?.runLimit) throw err;
     console.warn(`${MODULE_ID} | grounded spell selection failed, dropping spellcasting (unconstrained first-draft spells discarded)`, err);
     spellcasting.spells = [];
     concept.focusSpells = [];
@@ -180,7 +180,7 @@ export async function refineCreatureAbilities(concept, ctxIn) {
     recordUsage(ctx, ctx.labels.abilities, usage, timing);
     concept.specialAbilities = [...abilities, ...narratives].slice(0, 6);
   } catch (err) {
-    if (err?.cancelled) throw err;
+    if (err?.cancelled || err?.runLimit) throw err;
     console.warn(`${MODULE_ID} | grounded creature ability selection failed; unresolved glossary abilities will block creation`, err);
     concept.specialAbilities = [...draft.filter((ability) => ability.glossary), ...narratives].slice(0, 6);
   }
@@ -204,7 +204,7 @@ export async function refineCreatureFeats(concept, ctxIn) {
     // invalid picks/provider failures must not silently erase requirements.
     if (feats.length || omitted === true) concept.feats = feats;
   } catch (err) {
-    if (err?.cancelled) throw err;
+    if (err?.cancelled || err?.runLimit) throw err;
     console.warn(`${MODULE_ID} | grounded creature feat selection failed; unresolved draft feats will block creation`, err);
   }
 }
@@ -237,7 +237,7 @@ export async function refineEquipment(concept, ctxIn) {
     recordUsage(ctx, ctx.labels.equipment, usage, timing);
     if (equipment.length || omitted === true) concept.equipment = equipment;
   } catch (err) {
-    if (err?.cancelled) throw err;
+    if (err?.cancelled || err?.runLimit) throw err;
     console.warn(`${MODULE_ID} | grounded equipment selection failed; draft equipment with no published match will be skipped`, err);
   }
 }
@@ -282,7 +282,7 @@ export async function refineLoot(concept, ctxIn) {
       concept.loot = normalizeLoot([...coins, ...loot]);
     }
   } catch (err) {
-    if (err?.cancelled) throw err;
+    if (err?.cancelled || err?.runLimit) throw err;
     console.warn(`${MODULE_ID} | grounded loot selection failed; draft loot with no published match will be skipped`, err);
   }
 }

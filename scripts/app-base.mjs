@@ -303,10 +303,12 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
     );
   }
 
-  _armCancel() {
+  _armCancel({ cancellable = true } = {}) {
     this._disarmCancel();
     this._generationAbort = new AbortController();
-    this._canCancel = true;
+    // A non-cancellable step still runs AI calls, so it still gets a run budget
+    // and deadline; it just must not offer a cancel affordance.
+    this._canCancel = Boolean(cancellable);
     const signal = this._generationAbort.signal;
     const minutes = Number(getSetting(SETTINGS.runDeadline)) || 0;
     beginRunBudget(signal, {
@@ -365,7 +367,7 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _beginProgress(defs, { cancellable = true } = {}) {
     this._disarmCancel();
     this._progress = createProgress(defs);
-    return cancellable ? this._armCancel() : null;
+    return this._armCancel({ cancellable });
   }
 
   /** Mark `key` active, everything before it done, and paint without remounting the bar. */

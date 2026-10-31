@@ -1461,7 +1461,7 @@ export class GeneratorApp extends SpfApp {
           resolved.loot = enforceNamedLootBudget(resolved.loot, lootBudget);
           resolved.loot = await applyTreasureBudget(resolved.loot, lootBudget);
         } catch (err) {
-          if (err?.cancelled) throw err;
+          if (err?.cancelled || err?.runLimit) throw err;
           console.warn(`${MODULE_ID} | extra PC purchase pass failed, leaving remaining wealth as coin`, err);
         }
       }
@@ -1555,7 +1555,7 @@ export class GeneratorApp extends SpfApp {
       this._recordTokens(game.i18n.localize("SIMPLYSF2E.Progress.Spells"), usage, timing);
       plan.spells = spells;
     } catch (err) {
-      if (err?.cancelled) throw err;
+      if (err?.cancelled || err?.runLimit) throw err;
       console.warn(`${MODULE_ID} | archetype spell selection failed — archetype spells left empty`, err);
     }
   }
@@ -1608,7 +1608,7 @@ export class GeneratorApp extends SpfApp {
       concept.loot = normalizeLoot(draft);
       await this.#refineLoot(concept, signal);
     } catch (err) {
-      if (err?.cancelled) throw err;
+      if (err?.cancelled || err?.runLimit) throw err;
       console.warn(`${MODULE_ID} | PC starting-wealth item drafting failed, wealth will be all coin`, err);
     }
   }

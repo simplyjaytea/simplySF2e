@@ -58,6 +58,7 @@ const args = (signal) => ({ concept, tradition: "arcane", signal });
   queueResponses([provider('{"keywords":["fire"]}')]);
   await assert.rejects(chooseSpellFocus(args(sig)), (err) => {
     assert.equal(err.retryable, false);
+    assert.equal(err.runLimit, true);
     assert.match(err.message, /RunBudgetExceeded/);
     assert.match(err.message, /5/);
     return true;
@@ -99,9 +100,38 @@ const args = (signal) => ({ concept, tradition: "arcane", signal });
   await assert.rejects(chooseSpellFocus(args(sig)), (err) => {
     assert.match(err.message, /RunDeadline/);
     assert.equal(err.retryable, false);
+    assert.equal(err.runLimit, true);
     return true;
   });
   assert.equal(calls, 0);
+}
+
+// (e) In flight: the deadline aborts a request that is still streaming, so a
+// provider that keeps the socket open cannot outlive the run deadline.
+{
+  const clock = 0;
+  const sig = new AbortController().signal;
+  beginRunBudget(sig, { tokenBudget: 1000, deadlineMs: 30, now: () => clock });
+  let inFlight = 0;
+  const stubbed = globalThis.fetch;
+  globalThis.fetch = (_url, options) => new Promise((_resolve, reject) => {
+    inFlight += 1;
+    options.signal?.addEventListener("abort", () => {
+      const err = new Error("aborted");
+      err.name = "AbortError";
+      reject(err);
+    }, { once: true });
+  });
+  try {
+    await assert.rejects(chooseSpellFocus(args(sig)), (err) => {
+      assert.match(err.message, /RunDeadline/);
+      assert.equal(err.runLimit, true);
+      return true;
+    });
+  } finally {
+    globalThis.fetch = stubbed;
+  }
+  assert.equal(inFlight, 1);
 }
 
 console.log("ai.runBudget.test.mjs passed");

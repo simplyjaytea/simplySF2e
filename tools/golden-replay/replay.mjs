@@ -3,7 +3,9 @@
 // Never re-implements pipeline logic and never calls a live API.
 import { installEnv, queueResponses, capturedRequests, restoreEnv } from "./env.mjs";
 
-// Fixture task id -> production export in scripts/ai.mjs.
+// Fixture task id -> production export. `normalizeConcept` lives in builder.mjs
+// and is the one task that runs on an already-parsed object rather than a
+// provider reply, so the normalizer is covered too.
 const FUNC_MAP = {
   creatureConcept: "generateConcept",
   pcConcept: "generatePCConcept",
@@ -16,7 +18,8 @@ const FUNC_MAP = {
   magicItemConcept: "generateMagicItemConcept",
   encounterDesign: "designEncounter",
   shopConcept: "generateShopConcept",
-  treasureConcept: "generateTreasureConcept"
+  treasureConcept: "generateTreasureConcept",
+  normalizeConcept: "normalizeConcept"
 };
 
 // Tasks that try the Jev fast pick first. A replay must never take that path:
@@ -40,12 +43,18 @@ export async function runScenario(fixture) {
   let error = null;
   let requests = null;
   try {
-    const mod = await import("../../scripts/ai.mjs");
     const fnName = FUNC_MAP[fixture.task];
     if (!fnName) throw new Error(`golden-replay: no production function for task ${fixture.task}`);
     const args = { ...(fixture.args || {}) };
     if (SELECTOR_TASKS.has(fixture.task)) args.jevConfig = null;
-    result = await mod[fnName](args);
+    if (fixture.task === "normalizeConcept") {
+      // Production signature: normalizeConcept(raw, { level, rarity }).
+      const builder = await import("../../scripts/builder.mjs");
+      result = builder.normalizeConcept(args.raw, { level: args.level, rarity: args.rarity });
+    } else {
+      const mod = await import("../../scripts/ai.mjs");
+      result = await mod[fnName](args);
+    }
   } catch (err) {
     error = err;
   } finally {

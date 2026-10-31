@@ -1,0 +1,34 @@
+{
+  "id": "normalizer-fallbacks",
+  "task": "normalizeConcept",
+  "note": "The normalizer, not just the shape validator, applies the module's fallbacks: an empty name becomes the default name, an invalid size/hpScale/acScale falls back, an unpublishable speed snaps to the nearest published one, and an empty strike list gets the default fist.",
+  "args": {
+    "level": 5,
+    "rarity": "common",
+    "raw": {
+      "name": "",
+      "size": "Medium",
+      "hpScale": "enormous",
+      "acScale": "nope",
+      "abilityScales": { "str": "huge" },
+      "speeds": [{ "type": "land", "value": 32 }],
+      "strikes": [],
+      "traits": ["humanoid"]
+    }
+  },
+  "responses": [],
+  "expect": {
+    "ok": true,
+    "requestCount": 0,
+    "equals": {
+      "name": "Unnamed Creature",
+      "size": "med",
+      "hpScale": "moderate",
+      "acScale": "moderate",
+      "abilityScales.str": "moderate",
+      "speeds.0.value": 30,
+      "strikes.0.name": "fist",
+      "level": 5
+    }
+  }
+}

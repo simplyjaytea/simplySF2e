@@ -28,6 +28,11 @@
     "requestCount": 1,
     "contains": ["Hangar Ambush", "salvage golem"],
     "lengths": { "briefs": 2 },
+    "equals": {
+      "name": "Hangar Ambush",
+      "briefs.0": "A hulking salvage golem built from a wrecked freighter's spine.",
+      "briefs.1": "Skittering repair drones that swarm around the golem and patch it as it takes damage."
+    },
     "bodyContains": ["Slot 1: 1 creature of level 5 (boss)", "Slot 2: 2 creatures of level 3 (minion)"]
   }
 }

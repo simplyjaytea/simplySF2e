@@ -27,7 +27,13 @@
   "expect": {
     "ok": true,
     "requestCount": 1,
-    "contains": ["Ring of the Quiet Drift", "negligible"],
+    "contains": ["Ring of the Quiet Drift"],
+    "equals": {
+      "concept.name": "Ring of the Quiet Drift",
+      "concept.bulk": "negligible",
+      "concept.usage": "worn",
+      "concept.rarity": "common"
+    },
     "bodyContains": ["a ring that lets a scout drift silently across a hull breach"]
   }
 }
