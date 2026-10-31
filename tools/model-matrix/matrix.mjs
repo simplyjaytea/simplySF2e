@@ -5,7 +5,7 @@
 //   node tools/model-matrix/matrix.mjs --config my-config.json [--task <id>] [--runs N] [--out out]
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { SETTINGS } from "../../scripts/settings.mjs";
-import { validateConfig, summarizeRuns, renderMatrix } from "./report.mjs";
+import { validateConfig, summarizeRuns, renderMatrix, requireApiKey, errorKeyFor } from "./report.mjs";
 import { TASKS } from "./tasks.mjs";
 
 function parseArgs(argv) {
@@ -40,9 +40,11 @@ try {
   process.exit(1);
 }
 
-const apiKey = process.env[cfg.apiKeyEnv];
-if (!apiKey) {
-  console.error(`API key env var ${cfg.apiKeyEnv} is unset or empty; nothing was requested`);
+let apiKey;
+try {
+  apiKey = requireApiKey(process.env, cfg.apiKeyEnv);
+} catch (err) {
+  console.error(err.message);
   process.exit(1);
 }
 
@@ -94,10 +96,12 @@ for (const model of cfg.models) {
         ok = true;
         usage = result?.usage ?? null;
       } catch (err) {
-        crash = !(err instanceof ai.AIRequestError);
-        errorKey = crash
-          ? "crash"
-          : (String(err?.message ?? "").match(/SIMPLYSF2E\.Errors\.\w+/)?.[0] ?? "SIMPLYSF2E.Errors.Unknown");
+        // A failed attempt still spent tokens; requestJSON attaches the summed
+        // usage to the error, and a cost table that hides it lies.
+        const isAiError = err instanceof ai.AIRequestError;
+        crash = !isAiError;
+        errorKey = errorKeyFor(err, { isAiError });
+        usage = isAiError ? (err.usage ?? null) : null;
       }
       if (ok) passes += 1;
       allRuns.push({ model: model.id, task, run, ok, errorKey, crash, ms: Date.now() - startedAt, usage });
@@ -121,3 +125,6 @@ const failures = allRuns.filter((run) => !run.ok).length;
 const crashes = allRuns.filter((run) => run.crash).length;
 console.log(`done: ${allRuns.length} runs, ${failures} failed, ${crashes} crashed`);
 console.log(`reports: ${args.out}/matrix.json and ${args.out}/MATRIX.md`);
+// A crash is a harness bug (bad task shape, a production TypeError), not a model
+// result; make a scripted run notice it.
+process.exitCode = crashes ? 1 : 0;

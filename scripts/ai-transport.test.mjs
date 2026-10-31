@@ -160,6 +160,19 @@ for (const status of [200, 400, 401, 404, 418]) {
   );
   assert.equal(calls.length, 1, "POST network error must not retry");
 }
+// (b2) the GET-only rule is enforced even when the option is passed for a POST
+{
+  const calls = [];
+  await assert.rejects(
+    fetchWithBackoff("url", { method: "POST" }, {
+      delayMs: 0,
+      retryNetworkErrors: true,
+      retryBudget: { remaining: 1 },
+      fetchImpl: async () => { calls.push(1); throw new Error("net"); }
+    })
+  );
+  assert.equal(calls.length, 1, "a POST must never be retried on a network error, even with the flag");
+}
 // (c) AbortError never retried
 {
   const calls = [];

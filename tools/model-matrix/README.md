@@ -46,6 +46,7 @@ The key is read from the environment variable **named in the config** (`apiKeyEn
 - **Pass** means the production function returned without throwing. It validates its own reply shape, so a pass is a real success, not "the HTTP call worked".
 - **Fail keys** are `SIMPLYSF2E.Errors.*` keys. Any other provider text is reported as `redacted`, so a key or an account detail cannot reach the file.
 - **est. cost/run** prices the provider's own prompt and completion counts separately; it is an estimate, not a bill.
+- **crash** in the fail-keys column means the harness or a production function threw a non-AI error — that is a bug to fix, not a model result, and the tool exits non-zero.
 
 `out/matrix.json` holds every raw run (model, task, run index, ok, error key, crash flag, ms, usage).
 

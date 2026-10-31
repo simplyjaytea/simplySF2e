@@ -31,14 +31,30 @@ export const RECORDABLE = {
 
 const isRecord = (value) => Boolean(value) && typeof value === "object" && !Array.isArray(value);
 
+// Mirrors scripts/ai.mjs visibleTextContent: providers may send a string or an
+// array of content parts. Copied deliberately so a recorded fixture carries what
+// the production reader would have produced.
+function visibleTextContent(content) {
+  if (typeof content === "string") return content;
+  if (!Array.isArray(content)) return "";
+  let text = "";
+  for (const part of content) {
+    if (typeof part === "string") text += part;
+    else if (part && typeof part.text === "string") text += part.text;
+  }
+  return text;
+}
+
 /**
  * Rebuild the non-stream provider payload the replay stub should return from an
- * SSE body. Pure. Accumulates delta content the same way the production reader
- * does, keeps the last finish_reason and usage block, and ignores reasoning.
+ * SSE body, using the same rules as the production reader: accumulate
+ * `delta.content`, keep a message-shaped copy as a fallback only when no delta
+ * text arrived, and never treat reasoning as the answer. Pure.
  * @param {string} text raw `text/event-stream` body
  */
 export function sseToProviderPayload(text) {
   let content = "";
+  let messageContent = "";
   let finishReason = "stop";
   let usage = null;
   for (const line of String(text ?? "").split(/\r?\n/)) {
@@ -53,32 +69,43 @@ export function sseToProviderPayload(text) {
     const choice = chunk?.choices?.[0];
     if (!choice) continue;
     if (choice.finish_reason) finishReason = choice.finish_reason;
-    const delta = choice.delta?.content ?? choice.message?.content;
-    if (typeof delta === "string") content += delta;
+    const deltaText = visibleTextContent(choice.delta?.content);
+    if (deltaText) content += deltaText;
+    const messageText = visibleTextContent(choice.message?.content);
+    if (messageText) messageContent = messageText;
   }
-  if (!content.trim()) throw new Error("the stream carried no message content");
+  // Prefer streamed deltas: a provider that echoes the full message on its last
+  // chunk must not double the answer.
+  const answer = content || messageContent;
+  if (!answer.trim()) throw new Error("the stream carried no message content");
   return {
-    choices: [{ message: { content }, finish_reason: finishReason }],
+    choices: [{ message: { content: answer }, finish_reason: finishReason }],
     ...(usage ? { usage } : {})
   };
 }
 
 /**
- * Shape a captured provider payload into a replay fixture. Pure: the caller
- * supplies everything the production path saw.
+ * Shape captured provider payloads into a replay fixture. Pure: the caller
+ * supplies everything the production path saw. Multiple payloads happen when
+ * production retried (a compatibility negotiation or the JSON retry), and the
+ * fixture must replay the same sequence.
  */
-export function buildFixture({ id, task, note, args, payload, expect } = {}) {
+export function buildFixture({ id, task, note, args, payload, payloads, expect } = {}) {
   if (!id || typeof id !== "string") throw new Error("record: an id is required");
   if (!Object.hasOwn(RECORDABLE, task)) throw new Error(`record: task ${task} has no recordable production entry point`);
   if (!isRecord(args)) throw new Error("record: args must be an object");
-  if (!isRecord(payload) || !Array.isArray(payload.choices)) throw new Error("record: payload must be a provider reply");
+  const replies = Array.isArray(payloads) ? payloads : (payload ? [payload] : []);
+  if (!replies.length) throw new Error("record: at least one provider reply is required");
+  for (const reply of replies) {
+    if (!isRecord(reply) || !Array.isArray(reply.choices)) throw new Error("record: payload must be a provider reply");
+  }
   return {
     id,
     task,
     note: typeof note === "string" && note.trim() ? note.trim() : `recorded live from the provider; see git history for the model and date`,
     args,
-    responses: [payload],
-    expect: expect ?? { ok: true, requestCount: 1 }
+    responses: replies,
+    expect: expect ?? { ok: true, requestCount: replies.length }
   };
 }
 
@@ -113,16 +140,16 @@ export async function recordFixture({
     i18n: { localize: (key) => key, format: (key) => key }
   };
 
-  let captured = null;
+  const captured = [];
   globalThis.fetch = async (url, options) => {
     const response = await fetchImpl(url, options);
     // Clone before production consumes it: clone() tees the stream.
     const copy = response.clone();
     const contentType = copy.headers.get("content-type") ?? "";
     const bodyText = await copy.text();
-    captured = contentType.includes("text/event-stream")
+    captured.push(contentType.includes("text/event-stream")
       ? sseToProviderPayload(bodyText)
-      : JSON.parse(bodyText);
+      : JSON.parse(bodyText));
     return response;
   };
 
@@ -135,8 +162,8 @@ export async function recordFixture({
     else globalThis.game = previousGame;
   }
 
-  if (!captured) throw new Error("record: the task made no provider request");
-  return buildFixture({ id, task, note, args, payload: captured, expect });
+  if (!captured.length) throw new Error("record: the task made no provider request");
+  return buildFixture({ id, task, note, args, payloads: captured, expect });
 }
 
 function parseArgs(argv) {

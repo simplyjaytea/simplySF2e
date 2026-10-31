@@ -29,8 +29,12 @@ export function summarizeRuns(runs) {
       const failKeys = {};
       for (const r of rs) {
         if (r.ok || !r.errorKey) continue;
-        // Never carry provider text into a report: only a known module key survives.
-        const key = String(r.errorKey).startsWith("SIMPLYSF2E.Errors.") ? r.errorKey : "redacted";
+        // Never carry provider text into a report: a module error key or the
+        // harness's own "crash" marker survives, anything else is redacted.
+        const raw = String(r.errorKey);
+        const key = raw === "crash"
+          ? "crash"
+          : raw.startsWith("SIMPLYSF2E.Errors.") ? raw : "redacted";
         failKeys[key] = (failKeys[key] ?? 0) + 1;
       }
       rows[model] = {
@@ -91,8 +95,25 @@ export function renderMatrix(summary, meta = {}) {
   return `${lines.join("\n")}\n`;
 }
 
-/** Reject a config that would silently produce a meaningless matrix. */
-export function validateConfig(cfg) {
+/**
+ * The one place a failure is classified for the report. `crash` means the
+ * harness itself broke (not an AIRequestError); a module error key is kept, and
+ * any other message is dropped so provider text cannot reach an artifact.
+ */
+export function errorKeyFor(error, { isAiError = false } = {}) {
+  if (!isAiError) return "crash";
+  const message = String(error?.message ?? "");
+  return message.match(/SIMPLYSF2E\.Errors\.\w+/)?.[0] ?? "SIMPLYSF2E.Errors.Unknown";
+}
+
+/** The API key from the configured env var; throws before any request if unset. */
+export function requireApiKey(env, apiKeyEnv) {
+  const key = apiKeyEnv && env ? env[apiKeyEnv] : "";
+  if (!key) throw new Error(`API key env var ${apiKeyEnv} is unset or empty; nothing was requested`);
+  return key;
+}
+
+/** Reject a config that would silently produce a meaningless matrix. */export function validateConfig(cfg) {
   if (!cfg || typeof cfg !== "object" || Array.isArray(cfg)) throw new Error("config must be an object");
   if (typeof cfg.baseUrl !== "string" || !cfg.baseUrl.trim()) throw new Error("missing baseUrl");
   if (typeof cfg.apiKeyEnv !== "string" || !cfg.apiKeyEnv.trim()) throw new Error("missing apiKeyEnv");

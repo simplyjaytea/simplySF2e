@@ -35,6 +35,26 @@ assert.equal(
 );
 assert.equal(Object.hasOwn(sseToProviderPayload(`data: ${JSON.stringify({ choices: [{ delta: { content: "{}" } }] })}\n\n`), "usage"), false);
 
+// A provider that sends deltas AND an echoed full message must not double the text.
+assert.equal(
+  sseToProviderPayload(
+    chunk("{\"a\":1}") + `data: ${JSON.stringify({ choices: [{ message: { content: "{\"a\":1}" }, finish_reason: "stop" }] })}\n\n`
+  ).choices[0].message.content,
+  "{\"a\":1}",
+  "streamed deltas win over a last-chunk message copy"
+);
+// A message-only stream still yields its content.
+assert.equal(
+  sseToProviderPayload(`data: ${JSON.stringify({ choices: [{ message: { content: "{\"b\":2}" }, finish_reason: "stop" }] })}\n\n`).choices[0].message.content,
+  "{\"b\":2}"
+);
+// Content-part arrays are read like production's visibleTextContent, not dropped.
+assert.equal(
+  sseToProviderPayload(`data: ${JSON.stringify({ choices: [{ delta: { content: [{ type: "text", text: "{\"c\":" }, { type: "text", text: "3}" }] } }] })}\n\n`).choices[0].message.content,
+  "{\"c\":3}",
+  "array content parts are concatenated, not truncated"
+);
+
 // Fail closed: empty content and an in-stream provider error both throw.
 assert.throws(() => sseToProviderPayload(""), /no message content/);
 assert.throws(() => sseToProviderPayload("data: {\"choices\":[{\"delta\":{\"reasoning_content\":\"x\"}}]}\n\n"), /no message content/);
@@ -103,6 +123,33 @@ await assert.rejects(
   /base URL is required/
 );
 assert.equal(requested, 0, "no request may be made without credentials");
+
+// A retried run captures every exchange: the fixture must replay the sequence,
+// not claim a single request and drop the first reply.
+const retryQueue = [
+  { choices: [{ message: { content: "{\"nope\":true}" }, finish_reason: "stop" }], usage: { prompt_tokens: 5, completion_tokens: 2, total_tokens: 7 } },
+  conceptPayload
+];
+const captured = await recordFixture({
+  id: "live-retry", task: "creatureConcept", args: conceptArgs,
+  baseUrl: "https://example.test/v1", model: "test-model", apiKey: FAKE_KEY,
+  fetchImpl: async () => jsonResponse(retryQueue.shift())
+});
+assert.equal(captured.responses.length, 2, "a retried run records both provider exchanges");
+assert.equal(captured.expect.requestCount, 2, "the fixture replays the same request count");
+assert.equal(captured.responses[1].choices[0].message.content, conceptPayload.choices[0].message.content);
+
+// A failed capture still restores the globals.
+await assert.rejects(
+  recordFixture({
+    id: "live-throw", task: "creatureConcept", args: conceptArgs,
+    baseUrl: "https://example.test/v1", model: "test-model", apiKey: FAKE_KEY,
+    fetchImpl: async () => { throw new Error("network down"); }
+  }),
+  /Errors\.NetworkError/
+);
+assert.equal(globalThis.fetch, realFetch, "fetch is restored when the capture throws");
+assert.equal(globalThis.game, undefined, "game is restored when the capture throws");
 
 // The stubbed globals are restored.
 assert.equal(globalThis.game, undefined, "game is restored after a capture");

@@ -3,12 +3,19 @@ name: Benches
 # The offline benches run the real pipelines against the real sf2e pack JSON.
 # They are a regression gate: a throw anywhere fails the job. WARN is the
 # documented steady state (see PLAYBOOK §1 baselines), so it never fails here.
+#
+# The packs are pinned to one v14-dev commit so a bench result is comparable
+# from run to run. Upstream movement is the drift workflow's job, not this one:
+# bump BENCH_SHA deliberately (and the baselines in PLAYBOOK §1) when adopting it.
 on:
   pull_request:
   workflow_dispatch:
 
 permissions:
   contents: read
+
+env:
+  BENCH_SHA: 675d2b7d613a80572b0330364ce84659068abe66
 
 jobs:
   benches:
@@ -23,20 +30,20 @@ jobs:
         with:
           node-version: 22
 
-      # The packs are ~5,000 small files pinned to one v14-dev commit. Cache them
-      # across runs; fetch.mjs re-pins (and re-downloads) when upstream moves.
+      # ~5,000 small files. Keyed by source + pinned sha + run id so a cache is
+      # always written and a restored-but-stale tree is refreshed by fetch.mjs.
       - name: Restore the pinned sf2e pack cache
         uses: actions/cache@v4
         with:
           path: tools/class-bench/cache
-          key: sf2e-packs-${{ hashFiles('tools/class-bench/fetch.mjs') }}
+          key: sf2e-packs-${{ hashFiles('tools/class-bench/fetch.mjs') }}-${{ env.BENCH_SHA }}-${{ github.run_id }}
           restore-keys: |
-            sf2e-packs-
+            sf2e-packs-${{ hashFiles('tools/class-bench/fetch.mjs') }}-${{ env.BENCH_SHA }}-
 
       - name: Fetch the sf2e packs
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: node tools/class-bench/fetch.mjs
+        run: node tools/class-bench/fetch.mjs --sha "$BENCH_SHA"
 
       - name: Class bench (8 classes x 5 levels x Free Archetype)
         run: node tools/class-bench/run.mjs
@@ -54,11 +61,16 @@ jobs:
         if: always()
         run: |
           {
-            echo "## Bench summary"
-            echo ""
-            echo '```'
-            sed -n '/^| class |/,$p' tools/class-bench/cache/matrix.md 2>/dev/null | head -30 || true
-            echo '```'
+            echo "## Bench summary (pinned sf2e source $BENCH_SHA)"
+            for file in tools/class-bench/cache/*matrix.md; do
+              [ -f "$file" ] || continue
+              echo ""
+              echo "### $(basename "$file")"
+              echo ""
+              echo '```'
+              tail -n 6 "$file" || true
+              echo '```'
+            done
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload bench reports
@@ -67,7 +79,7 @@ jobs:
         with:
           name: bench-reports
           path: |
-            tools/class-bench/cache/matrix.md
-            tools/class-bench/cache/results.json
+            tools/class-bench/cache/*matrix.md
+            tools/class-bench/cache/*results.json
             tools/pipeline-bench/out/
           if-no-files-found: warn

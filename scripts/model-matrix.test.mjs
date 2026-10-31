@@ -3,7 +3,9 @@
 // No network: the provider is stubbed. Run: node scripts/model-matrix.test.mjs
 import assert from "node:assert/strict";
 import { SETTINGS } from "./settings.mjs";
-import { estimateRunCost, renderMatrix, summarizeRuns, validateConfig } from "../tools/model-matrix/report.mjs";
+import {
+  errorKeyFor, estimateRunCost, renderMatrix, requireApiKey, summarizeRuns, validateConfig
+} from "../tools/model-matrix/report.mjs";
 import { TASKS } from "../tools/model-matrix/tasks.mjs";
 
 // --- Aggregation is per task AND per model --------------------------------
@@ -53,6 +55,17 @@ const fakeKey = "sk-live-SECRETKEY123";
 const redacted = renderMatrix(summarizeRuns([{ model: "m", task: "t", ok: false, errorKey: fakeKey, ms: 1 }]), { configPath: "c", utc: "u", runs: 1 });
 assert.ok(!redacted.includes(fakeKey), "the raw provider text must not be rendered");
 assert.ok(redacted.includes("redacted"), "an unknown failure is labelled redacted");
+// A harness crash must stay visible: it is a bug in the tool, not provider text.
+const crashMd = renderMatrix(summarizeRuns([{ model: "m", task: "t", ok: false, errorKey: "crash", ms: 1 }]), { configPath: "c", utc: "u", runs: 1 });
+assert.ok(crashMd.includes("crash"), "a crash is reported as crash, not folded into redacted");
+
+// The classification helpers are importable, so deleting either guard fails here.
+assert.equal(requireApiKey({ KEY: "abc" }, "KEY"), "abc");
+assert.throws(() => requireApiKey({}, "KEY"), /unset or empty/);
+assert.throws(() => requireApiKey({ KEY: "" }, "KEY"), /unset or empty/);
+assert.equal(errorKeyFor(new Error("wrapped SIMPLYSF2E.Errors.BadStructure detail"), { isAiError: true }), "SIMPLYSF2E.Errors.BadStructure");
+assert.equal(errorKeyFor(new Error("403 for key sk-SECRET"), { isAiError: true }), "SIMPLYSF2E.Errors.Unknown", "provider text never becomes a key");
+assert.equal(errorKeyFor(new TypeError("boom"), { isAiError: false }), "crash");
 
 // --- Config validation -----------------------------------------------------
 const base = { baseUrl: "https://example.test/v1", apiKeyEnv: "KEY", models: [{ id: "m" }], tasks: ["t"] };
@@ -95,6 +108,30 @@ globalThis.fetch = async (url) => {
 };
 
 const ai = await import("./ai.mjs");
+const { SHOP_CATEGORIES } = await import("./shop.mjs");
+
+// Task values must match the real production enums, not just avoid a TypeError:
+// an invalid availableKinds silently empties the effect schema, and a category
+// slug the module does not know would make every model look bad.
+assert.deepEqual(TASKS.shopConcept.args.categories, Object.keys(SHOP_CATEGORIES));
+assert.deepEqual(TASKS.treasureConcept.args.categories, Object.keys(SHOP_CATEGORIES));
+assert.ok(TASKS.magicItemConcept.args.availableKinds.length > 0);
+for (const kind of TASKS.magicItemConcept.args.availableKinds) {
+  assert.ok(Object.hasOwn(ai.ITEM_EFFECT_DOCS, kind), `availableKinds "${kind}" must be an ITEM_EFFECT_DOCS key`);
+}
+assert.ok(TASKS.magicItemConcept.args.usageOptions.length > 0);
+assert.ok(TASKS.magicItemConcept.args.usageOptions.every((usage) => typeof usage === "string" && usage));
+assert.equal(TASKS.magicItemConcept.args.kind, "wondrous");
+for (const slot of TASKS.encounterDesign.args.slots) {
+  assert.equal(typeof slot.level, "number");
+  assert.equal(typeof slot.count, "number");
+  assert.equal(typeof slot.role, "string");
+}
+for (const task of Object.values(TASKS)) {
+  assert.equal(typeof task.fn, "string");
+  assert.equal(typeof task.args, "object");
+}
+
 for (const [id, task] of Object.entries(TASKS)) {
   const before = requests;
   let error = null;

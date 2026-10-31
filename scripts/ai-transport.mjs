@@ -47,6 +47,9 @@ export async function fetchWithBackoff(url, options, {
     response = await fetchImpl(url, options);
   } catch (err) {
     if (!retryNetworkErrors) throw err;
+    // Only an idempotent request may be retried: a rejected POST may already
+    // have been received and billed. Enforced here, not by caller convention.
+    if (String(options?.method ?? "GET").toUpperCase() !== "GET") throw err;
     if (signal?.aborted || err?.name === "AbortError") throw err;
     if (retryBudget && retryBudget.remaining <= 0) throw err;
     if (retryBudget) retryBudget.remaining = Math.max(0, retryBudget.remaining - 1);
