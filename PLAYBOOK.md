@@ -14,21 +14,14 @@ The one file every agent (Claude, Codex, anything else) reads first. It holds wh
 
 ## 1. Where we are (rewrite each session)
 
-*Updated 2026-10-25 (late).* Status **Beta**. Every merge to `main` publishes a **beta** pre-release (the rolling `beta` manifest); stable releases are dispatched by hand. Latest stable is v0.1.3.
+*Updated 2026-10-31.* Status **Beta**. Local `main` at `6967eff` includes #70 (Tech Core, class fixes, multiclass, benches and beta channels), #72 (README and licenses), and #71 (stable release Latest fix). Each merge to `main` publishes a beta; stable is dispatched separately. Remote release state was not checked this session.
 
-- **Plans:** `docs/roadmap-1.0.md` (M0-M4 to playable 1.0) and `docs/consumer-plan.md` (M5-M9 to a consumer release, with JT's decisions: channels yes, OpenRouter and DeepSeek both first-class, no smoke bot, no outside beta cohort). M0-M4 code and the M1 benches are done; the next work is M5 (golden replay suite, fuzzing, CI gates, backoff and token budget), then M6 (one-screen "paste one key" onboarding).
-- **This session (2026-10-25):** PR #70 carried everything below and is merged as the first beta (expected v0.1.4):
-  - Tech Core (Mechanic, Technomancer) and the sf2e 1.6 requirement.
-  - The class fixes ("Charisma +2" prerequisites, general slots take skill feats, projected attributes and skill ranks, Operative path reservation, feat-slot matching repair, empty slots created with a GM note).
-  - Multiclass (GM picker or AI, Free Archetype required, dedication rule, follow-ups), caster dedication spell lists with real traditions, the Technomancer spell database.
-  - Object-valued ChoiceSets (SRO, Living Hologram), projectile upgrades, Mechanic and Technomancer presets.
-  - PF2e dead code removed, the UI refresh and quieter HUD, the project icon.
-  - The offline benches (`tools/class-bench`, `tools/pipeline-bench`: creature, forge, market), `docs/live-log.md`, `docs/release-pass.md`, and release channels.
-  - Audits: Fable on every batch; all findings fixed.
-- **Live evidence:** none logged. The 2026-10-08 pass was verbal. Next: JT installs the **beta** manifest on sf2e 1.6 and runs `docs/release-pass.md` (90 rows), logging results in `docs/live-log.md`. Failures become fix tasks.
-- **Open owner decisions:** raise the feat candidate cap of 8 per level (11 Free Archetype bench runs keep an empty archetype slot); raise CURRENCY_ITEM_MAX (a level 20 whole-level hoard makes 49 Credsticks); hoard budget by rarity (`tools/pipeline-bench/MARKET-REPORT.md`); Fable's remaining consumer-plan defaults (D3, D5, D6, D8-D11).
-- **Bench baselines (sf2e 1.6.1, 0 FAIL everywhere):** class 48 PASS / 32 WARN, forge 126 PASS / 48 WARN, market 240/240, creature 35 PASS / 2 WARN. A WARN increase is a regression signal.
-- **Environment:** no Foundry here; JT runs live QA on a VPS. JT's global git credential helper points at a removed gh version; `! gh auth setup-git` fixes it (until then push with `git -c credential.helper= -c 'credential.helper=!gh auth git-credential' push`). Workers run as Orca workers because the `waterfall` plugin hook blocks Write/Edit in non-waterfall subagents (§8). Git identity: `user.name "jt"`, `user.email "jt_f@ymail.com"`.
+- **Next:** M5 in `docs/consumer-plan.md`: injectable AI transport, golden replays, fuzzing and model matrix, backoff/deadline/token budget, and CI gates. M6 follows with one-screen onboarding. Channels and licensing portions of M7 have landed; check remaining M7 tasks individually.
+- **Live evidence:** `docs/live-log.md` contains only the 2026-10-08 verbal pass without per-row evidence. JT should install the beta on sf2e 1.6 and run `docs/release-pass.md`, logging results; failures become fix tasks. Offline benches do not verify Foundry sheets.
+- **Owner decisions:** feat candidate cap of 8 per level (11 Free Archetype bench runs have an empty archetype slot), `CURRENCY_ITEM_MAX` (a level 20 whole-level hoard makes 49 Credsticks), rarity-based hoard budget (`tools/pipeline-bench/MARKET-REPORT.md`), and consumer-plan defaults D3, D5, D6, D8-D11. Fable's recommendations stand until JT changes them.
+- **Bench baselines (sf2e 1.6.1):** class 48 PASS / 32 WARN, forge 126 PASS / 48 WARN, market 240/240, creature 35 PASS / 2 WARN; 0 FAIL. A WARN increase is a regression signal.
+- **2026-10-31 layout session:** all standalone tests passed via Git Bash. No Foundry available here. Read-only roadmap review delegated to an existing Orca terminal. PLAYBOOK §9 and older roadmap snapshots contain stale multiclass statements; reconcile documentation before relying on them.
+- **Environment:** JT runs live QA on a VPS. JT's global git credential helper points at a removed gh version; `! gh auth setup-git` fixes it (until then push with `git -c credential.helper= -c 'credential.helper=!gh auth git-credential' push`). Workers run as Orca workers because the `waterfall` plugin hook blocks Write/Edit in non-waterfall subagents (§8). Git identity: `user.name "jt"`, `user.email "jt_f@ymail.com"`.
 
 ## 2. The project
 
