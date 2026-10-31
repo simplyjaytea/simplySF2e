@@ -55,7 +55,7 @@ export async function listProviderModels() {
   try {
     let response;
     try {
-      response = await fetch(modelsUrl(baseUrl), { method: "GET", headers, signal: controller.signal });
+      response = await fetchWithBackoff(modelsUrl(baseUrl), { method: "GET", headers, signal: controller.signal }, { retryBudget: { remaining: 1 }, retryNetworkErrors: true });
     } catch (err) {
       if (err.name === "AbortError" || controller.signal.aborted) {
         throw new AIRequestError(game.i18n.format("SIMPLYSF2E.Errors.Timeout", { seconds: timeoutSeconds }));

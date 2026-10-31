@@ -28,18 +28,39 @@ function isRetryableStatus(status, response) {
   return false;
 }
 
+// Only safe for idempotent requests (GET): a rejected POST may already have
+// been received and billed, so POSTs must not retry on network errors.
 export async function fetchWithBackoff(url, options, {
   fetchImpl = globalThis.fetch,
   delayMs,
   maxDelayMs = 30000,
-  retryBudget = null
+  retryBudget = null,
+  retryNetworkErrors = false
 } = {}) {
   const baseDelay = (typeof delayMs === "number") ? delayMs : 1000;
   const signal = options?.signal;
 
   if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
 
-  let response = await fetchImpl(url, options);
+  let response;
+  try {
+    response = await fetchImpl(url, options);
+  } catch (err) {
+    if (!retryNetworkErrors) throw err;
+    if (signal?.aborted || err?.name === "AbortError") throw err;
+    if (retryBudget && retryBudget.remaining <= 0) throw err;
+    if (retryBudget) retryBudget.remaining = Math.max(0, retryBudget.remaining - 1);
+    // delay + retry once
+    const delay = Math.min((typeof delayMs === "number" ? delayMs : 1000), maxDelayMs);
+    await new Promise((resolve, reject) => {
+      if (signal?.aborted) return reject(new DOMException("Aborted", "AbortError"));
+      const onAbort = () => { clearTimeout(timer); signal?.removeEventListener("abort", onAbort); reject(new DOMException("Aborted", "AbortError")); };
+      const timer = setTimeout(() => { signal?.removeEventListener("abort", onAbort); resolve(); }, delay);
+      signal?.addEventListener("abort", onAbort, { once: true });
+    });
+    if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
+    return fetchImpl(url, options);
+  }
   const status = response?.status;
 
   if (!isRetryableStatus(status, response)) return response;
