@@ -14,21 +14,14 @@ The one file every agent (Claude, Codex, anything else) reads first. It holds wh
 
 ## 1. Where we are (rewrite each session)
 
-*Updated 2026-10-25 (late).* Status **Beta**. Every merge to `main` publishes a **beta** pre-release (the rolling `beta` manifest); stable releases are dispatched by hand. Latest stable is v0.1.3.
+*Updated 2026-10-31.* Status **Beta**. Local `main` at `6967eff` includes #70 (Tech Core, class fixes, multiclass, benches and beta channels), #72 (README and licenses), and #71 (stable release Latest fix). Each merge to `main` publishes a beta; stable is dispatched separately. Remote release state was not checked this session.
 
-- **Plans:** `docs/roadmap-1.0.md` (M0-M4 to playable 1.0) and `docs/consumer-plan.md` (M5-M9 to a consumer release, with JT's decisions: channels yes, OpenRouter and DeepSeek both first-class, no smoke bot, no outside beta cohort). M0-M4 code and the M1 benches are done; the next work is M5 (golden replay suite, fuzzing, CI gates, backoff and token budget), then M6 (one-screen "paste one key" onboarding).
-- **This session (2026-10-25):** PR #70 carried everything below and is merged as the first beta (expected v0.1.4):
-  - Tech Core (Mechanic, Technomancer) and the sf2e 1.6 requirement.
-  - The class fixes ("Charisma +2" prerequisites, general slots take skill feats, projected attributes and skill ranks, Operative path reservation, feat-slot matching repair, empty slots created with a GM note).
-  - Multiclass (GM picker or AI, Free Archetype required, dedication rule, follow-ups), caster dedication spell lists with real traditions, the Technomancer spell database.
-  - Object-valued ChoiceSets (SRO, Living Hologram), projectile upgrades, Mechanic and Technomancer presets.
-  - PF2e dead code removed, the UI refresh and quieter HUD, the project icon.
-  - The offline benches (`tools/class-bench`, `tools/pipeline-bench`: creature, forge, market), `docs/live-log.md`, `docs/release-pass.md`, and release channels.
-  - Audits: Fable on every batch; all findings fixed.
-- **Live evidence:** none logged. The 2026-10-08 pass was verbal. Next: JT installs the **beta** manifest on sf2e 1.6 and runs `docs/release-pass.md` (90 rows), logging results in `docs/live-log.md`. Failures become fix tasks.
-- **Open owner decisions:** raise the feat candidate cap of 8 per level (11 Free Archetype bench runs keep an empty archetype slot); raise CURRENCY_ITEM_MAX (a level 20 whole-level hoard makes 49 Credsticks); hoard budget by rarity (`tools/pipeline-bench/MARKET-REPORT.md`); Fable's remaining consumer-plan defaults (D3, D5, D6, D8-D11).
-- **Bench baselines (sf2e 1.6.1, 0 FAIL everywhere):** class 48 PASS / 32 WARN, forge 126 PASS / 48 WARN, market 240/240, creature 35 PASS / 2 WARN. A WARN increase is a regression signal.
-- **Environment:** no Foundry here; JT runs live QA on a VPS. JT's global git credential helper points at a removed gh version; `! gh auth setup-git` fixes it (until then push with `git -c credential.helper= -c 'credential.helper=!gh auth git-credential' push`). Workers run as Orca workers because the `waterfall` plugin hook blocks Write/Edit in non-waterfall subagents (§8). Git identity: `user.name "jt"`, `user.email "jt_f@ymail.com"`.
+- **Next:** M5 largely landed on `work/reliability-and-actions` (commit 61d019e): injectable `ai-transport.mjs` with 429/5xx backoff, Retry-After honoring, cancellation, retry budget shared with JSON-level retry; 150 tests pass; `tools/release-check.sh` green. Remaining M5 work: golden prompt replay suite, provider/model matrix, CI gates (class bench, pipeline benches, golden replay, fuzz, weekly sf2e drift), run deadline + per-run token budget enforcement (D6) beyond the transport, and narrative-action automation. M6 follows with one-screen onboarding. Channels and licensing portions of M7 have landed; check remaining M7 tasks individually.
+- **Live evidence:** `docs/live-log.md` contains only the 2026-10-08 verbal pass without per-row evidence. JT should install the beta on sf2e 1.6 and run `docs/release-pass.md`, logging results; failures become fix tasks. Offline benches do not verify Foundry sheets.
+- **Owner decisions:** JT chose to keep hoard budgets independent of rarity and approved investigating a one-row high-level Credstick and testing feat cap 16. The cap experiment favored retaining 8; see `docs/balance-proposals.md`. Consumer-plan defaults D3, D5, D6, D8-D11 remain Fable's recommendations until JT changes them.
+- **Bench baselines (sf2e 1.6.1):** class 49 PASS / 31 WARN with PF2e duplicates (48 / 32 with the older copy-stripped cache); forge 126 PASS / 48 WARN, market 240/240, creature 35 PASS / 2 WARN; 0 FAIL. A WARN increase is a regression signal.
+- **2026-10-31 work in progress:** JT reported generating an NPC; `docs/live-log.md` records this as a smoke observation without versions or QA-row evidence. `work/reliability-and-actions` now integrates three worktrees: m5-retry-fixes (provider retry/backoff/cancellation/billing safety), m5-fuzz (deterministic AI fuzz + forged-reference regression tests), docs-reconcile (stale status statements). Combined review performed by coordinator; release-check green; 150 tests pass. Independent terminal reviews (tier 1/2) ran on the child branches; minors noted (jitter on Retry-After, network-error retry, backoff scope beyond postChatCompletion, fuzz test naming/tautology) are non-blocking and deferred. Narrative-action automation, golden replay, provider matrix, CI gates, deadline/token budget enforcement, onboarding and release preparation remain. See `docs/openai-oauth-investigation.md` and `docs/balance-proposals.md`; the latter awaits JT's decisions. No Foundry is available here.
+- **Environment:** JT runs live QA on a VPS. JT's global git credential helper points at a removed gh version; `! gh auth setup-git` fixes it (until then push with `git -c credential.helper= -c 'credential.helper=!gh auth git-credential' push`). Workers run as Orca workers because the `waterfall` plugin hook blocks Write/Edit in non-waterfall subagents (§8). Git identity: `user.name "jt"`, `user.email "jt_f@ymail.com"`.
 
 ## 2. The project
 
@@ -94,7 +87,7 @@ Three actor/item pipelines over shared compendium and table code, plus the Shop,
 | `builder.mjs` | NPC pipeline + shared resolve/build helpers; `reskinActorData()`. |
 | `compendium.mjs` | `findEntry`, pack indexes, candidate lists (`getShopCandidates` too), `DEFAULT_PACKS`, `priceToGp`, `RARITY_RANK`. |
 | `tables.mjs` / `pc-tables.mjs` | Cited GM Core numbers / PC cadence, casting profiles, slot counts. |
-| `pc-builder.mjs` + `pc-skills.mjs`, `pc-prerequisites.mjs`, `pc-loadout.mjs`, `pc-support.mjs`, `class-paths.mjs`, `choice-set.mjs` | PC pipeline; skill allocation; fail-closed feat prerequisites; equipment readying; complete-only classes (+ unwired multiclass map); L1 `item:tag:` class paths; pre-answered `ChoiceSet`s. |
+| `pc-builder.mjs` + `pc-skills.mjs`, `pc-prerequisites.mjs`, `pc-loadout.mjs`, `pc-support.mjs`, `class-paths.mjs`, `choice-set.mjs` | PC pipeline; skill allocation; fail-closed feat prerequisites; equipment readying; multiclass and dedication support; L1 `item:tag:` class paths; pre-answered `ChoiceSet`s. |
 | `completion.mjs` / `post-create.mjs` | Required-content manifests, persisted-source checks, create rollback. |
 | `art.mjs` | Bestiary scaffold choice (prefers mapped art) and `scaffoldArt()`. |
 | `reskin.mjs` / `relevel.mjs` / `reroll.mjs` / `stat-check.mjs` | Reskin copy, re-level by GM Core scale steps, reroll one pick, post-create stat report. |
@@ -211,7 +204,7 @@ Each line is a bug class that already cost a fix. The full story is in `docs/arc
 - **PC skills/feats:** unknown grant timing and missing class data are warned, not inferred. Duplicate native feat grants and new Lore replacements stay manual; not live-tested. Class-path details (Operative specialization, Sniper; Solarian has no `item:tag` path) are in `class-paths.mjs`; Mystic/Witchwarper casting (spontaneous, 3 slots per rank, 5 cantrips, 10th rank at 19) and Technomancer (prepared arcane, base 2 slots) in `pc-tables.mjs`. Mechanic's Drone exocortex needs a companion the module does not create; the GM gets a whisper after Create. Exocortex and Programming Language are ordinary `item:tag` class paths. Free Archetype slot placement and ordinary prerequisites are checked (`pc-prerequisites.mjs`); a full prerequisite graph is unbuilt.
 - **Technomancer spell database:** a high-level database fills only as far as the fixed spell candidate cap allows (12 per rank, 96 total; PLAYBOOK §8 says ceilings are never raised to fit). A shortfall warns at Create.
 - **Rarity cap** covers ancestry/background/heritage only, by design.
-- **Multiclass** is unbuilt: sf2e has dedications for all eight classes and `pc-support.mjs` maps them, but nothing calls the map. JT's decisions (2026-10-25): GM picker and AI both allowed, caster dedications built too, Free Archetype required. Draft plan and cited sources: `docs/multiclass-plan.md`.
+- **Multiclass:** the GM picker and AI choice require Free Archetype; dedications and caster spell lists shipped in #70. A full prerequisite graph remains deferred. Live verification is still needed.
 
 ## 10. Archive (read only when needed)
 

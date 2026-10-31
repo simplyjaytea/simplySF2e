@@ -7,7 +7,7 @@ Planned by Fable on 2026-10-25. Status: **accepted with JT's decisions (2026-10-
 | Bar | Target |
 | --- | --- |
 | R1 Reliability per mode | Over 20 runs, at least 95% of Monster, NPC, Encounter, PC (L1/L5/L12), Forge ×5, Shop, Treasure, Reskin and Re-level runs end in a verified Create on the reference model. At least 90% on every tier-1 model. Every failure ends in a documented fail-closed message |
-| R2 No unhandled errors | Zero uncaught errors with `simplysf2e` in the stack across the release pass and 7 nights of smoke runs |
+| R2 No unhandled errors | Zero uncaught errors with `simplysf2e` in the stack across the release pass and the 14-day soak on JT's worlds |
 | R3 Time to first generation | A fresh world with a key in the clipboard reaches a created L5 monster in 3 minutes or less, and 4 clicks or fewer after pasting |
 | R4 Cost visible and bounded | Every run shows tokens, plus currency when the price is known. Big encounters show an estimate first. A per-run token budget stops runaway retries |
 | R5 Graceful failure | Every error names the cause and the next step. Cancel never leaves a draft. Retries never duplicate actors |
@@ -53,9 +53,9 @@ Planned by Fable on 2026-10-25. Status: **accepted with JT's decisions (2026-10-
 
 ### M8: many hands (QA at scale)
 
-- **Live smoke runner:** Playwright on JT's VPS drives Foundry nightly through one run per mode. It checks the created actor and the console, and writes `docs/live-log.md` entries automatically. It costs about $0.10-0.50 a night.
-- **Beta cohort:** 5-10 GMs from the Starfinder and Foundry Discords run `docs/beta-pass.md`, about 20 rows.
-- **Fix waves** come from intake and smoke failures.
+- **Live smoke runner:** not built — JT decided against a smoke bot (D1). Live testing stays manual; the golden replay suite plus JT's logged passes carry R1/R2.
+- **Beta cohort:** not recruited — JT decided against outside testers (D7). The 14-day soak runs on JT's own worlds.
+- **Fix waves** come from intake and JT's logged passes.
 
 ### M9: consumer release
 
@@ -78,7 +78,7 @@ Planned by Fable on 2026-10-25. Status: **accepted with JT's decisions (2026-10-
 
 ## 3. Top risks
 
-1. **JT is the only live tester.** Contained by the smoke runner, then the beta cohort.
+1. **JT is the only live tester.** Contained by the golden replay suite, JT's logged passes and the 14-day soak on his own worlds (no smoke bot, no outside cohort per D1/D7).
 2. **Auto-release ships beta-quality code to everyone.** Contained by the channels (M7) before the next risky merge.
 3. **Model and provider drift.** Contained by re-running the matrix each stable release, `/models` validation and an alias table.
 4. **sf2e renames packs or changes shapes.** Contained by the drift cron, a soft version warning and pinned benches.

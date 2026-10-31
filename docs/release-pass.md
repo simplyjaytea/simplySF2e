@@ -158,7 +158,7 @@ Test record: Foundry version `____` · sf2e version `____` · module version `__
 | 89 | 13i.3 | Press **Got it**, then reload. | The window closes and does not open again. | | |
 | 90 | 13i.6 | On a world where the GM already used SimplySF2e, update and log in as GM. | What's new opens once and lists the notes from this update. | | |
 
-P9 also needs a live-log entry for this build (roadmap P9). `docs/live-log.md` does not exist yet; until it does, this file's Result and Evidence columns are the record.
+P9 also needs a live-log entry for this build (roadmap P9). `docs/live-log.md` exists (one verbal 2026-10-08 session, no RC entry yet); until an RC entry is added, this file's Result and Evidence columns are the record.
 
 ## Not in this pass
 
