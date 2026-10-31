@@ -24,6 +24,7 @@ import {
 import { treasureBudget } from "./tables.mjs";
 import { assertComplete, completionManifest } from "./completion.mjs";
 import { runPool, encounterConcurrency } from "./pool.mjs";
+import { inheritRunBudget } from "./run-budget.mjs";
 
 const DEFAULT_AI = {
   generateConcept, designEncounter, chooseSpellFocus, selectSpells, selectCreatureAbilities,
@@ -370,6 +371,7 @@ export async function generateEncounter(input) {
   // thrown away.
   const memberAbort = new AbortController();
   const memberSignal = AbortSignal.any([ctx.signal, memberAbort.signal].filter(Boolean));
+  inheritRunBudget(ctx.signal, memberSignal); // encounter members share the encounter run's budget
   // Several creatures run at once, so the progress list counts finished
   // creatures: step N is active until N creatures are done.
   let finished = 0;
