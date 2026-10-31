@@ -17,6 +17,7 @@ const FUNC_MAP = {
   creatureFeatSelection: "selectCreatureFeats",
   magicItemConcept: "generateMagicItemConcept",
   encounterDesign: "designEncounter",
+  reskinFlavor: "generateReskin",
   shopConcept: "generateShopConcept",
   treasureConcept: "generateTreasureConcept",
   normalizeConcept: "normalizeConcept"

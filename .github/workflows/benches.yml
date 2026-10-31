@@ -1,0 +1,89 @@
+name: Benches
+
+# The offline benches run the real pipelines against the real sf2e pack JSON.
+# They are a regression gate: a throw anywhere fails the job. WARN is the
+# documented steady state (see PLAYBOOK §1 baselines), so it never fails here.
+#
+# The packs are pinned to one v14-dev commit so a bench result is comparable
+# from run to run. Upstream movement is the drift workflow's job, not this one:
+# bump BENCH_SHA deliberately (and the baselines in PLAYBOOK §1) when adopting it.
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  BENCH_SHA: 675d2b7d613a80572b0330364ce84659068abe66
+
+jobs:
+  benches:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      # ~5,000 small files. Keyed by source + pinned sha. Cached report files are
+      # removed after restore so a run that dies early cannot present a previous
+      # run's matrix as green.
+      - name: Restore the pinned sf2e pack cache
+        uses: actions/cache@v4
+        with:
+          path: tools/class-bench/cache
+          key: sf2e-packs-${{ hashFiles('tools/class-bench/fetch.mjs') }}-${{ env.BENCH_SHA }}
+          restore-keys: |
+            sf2e-packs-${{ hashFiles('tools/class-bench/fetch.mjs') }}-
+
+      - name: Discard cached reports
+        run: rm -f tools/class-bench/cache/*matrix.md tools/class-bench/cache/*results.json
+
+      - name: Fetch the sf2e packs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node tools/class-bench/fetch.mjs --sha "$BENCH_SHA"
+
+      - name: Class bench (8 classes x 5 levels x Free Archetype)
+        run: node tools/class-bench/run.mjs
+
+      - name: Item Forge bench
+        run: node tools/pipeline-bench/forge.mjs
+
+      - name: Shop and Treasure bench
+        run: node tools/pipeline-bench/market.mjs
+
+      - name: Creature bench
+        run: node tools/pipeline-bench/creature.mjs
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "## Bench summary (pinned sf2e source $BENCH_SHA)"
+            for file in tools/class-bench/cache/*matrix.md tools/pipeline-bench/out/matrix.md; do
+              [ -f "$file" ] || continue
+              echo ""
+              echo "### $(basename "$(dirname "$file")")/$(basename "$file")"
+              echo ""
+              echo '```'
+              grep -m1 -E '[0-9]+ PASS' "$file" || tail -n 4 "$file"
+              echo '```'
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload bench reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bench-reports
+          path: |
+            tools/class-bench/cache/*matrix.md
+            tools/class-bench/cache/*results.json
+            tools/pipeline-bench/out/
+          if-no-files-found: warn

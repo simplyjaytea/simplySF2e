@@ -565,6 +565,15 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 | 12z.5 | Generate at level 0 with Rarest stock Rare, then Large. | Only level 0 items; uncommon/rare items appear with a rarity tag; up to 24 rows. | Preview | | |
 | 12z.6 | Press Stop mid-run, and separately close the window mid-run. | Nothing is created; the usual cancelled notice appears. | Preview, Actors sidebar | | |
 
+## 12aa. Per-run token budget and run deadline
+
+| # | Do | Expect | Where | Pass | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 12aa.1 | Settings → SimplySF2e → set **Run token budget** to `5`, then generate a monster. | Setup → Concept → … runs; the run then stops with "This run reached its 5-token budget and stopped. Raise the Run token budget setting or start a new run." No actor is created and the preview is discarded. Restore the default (60000) afterwards. | Generator, Settings | | |
+| 12aa.2 | With **Run token budget** at 60000, set **Run deadline (minutes)** to `1`, start an encounter with 3+ members and leave it alone. | The run stops with "This run exceeded its time limit and stopped." before Request timeout (90 s of silence) would fire; no actors are created. Restore `0` afterwards. | Generator, Settings | | |
+| 12aa.3 | Restore both defaults and generate one monster, one PC, one Forge item. | Runs behave exactly as before this feature: no budget/deadline message, token report unchanged, and the What's-new note "Per-run token budget" appears once per GM browser after the update. | Generator, Forge | | |
+| 12aa.4 | During a PC Create (after the preview, while choice rounds run), watch for a cancel affordance. | No Cancel button is offered during the non-cancellable apply step, and closing the window asks the usual "Stop generation?" question only for a cancellable run. | Generator | | |
+
 ## 13. Firefox (if available)
 
 | # | Step | Expected | Where to look | Result | Evidence |

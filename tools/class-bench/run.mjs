@@ -292,6 +292,9 @@ for (const classData of classes) for (const fa of MODES) {
 }
 const table = [header, header.map(() => "---"), ...rows].map((r) => `| ${r.join(" | ")} |`).join("\n");
 const tally = results.reduce((t, r) => ((t[r.verdict.status] = (t[r.verdict.status] ?? 0) + 1), t), {});
+// A throw at any stage is a real failure; WARN is the documented steady state.
+// CI gates on this exit code (see .github/workflows/benches.yml).
+process.exitCode = tally.FAIL ? 1 : 0;
 const summary = `source ${source} (sf2e ${system.version}); ${ANCESTRY} / ${HERITAGE} / ${BACKGROUND}${PRIORITIES.length ? ` / priorities ${PRIORITIES.join(",")}` : ""}${MULTICLASS ? ` / multiclass ${MULTICLASS} (Free Archetype on)` : ""}; ${results.length} runs: ${Object.entries(tally).map(([k, v]) => `${v} ${k}`).join(", ")}`;
 
 const tagCounts = {};
