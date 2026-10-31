@@ -1,0 +1,104 @@
+{
+  "id": "negative-stream-truncated",
+  "task": "creatureConcept",
+  "note": "SSE stream ends with finish_reason length and a partial JSON body; production must retry once then fail closed as Truncated.",
+  "args": {
+    "prompt": "a vesk siege marshal commanding a breached orbital station",
+    "level": 5,
+    "rarity": "common",
+    "allowSpellcasting": false,
+    "intent": "monster"
+  },
+  "responses": [
+    {
+      "sse": [
+        {
+          "choices": [
+            {
+              "delta": {
+                "content": "{\"name\":\"Trunc"
+              },
+              "finish_reason": null
+            }
+          ]
+        },
+        {
+          "choices": [
+            {
+              "delta": {
+                "content": "ated Marshal\","
+              },
+              "finish_reason": null
+            }
+          ]
+        },
+        {
+          "choices": [
+            {
+              "delta": {
+                "content": "\"blurb\":\"x\","
+              },
+              "finish_reason": "length"
+            }
+          ]
+        },
+        {
+          "choices": [],
+          "usage": {
+            "prompt_tokens": 10,
+            "completion_tokens": 5,
+            "total_tokens": 15
+          }
+        }
+      ]
+    },
+    {
+      "sse": [
+        {
+          "choices": [
+            {
+              "delta": {
+                "content": "{\"name\":\"Trunc"
+              },
+              "finish_reason": null
+            }
+          ]
+        },
+        {
+          "choices": [
+            {
+              "delta": {
+                "content": "ated Marshal\","
+              },
+              "finish_reason": null
+            }
+          ]
+        },
+        {
+          "choices": [
+            {
+              "delta": {
+                "content": "\"blurb\":\"x\","
+              },
+              "finish_reason": "length"
+            }
+          ]
+        },
+        {
+          "choices": [],
+          "usage": {
+            "prompt_tokens": 10,
+            "completion_tokens": 5,
+            "total_tokens": 15
+          }
+        }
+      ]
+    }
+  ],
+  "expect": {
+    "ok": false,
+    "requestCount": 2,
+    "streamed": true,
+    "errorKey": "SIMPLYSF2E.Errors.Truncated"
+  }
+}

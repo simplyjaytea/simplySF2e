@@ -40,6 +40,7 @@ The test is discovered by the normal CI loop (`scripts/*.test.mjs`), so it gates
 }
 ```
 
+- A `responses` entry may be `{ "sse": [<chunk objects or raw data: strings>] }` instead of a non-stream payload; the stub serves it as a real `text/event-stream` body. Streaming needs its own coverage because real providers stream (`stream: true`) and only the SSE reader exercises delta accumulation, the final-chunk `message.content` fallback, late usage and in-stream errors. Set `expect.streamed: true` so a fixture that silently falls back to JSON fails.
 - `equals` / `lengths` keys are dotted paths into the result.
 - `ok: false` means production must fail closed; pair it with `errorKey`. A retryable failure is retried once by `requestJSON`, so expect `requestCount: 2` for those.
 - A negative fixture can name a `base` fixture plus `remove: [...]` and/or `patch: {...}`. The loader starts from the base's known-good payload, applies exactly that one change, and repeats it for `responses.length` (default 2). That keeps every negative case a single-variable test.
@@ -64,6 +65,10 @@ The test is discovered by the normal CI loop (`scripts/*.test.mjs`), so it gates
 | `negative-bad-bulk` | An out-of-enum `bulk` fails the enum check. |
 | `negative-short-brief-list` | A short brief list still yields one brief per slot via the module's slot fallback. |
 | `negative-forged-candidates` | A reply naming only unissued ids resolves to nothing: no pick is invented. |
+| `stream-creature-concept` | A full concept delivered as SSE deltas produces the same parsed concept as the non-stream fixture. |
+| `stream-message-fallback` | A stream whose only answer is `message.content` on the final chunk is accepted via the fallback at `ai.mjs:1853`. |
+| `negative-stream-truncated` | A stream ending `finish_reason: length` fails closed as `Truncated` after exactly one retry. |
+| `negative-stream-error` | A mid-stream provider `error` record surfaces `ProviderError` and is not retried. |
 
 Each negative fixture exists so that deleting the single validator check it targets turns the suite red; a payload that trips several checks at once would hide that.
 

@@ -77,6 +77,12 @@ for (const fixture of [...raw.values()]) {
   }
 
   const expect = scenario.expect;
+  if (expect.streamed) {
+    assert.ok(
+      first.requests.contentTypes?.includes("text/event-stream"),
+      `${id}: expected an SSE response, stub served ${asJson(first.requests.contentTypes)}`
+    );
+  }
   assert.equal(
     first.error == null,
     Boolean(expect.ok),
