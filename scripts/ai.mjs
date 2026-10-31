@@ -55,7 +55,7 @@ export async function listProviderModels() {
   try {
     let response;
     try {
-      response = await fetch(modelsUrl(baseUrl), { method: "GET", headers, signal: controller.signal });
+      response = await fetchWithBackoff(modelsUrl(baseUrl), { method: "GET", headers, signal: controller.signal }, { retryBudget: { remaining: 1 }, retryNetworkErrors: true });
     } catch (err) {
       if (err.name === "AbortError" || controller.signal.aborted) {
         throw new AIRequestError(game.i18n.format("SIMPLYSF2E.Errors.Timeout", { seconds: timeoutSeconds }));
@@ -1145,7 +1145,7 @@ Use exact string IDs from the catalog. Each option must belong to that choice. R
 /* Schema documentation per item-forge effect kind. Only the kinds that
  * rule-templates.mjs actually found real exemplars for in this world are
  * offered to the model — see generateMagicItemConcept(). */
-const ITEM_EFFECT_DOCS = {
+export const ITEM_EFFECT_DOCS = {
   itemBonus: `{ "kind": "itemBonus", "statistic": OFFERED_STATISTIC, "scale": "low"|"moderate"|"high" }`,
   resistance: `{ "kind": "resistance", "damageType": OFFERED_DAMAGE_TYPE, "scale": "low"|"moderate"|"high" }`,
   weakness: `{ "kind": "weakness", "damageType": OFFERED_DAMAGE_TYPE, "scale": "low"|"moderate"|"high" } // a drawback; only when requested`,

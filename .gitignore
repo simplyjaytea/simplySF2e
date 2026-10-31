@@ -9,3 +9,5 @@
 .DS_Store
 /tools/class-bench/cache/
 /tools/pipeline-bench/out/
+# Default output of the manual provider/model matrix.
+/out/

@@ -34,6 +34,14 @@ jobs:
             node --check "$file"
           done
 
+      - name: Golden replay suite (production pipelines, stubbed provider)
+        shell: bash
+        run: node scripts/golden-replay.test.mjs
+
+      - name: AI adversarial fuzz
+        shell: bash
+        run: node scripts/ai-fuzz.test.mjs
+
       - name: Run regression checks
         shell: bash
         run: |
