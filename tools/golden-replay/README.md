@@ -62,6 +62,7 @@ The test is discovered by the normal CI loop (`scripts/*.test.mjs`), so it gates
 | `negative-scales-not-object` | An array where an object is required fails the object check. |
 | `negative-empty-name` | An empty required string fails the non-empty-string check. |
 | `negative-bad-bulk` | An out-of-enum `bulk` fails the enum check. |
+| `negative-short-brief-list` | A short brief list still yields one brief per slot via the module's slot fallback. |
 | `negative-forged-candidates` | A reply naming only unissued ids resolves to nothing: no pick is invented. |
 
 Each negative fixture exists so that deleting the single validator check it targets turns the suite red; a payload that trips several checks at once would hide that.

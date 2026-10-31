@@ -1,0 +1,26 @@
+{
+  "id": "negative-short-brief-list",
+  "task": "encounterDesign",
+  "note": "A short brief list still yields one brief per fixed slot: the missing slot gets the module's slot fallback (theme, level, role) instead of an undefined member prompt downstream.",
+  "base": "encounter-design",
+  "patch": {
+    "briefs": ["A hulking salvage golem built from a wrecked freighter's spine."]
+  },
+  "args": {
+    "theme": "a derelict hangar taken over by salvage drones",
+    "partyLevel": 5,
+    "slots": [
+      { "level": 5, "count": 1, "role": "boss" },
+      { "level": 3, "count": 2, "role": "minion" }
+    ]
+  },
+  "expect": {
+    "ok": true,
+    "requestCount": 1,
+    "lengths": { "briefs": 2 },
+    "equals": {
+      "briefs.0": "A hulking salvage golem built from a wrecked freighter's spine.",
+      "briefs.1": "a derelict hangar taken over by salvage drones — a level 3 minion"
+    }
+  }
+}

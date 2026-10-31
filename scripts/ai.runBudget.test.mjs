@@ -139,8 +139,17 @@ const args = (signal) => ({ concept, tradition: "arcane", signal });
     }));
   };
   const startedAt = Date.now();
+  // Watchdog: a regression that lets a keep-alive stream survive the deadline
+  // must FAIL this test quickly rather than hang the whole CI job.
+  const watchdog = new Promise((_resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(new Error("run deadline never fired: the request outlived 900ms")),
+      900
+    );
+    timer.unref?.();
+  });
   try {
-    await assert.rejects(chooseSpellFocus(args(sig)), (err) => {
+    await assert.rejects(Promise.race([chooseSpellFocus(args(sig)), watchdog]), (err) => {
       assert.match(err.message, /RunDeadline/);
       assert.equal(err.runLimit, true);
       return true;

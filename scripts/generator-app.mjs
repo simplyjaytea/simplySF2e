@@ -1726,6 +1726,9 @@ export class GeneratorApp extends SpfApp {
             return picks;
           } catch (err) {
             this._recordTokens(label, err.usage);
+            // A cancelled run or a run-level limit must stop the run with its
+            // own message; only an ordinary failure leaves choices to the GM.
+            if (err?.cancelled || err?.runLimit) throw err;
             ui.notifications.warn(game.i18n.localize("SIMPLYSF2E.Generator.ChoicesNeedInput"));
             throw err; // The builder leaves unanswered choices to PF2e.
           } finally {
