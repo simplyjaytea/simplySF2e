@@ -34,7 +34,6 @@ const { chooseSpellFocus } = await import("./ai.mjs");
   // spend budget
   const { spendRunTokens } = await import("./run-budget.mjs");
   spendRunTokens(sig, { total: 5 });
-  const before = (globalThis.fetchCalls = 0);
   let reqCount = 0;
   const origFetch = globalThis.fetch;
   globalThis.fetch = async () => { reqCount++; return origFetch(); };
@@ -59,13 +58,15 @@ const { chooseSpellFocus } = await import("./ai.mjs");
 {
   const sig = new AbortController().signal;
   beginRunBudget(sig, { tokenBudget: 1000, deadlineMs: 0 });
+  providerReplies.length = 0;
   providerReplies.push(
     { choices: [{ message: { content: '{"keywords":["t"' }, finish_reason: "length" }], usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 5 } },
     { choices: [{ message: { content: '{"keywords":["t","ok"]}' }, finish_reason: "stop" }], usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 } }
   );
+  const beforeC = globalThis.fetch ? 0 : 0;
   await chooseSpellFocus({ concept: { name: "Z", level: 1, blurb: "b", description: "d", traits: ["fire"] }, tradition: "arcane", signal: sig });
   const { getRunBudget } = await import("./run-budget.mjs");
-  assert.ok(getRunBudget(sig).tokensSpent > 0);
+  assert.equal(getRunBudget(sig).tokensSpent, 7);
 }
 
 // (d) deadline elapsed -> deadline message
