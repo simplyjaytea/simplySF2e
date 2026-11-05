@@ -156,6 +156,10 @@
       "GotIt": "Got it",
       "Disable": "Don't show for updates",
       "Note": {
+        "AreaBlast": {
+          "Title": "Breaths and blasts with real numbers",
+          "Body": "Creatures' breath weapons and blasts can now be working abilities. The area, damage and DC come from GM Core for the creature's level, and a limited blast can be recharged."
+        },
         "BlankAbilities": {
           "Title": "Creature abilities get real values again",
           "Body": "Constrict, Greater Constrict, Swallow Whole, Engulf, Trample, Frightful Presence and Stench now get their damage, DCs, sizes and aura sizes for the creature's level, from the GM Core tables and published creatures. Trample uses the creature's own strike. An ability that cannot be filled, such as a tiny creature with Swallow Whole, is left out, and the console names it."
