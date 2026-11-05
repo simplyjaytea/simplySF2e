@@ -286,8 +286,8 @@ When a run fails, the red error box in the Generator or Item Forge has a **Copy 
 
 Before you roll back, back up your world.
 
-- **Install an older version:** use its manifest link, for example `https://github.com/simplyjaytea/simplySF2e/releases/download/vX.Y.Z/module.json` (replace `X.Y.Z`). Install it from **Add-on Modules → Install Module**.
-- **Keep it there:** in **Add-on Modules**, do not press **Update** on SimplySF2e. Foundry offers an update whenever the manifest it checks is newer than your install.
+- **Install an older version:** install it using its manifest link, for example `https://github.com/simplyjaytea/simplySF2e/releases/download/vX.Y.Z/module.json` (replace `X.Y.Z`).
+- **Stay on it:** do not update it until you want to return to stable or beta.
 - **Back to stable:** use `https://github.com/simplyjaytea/simplySF2e/releases/latest/download/module.json`.
 - **Back to beta:** use `https://github.com/simplyjaytea/simplySF2e/releases/download/beta/module.json`.
 
