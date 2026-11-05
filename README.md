@@ -282,6 +282,15 @@ When a run fails, the red error box in the Generator or Item Forge has a **Copy 
 | "The AI ran out of tokens before finishing its answer" | Try a model with more efficient structured output, or shorten the description. Raise **Max response tokens** only if it is below the step's own cap. |
 | "The AI returned reasoning but no JSON…", "not valid JSON", or "incomplete" | Generate again. If it keeps happening, switch to a stronger model, or one that puts its answer in the normal content field. An empty response is already retried once automatically. |
 
+## Rolling back
+
+Before you roll back, back up your world.
+
+- **Install an older version:** install it using its manifest link, for example `https://github.com/simplyjaytea/simplySF2e/releases/download/vX.Y.Z/module.json` (replace `X.Y.Z`).
+- **Stay on it:** do not update it until you want to return to stable or beta.
+- **Back to stable:** use `https://github.com/simplyjaytea/simplySF2e/releases/latest/download/module.json`.
+- **Back to beta:** use `https://github.com/simplyjaytea/simplySF2e/releases/download/beta/module.json`.
+
 ## Privacy
 
 - **What is sent.** Each generation sends your description, the generator's own instructions, and lists of candidate compendium entries (spells, feats, equipment, abilities and so on, mostly by name with the details the AI needs to choose between them) to the provider of the active connection. A Reskin also sends the dropped creature's name, level, rarity, traits, blurb and the names of its strikes and abilities. Nothing else in the world is sent. A hosted provider's own data policy applies to what it receives. A local Ollama or LM Studio server keeps everything on your machine.
