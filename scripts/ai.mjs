@@ -161,7 +161,12 @@ JSON schema (all keys required unless marked optional):
       "glossary": string|null, // EXACT published Starfinder 2e bestiary glossary ability name if this is one, else null
       "description": string, // for glossary abilities, a brief thematic hint only; otherwise a short narrative-only description with NO rules, damage, DCs, actions, traits, conditions, or numeric mechanics
       "abilityDcScale": "moderate"|"high"|null, // ONLY for a glossary ability that has a DC (not spellcasting): moderate = default for auras; high = stronger saves; null = default
-      "damageType": "bludgeoning"|"piercing"|"slashing"|"acid"|"cold"|"electricity"|"fire"|"sonic"|"poison"|null // glossary abilities with damage: the damage type that fits; null for the default
+      "damageType": "bludgeoning"|"piercing"|"slashing"|"acid"|"cold"|"electricity"|"fire"|"sonic"|"poison"|null, // glossary abilities with damage: the damage type that fits; null for the default
+      "template": "area-blast"|null, // ONLY for a bespoke breath or blast: "area-blast" builds a working ability from these enum words; otherwise null
+      "shape": "cone"|"line"|null, // area-blast only
+      "size": "small"|"medium"|"large"|null, // area-blast only; null = medium
+      "save": "reflex"|"fortitude"|"will"|null, // area-blast only; null = reflex
+      "use": "at-will"|"limited"|null // area-blast only; null = at-will; "limited" when the creature must recharge it
     }
   ],
   "spellcasting": null | {

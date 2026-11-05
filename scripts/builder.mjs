@@ -1,6 +1,7 @@
 import * as T from "./tables.mjs";
 import { getPacksFor, findEntry, getDocument, toItemData, priceToGp, isIssuedCandidate, placeholderState, placeholderDocFor } from "./compendium.mjs";
 import { ABILITY_DAMAGE_TYPES, ABILITY_DC_SCALES, fillBlocker, fillPlaceholderAbility, hasPlaceholderValues, isFillableEntry } from "./ability-fill.mjs";
+import { buildAreaBlast, normalizeAreaBlast } from "./ability-templates.mjs";
 import { slugify, capitalized, esc, toHtml } from "./text.mjs";
 import { applyReskin, recallKnowledgeNote } from "./reskin.mjs";
 import { isPlaceholderArt } from "./art.mjs";
@@ -510,18 +511,25 @@ export function normalizeConcept(raw, { level, rarity }) {
     specialAbilities: (Array.isArray(c.specialAbilities) ? c.specialAbilities : [])
       .filter((a) => a?.name)
       .slice(0, 6)
-      .map((a) => ({
+      .map((a) => {
+        // A valid area-blast template is built from enums (ability-templates.mjs).
+        // Its flavor is dropped when it names dice, a DC or Hit Points.
+        const areaBlast = normalizeAreaBlast(a);
+        const rawDescription = String(a.description ?? "");
+        return {
         name: String(a.name),
         glossary: a.glossary ? String(a.glossary) : null,
         candidate: a.candidate?.packId && a.candidate?._id ? a.candidate : null,
         narrative: Boolean(a.narrative),
         actionType: ["action", "reaction", "free", "passive"].includes(a.actionType) ? a.actionType : "passive",
         actions: [1, 2, 3].includes(Number(a.actions)) ? Number(a.actions) : null,
-        description: String(a.description ?? ""),
+        areaBlast,
+        description: areaBlast && narrativeHasMechanics(rawDescription) ? "" : rawDescription,
         abilityDcScale: ABILITY_DC_SCALES.includes(a.abilityDcScale) ? a.abilityDcScale : null,
         damageType: ABILITY_DAMAGE_TYPES.includes(a.damageType) ? a.damageType : null,
         traits: (Array.isArray(a.traits) ? a.traits : []).map(slugify).filter(Boolean)
-      })),
+        };
+      }),
     spellcasting,
     // Focus spells ride on the normal spellcasting DC (v1 scope: focus-only
     // creatures are unsupported), so force [] when spellcasting is absent —
@@ -917,6 +925,11 @@ function fillDryRunBlocker(entry, doc, ability, concept) {
 export async function resolveConcept(concept, { exactContent = false } = {}) {
   const abilities = [];
   for (const ability of concept.specialAbilities) {
+    // An area blast is built by createActor from its enum spec: no compendium entry, not narrative.
+    if (ability.areaBlast) {
+      abilities.push({ ability, entry: null });
+      continue;
+    }
     let entry = null;
     if (isIssuedCandidate(ability.candidate, getPacksFor("abilities"))) {
       entry = ability.candidate;
@@ -1614,7 +1627,21 @@ export async function createActor(concept, resolved, { img = null, scaffold = nu
   // Special abilities → exact glossary clones or explicitly narrative actions.
   // Melee strikes as built above, for a fillable ability's trample strike (R6).
   const meleeStrikes = stats.strikes.filter((s) => s.type !== "ranged").map((s) => ({ name: capitalized(s.name), damage: s.damage, type: "melee" }));
-  for (const { ability, entry } of resolved.abilities) {
+  for (const { ability: resolvedAbility, entry } of resolved.abilities) {
+    let ability = resolvedAbility;
+    if (ability.areaBlast) {
+      const blast = buildAreaBlast(ability.areaBlast, { level: concept.level, name: ability.name, flavor: ability.description });
+      if (blast) {
+        items.push(blast);
+        continue;
+      }
+      console.warn(`simplysf2e | "${ability.name}" could not be built as an area blast for this creature (level ${concept.level})`);
+      if (narrativeHasMechanics(ability.description)) {
+        console.warn(`simplysf2e | dropped "${ability.name}": it is not a valid area blast and its text names dice, a DC or Hit Points`);
+        continue;
+      }
+      ability = { ...ability, narrative: true };
+    }
     const doc = await getSelectedDocument(entry);
     if (doc) {
       const data = toItemData(doc);

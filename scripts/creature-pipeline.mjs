@@ -160,13 +160,16 @@ export async function refineCreatureAbilities(concept, ctxIn) {
   const ctx = makeContext(ctxIn);
   if (!concept?.specialAbilities?.length) return;
   const draft = concept.specialAbilities;
+  // Area blasts are module-built (createActor), so they are not narrative and
+  // their flavor is handled there; they count toward the same six-ability cap.
   const narratives = draft.filter((ability) => !ability.glossary)
     .filter((ability) => {
+      if (ability.areaBlast) return true;
       if (!narrativeHasMechanics(ability.description)) return true;
       console.warn(`${MODULE_ID} | dropped narrative ability "${ability.name}": its text names dice, a DC or Hit Points`);
       return false;
     })
-    .map((ability) => ({ ...ability, narrative: true }));
+    .map((ability) => (ability.areaBlast ? ability : { ...ability, narrative: true }));
   try {
     const keywords = draft.flatMap((ability) => [ability.glossary, ability.name])
       .map((name) => String(name ?? "").toLowerCase()).filter(Boolean);

@@ -670,7 +670,8 @@ export class GeneratorApp extends SpfApp {
       name: ability.name,
       fromGlossary: Boolean(entry),
       glossaryName: entry?.name ?? null,
-      narrative: Boolean(ability.narrative),
+      // A module-built area blast shows with the narrative label (no compendium source).
+      narrative: Boolean(ability.narrative || ability.areaBlast),
       description: ability.description,
       index,
       rerollable: rerollable("ability", index)
