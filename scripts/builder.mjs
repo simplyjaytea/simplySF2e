@@ -1,5 +1,5 @@
 import * as T from "./tables.mjs";
-import { getPacksFor, findEntry, getDocument, toItemData, priceToGp, isIssuedCandidate, placeholderState } from "./compendium.mjs";
+import { getPacksFor, findEntry, getDocument, toItemData, priceToGp, isIssuedCandidate, placeholderState, placeholderDocFor } from "./compendium.mjs";
 import { ABILITY_DAMAGE_TYPES, ABILITY_DC_SCALES, fillBlocker, fillPlaceholderAbility, hasPlaceholderValues, isFillableEntry } from "./ability-fill.mjs";
 import { slugify, capitalized, esc, toHtml } from "./text.mjs";
 import { applyReskin, recallKnowledgeNote } from "./reskin.mjs";
@@ -895,6 +895,25 @@ export function customEquipmentItem(name, quantity, value) {
  * Resolve every compendium reference in a concept. Returns lookup results so
  * the preview can show what was found and what will become a custom ability.
  */
+/**
+ * Why a fillable blank cannot be filled for this creature, or null (FIX-B5).
+ * A dry run of the build-time fill on the loaded document, so resolve and build
+ * share one decision. The concept's strikes have no damage formula yet (the
+ * build computes it), so a placeholder "1d4" stands in for the dry run only;
+ * the build fills with the built strikes' real damage.
+ */
+function fillDryRunBlocker(entry, doc, ability, concept) {
+  const reason = fillBlocker(entry, { level: concept.level, size: concept.size, strikes: concept.strikes ?? [] });
+  if (reason) return reason;
+  if (!doc) return "its published text could not be read";
+  const dryStrikes = (concept.strikes ?? []).filter((s) => s.type !== "ranged").map((s) => ({ name: s.name, type: "melee", damage: "1d4" }));
+  const filled = fillPlaceholderAbility(toItemData(doc), {
+    level: concept.level, size: concept.size, strikes: dryStrikes,
+    abilityDcScale: ability.abilityDcScale, damageType: ability.damageType
+  });
+  return filled ? null : "published text does not match the expected blanks";
+}
+
 export async function resolveConcept(concept, { exactContent = false } = {}) {
   const abilities = [];
   for (const ability of concept.specialAbilities) {
@@ -913,7 +932,7 @@ export async function resolveConcept(concept, { exactContent = false } = {}) {
       // A fillable blank is kept if this creature can take its fill (createActor fills it);
       // otherwise it is treated like any other blank ability.
       const unfillable = state === "blank" && isFillableEntry(entry)
-        ? fillBlocker(entry, { level: concept.level, size: concept.size, strikes: concept.strikes ?? [] })
+        ? fillDryRunBlocker(entry, placeholderDocFor(entry), ability, concept)
         : null;
       if (unfillable) console.warn(`simplysf2e | "${ability.name}" cannot be filled for this creature: ${unfillable}`);
       if (state !== "clean" && !(state === "blank" && isFillableEntry(entry) && !unfillable)) {

@@ -855,6 +855,9 @@ async function getFullCandidates(category, type, maxRarity) {
 
 // Successful reads only: "clean" or "blank". Failed reads are never cached.
 const placeholderCache = new Map();
+// The document behind each classified entry, kept so resolveConcept can dry-run
+// the build-time fill without a second pack read (FIX-B5).
+const placeholderDocs = new Map();
 
 /**
  * Load the full document and classify it. "unreadable" (missing or thrown)
@@ -878,7 +881,13 @@ export async function placeholderState(entry) {
   }
   const state = hasPlaceholderValues(doc) ? "blank" : "clean";
   placeholderCache.set(key, state);
+  placeholderDocs.set(key, doc);
   return state;
+}
+
+/** The document loaded by placeholderState for this entry, or null. */
+export function placeholderDocFor(entry) {
+  return placeholderDocs.get(`${entry?.packId}:${entry?._id}`) ?? null;
 }
 
 /** True unless the ability is clean: blank and unreadable are both left out. */
@@ -889,6 +898,7 @@ export async function isPlaceholderEntry(entry) {
 /** Test seam: forget classified documents (packs are not edited during a session). */
 export function clearPlaceholderCache() {
   placeholderCache.clear();
+  placeholderDocs.clear();
 }
 
 /**
