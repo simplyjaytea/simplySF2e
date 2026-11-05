@@ -54,6 +54,16 @@ export default [
     })
   },
   {
+    id: "welcome-model-selected",
+    app: "welcome",
+    context: welcome({
+      modelChoice: true,
+      model: "openai/gpt-6-luna",
+      availableModels: ["deepseek/deepseek-v4.1-flash", "openai/gpt-6-luna"],
+      connectDisabled: false
+    })
+  },
+  {
     id: "welcome-connected",
     app: "welcome",
     context: welcome({
@@ -68,7 +78,11 @@ export default [
     context: welcome({
       apiKey: "sk-or-v1-preview-only",
       connectDisabled: false,
-      errorMessage: localize("SIMPLYSF2E.Welcome.BadKeyMessage", { provider: "OpenRouter" })
+      errorMessage: localize("SIMPLYSF2E.Errors.ApiError", {
+        status: 401,
+        detail: localize("SIMPLYSF2E.Errors.NoErrorDetail"),
+        hint: localize("SIMPLYSF2E.Errors.ApiAuthHint")
+      })
     })
   },
   { id: "welcome-advanced", app: "welcome", context: welcome({ advancedOpen: true }) },

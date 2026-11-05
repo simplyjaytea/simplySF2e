@@ -157,6 +157,8 @@ export class GeneratorApp extends SpfApp {
   #savedInputJson = null;
   /** True while a chat command is rendering the form before its run starts. */
   #chatPending = false;
+  /** Preview-only samples leave the GM's remembered Generator inputs untouched. */
+  #rememberInputSuspended = false;
   constructor(...args) {
     super(...args);
     // Isolated tests build the app without Foundry's settings.
@@ -193,11 +195,18 @@ export class GeneratorApp extends SpfApp {
     this.#rememberInput();
   }
 
-  /** Chat command with a prompt: fill the form and start a preview (no Create). */
-  async runFromChat(updates = {}) {
+  /** Chat/sample prompt: fill the form and start a preview (no Create). */
+  async runFromChat(updates = {}, { remember = true } = {}) {
+    const previousRememberSuspension = this.#rememberInputSuspended;
+    this.#rememberInputSuspended = previousRememberSuspension || !remember;
     if (this.#busy || this.#createPending || this.#chatPending) {
-      this.setInput(updates);
-      ui.notifications.warn(game.i18n.localize("SIMPLYSF2E.Chat.Busy"));
+      try {
+        if (remember) this.setInput(updates);
+        else this.#mergeInput(updates);
+        ui.notifications.warn(game.i18n.localize("SIMPLYSF2E.Chat.Busy"));
+      } finally {
+        this.#rememberInputSuspended = previousRememberSuspension;
+      }
       return;
     }
     // Held across the render so a second command cannot slip in before the run starts.
@@ -205,10 +214,12 @@ export class GeneratorApp extends SpfApp {
     try {
       this.#mergeInput(updates);
       await this.render({ force: true });
+      this.#chatPending = false;
+      return await this.#runGeneration(false, { create: false });   // preview only; the GM still clicks Create
     } finally {
       this.#chatPending = false;
+      this.#rememberInputSuspended = previousRememberSuspension;
     }
-    return this.#runGeneration(false, { create: false });   // preview only; the GM still clicks Create
   }
 
 
@@ -789,6 +800,7 @@ export class GeneratorApp extends SpfApp {
 
   /** Save the remembered settings (never the prompt) to this browser's client setting. */
   #rememberInput() {
+    if (this.#rememberInputSuspended) return;
     const json = JSON.stringify(rememberedInput(this.#input));
     if (json === this.#savedInputJson) return;
     this.#savedInputJson = json;

@@ -2,7 +2,8 @@
 // Run: node scripts/provider-connect.test.mjs
 import assert from "node:assert/strict";
 import {
-  defaultModelPresent, filterProviderModels, findProviderPreset, resolveModelChoice
+  defaultModelPresent, filterProviderModels, findProviderPreset, resolveModelChoice,
+  restoreProviderConnection, snapshotProviderConnection
 } from "./provider-connect.mjs";
 
 const presets = [
@@ -37,4 +38,27 @@ assert.deepEqual(
 );
 assert.deepEqual(resolveModelChoice([], {}), { availableModels: [], model: "", needsModelChoice: true });
 
-console.log("provider-connect.test.mjs: provider and model-choice rules verified");
+const live = {
+  apiBaseUrl: "https://old.example/v1",
+  model: "old-model",
+  apiKey: "old-key",
+  apiKeyBaseUrl: "https://old.example/v1",
+  providerBank: { activeId: "old", connections: [{ id: "old", model: "old-model" }] }
+};
+const snapshot = snapshotProviderConnection((key) => live[key]);
+live.providerBank.activeId = "new";
+live.providerBank.connections[0].model = "new-model";
+assert.equal(snapshot.providerBank.activeId, "old", "the snapshot survives in-place bank mutation");
+assert.equal(snapshot.providerBank.connections[0].model, "old-model");
+const restored = {};
+await restoreProviderConnection(snapshot, async (key, value) => { restored[key] = value; });
+assert.deepEqual(restored, {
+  apiBaseUrl: "https://old.example/v1",
+  model: "old-model",
+  apiKey: "old-key",
+  apiKeyBaseUrl: "https://old.example/v1",
+  providerBank: { activeId: "old", connections: [{ id: "old", model: "old-model" }] }
+});
+assert.notEqual(restored.providerBank, snapshot.providerBank, "restore does not share mutable bank objects");
+
+console.log("provider-connect.test.mjs: provider, model-choice and snapshot/restore rules verified");

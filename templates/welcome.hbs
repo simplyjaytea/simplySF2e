@@ -33,8 +33,8 @@
         <div class="form-group stacked">
           <label for="spf-welcome-model">{{localize "SIMPLYSF2E.Welcome.ModelChoiceLabel" provider=selectedProvider}}</label>
           <select id="spf-welcome-model" name="model" aria-describedby="spf-welcome-model-hint" {{#if connecting}}disabled{{/if}}>
-            <option value="">{{localize "SIMPLYSF2E.Welcome.ModelChoicePlaceholder"}}</option>
-            {{#each availableModels}}<option value="{{this}}">{{this}}</option>{{/each}}
+            <option value="" {{#unless model}}selected{{/unless}}>{{localize "SIMPLYSF2E.Welcome.ModelChoicePlaceholder"}}</option>
+            {{#each availableModels}}<option value="{{this}}" {{#if (eq this ../model)}}selected{{/if}}>{{this}}</option>{{/each}}
           </select>
           <p class="spf-hint" id="spf-welcome-model-hint">{{localize "SIMPLYSF2E.Welcome.ModelChoiceHint"}}</p>
         </div>

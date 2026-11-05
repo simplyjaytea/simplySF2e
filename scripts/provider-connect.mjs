@@ -25,6 +25,23 @@ export function resolveModelChoice(models, { defaultModel = "", anthropicOnly = 
   };
 }
 
+const CONNECTION_SNAPSHOT_KEYS = Object.freeze([
+  SETTINGS.apiBaseUrl, SETTINGS.model, SETTINGS.apiKey, SETTINGS.apiKeyBaseUrl, SETTINGS.providerBank
+]);
+
+/** Clone every setting a temporary Welcome connection probe can touch. */
+export function snapshotProviderConnection(read = (key) => game.settings.get(MODULE_ID, key)) {
+  return Object.fromEntries(CONNECTION_SNAPSHOT_KEYS.map((key) => [key, structuredClone(read(key))]));
+}
+
+/** Restore the exact pre-probe route, key binding and named-connection bank. */
+export async function restoreProviderConnection(
+  snapshot,
+  write = (key, value) => game.settings.set(MODULE_ID, key, value)
+) {
+  for (const key of CONNECTION_SNAPSHOT_KEYS) await write(key, structuredClone(snapshot[key]));
+}
+
 /** Save and authorize one exact provider route for Provider Setup and Welcome. */
 export async function saveProviderConnection({
   baseUrl, model = "", enteredApiKey = "", clearApiKey = false, connectionName = "",

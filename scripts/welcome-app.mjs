@@ -7,7 +7,8 @@ import { sourceReadiness, describeMissingSources } from "./compendium.mjs";
 import { jevKeySource } from "./jev.mjs";
 import { welcomeReadinessIssue, welcomeState } from "./welcome.mjs";
 import {
-  findProviderPreset, resolveModelChoice, saveProviderConnection
+  findProviderPreset, resolveModelChoice, restoreProviderConnection,
+  saveProviderConnection, snapshotProviderConnection
 } from "./provider-connect.mjs";
 import { PROVIDER_PRESETS, ProviderSetupApp } from "./provider-setup-app.mjs";
 import { SourcesConfigApp } from "./sources-app.mjs";
@@ -29,6 +30,7 @@ export class WelcomeApp extends HandlebarsApplicationMixin(ApplicationV2) {
   #model = null;
   #availableModels = [];
   #modelChoice = false;
+  #connectionSnapshot = null;
   #busy = false;
   #connected = false;
   #connectedProvider = "";
@@ -195,6 +197,7 @@ export class WelcomeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.#model = current.model;
     this.#availableModels = [];
     this.#modelChoice = false;
+    this.#connectionSnapshot = null;
     this.#connected = false;
     this.#connectedProvider = "";
     this.#errorMessage = "";
@@ -212,6 +215,7 @@ export class WelcomeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.#model = preset.model;
     this.#availableModels = [];
     this.#modelChoice = false;
+    this.#connectionSnapshot = null;
     this.#connected = false;
     this.#connectedProvider = "";
     this.#errorMessage = "";
@@ -221,6 +225,7 @@ export class WelcomeApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   static async #onConnect() {
     if (this.#busy || this.#connectDisabled()) return;
+    this.#connectionSnapshot ??= snapshotProviderConnection();
     const { preset, baseUrl } = this.#draft();
     this.#busy = true;
     this.#errorMessage = "";
@@ -244,6 +249,7 @@ export class WelcomeApp extends HandlebarsApplicationMixin(ApplicationV2) {
         this.#availableModels = choice.availableModels;
         this.#model = choice.model;
         if (choice.needsModelChoice) {
+          await restoreProviderConnection(this.#connectionSnapshot);
           this.#modelChoice = true;
           this.#focusTarget = "model";
           return;
@@ -256,6 +262,7 @@ export class WelcomeApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const warningKey = getProviderAuthWarningKey();
       if (warningKey) throw new Error(game.i18n.localize(warningKey));
       await testProviderConnection();
+      this.#connectionSnapshot = null;
       this.#connected = true;
       this.#connectedProvider = provider.name;
       this.#apiKey = "";
@@ -263,6 +270,7 @@ export class WelcomeApp extends HandlebarsApplicationMixin(ApplicationV2) {
       this.#focusTarget = "sample";
     } catch (err) {
       console.warn(`${MODULE_ID} | welcome connection failed`, err);
+      if (this.#connectionSnapshot) await restoreProviderConnection(this.#connectionSnapshot);
       this.#errorMessage = err?.message ?? String(err);
       this.#focusTarget = this.#modelChoice
         ? "model"
@@ -273,6 +281,11 @@ export class WelcomeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
   }
 
+  async close(options = {}) {
+    if (this.#busy) return this;
+    return super.close(options);
+  }
+
   static #onSample() {
     if (!this.#connected) return;
     const generator = this.#openGenerator();
@@ -280,9 +293,18 @@ export class WelcomeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.close();
     return generator.runFromChat({
       mode: "monster",
+      prompt: game.i18n.localize("SIMPLYSF2E.Welcome.SamplePrompt"),
       level: 1,
-      prompt: game.i18n.localize("SIMPLYSF2E.Welcome.SamplePrompt")
-    });
+      rarity: "common",
+      adjustment: null,
+      allowSpellcasting: true,
+      preset: "",
+      partySize: 4,
+      threat: "moderate",
+      treasureAmount: "standard",
+      rarityCap: "unique",
+      multiclass: "none"
+    }, { remember: false }).catch(console.error);
   }
 
   static #onOpenProvider() {
