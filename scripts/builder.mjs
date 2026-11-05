@@ -1,6 +1,6 @@
 import * as T from "./tables.mjs";
 import { getPacksFor, findEntry, getDocument, toItemData, priceToGp, isIssuedCandidate, placeholderState } from "./compendium.mjs";
-import { ABILITY_DAMAGE_TYPES, ABILITY_DC_SCALES, fillPlaceholderAbility, hasPlaceholderValues, isFillableEntry } from "./ability-fill.mjs";
+import { ABILITY_DAMAGE_TYPES, ABILITY_DC_SCALES, fillBlocker, fillPlaceholderAbility, hasPlaceholderValues, isFillableEntry } from "./ability-fill.mjs";
 import { slugify, capitalized, esc, toHtml } from "./text.mjs";
 import { applyReskin, recallKnowledgeNote } from "./reskin.mjs";
 import { isPlaceholderArt } from "./art.mjs";
@@ -518,7 +518,7 @@ export function normalizeConcept(raw, { level, rarity }) {
         actionType: ["action", "reaction", "free", "passive"].includes(a.actionType) ? a.actionType : "passive",
         actions: [1, 2, 3].includes(Number(a.actions)) ? Number(a.actions) : null,
         description: String(a.description ?? ""),
-        dcScale: ABILITY_DC_SCALES.includes(a.dcScale) ? a.dcScale : null,
+        abilityDcScale: ABILITY_DC_SCALES.includes(a.abilityDcScale) ? a.abilityDcScale : null,
         damageType: ABILITY_DAMAGE_TYPES.includes(a.damageType) ? a.damageType : null,
         traits: (Array.isArray(a.traits) ? a.traits : []).map(slugify).filter(Boolean)
       })),
@@ -910,10 +910,15 @@ export async function resolveConcept(concept, { exactContent = false } = {}) {
     // is never cloned. Its thematic text stays narrative-only when it names no numbers.
     if (entry) {
       const state = await placeholderState(entry);
-      // A fillable blank is kept: createActor fills it for the creature's level and size.
-      if (state !== "clean" && !(state === "blank" && isFillableEntry(entry))) {
+      // A fillable blank is kept if this creature can take its fill (createActor fills it);
+      // otherwise it is treated like any other blank ability.
+      const unfillable = state === "blank" && isFillableEntry(entry)
+        ? fillBlocker(entry, { level: concept.level, size: concept.size, strikes: concept.strikes ?? [] })
+        : null;
+      if (unfillable) console.warn(`simplysf2e | "${ability.name}" cannot be filled for this creature: ${unfillable}`);
+      if (state !== "clean" && !(state === "blank" && isFillableEntry(entry) && !unfillable)) {
         entry = null;
-        if (state === "blank") {
+        if (state === "blank" && !unfillable) {
           if (narrativeHasMechanics(ability.description)) {
             console.warn(`simplysf2e | dropped "${ability.name}": its glossary ability has blank published values and its text names dice, a DC or Hit Points`);
           } else {
@@ -1600,7 +1605,7 @@ export async function createActor(concept, resolved, { img = null, scaffold = nu
       }
       const filled = fillPlaceholderAbility(data, {
         level: concept.level, size: concept.size, strikes: meleeStrikes,
-        dcScale: ability.dcScale, damageType: ability.damageType
+        abilityDcScale: ability.abilityDcScale, damageType: ability.damageType
       });
       if (!filled) {
         console.warn(`simplysf2e | dropped "${ability.name}": its blank values cannot be filled for this creature (level ${concept.level}, size ${concept.size})`);

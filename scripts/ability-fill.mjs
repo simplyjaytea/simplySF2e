@@ -5,7 +5,7 @@
 // the published text.
 //
 // CITED / APPROVED (JT, 2026-11-05):
-// R1 DC: lookup(SPELL_DC, level, scale). Scale = the ability's dcScale from the
+// R1 DC: lookup(SPELL_DC, level, scale). Scale = the ability's abilityDcScale from the
 //    AI when it is "moderate" or "high", else the default: moderate for
 //    frightful-presence, stench and engulf; high for constrict,
 //    greater-constrict and trample. Source: Starfinder GM Core pg. 126 (SPELL_DC),
@@ -15,9 +15,10 @@
 //    Type: the glossary type; engulf's literal "damageType" becomes the AI's
 //    damageType when valid, else bludgeoning; greater-constrict takes the AI's
 //    damageType when valid, else keeps the glossary type.
-// R4 Distance (approved constants): frightful-presence "0 feet." -> "90 feet."
-//    and its Aura rule radius 0 -> 90 (published copies: 12/12 radius 90, D-FILL.md);
-//    stench "0 feet." -> "30 feet." and its Aura rule radius 0 -> 30.
+// R4 Distance (approved constants 90 and 30): frightful-presence "0 feet." -> "90 feet.",
+//    stench "0 feet." -> "30 feet.". The Aura rule radius of both abilities (0) becomes
+//    the same distance (coordinator ruling 2026-11-05; published copies: radius = distance,
+//    12/12 Frightful and 2/3 Stench, D-FILL.md).
 // R5 Size: swallow-whole "[Listed Size]" -> the label one size smaller than the
 //    creature; trample "[Size]" -> "<label one size smaller> or smaller". Size
 //    order: tiny, sm, med, lg, huge, grg. A tiny creature cannot be filled (null).
@@ -91,18 +92,35 @@ export function isFillableEntry(entry) {
 }
 
 /**
+ * Why a glossary ability cannot be filled for this creature, or null when it can.
+ * Used by resolveConcept (so an unfillable pick is dropped or made narrative
+ * before the preview) and again at build as the backstop.
+ * @param {object} item  glossary item data or index entry (only the name/slug are read)
+ * @param {{level: number, size: string, strikes?: {name?: string, damage?: string, type?: string}[]}} creature
+ * @returns {string|null}
+ */
+export function fillBlocker(item, { level, size, strikes = [] } = {}) {
+  const slug = fillableSlug(item);
+  if (!Object.hasOwn(FILLABLE_ABILITIES, slug)) return "not a fillable ability";
+  const rule = FILLABLE_ABILITIES[slug];
+  const lv = Number(level);
+  if (!Number.isInteger(lv) || lv < MIN_LEVEL || lv > MAX_LEVEL) return `level ${level} is outside the tables`;
+  if (rule.size && SIZE_ORDER.indexOf(size) <= 0) return `size ${size} has no smaller size`;
+  if (rule.strike && !strikes.some((s) => s?.name && s?.damage && s.type !== "ranged")) return "no melee Strike";
+  return null;
+}
+
+/**
  * Fill the blank tokens of one glossary ability for a creature.
  * @param {object} itemData   item data (toObject of the glossary document); not mutated
  * @param {{level: number, size: string, strikes?: {name: string, damage: string, type?: string}[],
- *          dcScale?: string|null, damageType?: string|null}} creature
+ *          abilityDcScale?: string|null, damageType?: string|null}} creature
  * @returns {object|null} new item data, or null when the ability cannot be filled
  */
-export function fillPlaceholderAbility(itemData, { level, size, strikes = [], dcScale = null, damageType = null } = {}) {
-  const slug = fillableSlug(itemData);
-  if (!Object.hasOwn(FILLABLE_ABILITIES, slug)) return null;
-  const rule = FILLABLE_ABILITIES[slug];
+export function fillPlaceholderAbility(itemData, { level, size, strikes = [], abilityDcScale = null, damageType = null } = {}) {
+  if (fillBlocker(itemData, { level, size, strikes })) return null;
+  const rule = FILLABLE_ABILITIES[fillableSlug(itemData)];
   const lv = Number(level);
-  if (!Number.isInteger(lv) || lv < MIN_LEVEL || lv > MAX_LEVEL) return null;
 
   let text = String(itemData?.system?.description?.value ?? "");
   // Replace every match of `pattern` and report whether exactly `expected` matched.
@@ -118,7 +136,7 @@ export function fillPlaceholderAbility(itemData, { level, size, strikes = [], dc
 
   // R1 DC and R2 escape DC.
   if (rule.dc) {
-    const scale = ABILITY_DC_SCALES.includes(dcScale) ? dcScale : rule.dc;
+    const scale = ABILITY_DC_SCALES.includes(abilityDcScale) ? abilityDcScale : rule.dc;
     const dc = lookup(SPELL_DC, lv, scale, []);
     ok = fill(/dc:(?=[|\]])/g, () => `dc:${dc}`, 1) && ok;
     if (rule.escape) ok = fill(/dc=0\b/g, () => `dc=${dc}`, 1) && ok;
