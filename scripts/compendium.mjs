@@ -6,6 +6,8 @@
  */
 
 import { SETTINGS, getSetting } from "./settings.mjs";
+import { hasPlaceholderValues, isFillableEntry } from "./ability-fill.mjs";
+export { hasPlaceholderValues, isFillableEntry };
 import { featPrerequisitesMet } from "./pc-prerequisites.mjs";
 import { slugify } from "./text.mjs";
 import { withinShopRarity, hasPositivePrice } from "./shop.mjs";
@@ -851,31 +853,6 @@ async function getFullCandidates(category, type, maxRarity) {
   return candidates;
 }
 
-/**
- * Blank placeholder values left in published glossary text (I-ZERO): a damage
- * roll of (0), an inline check with no DC, a dc=0 link, a bare [0], a
- * paragraph that opens with "0 feet." (the placeholder distance), or a
- * bracketed fill-in such as [Listed Size]. Patterns, not a list of names.
- */
-const PLACEHOLDER_TEXT = [
-  /@Damage\[\(0\)/,
-  /\|dc:(?=[|\]])/,
-  /\bdc=0\b/,
-  /\[0\]/,
-  /<p>0 feet\.(?=\s|@)/,
-  /\[Listed [A-Za-z ]+\]|\[(?:Size|Strike)\]/
-];
-
-/**
- * True when a published ability document still has blank placeholder text, so
- * cloning it would put blank numbers on the sheet. Pure. Rules are not read:
- * a published Aura of radius 0 can carry filled text (Stench, crest-eater).
- */
-export function hasPlaceholderValues(doc) {
-  const text = String(doc?.system?.description?.value ?? "");
-  return PLACEHOLDER_TEXT.some((pattern) => pattern.test(text));
-}
-
 // Successful reads only: "clean" or "blank". Failed reads are never cached.
 const placeholderCache = new Map();
 
@@ -940,7 +917,8 @@ export async function getAbilityCandidates(keywords = [], { signal } = {}) {
   const candidates = [];
   const seen = new Set();
   pending.forEach((entry, i) => {
-    if (states[i] !== "clean" || seen.has(entry.normalized)) return;
+    const offered = states[i] === "clean" || (states[i] === "blank" && isFillableEntry(entry));
+    if (!offered || seen.has(entry.normalized)) return;
     seen.add(entry.normalized);
     candidates.push(candidateRecord(entry, {
       name: entry.name,

@@ -159,7 +159,9 @@ JSON schema (all keys required unless marked optional):
     {
       "name": string,
       "glossary": string|null, // EXACT published Starfinder 2e bestiary glossary ability name if this is one, else null
-      "description": string // for glossary abilities, a brief thematic hint only; otherwise a short narrative-only description with NO rules, damage, DCs, actions, traits, conditions, or numeric mechanics
+      "description": string, // for glossary abilities, a brief thematic hint only; otherwise a short narrative-only description with NO rules, damage, DCs, actions, traits, conditions, or numeric mechanics
+      "dcScale": "moderate"|"high"|null, // glossary abilities with a DC: the SF2e DC scale that fits the creature; null for the default
+      "damageType": "bludgeoning"|"piercing"|"slashing"|"acid"|"cold"|"electricity"|"fire"|"sonic"|"poison"|null // glossary abilities with damage: the damage type that fits; null for the default
     }
   ],
   "spellcasting": null | {

@@ -1,5 +1,6 @@
 import * as T from "./tables.mjs";
 import { getPacksFor, findEntry, getDocument, toItemData, priceToGp, isIssuedCandidate, placeholderState } from "./compendium.mjs";
+import { ABILITY_DAMAGE_TYPES, ABILITY_DC_SCALES, fillPlaceholderAbility, hasPlaceholderValues, isFillableEntry } from "./ability-fill.mjs";
 import { slugify, capitalized, esc, toHtml } from "./text.mjs";
 import { applyReskin, recallKnowledgeNote } from "./reskin.mjs";
 import { isPlaceholderArt } from "./art.mjs";
@@ -517,6 +518,8 @@ export function normalizeConcept(raw, { level, rarity }) {
         actionType: ["action", "reaction", "free", "passive"].includes(a.actionType) ? a.actionType : "passive",
         actions: [1, 2, 3].includes(Number(a.actions)) ? Number(a.actions) : null,
         description: String(a.description ?? ""),
+        dcScale: ABILITY_DC_SCALES.includes(a.dcScale) ? a.dcScale : null,
+        damageType: ABILITY_DAMAGE_TYPES.includes(a.damageType) ? a.damageType : null,
         traits: (Array.isArray(a.traits) ? a.traits : []).map(slugify).filter(Boolean)
       })),
     spellcasting,
@@ -907,7 +910,8 @@ export async function resolveConcept(concept, { exactContent = false } = {}) {
     // is never cloned. Its thematic text stays narrative-only when it names no numbers.
     if (entry) {
       const state = await placeholderState(entry);
-      if (state !== "clean") {
+      // A fillable blank is kept: createActor fills it for the creature's level and size.
+      if (state !== "clean" && !(state === "blank" && isFillableEntry(entry))) {
         entry = null;
         if (state === "blank") {
           if (narrativeHasMechanics(ability.description)) {
@@ -1584,10 +1588,25 @@ export async function createActor(concept, resolved, { img = null, scaffold = nu
   }
 
   // Special abilities → exact glossary clones or explicitly narrative actions.
+  // Melee strikes as built above, for a fillable ability's trample strike (R6).
+  const meleeStrikes = stats.strikes.filter((s) => s.type !== "ranged").map((s) => ({ name: capitalized(s.name), damage: s.damage, type: "melee" }));
   for (const { ability, entry } of resolved.abilities) {
     const doc = await getSelectedDocument(entry);
     if (doc) {
-      items.push(toItemData(doc));
+      const data = toItemData(doc);
+      if (!hasPlaceholderValues(data)) {
+        items.push(data);
+        continue;
+      }
+      const filled = fillPlaceholderAbility(data, {
+        level: concept.level, size: concept.size, strikes: meleeStrikes,
+        dcScale: ability.dcScale, damageType: ability.damageType
+      });
+      if (!filled) {
+        console.warn(`simplysf2e | dropped "${ability.name}": its blank values cannot be filled for this creature (level ${concept.level}, size ${concept.size})`);
+        continue;
+      }
+      items.push(filled);
       continue;
     }
     if (!ability.narrative) continue;
