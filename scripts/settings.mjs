@@ -20,8 +20,43 @@ export const SETTINGS = {
   welcomeDismissed: "welcomeDismissed",
   whatsNewSeen: "whatsNewSeen",
   whatsNewDisabled: "whatsNewDisabled",
-  generatorInput: "generatorInput"
+  generatorInput: "generatorInput",
+  settingsSchema: "settingsSchema"
 };
+
+/** Version of the stored world settings layout. Bump with a new SETTINGS_MIGRATIONS step. */
+export const SETTINGS_SCHEMA = 1;
+
+/**
+ * Ordered upgrades: { version, run }, where `run` upgrades stored settings to
+ * `version`. Empty today: schema 1 is the first versioned layout.
+ */
+export const SETTINGS_MIGRATIONS = [];
+
+/**
+ * Steps still to run for a world stored at `stored`, up to `current`, in
+ * ascending version order. Pure, so it can be tested without Foundry.
+ */
+export function pendingSettingsMigrations(stored, current, steps = SETTINGS_MIGRATIONS) {
+  const from = Number.isFinite(stored) ? stored : 0;
+  return steps
+    .filter((step) => step.version > from && step.version <= current)
+    .sort((a, b) => a.version - b.version);
+}
+
+/**
+ * GM only, on ready: run pending steps, then record the current schema.
+ * A world already newer than this code is left alone (never downgraded).
+ */
+export async function migrateSettings(steps = SETTINGS_MIGRATIONS) {
+  if (!game.user?.isGM) return;
+  const stored = Number(game.settings.get(MODULE_ID, SETTINGS.settingsSchema)) || 0;
+  if (stored >= SETTINGS_SCHEMA) return;
+  for (const step of pendingSettingsMigrations(stored, SETTINGS_SCHEMA, steps)) {
+    await step.run();
+  }
+  await game.settings.set(MODULE_ID, SETTINGS.settingsSchema, SETTINGS_SCHEMA);
+}
 
 export function registerSettings(SourcesConfigApp, ProviderSetupApp, WelcomeApp, WhatsNewApp) {
   if (WelcomeApp) {
@@ -104,6 +139,14 @@ export function registerSettings(SourcesConfigApp, ProviderSetupApp, WelcomeApp,
     config: false,
     type: Boolean,
     default: false
+  });
+
+  // Layout version of the world settings; migrateSettings() (ready) keeps it current.
+  game.settings.register(MODULE_ID, SETTINGS.settingsSchema, {
+    scope: "world",
+    config: false,
+    type: Number,
+    default: 0
   });
 
   // Last Generator settings (never the prompt), restored on the next open.
