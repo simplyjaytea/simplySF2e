@@ -156,6 +156,10 @@
       "GotIt": "Got it",
       "Disable": "Don't show for updates",
       "Note": {
+        "ClearerErrors": {
+          "Title": "Clearer error messages and bug reports",
+          "Body": "Error messages now say what went wrong and what to do next. After you copy a bug report, an Open GitHub issue button takes you straight to the issue form, and the report is never put in the link."
+        },
         "RunBudget": {
           "Title": "Per-run token budget",
           "Body": "A run now stops at a token budget (60,000 by default) instead of retrying forever. The limit is a world setting."
