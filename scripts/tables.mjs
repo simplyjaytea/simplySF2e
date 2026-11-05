@@ -7,6 +7,8 @@
  *   PERCEPTION_AND_SAVES, SKILL, AC, HP, STRIKE_ATTACK, STRIKE_DAMAGE,
  *   SPELL_DC, SPELL_ATTACK, RESISTANCE) verified against Starfinder GM Core
  *   pp. 116–128 (Rules 989–1025). Values calibrated for SF2e Alien Core.
+ * - CITED SF2e: Area Damage (GM Core pg. 128): AREA_DAMAGE and AREA_DAMAGE_AVERAGE,
+ *   unlimited and limited use columns, printed averages kept as printed.
  * Every array is indexed by creature level, from -1 to 24 (use `idx(level)`).
  *
  * Rules data used under the ORC License; see README for attribution.
@@ -115,6 +117,27 @@ export const SPELL_ATTACK = {
   extreme:  [11, 11, 12, 14, 15, 17, 18, 19, 21, 22, 24, 25, 26, 28, 29, 31, 32, 33, 35, 36, 38, 39, 40, 42, 43, 44],
   high:     [8,  8,  9, 10, 12, 13, 14, 16, 17, 18, 20, 21, 22, 24, 25, 26, 28, 29, 30, 32, 33, 34, 36, 37, 38, 40],
   moderate: [5,  5,  6,  7,  9, 10, 11, 13, 14, 15, 17, 18, 19, 21, 22, 23, 25, 26, 27, 29, 30, 31, 33, 34, 35, 37]
+};
+
+/* CITED SF2e (Starfinder GM Core pg. 128 "Area Damage") — damage for abilities
+ * that hit an area, by level. Source: Archives of Nethys SF2e,
+ * https://2e.aonsrd.com/rules/1025-damage-dealing-abilities ("Source GM Core pg. 128").
+ * Rule text: "For abilities that deal damage in an area, use the Area Damage table.
+ * These numbers are based on a 2-action activity (e.g., Area Fire and most damaging
+ * spells). Single actions should deal much less damage." The table has unlimited-use
+ * and limited-use columns (limited: once, or once or twice but not on consecutive turns).
+ * Each formula is the printed dice string; each average is GM Core's printed value,
+ * which in some rows is not the plain dice average (e.g. level 7 unlimited 4d6 is 15).
+ * Keep both as printed; do not recompute them. */
+export const AREA_DAMAGE = {
+  unlimited: ["1d4", "1d6", "2d4", "2d6", "2d8", "3d6", "2d10", "4d6", "4d6", "5d6", "5d6", "6d6", "6d6", "5d8", "7d6", "4d12", "6d8", "8d6", "8d6", "9d6", "7d8", "6d10", "10d6", "8d8", "11d6", "11d6"],
+  limited: ["1d6", "1d10", "2d6", "3d6", "4d6", "5d6", "6d6", "7d6", "8d6", "9d6", "10d6", "11d6", "12d6", "13d6", "14d6", "15d6", "16d6", "17d6", "18d6", "19d6", "20d6", "21d6", "22d6", "23d6", "24d6", "25d6"]
+};
+
+/* Printed averages for AREA_DAMAGE, same order and levels (-1 to 24). */
+export const AREA_DAMAGE_AVERAGE = {
+  unlimited: [2, 4, 5, 7, 9, 11, 12, 14, 15, 17, 18, 20, 21, 23, 24, 26, 27, 28, 29, 30, 32, 33, 35, 36, 38, 39],
+  limited: [4, 6, 7, 11, 14, 18, 21, 25, 28, 32, 35, 39, 42, 46, 49, 53, 56, 60, 63, 67, 70, 74, 77, 81, 84, 88]
 };
 /* Level-based DCs — CITED SF2e (verified 2026-09-26): GM Screen "DCs by Level"
  * page (pBS3DUjlzVuFgapv, Starfinder GM Core pg 53), programmatic diff L0-24

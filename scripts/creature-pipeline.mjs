@@ -15,7 +15,8 @@ import {
 import { MODULE_ID } from "./settings.mjs";
 import {
   getSpellCandidates, getFocusSpellCandidates, getAbilityCandidates, getFeatCandidates,
-  getEquipmentCandidates, getLootCandidates, getScrollSpellCandidates
+  getEquipmentCandidates, getLootCandidates, getScrollSpellCandidates,
+  findEntry, getPacksFor, placeholderState
 } from "./compendium.mjs";
 import {
   normalizeConcept, normalizeLoot, resolveConcept, applyTreasureBudget, lootValueGp, parseCoins, parseScroll,
@@ -169,7 +170,18 @@ export async function refineCreatureAbilities(concept, ctxIn) {
   try {
     const keywords = draft.flatMap((ability) => [ability.glossary, ability.name])
       .map((name) => String(name ?? "").toLowerCase()).filter(Boolean);
-    const candidates = await getAbilityCandidates(keywords);
+    const candidates = await getAbilityCandidates(keywords, { signal: ctx.signal });
+    // A glossary name the draft asked for that is held back for blank published
+    // values never reaches the model; say so instead of dropping it silently.
+    const offered = new Set(candidates.map((candidate) => String(candidate.name).toLowerCase()));
+    for (const ability of draft) {
+      const name = ability.glossary;
+      if (!name || offered.has(String(name).toLowerCase())) continue;
+      const entry = await findEntry(getPacksFor("abilities"), name, (e) => e.type === "action");
+      if (entry && await placeholderState(entry) === "blank") {
+        console.warn(`${MODULE_ID} | "${name}" is a glossary ability with blank published values; not offered to the model`);
+      }
+    }
     if (!candidates.length) {
       concept.specialAbilities = [...draft.filter((ability) => ability.glossary), ...narratives].slice(0, 6);
       return;
