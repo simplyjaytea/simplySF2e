@@ -106,7 +106,8 @@ export function fillBlocker(item, { level, size, strikes = [] } = {}) {
   const lv = Number(level);
   if (!Number.isInteger(lv) || lv < MIN_LEVEL || lv > MAX_LEVEL) return `level ${level} is outside the tables`;
   if (rule.size && SIZE_ORDER.indexOf(size) <= 0) return `size ${size} has no smaller size`;
-  if (rule.strike && !strikes.some((s) => s?.name && s?.damage && s.type !== "ranged")) return "no melee Strike";
+  // Concept strikes have no damage formula yet (it is built later); the build-time fill needs it.
+  if (rule.strike && !strikes.some((s) => s?.name && s.type !== "ranged")) return "no melee Strike";
   return null;
 }
 
