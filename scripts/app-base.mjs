@@ -7,7 +7,7 @@ import {
   selectProviderConnection,
   SETTINGS
 } from "./settings.mjs";
-import { captureFailure, formatBugReport, gatherEnvironment } from "./bug-report.mjs";
+import { BUG_REPORT_ISSUE_URL, captureFailure, formatBugReport, gatherEnvironment } from "./bug-report.mjs";
 import { esc } from "./text.mjs";
 import { beginRunBudget, endRunBudget } from "./run-budget.mjs";
 import { ProviderSetupApp } from "./provider-setup-app.mjs";
@@ -29,6 +29,22 @@ const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
  * and the generate-progress step machinery, identical across both apps.
  * Subclasses use `_tokenUsage`/`_progress` and the `_`-prefixed helpers.
  */
+/**
+ * Buttons for the bug-report dialogs. The issue URL carries no report text:
+ * the GM pastes the copied report into the new issue.
+ */
+function issueButtons() {
+  return [
+    {
+      action: "issue",
+      label: "SIMPLYSF2E.BugReport.OpenIssue",
+      icon: "fa-solid fa-arrow-up-right-from-square",
+      callback: () => { window.open(BUG_REPORT_ISSUE_URL, "_blank", "noopener"); }
+    },
+    { action: "close", label: "SIMPLYSF2E.BugReport.ManualClose", default: true }
+  ];
+}
+
 export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
   /** Exact token usage per AI call of the last generation: [{label, usage}]. */
   _tokenUsage = [];
@@ -88,19 +104,24 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
       getSetting
     });
     const text = formatBugReport({ app: appName, failure, input, env, secrets });
+    const { DialogV2 } = foundry.applications.api;
     if (await this._writeClipboard(text)) {
-      ui.notifications.info(game.i18n.localize("SIMPLYSF2E.BugReport.Copied"));
+      await DialogV2.wait({
+        window: { title: "SIMPLYSF2E.BugReport.CopiedTitle" },
+        content: `<p>${esc(game.i18n.localize("SIMPLYSF2E.BugReport.Copied"))}</p>`,
+        buttons: issueButtons(),
+        rejectClose: false
+      });
       return;
     }
     // No clipboard access (plain-http world, denied permission): show the
     // text selected so the GM can copy it by hand.
-    const { DialogV2 } = foundry.applications.api;
-    await DialogV2.prompt({
+    await DialogV2.wait({
       window: { title: "SIMPLYSF2E.BugReport.ManualTitle" },
       position: { width: 640 },
       content: `<p>${esc(game.i18n.localize("SIMPLYSF2E.BugReport.ManualHint"))}</p>`
         + `<textarea class="spf-bug-report-text" readonly rows="14" aria-label="${esc(game.i18n.localize("SIMPLYSF2E.BugReport.ManualTitle"))}">${esc(text)}</textarea>`,
-      ok: { label: "SIMPLYSF2E.BugReport.ManualClose" },
+      buttons: issueButtons(),
       rejectClose: false,
       render: (_event, dialog) => {
         const area = (dialog?.element ?? dialog)?.querySelector?.(".spf-bug-report-text");

@@ -672,6 +672,8 @@
       "ManualTitle": "Bug report",
       "ManualHint": "This browser blocked the clipboard. The report is selected below: press Ctrl+C (Cmd+C on a Mac) to copy it.",
       "ManualClose": "Close",
+      "CopiedTitle": "Bug report copied",
+      "OpenIssue": "Open GitHub issue",
       "Failed": "Could not build the bug report. The browser console (F12) has the details."
     },
     "Errors": {

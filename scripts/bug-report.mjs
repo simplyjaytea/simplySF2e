@@ -7,6 +7,9 @@
 // settings only report whether they are set, and every string in the report
 // passes through `redactSecrets` with the configured keys as exact matches.
 
+/** New-issue form with the bug-report template. Never add report text here. */
+export const BUG_REPORT_ISSUE_URL = "https://github.com/simplyjaytea/simplySF2e/issues/new?template=bug_report.md";
+
 const MAX_STACK_LINES = 12;
 const MAX_PROMPT_CHARS = 600;
 const REDACTED = "[redacted]";
@@ -200,6 +203,7 @@ export function gatherEnvironment({ moduleId, provider = {}, jev = {}, getSettin
       // A boolean only: a GM's private proxy host stays out of the report.
       "Jev TypeSafe endpoint custom": Boolean(String(jev.endpoint ?? "").trim()),
       "Free Archetype": Boolean(getSetting("freeArchetype")),
+      "Settings schema": getSetting("settingsSchema"),
       "Source packs": packList.length ? packList : "(defaults)"
     }
   };
