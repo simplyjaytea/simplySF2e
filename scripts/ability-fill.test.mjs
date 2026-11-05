@@ -201,4 +201,89 @@ assert.equal(fillBlocker(item("Cursed Bite", SWALLOW_WHOLE), { level: 7, size: "
   }
 }
 
+// Resolve-time dry run (FIX-B5): a fillable blank whose document cannot be filled
+// is blocked before the preview, using the same fill as the build.
+async function resolveAgainstPack(packId, docsById, raw) {
+  const pack = {
+    async getIndex() {
+      return Object.entries(docsById).map(([id, d]) => ({ _id: id, name: d.name, type: "action", system: { traits: { value: [] }, actionType: { value: "passive" } } }));
+    },
+    async getDocument(id) {
+      const d = docsById[id];
+      if (!d) return null;
+      const data = { name: d.name, type: "action", system: { description: { value: d.text }, rules: structuredClone(d.rules ?? []) } };
+      return { ...data, uuid: `Compendium.${packId}.Item.${id}`, toObject: () => structuredClone(data) };
+    }
+  };
+  globalThis.game = { settings: { get: () => ({ abilities: [packId] }) }, packs: new Map([[packId, pack]]) };
+  const { resolveConcept, normalizeConcept } = await import("./builder.mjs");
+  return resolveConcept(normalizeConcept(raw, { level: raw.level, rarity: "common" }));
+}
+const abilityPick = (name, description = "It acts.") => ({ name, glossary: name, description });
+const LG_TUSK = { name: "Tusk", attackScale: "high", damageScale: "high", traits: [], attackEffects: [] };
+
+{
+  const warnings = [];
+  const original = console.warn;
+  console.warn = (message) => warnings.push(String(message));
+  try {
+    const bad = {
+      stench: { name: "Stench", text: STENCH, rules: [] },
+      constrict: { name: "Constrict", text: CONSTRICT + "<p>[0]</p>" },
+      trample: { name: "Trample", text: "<p>[Size], @Check[reflex|dc:|basic]</p>" }
+    };
+    const resolved = await resolveAgainstPack("test.bad-abilities", bad, {
+      level: 7, size: "lg", strikes: [LG_TUSK],
+      specialAbilities: [abilityPick("Stench"), abilityPick("Constrict"), abilityPick("Trample")]
+    });
+    for (const { ability, entry } of resolved.abilities) assert.equal(entry, null, `${ability.name}: malformed blank is blocked at resolve`);
+    assert.equal(warnings.filter((w) => /cannot be filled for this creature: published text does not match the expected blanks/.test(w)).length, 3,
+      "each blocked pick says why");
+  } finally {
+    console.warn = original;
+  }
+}
+
+{
+  const good = {
+    constrict: { name: "Constrict", text: CONSTRICT },
+    "greater-constrict": { name: "Greater Constrict", text: GREATER_CONSTRICT },
+    "swallow-whole": { name: "Swallow Whole", text: SWALLOW_WHOLE },
+    engulf: { name: "Engulf", text: ENGULF },
+    trample: { name: "Trample", text: TRAMPLE },
+    "frightful-presence": { name: "Frightful Presence", text: FRIGHTFUL_PRESENCE, rules: FRIGHTFUL_RULES },
+    stench: { name: "Stench", text: STENCH, rules: STENCH_RULES }
+  };
+  const warnings = [];
+  const original = console.warn;
+  console.warn = (message) => warnings.push(String(message));
+  try {
+    const first = await resolveAgainstPack("test.good-abilities", good, {
+      level: 7, size: "lg", strikes: [LG_TUSK],
+      specialAbilities: ["Constrict", "Greater Constrict", "Swallow Whole", "Engulf", "Trample", "Frightful Presence"].map((n) => abilityPick(n))
+    });
+    const second = await resolveAgainstPack("test.good-abilities", good, {
+      level: 7, size: "lg", strikes: [LG_TUSK], specialAbilities: [abilityPick("Stench")]
+    });
+    for (const { ability, entry } of [...first.abilities, ...second.abilities]) assert.ok(entry, `${ability.name}: real published text resolves for the build to fill`);
+    assert.equal(warnings.length, 0, "no warnings for real published fixtures");
+  } finally {
+    console.warn = original;
+  }
+}
+
+// Production stat builder: every melee strike the build fills from carries a damage formula.
+{
+  const { normalizeConcept, computeStats } = await import("./builder.mjs");
+  const concept = normalizeConcept({
+    level: 7, size: "lg",
+    strikes: [LG_TUSK, { name: "Ray", type: "ranged", damageScale: "high", range: 30, traits: [], attackEffects: [] }],
+    specialAbilities: []
+  }, { level: 7, rarity: "common" });
+  const stats = computeStats(concept);
+  const melee = stats.strikes.filter((st) => st.type !== "ranged");
+  assert.ok(melee.length >= 1, "at least one melee strike");
+  for (const st of melee) assert.match(String(st.damage), /^\d+d\d+/, `${st.name} carries a damage formula`);
+}
+
 console.log("ability-fill.test.mjs: ok");
