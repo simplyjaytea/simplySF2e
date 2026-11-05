@@ -177,4 +177,28 @@ assert.equal(fillBlocker(item("Cursed Bite", SWALLOW_WHOLE), { level: 7, size: "
   }
 }
 
+// Production shape: a concept from the real normalizeConcept (strikes carry no damage
+// formula until the build), so the Trample pick must still resolve.
+{
+  const warnings = [];
+  const original = console.warn;
+  console.warn = (message) => warnings.push(String(message));
+  try {
+    const { resolveConcept, normalizeConcept } = await import("./builder.mjs");
+    const raw = {
+      level: 7,
+      size: "lg",
+      strikes: [{ name: "Tusk", attackScale: "high", damageScale: "high", damageType: "piercing", traits: [], attackEffects: [] }],
+      specialAbilities: [{ name: "Trample", glossary: "Trample", description: "It tramples." }]
+    };
+    const concept = normalizeConcept(raw, { level: 7, rarity: "common" });
+    assert.equal(concept.strikes[0].damage, undefined, "normalized strikes carry no damage formula");
+    const resolved = await resolveConcept(concept);
+    assert.ok(resolved.abilities[0].entry, "trample with a name-only melee strike resolves for the build to fill");
+    assert.equal(warnings.filter((w) => /cannot be filled/.test(w)).length, 0, "no unfillable warning for a fillable trample");
+  } finally {
+    console.warn = original;
+  }
+}
+
 console.log("ability-fill.test.mjs: ok");
