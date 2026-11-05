@@ -1,21 +1,40 @@
-import { MODULE_ID, SETTINGS, getSetting, getProviderAuthWarningKey } from "./settings.mjs";
+import {
+  MODULE_ID, SETTINGS, getProviderAuthWarningKey, getProviderRequestConfig,
+  getSetting, isLikelyKeylessLocalEndpoint, normalizeApiBaseUrl
+} from "./settings.mjs";
+import { listProviderModels, testProviderConnection } from "./ai.mjs";
 import { sourceReadiness, describeMissingSources } from "./compendium.mjs";
 import { jevKeySource } from "./jev.mjs";
-import { welcomeState } from "./welcome.mjs";
-import { ProviderSetupApp } from "./provider-setup-app.mjs";
+import { welcomeReadinessIssue, welcomeState } from "./welcome.mjs";
+import {
+  findProviderPreset, resolveModelChoice, saveProviderConnection
+} from "./provider-connect.mjs";
+import { PROVIDER_PRESETS, ProviderSetupApp } from "./provider-setup-app.mjs";
 import { SourcesConfigApp } from "./sources-app.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
+const GOOGLE_PRESET = {
+  id: "google", label: "Google", icon: "fa-cloud",
+  baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai", model: ""
+};
+const WELCOME_PROVIDER_IDS = ["openrouter", "openai", "deepseek", "google", "ollama"];
 
-/**
- * First-run welcome: checks the Starfinder system, compendium content and the
- * AI connection, and links to the window that fixes each. Opens by itself at
- * login until the connection works or the GM ticks "Don't show this again"
- * (see shouldAutoOpenWelcome); always reachable from module settings and
- * `/sf2e welcome`.
- */
+/** First-run provider connection and a preview-only sample generation. */
 export class WelcomeApp extends HandlebarsApplicationMixin(ApplicationV2) {
   #openGenerator;
+  #selectedId = "openrouter";
+  #anthropicOnly = false;
+  #apiKey = "";
+  #baseUrl = null;
+  #model = null;
+  #availableModels = [];
+  #modelChoice = false;
+  #busy = false;
+  #connected = false;
+  #connectedProvider = "";
+  #errorMessage = "";
+  #focusTarget = null;
+  #advancedOpen = false;
 
   constructor(options = {}, openGenerator = null) {
     super(options);
@@ -35,9 +54,11 @@ export class WelcomeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     },
     position: { width: 520, height: "auto" },
     actions: {
+      chooseProvider: WelcomeApp.#onChooseProvider,
+      connect: WelcomeApp.#onConnect,
+      sample: WelcomeApp.#onSample,
       openProvider: WelcomeApp.#onOpenProvider,
       openSources: WelcomeApp.#onOpenSources,
-      openGenerator: WelcomeApp.#onOpenGenerator,
       recheck: WelcomeApp.#onRecheck,
       closeWelcome: WelcomeApp.#onClose
     }
@@ -46,6 +67,30 @@ export class WelcomeApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static PARTS = {
     body: { template: `modules/${MODULE_ID}/templates/welcome.hbs`, scrollable: [""] }
   };
+
+  #preset(id = this.#selectedId) {
+    if (id === "google") return GOOGLE_PRESET;
+    return findProviderPreset(id, PROVIDER_PRESETS) ?? findProviderPreset("openrouter", PROVIDER_PRESETS);
+  }
+
+  #draft() {
+    const preset = this.#preset();
+    return {
+      preset,
+      baseUrl: this.#baseUrl ?? preset.baseUrl,
+      model: this.#model ?? preset.model
+    };
+  }
+
+  #connectDisabled() {
+    if (this.#busy) return true;
+    const { baseUrl, model } = this.#draft();
+    if (this.#modelChoice) return !String(model ?? "").trim();
+    if (isLikelyKeylessLocalEndpoint(baseUrl)) return false;
+    if (this.#apiKey.trim()) return false;
+    const current = getProviderRequestConfig();
+    return !(current.hasConfiguredApiKey && normalizeApiBaseUrl(current.baseUrl) === normalizeApiBaseUrl(baseUrl));
+  }
 
   async _prepareContext() {
     const state = welcomeState({
@@ -56,60 +101,204 @@ export class WelcomeApp extends HandlebarsApplicationMixin(ApplicationV2) {
       providerWarningKey: getProviderAuthWarningKey(),
       jevSource: jevKeySource()
     });
+    const issue = welcomeReadinessIssue(state);
+    const { preset, baseUrl, model } = this.#draft();
+    const keyless = isLikelyKeylessLocalEndpoint(baseUrl);
     return {
-      ...state,
-      sourcesMissing: describeMissingSources(state.sources.missing),
-      providerWarning: state.provider.warningKey ? game.i18n.localize(state.provider.warningKey) : "",
-      providers: [
-        { id: "openrouter", label: "OpenRouter", icon: "fa-cloud", selected: true, recommended: true, note: "" },
-        { id: "openai", label: "OpenAI", icon: "fa-cloud", selected: false, recommended: false, note: "" },
-        { id: "deepseek", label: "DeepSeek", icon: "fa-cloud", selected: false, recommended: false, note: "" },
-        { id: "google", label: "Google", icon: "fa-cloud", selected: false, recommended: false, note: game.i18n.localize("SIMPLYSF2E.Welcome.LiveCheckPending") },
-        { id: "ollama", label: "Ollama", icon: "fa-server", selected: false, recommended: false, note: "" }
-      ],
-      selectedProvider: "OpenRouter",
-      apiKey: "",
-      keyless: false,
-      showBaseUrl: false,
-      baseUrl: "",
-      connectDisabled: true,
-      connecting: false,
-      connected: false,
-      connectionProvider: "",
-      model: "",
-      errorMessage: "",
-      advancedOpen: false,
+      readinessWarning: issue === "system"
+        ? game.i18n.format("SIMPLYSF2E.Welcome.SystemOld", { version: state.system.version, minimum: state.system.minimum })
+        : issue === "sources"
+          ? game.i18n.format("SIMPLYSF2E.Welcome.SourcesMissing", { categories: describeMissingSources(state.sources.missing) })
+          : "",
+      providers: WELCOME_PROVIDER_IDS.map((id) => {
+        const provider = this.#preset(id);
+        return {
+          ...provider,
+          selected: id === this.#selectedId,
+          recommended: id === "openrouter",
+          note: id === "google" ? game.i18n.localize("SIMPLYSF2E.Welcome.LiveCheckPending") : ""
+        };
+      }),
+      selectedProvider: preset.label,
+      apiKey: this.#apiKey,
+      keyless,
+      showBaseUrl: keyless || ["ollama", "lmstudio"].includes(this.#selectedId),
+      baseUrl,
+      model,
+      availableModels: this.#availableModels,
+      modelChoice: this.#modelChoice,
+      connectDisabled: this.#connectDisabled(),
+      connecting: this.#busy,
+      connected: this.#connected,
+      connectionProvider: this.#connectedProvider || preset.label,
+      errorMessage: this.#errorMessage,
+      advancedOpen: this.#advancedOpen,
       dismissed: Boolean(getSetting(SETTINGS.welcomeDismissed))
     };
   }
 
   async _onRender(context, options) {
     await super._onRender(context, options);
-    const checkbox = this.element.querySelector('input[name="dismissed"]');
-    checkbox?.addEventListener("change", (event) => {
+    this.element.querySelector('input[name="dismissed"]')?.addEventListener("change", (event) => {
       game.settings.set(MODULE_ID, SETTINGS.welcomeDismissed, event.currentTarget.checked)
         .catch((err) => console.warn(`${MODULE_ID} | could not save the welcome setting`, err));
+    });
+    this.element.querySelector("[name='apiKey']")?.addEventListener("input", (event) => {
+      this.#apiKey = event.currentTarget.value;
+      this.#syncConnectButton();
+    });
+    this.element.querySelector("[name='baseUrl']")?.addEventListener("input", (event) => {
+      this.#baseUrl = event.currentTarget.value;
+      this.#syncConnectButton();
+    });
+    this.element.querySelector("[name='model']")?.addEventListener("change", (event) => {
+      this.#model = event.currentTarget.value;
+      this.#syncConnectButton();
+    });
+    for (const field of this.element.querySelectorAll("[name='apiKey'], [name='baseUrl']")) {
+      field.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter" || event.isComposing || event.defaultPrevented) return;
+        event.preventDefault();
+        const button = this.element.querySelector("[data-action='connect']");
+        if (button && !button.disabled) button.click();
+      });
+    }
+    this.element.querySelector(".spf-welcome-advanced")?.addEventListener("toggle", (event) => {
+      this.#advancedOpen = event.currentTarget.open;
+    });
+    const focusTarget = this.#focusTarget;
+    this.#focusTarget = null;
+    if (focusTarget) requestAnimationFrame(() => {
+      const selector = {
+        key: "[name='apiKey']", base: "[name='baseUrl']", model: "[name='model']", sample: "[data-action='sample']"
+      }[focusTarget];
+      const control = selector ? this.element.querySelector(selector) : null;
+      control?.focus();
+      if (focusTarget === "key") control?.select();
+    });
+  }
+
+  #syncConnectButton() {
+    const button = this.element.querySelector("[data-action='connect']");
+    if (button) button.disabled = this.#connectDisabled();
+  }
+
+  #providerSaved() {
+    const current = getProviderRequestConfig();
+    const match = [...WELCOME_PROVIDER_IDS, "lmstudio"].find((id) =>
+      normalizeApiBaseUrl(this.#preset(id).baseUrl) === normalizeApiBaseUrl(current.baseUrl)
+    );
+    if (match) this.#selectedId = match;
+    this.#anthropicOnly = false;
+    this.#apiKey = "";
+    this.#baseUrl = current.baseUrl;
+    this.#model = current.model;
+    this.#availableModels = [];
+    this.#modelChoice = false;
+    this.#connected = false;
+    this.#connectedProvider = "";
+    this.#errorMessage = "";
+    return this.render();
+  }
+
+  static async #onChooseProvider(_event, target) {
+    if (this.#busy) return;
+    const preset = this.#preset(target.dataset.provider);
+    if (!preset || preset.id !== target.dataset.provider) return;
+    this.#selectedId = preset.id;
+    this.#anthropicOnly = target.dataset.anthropic === "true";
+    this.#apiKey = "";
+    this.#baseUrl = preset.baseUrl;
+    this.#model = preset.model;
+    this.#availableModels = [];
+    this.#modelChoice = false;
+    this.#connected = false;
+    this.#connectedProvider = "";
+    this.#errorMessage = "";
+    this.#focusTarget = isLikelyKeylessLocalEndpoint(preset.baseUrl) ? "base" : "key";
+    await this.render();
+  }
+
+  static async #onConnect() {
+    if (this.#busy || this.#connectDisabled()) return;
+    const { preset, baseUrl } = this.#draft();
+    this.#busy = true;
+    this.#errorMessage = "";
+    await this.render();
+    try {
+      if (!this.#modelChoice) {
+        await saveProviderConnection({
+          baseUrl, model: "", enteredApiKey: this.#apiKey, connectionName: preset.label,
+          notify: false, requireModel: false
+        });
+        const warningKey = getProviderAuthWarningKey(undefined, globalThis.location?.protocol, false);
+        if (warningKey) throw new Error(game.i18n.localize(warningKey));
+        const models = await listProviderModels();
+        const choice = resolveModelChoice(models, {
+          defaultModel: preset.model,
+          anthropicOnly: this.#anthropicOnly
+        });
+        if (!choice.availableModels.length) {
+          throw new Error(game.i18n.format("SIMPLYSF2E.Welcome.NoModels", { provider: preset.label }));
+        }
+        this.#availableModels = choice.availableModels;
+        this.#model = choice.model;
+        if (choice.needsModelChoice) {
+          this.#modelChoice = true;
+          this.#focusTarget = "model";
+          return;
+        }
+      }
+      const { provider } = await saveProviderConnection({
+        baseUrl, model: this.#model, enteredApiKey: this.#apiKey, connectionName: preset.label,
+        notify: false
+      });
+      const warningKey = getProviderAuthWarningKey();
+      if (warningKey) throw new Error(game.i18n.localize(warningKey));
+      await testProviderConnection();
+      this.#connected = true;
+      this.#connectedProvider = provider.name;
+      this.#apiKey = "";
+      this.#errorMessage = "";
+      this.#focusTarget = "sample";
+    } catch (err) {
+      console.warn(`${MODULE_ID} | welcome connection failed`, err);
+      this.#errorMessage = err?.message ?? String(err);
+      this.#focusTarget = this.#modelChoice
+        ? "model"
+        : isLikelyKeylessLocalEndpoint(baseUrl) ? "base" : "key";
+    } finally {
+      this.#busy = false;
+      await this.render();
+    }
+  }
+
+  static #onSample() {
+    if (!this.#connected) return;
+    const generator = this.#openGenerator();
+    if (!generator) return;
+    this.close();
+    return generator.runFromChat({
+      mode: "monster",
+      level: 1,
+      prompt: game.i18n.localize("SIMPLYSF2E.Welcome.SamplePrompt")
     });
   }
 
   static #onOpenProvider() {
-    new ProviderSetupApp(() => this.render()).render(true);
+    if (this.#busy) return;
+    new ProviderSetupApp(() => this.#providerSaved()).render(true);
   }
 
   static #onOpenSources() {
     new SourcesConfigApp().render(true);
   }
 
-  static #onOpenGenerator() {
-    this.#openGenerator();
-    this.close();
-  }
-
   static #onRecheck() {
-    this.render();
+    if (!this.#busy) this.render();
   }
 
   static #onClose() {
-    this.close();
+    if (!this.#busy) this.close();
   }
 }

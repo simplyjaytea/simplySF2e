@@ -1,10 +1,12 @@
-// First-run welcome: readiness rows and when the window opens by itself.
+// First-run welcome: readiness banner and when the window opens by itself.
 // Run: node scripts/welcome.test.mjs
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { MIN_SYSTEM_VERSION, compareVersions, welcomeState, shouldAutoOpenWelcome } from "./welcome.mjs";
+import {
+  MIN_SYSTEM_VERSION, compareVersions, welcomeReadinessIssue, welcomeState, shouldAutoOpenWelcome
+} from "./welcome.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -31,6 +33,7 @@ let state = welcomeState({
 assert.equal(state.ready, true);
 assert.equal(state.sources.packCount, 9);
 assert.deepEqual(state.jev, { on: true, source: "connection" });
+assert.equal(welcomeReadinessIssue(state), null, "no readiness banner when system and sources are ready");
 
 // Old system, missing packs (deduplicated across modes), no provider.
 state = welcomeState({
@@ -45,13 +48,16 @@ assert.deepEqual(state.sources.missing, ["spells", "bestiaryActors", "classes"])
 assert.equal(state.sources.ready, false);
 assert.deepEqual(state.provider, { ready: false, warningKey: "SIMPLYSF2E.Generator.NoApiKey" });
 assert.equal(state.ready, false);
+assert.equal(welcomeReadinessIssue(state), "system", "one banner prioritizes the system problem");
+assert.equal(welcomeReadinessIssue({ ...state, system: { ...state.system, ready: true } }), "sources");
+assert.equal(welcomeReadinessIssue({ ...state, provider: { ready: false, warningKey: "x" }, system: { ready: true }, sources: { ready: true } }), null, "provider setup is not a readiness-banner problem");
 
 // Jev off is optional: it never blocks readiness.
 state = welcomeState({ systemId: "sf2e", systemVersion: "1.6.0", creatureSources: ready, characterSources: ready });
 assert.equal(state.jev.on, false);
 assert.equal(state.ready, true);
 
-// sf2e 1.5 is below the 1.6 minimum, so the system row is not ready.
+// sf2e 1.5 is below the 1.6 minimum, so the system is not ready.
 assert.equal(welcomeState({ systemId: "sf2e", systemVersion: "1.5.1", creatureSources: ready, characterSources: ready }).system.ready, false);
 
 // Wrong system is never ready.
@@ -74,4 +80,4 @@ for (const action of actions) assert.match(app, new RegExp(`\\b${action}: Welcom
 // The welcome stylesheet ships.
 assert.ok(manifest.styles.includes("styles/apps/welcome.css"), "module.json lists welcome.css");
 
-console.log("welcome.test.mjs: readiness rows, auto-open rule and template wiring verified");
+console.log("welcome.test.mjs: readiness banner, auto-open rule and template wiring verified");

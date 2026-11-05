@@ -1,11 +1,15 @@
 <div class="spf-window-body simplysf2e-welcome spf-hud">
   <p class="spf-hint spf-welcome-intro"><i class="fa-solid fa-satellite-dish" aria-hidden="true"></i> {{localize "SIMPLYSF2E.Welcome.Intro"}}</p>
 
+  {{#if readinessWarning}}
+    <div class="notification warning spf-welcome-readiness" role="alert"><i aria-hidden="true" class="fa-solid fa-triangle-exclamation"></i> {{readinessWarning}}</div>
+  {{/if}}
+
   <fieldset class="spf-card spf-welcome-section">
     <legend>{{localize "SIMPLYSF2E.Welcome.ChooseProvider"}}</legend>
     <div class="spf-welcome-providers" role="group" aria-label="{{localize 'SIMPLYSF2E.Welcome.ProviderGroupLabel'}}">
       {{#each providers}}
-        <button type="button" class="spf-welcome-provider {{#if this.selected}}spf-welcome-provider-active{{/if}}" aria-pressed="{{#if this.selected}}true{{else}}false{{/if}}" {{#if ../connecting}}disabled{{/if}}>
+        <button type="button" data-action="chooseProvider" data-provider="{{this.id}}" class="spf-welcome-provider {{#if this.selected}}spf-welcome-provider-active{{/if}}" aria-pressed="{{#if this.selected}}true{{else}}false{{/if}}" {{#if ../connecting}}disabled{{/if}}>
           <i aria-hidden="true" class="fa-solid {{this.icon}}"></i>
           <span>{{this.label}}</span>
           {{#if this.recommended}}<small class="spf-welcome-provider-note">{{localize "SIMPLYSF2E.Welcome.Recommended"}}</small>{{else if this.note}}<small class="spf-welcome-provider-note">{{this.note}}</small>{{/if}}
@@ -19,30 +23,41 @@
       <p class="spf-welcome-connected-title" id="spf-welcome-connected-title" role="status"><i aria-hidden="true" class="fa-solid fa-circle-check"></i> <strong>{{localize "SIMPLYSF2E.Welcome.ConnectedTitle" provider=connectionProvider}}</strong></p>
       <p class="spf-hint">{{localize "SIMPLYSF2E.Welcome.ConnectedDetail"}}</p>
       <p class="spf-welcome-model"><span>{{localize "SIMPLYSF2E.Welcome.ModelLabel"}}</span> <code>{{model}}</code></p>
-      <button type="button" class="spf-primary spf-welcome-sample"><i aria-hidden="true" class="fa-solid fa-wand-magic-sparkles"></i> {{localize "SIMPLYSF2E.Welcome.Sample"}}</button>
+      <button type="button" class="spf-primary spf-welcome-sample" data-action="sample"><i aria-hidden="true" class="fa-solid fa-wand-magic-sparkles"></i> {{localize "SIMPLYSF2E.Welcome.Sample"}}</button>
       <p class="spf-hint">{{localize "SIMPLYSF2E.Welcome.SampleHint"}}</p>
     </section>
   {{else}}
     <fieldset class="spf-card spf-welcome-section spf-welcome-connect">
       <legend>{{localize "SIMPLYSF2E.Welcome.ConnectLegend"}}</legend>
-      {{#if showBaseUrl}}
+      {{#if modelChoice}}
         <div class="form-group stacked">
-          <label for="spf-welcome-base-url">{{localize "SIMPLYSF2E.Welcome.BaseUrlLabel"}}</label>
-          <input id="spf-welcome-base-url" type="url" name="baseUrl" value="{{baseUrl}}" spellcheck="false" autocomplete="url" aria-describedby="spf-welcome-local-hint" {{#if connecting}}disabled{{/if}}>
+          <label for="spf-welcome-model">{{localize "SIMPLYSF2E.Welcome.ModelChoiceLabel" provider=selectedProvider}}</label>
+          <select id="spf-welcome-model" name="model" aria-describedby="spf-welcome-model-hint" {{#if connecting}}disabled{{/if}}>
+            <option value="">{{localize "SIMPLYSF2E.Welcome.ModelChoicePlaceholder"}}</option>
+            {{#each availableModels}}<option value="{{this}}">{{this}}</option>{{/each}}
+          </select>
+          <p class="spf-hint" id="spf-welcome-model-hint">{{localize "SIMPLYSF2E.Welcome.ModelChoiceHint"}}</p>
         </div>
-      {{/if}}
-      {{#if keyless}}
-        <p class="spf-hint spf-welcome-local" id="spf-welcome-local-hint"><i aria-hidden="true" class="fa-solid fa-server"></i> {{localize "SIMPLYSF2E.Welcome.NoKeyNeeded"}} {{localize "SIMPLYSF2E.Welcome.OllamaHint"}}</p>
       {{else}}
-        <div class="form-group stacked">
-          <label for="spf-welcome-api-key">{{localize "SIMPLYSF2E.Welcome.ApiKeyLabel"}}</label>
-          <input id="spf-welcome-api-key" type="password" name="apiKey" value="{{apiKey}}" spellcheck="false" autocomplete="new-password" placeholder="{{localize 'SIMPLYSF2E.Welcome.ApiKeyPlaceholder' provider=selectedProvider}}" aria-describedby="spf-welcome-key-hint" {{#if connecting}}disabled{{/if}}>
-          <p class="spf-hint" id="spf-welcome-key-hint"><i aria-hidden="true" class="fa-solid fa-shield-halved"></i> {{localize "SIMPLYSF2E.Welcome.ApiKeyHint" provider=selectedProvider}}</p>
-        </div>
+        {{#if showBaseUrl}}
+          <div class="form-group stacked">
+            <label for="spf-welcome-base-url">{{localize "SIMPLYSF2E.Welcome.BaseUrlLabel"}}</label>
+            <input id="spf-welcome-base-url" type="url" name="baseUrl" value="{{baseUrl}}" spellcheck="false" autocomplete="url" aria-describedby="spf-welcome-local-hint" {{#if connecting}}disabled{{/if}}>
+          </div>
+        {{/if}}
+        {{#if keyless}}
+          <p class="spf-hint spf-welcome-local" id="spf-welcome-local-hint"><i aria-hidden="true" class="fa-solid fa-server"></i> {{localize "SIMPLYSF2E.Welcome.NoKeyNeeded"}} {{localize "SIMPLYSF2E.Welcome.OllamaHint"}}</p>
+        {{else}}
+          <div class="form-group stacked">
+            <label for="spf-welcome-api-key">{{localize "SIMPLYSF2E.Welcome.ApiKeyLabel"}}</label>
+            <input id="spf-welcome-api-key" type="password" name="apiKey" value="{{apiKey}}" spellcheck="false" autocomplete="new-password" placeholder="{{localize 'SIMPLYSF2E.Welcome.ApiKeyPlaceholder' provider=selectedProvider}}" aria-describedby="spf-welcome-key-hint" {{#if connecting}}disabled{{/if}}>
+            <p class="spf-hint" id="spf-welcome-key-hint"><i aria-hidden="true" class="fa-solid fa-shield-halved"></i> {{localize "SIMPLYSF2E.Welcome.ApiKeyHint" provider=selectedProvider}}</p>
+          </div>
+        {{/if}}
       {{/if}}
-      <button type="button" class="spf-primary spf-welcome-connect-button" {{#if connectDisabled}}disabled{{/if}} {{#if connecting}}aria-busy="true"{{/if}}>
+      <button type="button" class="spf-primary spf-welcome-connect-button" data-action="connect" {{#if connectDisabled}}disabled{{/if}} {{#if connecting}}aria-busy="true"{{/if}}>
         <i aria-hidden="true" class="fa-solid {{#if connecting}}fa-spinner fa-spin{{else}}fa-plug-circle-check{{/if}}"></i>
-        {{#if connecting}}{{localize "SIMPLYSF2E.Welcome.Connecting"}}{{else}}{{localize "SIMPLYSF2E.Welcome.Connect"}}{{/if}}
+        {{#if connecting}}{{localize "SIMPLYSF2E.Welcome.Connecting"}}{{else if modelChoice}}{{localize "SIMPLYSF2E.Welcome.TestAndConnect"}}{{else}}{{localize "SIMPLYSF2E.Welcome.Connect"}}{{/if}}
       </button>
     </fieldset>
   {{/if}}
@@ -72,13 +87,13 @@
     <div class="spf-welcome-advanced-body">
       <h3>{{localize "SIMPLYSF2E.Welcome.OtherConnections"}}</h3>
       <div class="spf-welcome-advanced-buttons" role="group" aria-label="{{localize 'SIMPLYSF2E.Welcome.OtherConnections'}}">
-        <button type="button"><i aria-hidden="true" class="fa-solid fa-cloud"></i> {{localize "SIMPLYSF2E.Welcome.Anthropic"}}</button>
-        <button type="button"><i aria-hidden="true" class="fa-solid fa-server"></i> LM Studio</button>
+        <button type="button" data-action="chooseProvider" data-provider="openrouter" data-anthropic="true" {{#if connecting}}disabled{{/if}}><i aria-hidden="true" class="fa-solid fa-cloud"></i> {{localize "SIMPLYSF2E.Welcome.Anthropic"}}</button>
+        <button type="button" data-action="chooseProvider" data-provider="lmstudio" {{#if connecting}}disabled{{/if}}><i aria-hidden="true" class="fa-solid fa-server"></i> LM Studio</button>
       </div>
       <h3>{{localize "SIMPLYSF2E.Welcome.FastPicks"}}</h3>
       <p class="spf-hint"><i aria-hidden="true" class="fa-solid fa-bolt"></i> Jev · TypeSafe</p>
-      <button type="button" data-action="openProvider"><i aria-hidden="true" class="fa-solid fa-sliders"></i> {{localize "SIMPLYSF2E.Welcome.OpenProvider"}}</button>
-      <button type="button" data-action="openSources"><i aria-hidden="true" class="fa-solid fa-book-atlas"></i> {{localize "SIMPLYSF2E.Welcome.Sources"}}</button>
+      <button type="button" data-action="openProvider" {{#if connecting}}disabled{{/if}}><i aria-hidden="true" class="fa-solid fa-sliders"></i> {{localize "SIMPLYSF2E.Welcome.OpenProvider"}}</button>
+      <button type="button" data-action="openSources" {{#if connecting}}disabled{{/if}}><i aria-hidden="true" class="fa-solid fa-book-atlas"></i> {{localize "SIMPLYSF2E.Welcome.Sources"}}</button>
     </div>
   </details>
 

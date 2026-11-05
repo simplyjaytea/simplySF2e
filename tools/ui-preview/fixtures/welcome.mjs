@@ -1,4 +1,4 @@
-// Phase 1 Welcome design states. Shape follows WelcomeApp._prepareContext()
+// Final Welcome states. Shape follows WelcomeApp._prepareContext()
 // (welcome-app.mjs); no connection behavior runs in the preview harness.
 import { localize } from "./_shared.mjs";
 
@@ -12,17 +12,20 @@ const providers = [
 
 function welcome(patch = {}) {
   return {
+    readinessWarning: "",
     providers: providers.map((provider) => ({ ...provider })),
     selectedProvider: "OpenRouter",
     apiKey: "",
     keyless: false,
     showBaseUrl: false,
     baseUrl: "",
+    model: "",
+    availableModels: [],
+    modelChoice: false,
     connectDisabled: true,
     connecting: false,
     connected: false,
     connectionProvider: "",
-    model: "",
     errorMessage: "",
     advancedOpen: false,
     dismissed: false,
@@ -41,6 +44,14 @@ export default [
     id: "welcome-connecting",
     app: "welcome",
     context: welcome({ apiKey: "sk-or-v1-preview-only", connecting: true })
+  },
+  {
+    id: "welcome-model-choice",
+    app: "welcome",
+    context: welcome({
+      modelChoice: true,
+      availableModels: ["deepseek/deepseek-v4.1-flash", "openai/gpt-6-luna"]
+    })
   },
   {
     id: "welcome-connected",
@@ -71,6 +82,13 @@ export default [
       showBaseUrl: true,
       baseUrl: "http://localhost:11434/v1",
       connectDisabled: false
+    })
+  },
+  {
+    id: "welcome-readiness-warning",
+    app: "welcome",
+    context: welcome({
+      readinessWarning: localize("SIMPLYSF2E.Welcome.SourcesMissing", { categories: "Spells" })
     })
   }
 ];

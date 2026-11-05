@@ -84,9 +84,13 @@
   font-size: var(--spf-text-sm);
 }
 
-.simplysf2e .spf-welcome-connect input {
+.simplysf2e .spf-welcome-connect :is(input, select) {
   box-sizing: border-box;
   width: 100%;
+}
+
+.simplysf2e .spf-welcome-readiness {
+  margin: 0;
 }
 
 .simplysf2e .spf-welcome-connect .spf-hint {

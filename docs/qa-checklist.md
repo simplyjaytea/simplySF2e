@@ -494,12 +494,21 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 
 | # | Do | Expect | Where | Pass | Notes |
 | --- | --- | --- | --- | --- | --- |
-| 12t.1 | In a fresh browser profile (no saved AI key), log in as GM to an sf2e world with SimplySF2e enabled. | **Welcome to SimplySF2e** opens by itself. Starfinder 2e system and Compendium Content rows show a green check, AI connection shows a warning with the reason, Fast picks: Jev reads "off (optional ...)". The main button reads **Set Up AI Connection**. | Welcome window | | |
-| 12t.2 | Press **Set Up AI Connection**, save and authorize a working connection, close Provider Setup. | The welcome window refreshes on save: AI connection turns green, the main button becomes **Open Generator**, and pressing it opens the generator and closes the welcome. | Welcome window | | |
-| 12t.3 | Reload the world. | The welcome no longer opens by itself. `/sf2e welcome` and **Configure Settings → SimplySF2e → Open Welcome** both open it. | Chat, module settings | | |
-| 12t.4 | Clear the key again (or use a second browser), tick **Don't show this again at login**, reload. | The welcome stays closed even though the connection does not work. | Welcome window | | |
-| 12t.5 | In Compendium Sources, untick every Spells pack, save, then press **Check Again** in the welcome. | Compendium Content shows a warning naming Spells; the gear button opens Compendium Sources. | Welcome window | | |
-| 12t.6 | Log in as a player. | No welcome window, and `/sf2e welcome` shows the GM-only warning. | Player client | | |
+| 12t.1 | In a fresh browser profile (no saved AI key), log in as GM to an sf2e world with SimplySF2e enabled and healthy compendiums. | Welcome opens with OpenRouter selected and Recommended, an empty key and Connect disabled. No readiness warning appears. | Welcome window | | |
+| 12t.2 | Paste a key, then press Enter in the key field. | Connect becomes enabled and Enter starts it. The provider, key and Connect controls disable while progress is visible. | Welcome window | | |
+| 12t.3 | Connect OpenRouter with an account whose model list contains `deepseek/deepseek-v4.1-flash`. | That default is shown and tested; the connected state names it and offers **Generate a sample monster**. | Welcome window | | |
+| 12t.4 | Use a provider/account where the preset default is absent from `/models`. | No other model is picked silently. The provider's returned models appear, the placeholder is selected and Test & Connect stays disabled until the GM picks one. | Welcome window | | |
+| 12t.5 | Choose Google and connect with a valid key. | Google shows **Live check pending**, uses `https://generativelanguage.googleapis.com/v1beta/openai`, lists models without choosing a default, and tests only the GM's pick. Record whether this endpoint worked live. | Welcome window | | |
+| 12t.6 | Choose Ollama with the local server running and more than one installed model. | No key is required, `http://localhost:11434/v1` is shown, Connect lists the installed models without a default, and only the GM's pick is tested. | Welcome window | | |
+| 12t.7 | Open Advanced and choose **Anthropic via OpenRouter**. | OpenRouter is selected; after Connect, only `anthropic/*` model IDs are offered and no model is selected automatically. | Welcome window, Advanced | | |
+| 12t.8 | Open Advanced and choose **LM Studio**; then open full Provider Setup and Compendium Sources from Advanced. | LM Studio uses its local preset and model-choice flow. Both existing secondary windows still open normally. | Welcome window, Advanced | | |
+| 12t.9 | Reject a key (for example with a 401), then correct it and retry. | The error states the cause and next step, the draft key remains, focus returns to the key field, and a successful retry reaches connected or model choice. | Welcome window | | |
+| 12t.10 | From a connected state, press **Generate a sample monster**. | The Generator opens in Monster mode at level 1 with “A level 1 space-pirate scout with a laser pistol” and starts a preview. No actor is created until the GM clicks Create. | Welcome window, Generator | | |
+| 12t.11 | Run Welcome on sf2e older than 1.6.0, with compendium problems also present. | One top warning names the old system and the update fix; the old readiness checklist rows do not appear. | Welcome window | | |
+| 12t.12 | On a supported system, disable every Spells pack, then press **Check Again**. | One top warning names Spells and says to enable a pack in Compendium Sources. Restoring the pack and rechecking hides the warning. | Welcome window, Compendium Sources | | |
+| 12t.13 | Complete a working connection and reload; then reopen with `/sf2e welcome` and the module-settings button. | Welcome no longer auto-opens after reload, and both manual routes open it. | Chat, module settings | | |
+| 12t.14 | Clear the key again (or use a second browser), tick **Don't show this again at login**, reload. | Welcome stays closed even though the connection does not work. | Welcome window | | |
+| 12t.15 | Log in as a player. | No welcome window, and `/sf2e welcome` shows the GM-only warning. | Player client | | |
 
 ## 12u. Copy bug report
 
