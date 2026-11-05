@@ -30,6 +30,7 @@ export const SETTINGS_SCHEMA = 1;
 /**
  * Ordered upgrades: { version, run }, where `run` upgrades stored settings to
  * `version`. Empty today: schema 1 is the first versioned layout.
+ * Each step must be safe to run more than once: a failed run is retried on the next GM load.
  */
 export const SETTINGS_MIGRATIONS = [];
 
