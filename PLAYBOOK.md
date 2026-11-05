@@ -22,7 +22,7 @@ The one file every agent (Claude, Codex, anything else) reads first. It holds wh
 - **Waiting on JT:** a live `docs/release-pass.md` run on sf2e 1.6 logged to `docs/live-log.md` (it holds only the 2026-10-08 verbal pass), including QA rows **12aa.1-12aa.4** (budget/deadline copy, never seen in Foundry); a live `tools/model-matrix/` run and the D5 model list; a number for `runDeadline` (ships 0 = off). Offline benches do not verify Foundry sheets.
 - **Owner decisions:** hoard budgets stay independent of rarity; feat cap stays 8 (`docs/balance-proposals.md`); D6 = 60k per-run token budget, implemented. D3, D5, D8-D11 remain Fable's recommendations until JT changes them.
 - **Bench baselines (sf2e 1.6.1, pinned source `675d2b7`, 2026-10-31):** class 49 PASS / 31 WARN, forge 126 PASS / 48 WARN (+6 n/a), market 240 PASS, creature 35 PASS / 2 WARN; 0 FAIL. A WARN increase is a regression signal; CI fails only on FAIL.
-- **Environment:** Linux VPS (bash, Node 22+, `gh` authenticated with a working git credential helper). Agents run as herdr terminals (§6). Repo at `/root/simplySF2e`; worktrees under `/root/sf2e-wt/`. Git identity (set per clone/worktree): `git config user.name jt`, `git config user.email jt_f@ymail.com`.
+- **Environment:** Linux VPS (bash, Node 22+, `gh` authenticated and set as the github.com git credential helper). Agents run as herdr terminals (§6). Repo at `/root/simplySF2e`; worktrees under `/root/sf2e-wt/`. Git identity (set per clone/worktree): `git config user.name jt`, `git config user.email jt_f@ymail.com`.
 
 ## 2. The project
 
@@ -107,23 +107,24 @@ JT's standing rules (2026-11-05). Three long-lived agents run as terminals in on
 | Role | Terminal | Does |
 | --- | --- | --- |
 | Coordinator | Claude Code, Opus 5.5 | Plans every task; fetches and cites sf2e source; creates worktrees; dispatches; reviews last (tier 3); integrates; opens PRs and merges; owns this file, CLAUDE.md and AGENTS.md. Writes code only when no worker fits. Never hands off release/workflow `.yml` reasoning. |
+| Planner (optional) | Opus `Plan` subagent of the coordinator | Second opinion on a large or risky plan; the coordinator still owns it. |
 | Default worker | Claude Code, Haiku 5.5 | **Most tasks go here:** mechanical edits, tests, sweeps, docs, bench runs, tier-1 review. |
 | Heavy worker | Kimi Code, K3.1 Pro (thinking high) | UI (templates, CSS, screenshot harness), art, and tasks needing deeper reasoning, including schema-dependent work (sf2e field names, enums, pack ids, REs) from cited source. Tier-2 review. |
 
 **Talking to terminals** (`hc` = `herdr-core`). Addresses (`t6`, `t8`, ...) change when a terminal restarts; run `hc ls` and match the `agent` field (`kimi-code`, `claude-code`) before dispatching. Check `hc read <t>` to tell the two Claude terminals apart.
-- Dispatch: `hc send --if idle <t> "<prompt>"`. Never send to a `working` terminal; it lands mid-turn.
+- Dispatch: check `hc ls` first, then `hc send <t> "<prompt>"`. Never send to a `working` terminal; it lands mid-turn. (`--if idle` refuses a terminal whose status is `done`, which is also safe to send to.)
 - Wait: `hc wait <t>` (not `sleep`). Long tasks: dispatch both workers first, then wait on each.
-- Result: `hc read <t> | tail -60`. Workers end their reply with the report block from the template, so the tail is enough.
+- Result: workers and reviewers write their report to `/root/sf2e-wt/reports/<ID>.md` and reply `DONE <ID>`. Do not rely on `hc read`: a TUI agent redraws its screen, so history past the visible pane is lost.
 - Long prompts: write them to `/root/sf2e-wt/prompts/<ID>.md` and send `Read /root/sf2e-wt/prompts/<ID>.md and do the task.` Pasted multi-line text can be split into several turns.
 
-**Review ladder.** Tier 1 Haiku → tier 2 Kimi → tier 3 coordinator. A worker never reviews its own diff; if Haiku built it, tier 1 is a fresh Haiku subagent spawned by the coordinator, and if Kimi built it, tier 2 runs in a cleared Kimi context or a fresh Claude subagent. Every diff gets tiers 1 and 2. The coordinator reads every diff before merge and gives a full tier-3 review to schema- or balance-sensitive ones (`tables.mjs`, `relevel.mjs`, `stat-check.mjs`, stat math, pack ids, enums, REs, PC grants/slots). Treat any "verified" claim without a quoted source line as unverified.
+**Review ladder.** Tier 1 Haiku → tier 2 Kimi → tier 3 coordinator. Nobody reviews their own diff: if the coordinator wrote it, tier 3 is a fresh Opus subagent; if Haiku built it, tier 1 is a fresh Haiku subagent spawned by the coordinator, and if Kimi built it, tier 2 runs in a cleared Kimi context or a fresh Claude subagent. Every diff gets tiers 1 and 2. The coordinator reads every diff before merge and gives a full tier-3 review to schema- or balance-sensitive ones (`tables.mjs`, `relevel.mjs`, `stat-check.mjs`, stat math, pack ids, enums, REs, PC grants/slots). Treat any "verified" claim without a quoted source line as unverified. A reviewer must be able to run `node` (the terminals can; `caveman:cavecrew-reviewer` subagents only run git read commands, so they cannot verify tests).
 
 **Lifecycle.**
 1. **Plan:** goal, stop condition, and the files each task may touch. Do every sf2e lookup now and keep the quoted lines for the prompts.
-2. **Split:** one task per worktree, no file overlap between parallel tasks. The coordinator creates each one: `git -C /root/simplySF2e worktree add /root/sf2e-wt/<ID> -b work/<ID> main`, then sets the git identity in it (§1).
+2. **Split:** one task per worktree, no file overlap between parallel tasks. The coordinator creates each one: `git -C /root/simplySF2e worktree add /root/sf2e-wt/<ID> -b work/<ID> main`, then sets the git identity in it (§1). First time: `mkdir -p /root/sf2e-wt/prompts /root/sf2e-wt/reports`.
 3. **Dispatch:** Haiku by default; Kimi for UI, art, schema or hard reasoning. Send independent tasks before waiting on any.
 4. **Review:** a finding goes back to the same worker as a **new** commit, never an amend, and the fix climbs again from the tier that found it. Minor findings in coordinator-owned docs are fixed by the coordinator.
-5. **Integrate:** one branch from `main`, `git merge --no-ff` each passed branch, read the merged files, then run `bash tools/release-check.sh` (`--no-ui` only if no template/CSS changed). A batch of more than one branch gets its own tier-1 review.
+5. **Integrate:** one branch from `main`, `git merge --no-ff` each passed branch, read the merged files, then run `bash tools/release-check.sh` (`--no-ui` only if no template/CSS changed). A batch of more than one branch gets the ladder again on the combined diff (tier 1 + 2, + 3 if sensitive).
 6. **PR and merge:** push, open **one** PR for the batch (each merge is a public beta release), and wait for `verify` and `Benches`. The PR body lists the QA ids JT must run live. JT's results go into `docs/live-log.md`; a feature is live-verified only when it has a logged PASS there. The coordinator may merge once reviews have no open blockers and CI is green on the current head.
 7. **Tidy:** `git worktree remove` each worktree and delete its local `work/<ID>` branch. JT's standing authority covers push, PR and merge only; anything else that writes to GitHub (deleting a remote branch, editing a release, labels) needs JT's OK.
 8. **Hand off:** rewrite §1; add lessons to §8.
@@ -138,7 +139,7 @@ Cited source values you may use (do not look up or invent others): <quoted v14-d
 Rules: only change <files>. No hand-authored REs, no invented schema, no AI-chosen numbers; esc/toHtml for AI text; fail closed. Keep each file's line endings and style.
 Git: commit in the worktree only; do NOT push, open PRs, or touch /root/simplySF2e itself.
 Verify: node --check touched .mjs; the all-tests loop prints no FAIL; git diff --check. Add a *.test.mjs for changed pure logic.
-End your reply with: REPORT <ID> / branch / SHA / files / test summary / anything unverified (quote a source line for every "verified").
+Report: write /root/sf2e-wt/reports/<ID>.md with branch, SHA, files, test summary, anything unverified (quote a source line for every "verified"). Then reply only: DONE <ID>.
 ```
 
 **Reviewer prompt template.**
@@ -146,7 +147,7 @@ End your reply with: REPORT <ID> / branch / SHA / files / test summary / anythin
 Independent review (tier <n>) of work/<ID> in simplySF2e. Read-only: do NOT edit, commit or push.
 Worktree: /root/sf2e-wt/<ID>. Diff: git -C /root/sf2e-wt/<ID> diff <main-sha> HEAD. Intent: <one sentence, incl. "no behavior change" if so>.
 Check: 1. <specific risks: removed names still referenced, runtime-built keys, schema shapes, balance numbers> 2. any other behavior change 3. run node --check + the all-tests loop.
-Output: one finding per line `path:line: severity: problem. fix.` (blocker/major/minor) or "no findings"; end with VERDICT <ID>: PASS|FAIL + test result.
+Output: one finding per line `path:line: severity: problem. fix.` (blocker/major/minor) or "no findings"; end with VERDICT <ID>: PASS|FAIL + test result. Write it to /root/sf2e-wt/reports/<ID>-T<n>.md, then reply only: DONE <ID>-T<n>.
 ```
 Tier 2 and tier 3 prompts state what the lower tiers already checked. They then look deeper: indirect callers (namespace imports, `module.api`, macro bodies as strings, Hooks), lost side effects, lost coverage of live code, and wording a GM will read.
 
@@ -203,6 +204,7 @@ Each line is a bug class that already cost a fix. The full story is in `docs/arc
 **Release and process**
 - A tag pushed with the default `GITHUB_TOKEN` does not fire `push: tags`; releases chain through `workflow_call`. In a reusable workflow, `github.event_name` is the caller's event, so use `inputs.version`. `node --check` never catches these; a `.yml` change needs a real test merge.
 - Fresh-context review has caught real bugs many times; a builder's self-report is not verification.
+- `hc read` loses a TUI agent's scrollback (the first T1 report on 2026-11-05 was unreadable). Always have agents write reports to files.
 - Parallel workers need one worktree each and disjoint files; shared worktrees collided before. Set identity with `git config` in each new worktree.
 - JT sometimes merges while a review is still running. Say when one is in flight; fixes for a merged PR go in a new PR.
 - Keep each file's existing line endings (LF on this VPS clone); `git diff --check` must stay clean.
