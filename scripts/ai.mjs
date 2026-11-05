@@ -189,7 +189,7 @@ Design guidance (scale road maps):
 - Spellcaster: casting tradition matching key ability at high or extreme; low-or-moderate AC, HP and attack; DC one scale above attacks.
 - Include spellcasting only when it truly fits the concept and the user allows it.
 - "focusSpells": only when the concept has spellcasting AND genuinely uses focus magic; leave [] otherwise. Uncommon, not the default.
-- Use published bestiary glossary abilities wherever they fit, copying exact names. The module selects them from the compendium afterward and keeps their real working automation. For Constrict, Greater Constrict, Swallow Whole, Engulf, Trample, Frightful Presence and Stench the module fills the DC, damage, size and distance from the creature's level, so never write numbers for them.
+- Use published bestiary glossary abilities wherever they fit, copying exact names. The module selects them from the compendium afterward and keeps their real working automation; where a glossary ability is published without numbers, the module fills its DC, damage, size and distance from the creature's level, so never write numbers for glossary abilities.
 - A bespoke signature ability is allowed only as a short, clearly narrative description (a scent, texture, visual aura, or mannerism). Do not give it rules text or mechanical effects; the module will label it narrative-only rather than create custom mechanics.
 - Traits, languages, senses and speeds must follow Starfinder 2e conventions.`;
 }
