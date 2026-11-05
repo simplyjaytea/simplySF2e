@@ -56,6 +56,7 @@ Repeat 2.1-2.7 for **Level 1**, **Level 5** and **Level 12**. Use the same promp
 | 2.5 | Strikes: attack bonus and damage. | Attack bonus within the Strike Attack Bonus row for the level; average damage within the Strike Damage row. | Strikes section | | |
 | 2.6 | Spell DC / attack (if the NPC casts). | Within the Spell DC / Spell Attack row for the level. Spells are real `sf2e.spells` entries. | Spells tab | | |
 | 2.7 | Inventory. | Every item is a real compendium item; skipped gear is absent. | Inventory tab | | |
+| 2.8 | Generator → mode **NPC**. Enter a prompt that invites a grab or swallow ability (e.g. "a tentacled swamp horror that constricts and swallows prey whole, with a stench"). Generate, then Create Actor. Open the F12 console. | No ability on the sheet or in the preview has `(0)` damage, a blank DC, or a 0-foot aura. Constrict, Engulf, Stench and Swallow Whole appear only with real values, or as "Narrative" items with no numbers. If the AI picked a placeholder glossary ability, the console shows `simplysf2e \| "<name>" has blank published values in the glossary; kept as narrative only` or `dropped "<name>"`. | Preview, Actions tab, console | | |
 
 | Level | Result | Evidence |
 |-------|--------|----------|
