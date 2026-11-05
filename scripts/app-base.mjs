@@ -25,11 +25,6 @@ import { coarsenTokenEstimate, lastRunTokenTotal } from "./tokens.mjs";
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
 /**
- * Shared base for the generator and item-forge dialogs: token-usage tracking
- * and the generate-progress step machinery, identical across both apps.
- * Subclasses use `_tokenUsage`/`_progress` and the `_`-prefixed helpers.
- */
-/**
  * Buttons for the bug-report dialogs. The issue URL carries no report text:
  * the GM pastes the copied report into the new issue.
  */
@@ -45,6 +40,11 @@ function issueButtons() {
   ];
 }
 
+/**
+ * Shared base for the generator and item-forge dialogs: token-usage tracking
+ * and the generate-progress step machinery, identical across both apps.
+ * Subclasses use `_tokenUsage`/`_progress` and the `_`-prefixed helpers.
+ */
 export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
   /** Exact token usage per AI call of the last generation: [{label, usage}]. */
   _tokenUsage = [];
