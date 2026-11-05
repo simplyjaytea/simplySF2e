@@ -10,7 +10,7 @@
 // Run: node scripts/ability-fill.test.mjs
 
 import assert from "node:assert/strict";
-import { fillPlaceholderAbility, FILLABLE_ABILITIES, hasPlaceholderValues, isFillableEntry } from "./ability-fill.mjs";
+import { fillBlocker, fillPlaceholderAbility, FILLABLE_ABILITIES, hasPlaceholderValues, isFillableEntry } from "./ability-fill.mjs";
 
 const CONSTRICT = "<p>@Damage[(0)[bludgeoning]], @Check[fortitude|dc:|basic]</p>\n<hr />\n<p>@Localize[PF2E.NPC.Abilities.Glossary.Constrict]</p>";
 const GREATER_CONSTRICT = "<p>@Damage[(0)[bludgeoning]], @Check[fortitude|dc:|basic|options:inflicts:unconscious]</p>\n<hr />\n<p>@Localize[PF2E.NPC.Abilities.Glossary.GreaterConstrict]</p>";
@@ -64,21 +64,21 @@ assert.equal(isFillableEntry({ name: "Cursed Bite", system: { slug: "cursed-bite
   assert.equal(HEAD(gc.system.description.value), "<p>@Damage[(4d6)[fire]], @Check[fortitude|dc:25|basic|options:inflicts:unconscious]</p>", "greater constrict takes a valid AI type");
   const sw = fillPlaceholderAbility(item("Swallow Whole", SWALLOW_WHOLE), lg);
   assert.equal(HEAD(sw.system.description.value), "<p>Medium, @Damage[(4d6)[bludgeoning]], Rupture 15</p>");
-  const en = fillPlaceholderAbility(item("Engulf", ENGULF), { ...lg, dcScale: "moderate", damageType: "acid" });
+  const en = fillPlaceholderAbility(item("Engulf", ENGULF), { ...lg, abilityDcScale: "moderate", damageType: "acid" });
   assert.equal(HEAD(en.system.description.value), "<p>@Check[reflex|dc:22|options:damaging-effect,inflicts:grabbed,inflicts:slowed], @Damage[(4d6)[acid]] damage, [[/act escape dc=22]], Rupture 15</p>", "engulf takes the AI type; escape DC equals the DC");
   const tr = fillPlaceholderAbility(item("Trample", TRAMPLE), lg);
   assert.equal(HEAD(tr.system.description.value), "<p>Medium or smaller, Tusk, @Check[reflex|dc:25|basic]</p>", "strike = highest average melee strike");
-  const fp = fillPlaceholderAbility(item("Frightful Presence", FRIGHTFUL_PRESENCE, FRIGHTFUL_RULES), { ...lg, dcScale: "high" });
-  assert.equal(HEAD(fp.system.description.value), "<p>90 feet. @Check[will|dc:25|options:area-effect,inflicts:frightened]</p>", "AI dcScale overrides the default");
+  const fp = fillPlaceholderAbility(item("Frightful Presence", FRIGHTFUL_PRESENCE, FRIGHTFUL_RULES), { ...lg, abilityDcScale: "high" });
+  assert.equal(HEAD(fp.system.description.value), "<p>90 feet. @Check[will|dc:25|options:area-effect,inflicts:frightened]</p>", "AI abilityDcScale overrides the default");
   const st = fillPlaceholderAbility(item("Stench", STENCH, STENCH_RULES), lg);
   assert.equal(HEAD(st.system.description.value), "<p>30 feet. @Check[fortitude|dc:22|options:area-effect,inflicts:sickened,inflicts:slowed]</p>");
 }
 
 // Level 24, creature size huge: invalid AI values are ignored (defaults used).
 {
-  const huge = { level: 24, size: "huge", strikes: [TUSK], dcScale: "extreme", damageType: "plasma" };
+  const huge = { level: 24, size: "huge", strikes: [TUSK], abilityDcScale: "extreme", damageType: "plasma" };
   const c = fillPlaceholderAbility(item("Constrict", CONSTRICT), huge);
-  assert.equal(HEAD(c.system.description.value), "<p>@Damage[(11d6)[bludgeoning]], @Check[fortitude|dc:48|basic]</p>", "extreme dcScale and plasma ignored");
+  assert.equal(HEAD(c.system.description.value), "<p>@Damage[(11d6)[bludgeoning]], @Check[fortitude|dc:48|basic]</p>", "extreme abilityDcScale and plasma ignored");
   const en = fillPlaceholderAbility(item("Engulf", ENGULF), huge);
   assert.equal(HEAD(en.system.description.value), "<p>@Check[reflex|dc:45|options:damaging-effect,inflicts:grabbed,inflicts:slowed], @Damage[(11d6)[bludgeoning]] damage, [[/act escape dc=45]], Rupture 39</p>");
   const sw = fillPlaceholderAbility(item("Swallow Whole", SWALLOW_WHOLE), huge);
@@ -119,6 +119,61 @@ for (const [name, desc, rules] of [["Constrict", CONSTRICT, []], ["Greater Const
     const out = fillPlaceholderAbility(item(name, desc, rules), { level, size: "lg", strikes: [TUSK] });
     assert.ok(out, `${name} fills at level ${level}`);
     assert.equal(hasPlaceholderValues(out), false, `${name} at level ${level} has no placeholders`);
+  }
+}
+
+// Post-check: a stray placeholder outside the expected tokens fails closed.
+assert.equal(fillPlaceholderAbility(item("Swallow Whole", SWALLOW_WHOLE + "<p>[0]</p>"), { level: 7, size: "lg", strikes: [] }), null, "stray placeholder fails closed");
+
+// fillBlocker: the same checks resolveConcept applies before a pick is kept.
+assert.equal(fillBlocker(item("Swallow Whole", SWALLOW_WHOLE), { level: 7, size: "tiny" }), "size tiny has no smaller size");
+assert.equal(fillBlocker(item("Trample", TRAMPLE), { level: 7, size: "lg", strikes: [{ name: "Ray", damage: "2d6", type: "ranged" }] }), "no melee Strike");
+assert.equal(fillBlocker(item("Trample", TRAMPLE), { level: 25, size: "lg", strikes: [TUSK] }), "level 25 is outside the tables");
+assert.equal(fillBlocker(item("Engulf", ENGULF), { level: -2, size: "med" }), "level -2 is outside the tables");
+assert.equal(fillBlocker(item("Engulf", ENGULF), { level: 7, size: "tiny" }), null, "engulf needs no size");
+assert.equal(fillBlocker(item("Trample", TRAMPLE), { level: 7, size: "lg", strikes: [TUSK] }), null, "fillable");
+assert.equal(fillBlocker(item("Cursed Bite", SWALLOW_WHOLE), { level: 7, size: "lg" }), "not a fillable ability");
+
+// resolveConcept: an unfillable pick is caught before the preview, with a warning.
+{
+  const docs = {
+    "swallow-whole": { name: "Swallow Whole", text: SWALLOW_WHOLE },
+    trample: { name: "Trample", text: TRAMPLE }
+  };
+  const pack = {
+    async getIndex() {
+      return Object.entries(docs).map(([id, d]) => ({ _id: id, name: d.name, type: "action", system: { traits: { value: [] }, actionType: { value: "passive" } } }));
+    },
+    async getDocument(id) {
+      const d = docs[id];
+      if (!d) return null;
+      const data = { name: d.name, type: "action", system: { description: { value: d.text }, rules: [] } };
+      return { ...data, uuid: `Compendium.sf2e.bestiary-ability-glossary-srd.Item.${id}`, toObject: () => structuredClone(data) };
+    }
+  };
+  globalThis.game = { settings: { get: () => ({}) }, packs: new Map([["sf2e.bestiary-ability-glossary-srd", pack]]) };
+  const { resolveConcept, normalizeConcept } = await import("./builder.mjs");
+  const warnings = [];
+  const original = console.warn;
+  console.warn = (message) => warnings.push(String(message));
+  try {
+    const tiny = normalizeConcept({ level: 7, size: "tiny", specialAbilities: [{ name: "Swallow Whole", glossary: "Swallow Whole", description: "It swallows the foe whole." }] }, { level: 7, rarity: "common" });
+    const tinyResolved = await resolveConcept(tiny);
+    assert.equal(tinyResolved.abilities[0].entry, null, "tiny creature: the swallow pick is not resolved");
+    assert.equal(tinyResolved.abilities[0].ability.narrative, true, "its thematic text stays narrative-only");
+    assert.ok(warnings.some((w) => /"Swallow Whole" cannot be filled for this creature: size tiny has no smaller size/.test(w)), "the unfillable pick is named");
+
+    const large = normalizeConcept({ level: 7, size: "lg", specialAbilities: [{ name: "Swallow Whole", glossary: "Swallow Whole", description: "It swallows the foe whole." }] }, { level: 7, rarity: "common" });
+    const largeResolved = await resolveConcept(large);
+    assert.ok(largeResolved.abilities[0].entry, "a fillable pick stays resolved for the build to fill");
+    assert.equal(warnings.length, 1, "no warning for a fillable pick");
+
+    const ranged = normalizeConcept({ level: 7, size: "lg", strikes: [{ name: "Ray", type: "ranged", damage: "2d6", damageType: "fire", range: 30 }], specialAbilities: [{ name: "Trample", glossary: "Trample", description: "It tramples." }] }, { level: 7, rarity: "common" });
+    const rangedResolved = await resolveConcept(ranged);
+    assert.equal(rangedResolved.abilities[0].entry, null, "trample with only ranged strikes is not resolved");
+    assert.ok(warnings.some((w) => /"Trample" cannot be filled for this creature: no melee Strike/.test(w)), "the trample pick is named");
+  } finally {
+    console.warn = original;
   }
 }
 
