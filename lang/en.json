@@ -156,6 +156,10 @@
       "GotIt": "Got it",
       "Disable": "Don't show for updates",
       "Note": {
+        "BlankAbilities": {
+          "Title": "No more blank creature abilities",
+          "Body": "Generated creatures no longer get Constrict, Greater Constrict, Swallow Whole, Engulf, Trample, Frightful Presence or Stench with blank damage, DCs or aura sizes. Those abilities are held back until the module can fill in their values; the console names any that were left out."
+        },
         "ClearerErrors": {
           "Title": "Clearer error messages and bug reports",
           "Body": "Error messages now say what went wrong and what to do next. After you copy a bug report, an Open GitHub issue button takes you straight to the issue form, and the report is never put in the link."
