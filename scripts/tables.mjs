@@ -7,6 +7,8 @@
  *   PERCEPTION_AND_SAVES, SKILL, AC, HP, STRIKE_ATTACK, STRIKE_DAMAGE,
  *   SPELL_DC, SPELL_ATTACK, RESISTANCE) verified against Starfinder GM Core
  *   pp. 116–128 (Rules 989–1025). Values calibrated for SF2e Alien Core.
+ * - CITED SF2e: Area Damage (GM Core pg. 128): AREA_DAMAGE and AREA_DAMAGE_AVERAGE,
+ *   unlimited and limited use columns, printed averages kept as printed.
  * Every array is indexed by creature level, from -1 to 24 (use `idx(level)`).
  *
  * Rules data used under the ORC License; see README for attribution.
