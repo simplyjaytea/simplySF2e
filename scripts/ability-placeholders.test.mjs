@@ -63,6 +63,8 @@ const docs = {
   stench: { _id: "stench", name: "Stench", type: "action", system: { description: { value: STENCH_PLACEHOLDER }, rules: STENCH_PLACEHOLDER_RULES } },
   darkvision: { _id: "darkvision", name: "Darkvision", type: "action", system: { description: { value: DARKVISION_PUBLISHED }, rules: [] } },
   flaky: { _id: "flaky", name: "Flaky Grasp", type: "action", system: { description: { value: CONSTRICT_FILLED }, rules: [] } },
+  // Blank, and not in FILLABLE_ABILITIES: must stay excluded.
+  cursed: { _id: "cursed", name: "Cursed Bite", type: "action", system: { description: { value: CONSTRICT_PLACEHOLDER }, rules: [] } },
   late: { _id: "late", name: "Late Grasp", type: "action", system: { description: { value: CONSTRICT_FILLED }, rules: [] } }
 };
 let failing = true;
@@ -96,7 +98,8 @@ globalThis.game = {
 try {
   const candidates = await getAbilityCandidates(["Constrict", "Stench", "Darkvision"]);
   const names = candidates.map((c) => c.name).sort();
-  assert.deepEqual(names, ["Constrict (Filled)", "Darkvision", "Late Grasp"], "placeholder and unreadable items are not offered");
+  // Fillable blanks (Constrict, Stench) are offered again (FIX-B); a non-fillable blank and an unreadable one are not.
+  assert.deepEqual(names, ["Constrict", "Constrict (Filled)", "Darkvision", "Late Grasp", "Stench"], "fillable blanks offered; other blanks and unreadable items are not");
   assert.equal(candidates.find((c) => c.name === "Darkvision").ref._id, "darkvision");
   assert.ok(maxInFlight > 1, "documents are loaded in parallel, not one by one");
   assert.ok(warnings.some((w) => /could not read ability "Flaky Grasp", skipped/.test(w)), "a read failure is named as a read failure");
@@ -132,20 +135,18 @@ try {
   const concept = normalizeConcept({
     specialAbilities: [
       { name: "Constrict", glossary: "Constrict", description: "It coils around a foe it has grabbed." },
-      { name: "Stench", glossary: "Stench", description: "A rank odor rolls out; DC 20 Fortitude or be sickened." },
+      { name: "Cursed Bite", glossary: "Cursed Bite", description: "It snaps at the foe." },
       { name: "Darkvision", glossary: "Darkvision", description: "It sees in the dark." }
     ]
   }, { level: 5, rarity: "common" });
   const resolved = await resolveConcept(concept);
   const byName = Object.fromEntries(resolved.abilities.map((r) => [r.ability.name, r]));
-  assert.equal(byName.Constrict.entry, null, "placeholder name match is not cloned");
-  assert.equal(byName.Constrict.ability.narrative, true, "its thematic text stays as narrative-only");
-  assert.equal(byName.Stench.entry, null, "placeholder name match is not cloned");
-  assert.notEqual(byName.Stench.ability.narrative, true, "text with a DC is not kept as narrative");
+  assert.ok(byName.Constrict.entry, "a fillable blank stays as its entry (FIX-B fills it at build)");
+  assert.equal(byName["Cursed Bite"].entry, null, "a non-fillable blank match is not cloned");
+  assert.equal(byName["Cursed Bite"].ability.narrative, true, "its thematic text stays as narrative-only");
   assert.ok(byName.Darkvision.entry, "a normal glossary item still resolves");
-  assert.equal(lookupWarnings.length, 2, "each dropped or narrative-only placeholder is named");
-  assert.match(lookupWarnings[0], /Constrict/);
-  assert.match(lookupWarnings[1], /Stench/);
+  assert.equal(lookupWarnings.length, 1, "each dropped or narrative-only placeholder is named");
+  assert.match(lookupWarnings[0], /Cursed Bite/);
 } finally {
   console.warn = originalWarn;
 }
@@ -178,14 +179,14 @@ console.warn = (message) => pipelineWarnings.push(String(message));
 try {
   const concept = {
     level: 5,
-    specialAbilities: [{ name: "Constrict", glossary: "Constrict", description: "It coils around a foe it has grabbed." }]
+    specialAbilities: [{ name: "Cursed Bite", glossary: "Cursed Bite", description: "It snaps at the foe." }]
   };
   await refineCreatureAbilities(concept, {
     ai: { selectCreatureAbilities: async () => ({ abilities: [], usage: null, timing: null }) },
     labels: {},
     onTokens: () => {}
   });
-  assert.ok(pipelineWarnings.some((w) => /"Constrict" is a glossary ability with blank published values; not offered to the model/.test(w)),
+  assert.ok(pipelineWarnings.some((w) => /"Cursed Bite" is a glossary ability with blank published values; not offered to the model/.test(w)),
     "the held-back draft ability is named");
 } finally {
   console.warn = originalWarn;

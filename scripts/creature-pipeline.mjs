@@ -16,7 +16,7 @@ import { MODULE_ID } from "./settings.mjs";
 import {
   getSpellCandidates, getFocusSpellCandidates, getAbilityCandidates, getFeatCandidates,
   getEquipmentCandidates, getLootCandidates, getScrollSpellCandidates,
-  findEntry, getPacksFor, placeholderState
+  findEntry, getPacksFor, placeholderState, isFillableEntry
 } from "./compendium.mjs";
 import {
   normalizeConcept, normalizeLoot, resolveConcept, applyTreasureBudget, lootValueGp, parseCoins, parseScroll,
@@ -178,7 +178,7 @@ export async function refineCreatureAbilities(concept, ctxIn) {
       const name = ability.glossary;
       if (!name || offered.has(String(name).toLowerCase())) continue;
       const entry = await findEntry(getPacksFor("abilities"), name, (e) => e.type === "action");
-      if (entry && await placeholderState(entry) === "blank") {
+      if (entry && !isFillableEntry(entry) && await placeholderState(entry) === "blank") {
         console.warn(`${MODULE_ID} | "${name}" is a glossary ability with blank published values; not offered to the model`);
       }
     }

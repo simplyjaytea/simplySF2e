@@ -1,5 +1,6 @@
 import * as T from "./tables.mjs";
-import { getPacksFor, findEntry, getDocument, toItemData, priceToGp, isIssuedCandidate, placeholderState } from "./compendium.mjs";
+import { getPacksFor, findEntry, getDocument, toItemData, priceToGp, isIssuedCandidate, placeholderState, placeholderDocFor } from "./compendium.mjs";
+import { ABILITY_DAMAGE_TYPES, ABILITY_DC_SCALES, fillBlocker, fillPlaceholderAbility, hasPlaceholderValues, isFillableEntry } from "./ability-fill.mjs";
 import { slugify, capitalized, esc, toHtml } from "./text.mjs";
 import { applyReskin, recallKnowledgeNote } from "./reskin.mjs";
 import { isPlaceholderArt } from "./art.mjs";
@@ -517,6 +518,8 @@ export function normalizeConcept(raw, { level, rarity }) {
         actionType: ["action", "reaction", "free", "passive"].includes(a.actionType) ? a.actionType : "passive",
         actions: [1, 2, 3].includes(Number(a.actions)) ? Number(a.actions) : null,
         description: String(a.description ?? ""),
+        abilityDcScale: ABILITY_DC_SCALES.includes(a.abilityDcScale) ? a.abilityDcScale : null,
+        damageType: ABILITY_DAMAGE_TYPES.includes(a.damageType) ? a.damageType : null,
         traits: (Array.isArray(a.traits) ? a.traits : []).map(slugify).filter(Boolean)
       })),
     spellcasting,
@@ -892,6 +895,25 @@ export function customEquipmentItem(name, quantity, value) {
  * Resolve every compendium reference in a concept. Returns lookup results so
  * the preview can show what was found and what will become a custom ability.
  */
+/**
+ * Why a fillable blank cannot be filled for this creature, or null (FIX-B5).
+ * A dry run of the build-time fill on the loaded document, so resolve and build
+ * share one decision. The concept's strikes have no damage formula yet (the
+ * build computes it), so a placeholder "1d4" stands in for the dry run only;
+ * the build fills with the built strikes' real damage.
+ */
+function fillDryRunBlocker(entry, doc, ability, concept) {
+  const reason = fillBlocker(entry, { level: concept.level, size: concept.size, strikes: concept.strikes ?? [] });
+  if (reason) return reason;
+  if (!doc) return "its published text could not be read";
+  const dryStrikes = (concept.strikes ?? []).filter((s) => s.type !== "ranged").map((s) => ({ name: s.name, type: "melee", damage: "1d4" }));
+  const filled = fillPlaceholderAbility(toItemData(doc), {
+    level: concept.level, size: concept.size, strikes: dryStrikes,
+    abilityDcScale: ability.abilityDcScale, damageType: ability.damageType
+  });
+  return filled ? null : "published text does not match the expected blanks";
+}
+
 export async function resolveConcept(concept, { exactContent = false } = {}) {
   const abilities = [];
   for (const ability of concept.specialAbilities) {
@@ -907,9 +929,15 @@ export async function resolveConcept(concept, { exactContent = false } = {}) {
     // is never cloned. Its thematic text stays narrative-only when it names no numbers.
     if (entry) {
       const state = await placeholderState(entry);
-      if (state !== "clean") {
+      // A fillable blank is kept if this creature can take its fill (createActor fills it);
+      // otherwise it is treated like any other blank ability.
+      const unfillable = state === "blank" && isFillableEntry(entry)
+        ? fillDryRunBlocker(entry, placeholderDocFor(entry), ability, concept)
+        : null;
+      if (unfillable) console.warn(`simplysf2e | "${ability.name}" cannot be filled for this creature: ${unfillable}`);
+      if (state !== "clean" && !(state === "blank" && isFillableEntry(entry) && !unfillable)) {
         entry = null;
-        if (state === "blank") {
+        if (state === "blank" && !unfillable) {
           if (narrativeHasMechanics(ability.description)) {
             console.warn(`simplysf2e | dropped "${ability.name}": its glossary ability has blank published values and its text names dice, a DC or Hit Points`);
           } else {
@@ -1584,10 +1612,25 @@ export async function createActor(concept, resolved, { img = null, scaffold = nu
   }
 
   // Special abilities → exact glossary clones or explicitly narrative actions.
+  // Melee strikes as built above, for a fillable ability's trample strike (R6).
+  const meleeStrikes = stats.strikes.filter((s) => s.type !== "ranged").map((s) => ({ name: capitalized(s.name), damage: s.damage, type: "melee" }));
   for (const { ability, entry } of resolved.abilities) {
     const doc = await getSelectedDocument(entry);
     if (doc) {
-      items.push(toItemData(doc));
+      const data = toItemData(doc);
+      if (!hasPlaceholderValues(data)) {
+        items.push(data);
+        continue;
+      }
+      const filled = fillPlaceholderAbility(data, {
+        level: concept.level, size: concept.size, strikes: meleeStrikes,
+        abilityDcScale: ability.abilityDcScale, damageType: ability.damageType
+      });
+      if (!filled) {
+        console.warn(`simplysf2e | dropped "${ability.name}": its blank values cannot be filled for this creature (level ${concept.level}, size ${concept.size})`);
+        continue;
+      }
+      items.push(filled);
       continue;
     }
     if (!ability.narrative) continue;
