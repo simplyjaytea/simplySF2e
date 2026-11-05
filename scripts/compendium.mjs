@@ -851,6 +851,52 @@ async function getFullCandidates(category, type, maxRarity) {
   return candidates;
 }
 
+/**
+ * Blank placeholder values left in published glossary text (I-ZERO): an
+ * inline check with no DC, a damage roll of (0), a 0-foot distance, or a
+ * bracketed fill-in such as [Listed Size]. Patterns, not a list of names.
+ */
+const PLACEHOLDER_TEXT = [
+  /@Damage\[\(0\)/,
+  /\|dc:(?=[|\]])/,
+  /\bdc=0\b/,
+  /\[0\]/,
+  /(?:^|[\s>])0 feet\b/,
+  /\[Listed [A-Za-z ]+\]|\[(?:Size|Strike)\]/
+];
+
+/**
+ * True when a published ability document still has placeholder values, so
+ * cloning it would put blank numbers on the sheet. Pure; needs the full doc
+ * because the pack index carries no description text.
+ */
+export function hasPlaceholderValues(doc) {
+  const text = String(doc?.system?.description?.value ?? "");
+  if (PLACEHOLDER_TEXT.some((pattern) => pattern.test(text))) return true;
+  return (doc?.system?.rules ?? []).some((rule) => rule?.key === "Aura" && Number(rule.radius) === 0);
+}
+
+const placeholderCache = new Map();
+
+/**
+ * Fail closed: true when the full document has placeholders or cannot be read.
+ * Cached per session. Callers decide what to warn about.
+ */
+export async function isPlaceholderEntry(entry) {
+  const key = `${entry?.packId}:${entry?._id}`;
+  if (!placeholderCache.has(key)) {
+    let flagged = true;
+    try {
+      const doc = await getDocument(entry);
+      flagged = !doc || hasPlaceholderValues(doc);
+    } catch (err) {
+      console.warn(`simplysf2e | could not read ability "${entry?.name ?? key}" to check its values`, err);
+    }
+    placeholderCache.set(key, flagged);
+  }
+  return placeholderCache.get(key);
+}
+
 /** Bounded exact bestiary-action candidates for creature ability selection. */
 export async function getAbilityCandidates(keywords = []) {
   const candidates = [];
@@ -860,6 +906,7 @@ export async function getAbilityCandidates(keywords = []) {
     if (!entries) continue;
     for (const entry of entries) {
       if (entry.type !== "action" || seen.has(entry.normalized)) continue;
+      if (await isPlaceholderEntry(entry)) continue;
       seen.add(entry.normalized);
       candidates.push(candidateRecord(entry, {
         name: entry.name,
