@@ -1,18 +1,202 @@
 /* ==========================================================================
    simplySF2e — first-run welcome window (templates/welcome.hbs only).
-   Loaded after styles/simplysf2e.css; the readiness rows reuse the shared
-   status bar (.spf-statusbar / .spf-provider-summary) from there.
+   Loaded after styles/simplysf2e.css; cards, fields, actions and status
+   colors reuse the shared Neon Drift kit.
    ========================================================================== */
 
 .simplysf2e .simplysf2e-welcome {
   display: flex;
   flex-direction: column;
-  gap: var(--spf-space-md);
-  padding: var(--spf-space-xs);
+  gap: var(--spf-space-lg);
+  padding: var(--spf-space-sm);
 }
 
-.simplysf2e .spf-welcome-next {
+.simplysf2e .spf-welcome-intro {
   margin: 0;
+}
+
+.simplysf2e .spf-welcome-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spf-space-md);
+  min-width: 0;
+  margin: 0;
+  padding: var(--spf-space-md) var(--spf-space-lg) var(--spf-space-lg);
+}
+
+.simplysf2e .spf-welcome-section legend {
+  padding: 0 var(--spf-space-sm);
+  border: 1px solid var(--spf-border);
+  border-radius: var(--spf-radius-sm);
+  background: color-mix(in srgb, var(--spf-brand-dark) 85%, #0c1620);
+  box-shadow: var(--spf-inset-glow);
+  color: var(--spf-brand-accent);
+  font-family: var(--spf-font-display);
+  font-size: var(--spf-text-sm);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.simplysf2e .spf-welcome-providers {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(6.5rem, 1fr));
+  grid-auto-rows: 1fr;
+  gap: var(--spf-space-sm);
+}
+
+.simplysf2e .spf-welcome-provider {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spf-space-xs);
+  min-width: 0;
+  min-height: 4.25rem;
+  padding: var(--spf-space-sm);
+  color: var(--spf-text-muted);
+}
+
+.simplysf2e .spf-welcome-provider > i {
+  color: var(--spf-brand-accent);
+  font-size: 1.1rem;
+}
+
+.simplysf2e .spf-welcome-provider-note {
+  color: var(--spf-brand-accent);
+  font-size: 0.72rem;
+  line-height: 1.1;
+}
+
+.simplysf2e .spf-welcome-provider-active {
+  border-color: var(--spf-brand-accent);
+  background: var(--spf-brand-soft);
+  box-shadow: inset 0 0 0 1px var(--spf-brand-accent), var(--spf-neon-glow);
+  color: var(--spf-text);
+  font-weight: 700;
+}
+
+.simplysf2e .spf-welcome-connect .form-group {
+  margin: 0;
+}
+
+.simplysf2e .spf-welcome-connect label {
+  font-size: var(--spf-text-sm);
+}
+
+.simplysf2e .spf-welcome-connect input {
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.simplysf2e .spf-welcome-connect .spf-hint {
+  margin: 0.15rem 0 0;
+}
+
+.simplysf2e .spf-welcome-connect-button,
+.simplysf2e .spf-welcome-sample {
+  width: 100%;
+  min-height: 2.4rem;
+}
+
+.simplysf2e .spf-welcome-progress,
+.simplysf2e .spf-welcome-error {
+  margin: 0;
+}
+
+.simplysf2e .spf-welcome-progress p {
+  margin: 0 0 var(--spf-space-xs);
+}
+
+.simplysf2e .spf-welcome-progress progress {
+  width: 100%;
+  height: 0.65rem;
+  accent-color: var(--spf-neon);
+}
+
+.simplysf2e .spf-welcome-progress-steps {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--spf-space-xs) var(--spf-space-md);
+  margin: var(--spf-space-sm) 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--spf-text-muted);
+  font-size: var(--spf-text-sm);
+}
+
+.simplysf2e .spf-welcome-error p {
+  margin: var(--spf-space-xs) 0 0;
+  overflow-wrap: anywhere;
+}
+
+.simplysf2e .spf-welcome-connected {
+  border-color: var(--spf-success);
+}
+
+.simplysf2e .spf-welcome-connected-title {
+  margin: 0;
+  color: var(--spf-success-fg);
+  font-size: 1.05rem;
+}
+
+.simplysf2e .spf-welcome-model {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spf-space-xs) var(--spf-space-md);
+  margin: var(--spf-space-sm) 0;
+  font-size: var(--spf-text-sm);
+}
+
+.simplysf2e .spf-welcome-model code {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--spf-brand-accent);
+  font-family: var(--spf-font-mono);
+}
+
+.simplysf2e .spf-welcome-advanced {
+  padding: var(--spf-space-md) var(--spf-space-lg);
+}
+
+.simplysf2e .spf-welcome-advanced summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--spf-space-xs) var(--spf-space-md);
+  cursor: pointer;
+  color: var(--spf-text);
+  font-weight: 700;
+}
+
+.simplysf2e .spf-welcome-advanced summary small {
+  color: var(--spf-text-muted);
+  font-size: var(--spf-text-sm);
+  font-weight: 400;
+}
+
+.simplysf2e .spf-welcome-advanced[open] summary {
+  margin-bottom: var(--spf-space-md);
+}
+
+.simplysf2e .spf-welcome-advanced-body h3 {
+  margin: var(--spf-space-sm) 0 var(--spf-space-xs);
+  border: 0;
+  color: var(--spf-brand-accent);
+  font-size: var(--spf-text-sm);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.simplysf2e .spf-welcome-advanced-buttons {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spf-space-sm);
+}
+
+.simplysf2e .spf-welcome-advanced-body > button {
+  width: 100%;
 }
 
 .simplysf2e .spf-welcome-dismiss {
@@ -20,12 +204,40 @@
   align-items: center;
   gap: 0.4rem;
   align-self: flex-start;
-  font-size: var(--spf-text-sm);
   color: var(--spf-text-muted);
   cursor: pointer;
+  font-size: var(--spf-text-sm);
 }
 
 .simplysf2e .spf-welcome-dismiss input {
   flex: 0 0 auto;
   margin: 0;
+}
+
+.simplysf2e .spf-welcome > .spf-actions {
+  margin-top: 0;
+}
+
+@container spf-window (max-width: 520px) {
+  .simplysf2e .spf-welcome-providers {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .simplysf2e .spf-welcome-provider {
+    padding-inline: var(--spf-space-xs);
+  }
+
+  .simplysf2e .spf-welcome-advanced-buttons {
+    grid-template-columns: 1fr;
+  }
+
+  .simplysf2e .spf-welcome-progress-steps {
+    justify-content: flex-start;
+  }
+}
+
+@container spf-window (max-width: 380px) {
+  .simplysf2e .spf-welcome-providers {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }

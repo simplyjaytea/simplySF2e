@@ -60,6 +60,25 @@ export class WelcomeApp extends HandlebarsApplicationMixin(ApplicationV2) {
       ...state,
       sourcesMissing: describeMissingSources(state.sources.missing),
       providerWarning: state.provider.warningKey ? game.i18n.localize(state.provider.warningKey) : "",
+      providers: [
+        { id: "openrouter", label: "OpenRouter", icon: "fa-cloud", selected: true, recommended: true, note: "" },
+        { id: "openai", label: "OpenAI", icon: "fa-cloud", selected: false, recommended: false, note: "" },
+        { id: "deepseek", label: "DeepSeek", icon: "fa-cloud", selected: false, recommended: false, note: "" },
+        { id: "google", label: "Google", icon: "fa-cloud", selected: false, recommended: false, note: game.i18n.localize("SIMPLYSF2E.Welcome.LiveCheckPending") },
+        { id: "ollama", label: "Ollama", icon: "fa-server", selected: false, recommended: false, note: "" }
+      ],
+      selectedProvider: "OpenRouter",
+      apiKey: "",
+      keyless: false,
+      showBaseUrl: false,
+      baseUrl: "",
+      connectDisabled: true,
+      connecting: false,
+      connected: false,
+      connectionProvider: "",
+      model: "",
+      errorMessage: "",
+      advancedOpen: false,
       dismissed: Boolean(getSetting(SETTINGS.welcomeDismissed))
     };
   }

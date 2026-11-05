@@ -1,45 +1,76 @@
-// First-run welcome. Shape follows WelcomeApp._prepareContext() (welcome-app.mjs):
-// welcomeState() from welcome.mjs plus the localized strings the app adds.
+// Phase 1 Welcome design states. Shape follows WelcomeApp._prepareContext()
+// (welcome-app.mjs); no connection behavior runs in the preview harness.
 import { localize } from "./_shared.mjs";
+
+const providers = [
+  { id: "openrouter", label: "OpenRouter", icon: "fa-cloud", selected: true, recommended: true, note: "" },
+  { id: "openai", label: "OpenAI", icon: "fa-cloud", selected: false, recommended: false, note: "" },
+  { id: "deepseek", label: "DeepSeek", icon: "fa-cloud", selected: false, recommended: false, note: "" },
+  { id: "google", label: "Google", icon: "fa-cloud", selected: false, recommended: false, note: localize("SIMPLYSF2E.Welcome.LiveCheckPending") },
+  { id: "ollama", label: "Ollama", icon: "fa-server", selected: false, recommended: false, note: "" }
+];
 
 function welcome(patch = {}) {
   return {
-    system: { ready: true, version: "1.5.1", minimum: "1.5.0" },
-    sources: { ready: true, missing: [], packCount: 10 },
-    provider: { ready: true, warningKey: null },
-    jev: { on: true, source: "connection" },
-    ready: true,
-    sourcesMissing: "",
-    providerWarning: "",
+    providers: providers.map((provider) => ({ ...provider })),
+    selectedProvider: "OpenRouter",
+    apiKey: "",
+    keyless: false,
+    showBaseUrl: false,
+    baseUrl: "",
+    connectDisabled: true,
+    connecting: false,
+    connected: false,
+    connectionProvider: "",
+    model: "",
+    errorMessage: "",
+    advancedOpen: false,
     dismissed: false,
     ...patch
   };
 }
 
 export default [
+  { id: "welcome-fresh", app: "welcome", context: welcome() },
   {
-    id: "welcome-first-run",
+    id: "welcome-key-entered",
+    app: "welcome",
+    context: welcome({ apiKey: "sk-or-v1-preview-only", connectDisabled: false })
+  },
+  {
+    id: "welcome-connecting",
+    app: "welcome",
+    context: welcome({ apiKey: "sk-or-v1-preview-only", connecting: true })
+  },
+  {
+    id: "welcome-connected",
     app: "welcome",
     context: welcome({
-      provider: { ready: false, warningKey: "SIMPLYSF2E.Generator.NoApiKey" },
-      providerWarning: localize("SIMPLYSF2E.Generator.NoApiKey"),
-      jev: { on: false, source: null },
-      ready: false
+      connected: true,
+      connectionProvider: "OpenRouter",
+      model: "deepseek/deepseek-v4.1-flash"
     })
   },
   {
-    id: "welcome-problems",
+    id: "welcome-error",
     app: "welcome",
     context: welcome({
-      system: { ready: false, version: "1.4.2", minimum: "1.5.0" },
-      sources: { ready: false, missing: ["spells", "bestiaryActors"], packCount: 6 },
-      sourcesMissing: "Spells, Bestiary Actors",
-      provider: { ready: false, warningKey: "SIMPLYSF2E.Generator.ApiKeyNotAuthorized" },
-      providerWarning: localize("SIMPLYSF2E.Generator.ApiKeyNotAuthorized"),
-      jev: { on: false, source: null },
-      ready: false,
-      dismissed: true
+      apiKey: "sk-or-v1-preview-only",
+      connectDisabled: false,
+      errorMessage: localize("SIMPLYSF2E.Welcome.BadKeyMessage", { provider: "OpenRouter" })
     })
   },
-  { id: "welcome-all-ready", app: "welcome", context: welcome() }
+  { id: "welcome-advanced", app: "welcome", context: welcome({ advancedOpen: true }) },
+  {
+    id: "welcome-ollama",
+    app: "welcome",
+    context: welcome({
+      providers: providers.map((provider) => ({ ...provider, selected: provider.id === "ollama" })),
+      selectedProvider: "Ollama",
+      keyless: true,
+      showBaseUrl: true,
+      baseUrl: "http://localhost:11434/v1",
+      connectDisabled: false
+    })
+  }
 ];
