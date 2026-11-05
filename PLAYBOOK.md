@@ -16,7 +16,7 @@ The one file every agent (Claude, Codex, anything else) reads first. It holds wh
 
 *Updated 2026-11-05.* Status **Beta**. `main` at `b933df8` (#78). Stable `releases/latest` is **v0.1.11** (tag = `0ff0561`, promoted 2026-10-31). Verify with `https://github.com/simplyjaytea/simplySF2e/releases/latest/download/module.json`. M1–M5 tooling is merged; the history is in git and `docs/archive/`.
 
-**In flight:** this playbook rewrite for the new herdr setup (§6), branch `docs/playbook-herdr`.
+**Nothing open.** #79 moved the workflow to the herdr three-terminal setup (§6).
 
 - **Next:** M5 is down to narrative-action automation. M6 (one-screen onboarding) follows. Milestones M5-M9 are in `docs/consumer-plan.md`.
 - **Waiting on JT:** a live `docs/release-pass.md` run on sf2e 1.6 logged to `docs/live-log.md` (it holds only the 2026-10-08 verbal pass), including QA rows **12aa.1-12aa.4** (budget/deadline copy, never seen in Foundry); a live `tools/model-matrix/` run and the D5 model list; a number for `runDeadline` (ships 0 = off). Offline benches do not verify Foundry sheets.
