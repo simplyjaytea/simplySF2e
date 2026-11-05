@@ -1,0 +1,83 @@
+import {
+  MODULE_ID, SETTINGS, authorizeApiKeyForCurrentBaseUrl, describeProvider,
+  getProviderRequestConfig, normalizeApiBaseUrl, upsertActiveProviderConnection
+} from "./settings.mjs";
+
+export function findProviderPreset(id, presets) {
+  return presets.find((preset) => preset.id === id) ?? null;
+}
+
+export function filterProviderModels(models, { anthropicOnly = false } = {}) {
+  return models.filter((model) => !anthropicOnly || model.startsWith("anthropic/"));
+}
+
+export function defaultModelPresent(models, defaultModel) {
+  return Boolean(defaultModel) && models.includes(defaultModel);
+}
+
+export function resolveModelChoice(models, { defaultModel = "", anthropicOnly = false } = {}) {
+  const availableModels = filterProviderModels(models, { anthropicOnly });
+  const useDefault = !anthropicOnly && defaultModelPresent(availableModels, defaultModel);
+  return {
+    availableModels,
+    model: useDefault ? defaultModel : "",
+    needsModelChoice: !useDefault
+  };
+}
+
+/** Save and authorize one exact provider route for Provider Setup and Welcome. */
+export async function saveProviderConnection({
+  baseUrl, model = "", enteredApiKey = "", clearApiKey = false, connectionName = "",
+  notify = true, requireModel = true
+} = {}) {
+  baseUrl = normalizeApiBaseUrl(baseUrl);
+  model = String(model ?? "").trim();
+  enteredApiKey = String(enteredApiKey ?? "").trim();
+  connectionName = String(connectionName ?? "").trim();
+
+  let parsed;
+  try { parsed = new URL(baseUrl); }
+  catch { throw new Error(game.i18n.localize("SIMPLYSF2E.ProviderSetup.InvalidBaseUrl")); }
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    throw new Error(game.i18n.localize("SIMPLYSF2E.ProviderSetup.InvalidBaseUrl"));
+  }
+  if (requireModel && !model) throw new Error(game.i18n.localize("SIMPLYSF2E.Errors.NoModel"));
+
+  const currentBaseUrl = normalizeApiBaseUrl(game.settings.get(MODULE_ID, SETTINGS.apiBaseUrl));
+  const baseChanged = currentBaseUrl !== baseUrl;
+  await game.settings.set(MODULE_ID, SETTINGS.apiBaseUrl, baseUrl);
+  await game.settings.set(MODULE_ID, SETTINGS.model, model);
+
+  // A stored key belongs to its old endpoint. Switching providers without
+  // entering a replacement clears it instead of silently offering that
+  // secret for authorization against a different service.
+  if (clearApiKey || baseChanged || enteredApiKey) {
+    await game.settings.set(MODULE_ID, SETTINGS.apiKey, clearApiKey ? "" : enteredApiKey);
+  }
+
+  const configuredKey = String(game.settings.get(MODULE_ID, SETTINGS.apiKey) ?? "").trim();
+  const authorized = configuredKey
+    ? await authorizeApiKeyForCurrentBaseUrl(baseUrl)
+    : false;
+  await upsertActiveProviderConnection({ name: connectionName });
+  const provider = describeProvider(baseUrl, model);
+  const state = getProviderRequestConfig();
+  const insecure = Boolean(state.apiKeyInsecure);
+  const messageKey = insecure
+    ? "SIMPLYSF2E.Errors.InsecureKeyEndpoint"
+    : authorized
+      ? "SIMPLYSF2E.ProviderSetup.SavedAuthorized"
+      : state.keylessLocal
+        ? "SIMPLYSF2E.ProviderSetup.Saved"
+        : "SIMPLYSF2E.ProviderSetup.SavedNeedsKey";
+  if (notify) {
+    const notifySaved = insecure || (!authorized && !state.keylessLocal)
+      ? ui.notifications.warn.bind(ui.notifications)
+      : ui.notifications.info.bind(ui.notifications);
+    notifySaved(game.i18n.format(
+      messageKey,
+      { provider: provider.name, model }
+    ));
+  }
+  return { provider, model, state };
+}
