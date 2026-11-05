@@ -1,5 +1,5 @@
 import * as T from "./tables.mjs";
-import { getPacksFor, findEntry, getDocument, toItemData, priceToGp, isIssuedCandidate, isPlaceholderEntry } from "./compendium.mjs";
+import { getPacksFor, findEntry, getDocument, toItemData, priceToGp, isIssuedCandidate, placeholderState } from "./compendium.mjs";
 import { slugify, capitalized, esc, toHtml } from "./text.mjs";
 import { applyReskin, recallKnowledgeNote } from "./reskin.mjs";
 import { isPlaceholderArt } from "./art.mjs";
@@ -903,15 +903,20 @@ export async function resolveConcept(concept, { exactContent = false } = {}) {
       if (!entry) entry = await findEntry(getPacksFor("abilities"), ability.name, (e) => e.type === "action");
     }
     let kept = ability;
-    // A published ability with blank values (I-ZERO) is never cloned. Keep its
-    // thematic text as narrative-only when that text names no numbers.
-    if (entry && await isPlaceholderEntry(entry)) {
-      entry = null;
-      if (narrativeHasMechanics(ability.description)) {
-        console.warn(`simplysf2e | dropped "${ability.name}": its glossary ability has blank published values and its text names dice, a DC or Hit Points`);
-      } else {
-        console.warn(`simplysf2e | "${ability.name}" has blank published values in the glossary; kept as narrative only`);
-        kept = { ...ability, narrative: true };
+    // A published ability with blank values (I-ZERO) or one that cannot be read
+    // is never cloned. Its thematic text stays narrative-only when it names no numbers.
+    if (entry) {
+      const state = await placeholderState(entry);
+      if (state !== "clean") {
+        entry = null;
+        if (state === "blank") {
+          if (narrativeHasMechanics(ability.description)) {
+            console.warn(`simplysf2e | dropped "${ability.name}": its glossary ability has blank published values and its text names dice, a DC or Hit Points`);
+          } else {
+            console.warn(`simplysf2e | "${ability.name}" has blank published values in the glossary; kept as narrative only`);
+          }
+        }
+        if (!narrativeHasMechanics(ability.description)) kept = { ...ability, narrative: true };
       }
     }
     abilities.push({ ability: kept, entry });

@@ -852,8 +852,9 @@ async function getFullCandidates(category, type, maxRarity) {
 }
 
 /**
- * Blank placeholder values left in published glossary text (I-ZERO): an
- * inline check with no DC, a damage roll of (0), a 0-foot distance, or a
+ * Blank placeholder values left in published glossary text (I-ZERO): a damage
+ * roll of (0), an inline check with no DC, a dc=0 link, a bare [0], a
+ * paragraph that opens with "0 feet." (the placeholder distance), or a
  * bracketed fill-in such as [Listed Size]. Patterns, not a list of names.
  */
 const PLACEHOLDER_TEXT = [
@@ -861,60 +862,92 @@ const PLACEHOLDER_TEXT = [
   /\|dc:(?=[|\]])/,
   /\bdc=0\b/,
   /\[0\]/,
-  /(?:^|[\s>])0 feet\b/,
+  /<p>0 feet\.(?=\s|@)/,
   /\[Listed [A-Za-z ]+\]|\[(?:Size|Strike)\]/
 ];
 
 /**
- * True when a published ability document still has placeholder values, so
- * cloning it would put blank numbers on the sheet. Pure; needs the full doc
- * because the pack index carries no description text.
+ * True when a published ability document still has blank placeholder text, so
+ * cloning it would put blank numbers on the sheet. Pure. Rules are not read:
+ * a published Aura of radius 0 can carry filled text (Stench, crest-eater).
  */
 export function hasPlaceholderValues(doc) {
   const text = String(doc?.system?.description?.value ?? "");
-  if (PLACEHOLDER_TEXT.some((pattern) => pattern.test(text))) return true;
-  return (doc?.system?.rules ?? []).some((rule) => rule?.key === "Aura" && Number(rule.radius) === 0);
+  return PLACEHOLDER_TEXT.some((pattern) => pattern.test(text));
 }
 
+// Successful reads only: "clean" or "blank". Failed reads are never cached.
 const placeholderCache = new Map();
 
 /**
- * Fail closed: true when the full document has placeholders or cannot be read.
- * Cached per session. Callers decide what to warn about.
+ * Load the full document and classify it. "unreadable" (missing or thrown)
+ * fails closed and warns; it is not cached, so a transient error does not hide
+ * the ability for the session. Callers choose the warning for "blank".
+ * @returns {Promise<"clean"|"blank"|"unreadable">}
  */
-export async function isPlaceholderEntry(entry) {
+export async function placeholderState(entry) {
   const key = `${entry?.packId}:${entry?._id}`;
-  if (!placeholderCache.has(key)) {
-    let flagged = true;
-    try {
-      const doc = await getDocument(entry);
-      flagged = !doc || hasPlaceholderValues(doc);
-    } catch (err) {
-      console.warn(`simplysf2e | could not read ability "${entry?.name ?? key}" to check its values`, err);
-    }
-    placeholderCache.set(key, flagged);
+  if (placeholderCache.has(key)) return placeholderCache.get(key);
+  let doc = null;
+  try {
+    doc = await getDocument(entry);
+  } catch (err) {
+    console.warn(`simplysf2e | could not read ability "${entry?.name ?? key}", skipped`, err);
+    return "unreadable";
   }
-  return placeholderCache.get(key);
+  if (!doc) {
+    console.warn(`simplysf2e | could not read ability "${entry?.name ?? key}", skipped`);
+    return "unreadable";
+  }
+  const state = hasPlaceholderValues(doc) ? "blank" : "clean";
+  placeholderCache.set(key, state);
+  return state;
 }
 
-/** Bounded exact bestiary-action candidates for creature ability selection. */
-export async function getAbilityCandidates(keywords = []) {
-  const candidates = [];
-  const seen = new Set();
+/** True unless the ability is clean: blank and unreadable are both left out. */
+export async function isPlaceholderEntry(entry) {
+  return (await placeholderState(entry)) !== "clean";
+}
+
+/** Test seam: forget classified documents (packs are not edited during a session). */
+export function clearPlaceholderCache() {
+  placeholderCache.clear();
+}
+
+/**
+ * Bounded exact bestiary-action candidates for creature ability selection.
+ * @param {string[]} [keywords]
+ * @param {{signal?: AbortSignal}} [options] a cancelled run stops after loading
+ */
+export async function getAbilityCandidates(keywords = [], { signal } = {}) {
+  const pending = [];
   for (const packId of getPacksFor("abilities")) {
     const entries = await getIndex(packId);
     if (!entries) continue;
     for (const entry of entries) {
-      if (entry.type !== "action" || seen.has(entry.normalized)) continue;
-      if (await isPlaceholderEntry(entry)) continue;
-      seen.add(entry.normalized);
-      candidates.push(candidateRecord(entry, {
-        name: entry.name,
-        traits: entry.system?.traits?.value ?? [],
-        actionType: entry.system?.actionType?.value ?? "passive"
-      }));
+      if (entry.type === "action") pending.push(entry);
     }
   }
+  // The placeholder check applies to every configured abilities pack, by
+  // design: fail closed for any pack, not only the bundled glossary. Documents
+  // load in parallel; the cache keeps later calls cheap.
+  const states = await Promise.all(pending.map((entry) => placeholderState(entry)));
+  if (signal?.aborted) {
+    const err = new Error("Cancelled");
+    err.cancelled = true;
+    throw err;
+  }
+  const candidates = [];
+  const seen = new Set();
+  pending.forEach((entry, i) => {
+    if (states[i] !== "clean" || seen.has(entry.normalized)) return;
+    seen.add(entry.normalized);
+    candidates.push(candidateRecord(entry, {
+      name: entry.name,
+      traits: entry.system?.traits?.value ?? [],
+      actionType: entry.system?.actionType?.value ?? "passive"
+    }));
+  });
   const words = normalizedKeywords(keywords);
   const ranked = candidates.slice().sort((a, b) => relevanceScore(b, words) - relevanceScore(a, words)
     || a.name.localeCompare(b.name));
