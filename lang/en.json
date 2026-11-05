@@ -158,6 +158,7 @@
       "SampleHint": "Opens a preview; nothing is created until you click Create.",
       "SamplePrompt": "A level 1 space-pirate scout with a laser pistol",
       "ErrorTitle": "We couldn't connect",
+      "RestoreFailed": "Previous connection could not be restored; open AI Provider Setup.",
       "Advanced": "Advanced",
       "AdvancedSummary": "Anthropic, LM Studio, Jev and TypeSafe",
       "OtherConnections": "Other connections",

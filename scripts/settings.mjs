@@ -574,16 +574,19 @@ async function persistProviderBank(bank) {
 
 let applyingProviderConnection = false;
 
-async function applyConnectionToSettings(connection) {
+export async function withProviderConnectionGuard(callback) {
   applyingProviderConnection = true;
-  try {
+  try { return await callback(); }
+  finally { applyingProviderConnection = false; }
+}
+
+async function applyConnectionToSettings(connection) {
+  return withProviderConnectionGuard(async () => {
     await game.settings.set(MODULE_ID, SETTINGS.apiBaseUrl, connection.apiBaseUrl);
     await game.settings.set(MODULE_ID, SETTINGS.model, connection.model);
     await game.settings.set(MODULE_ID, SETTINGS.apiKey, connection.apiKey);
     await game.settings.set(MODULE_ID, SETTINGS.apiKeyBaseUrl, connection.apiKeyBaseUrl);
-  } finally {
-    applyingProviderConnection = false;
-  }
+  });
 }
 
 /**

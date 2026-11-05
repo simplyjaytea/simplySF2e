@@ -51,7 +51,7 @@ live.providerBank.connections[0].model = "new-model";
 assert.equal(snapshot.providerBank.activeId, "old", "the snapshot survives in-place bank mutation");
 assert.equal(snapshot.providerBank.connections[0].model, "old-model");
 const restored = {};
-await restoreProviderConnection(snapshot, async (key, value) => { restored[key] = value; });
+await restoreProviderConnection(snapshot, async (key, value) => { restored[key] = value; }, async (key) => restored[key]);
 assert.deepEqual(restored, {
   apiBaseUrl: "https://old.example/v1",
   model: "old-model",
@@ -60,5 +60,10 @@ assert.deepEqual(restored, {
   providerBank: { activeId: "old", connections: [{ id: "old", model: "old-model" }] }
 });
 assert.notEqual(restored.providerBank, snapshot.providerBank, "restore does not share mutable bank objects");
+await assert.rejects(
+  restoreProviderConnection(snapshot, async () => {}, async () => ""),
+  /endpoint binding was not restored/,
+  "an onChange hook cannot clear the restored key binding without detection"
+);
 
 console.log("provider-connect.test.mjs: provider, model-choice and snapshot/restore rules verified");

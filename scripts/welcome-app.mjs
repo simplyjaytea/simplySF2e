@@ -223,14 +223,27 @@ export class WelcomeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     await this.render();
   }
 
+  async #restoreConnection() {
+    const snapshot = this.#connectionSnapshot;
+    this.#connectionSnapshot = null;
+    if (!snapshot) return "";
+    try {
+      await restoreProviderConnection(snapshot);
+      return "";
+    } catch (err) {
+      console.error(`${MODULE_ID} | could not restore the previous provider connection`, err);
+      return game.i18n.localize("SIMPLYSF2E.Welcome.RestoreFailed");
+    }
+  }
+
   static async #onConnect() {
     if (this.#busy || this.#connectDisabled()) return;
-    this.#connectionSnapshot ??= snapshotProviderConnection();
+    this.#connectionSnapshot = snapshotProviderConnection();
     const { preset, baseUrl } = this.#draft();
-    this.#busy = true;
-    this.#errorMessage = "";
-    await this.render();
     try {
+      this.#busy = true;
+      this.#errorMessage = "";
+      await this.render();
       if (!this.#modelChoice) {
         await saveProviderConnection({
           baseUrl, model: "", enteredApiKey: this.#apiKey, connectionName: preset.label,
@@ -249,7 +262,8 @@ export class WelcomeApp extends HandlebarsApplicationMixin(ApplicationV2) {
         this.#availableModels = choice.availableModels;
         this.#model = choice.model;
         if (choice.needsModelChoice) {
-          await restoreProviderConnection(this.#connectionSnapshot);
+          const restoreError = await this.#restoreConnection();
+          if (restoreError) throw new Error(restoreError);
           this.#modelChoice = true;
           this.#focusTarget = "model";
           return;
@@ -270,8 +284,8 @@ export class WelcomeApp extends HandlebarsApplicationMixin(ApplicationV2) {
       this.#focusTarget = "sample";
     } catch (err) {
       console.warn(`${MODULE_ID} | welcome connection failed`, err);
-      if (this.#connectionSnapshot) await restoreProviderConnection(this.#connectionSnapshot);
-      this.#errorMessage = err?.message ?? String(err);
+      const restoreError = await this.#restoreConnection();
+      this.#errorMessage = [err?.message ?? String(err), restoreError].filter(Boolean).join(" ");
       this.#focusTarget = this.#modelChoice
         ? "model"
         : isLikelyKeylessLocalEndpoint(baseUrl) ? "base" : "key";

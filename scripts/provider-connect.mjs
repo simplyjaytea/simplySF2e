@@ -1,6 +1,7 @@
 import {
   MODULE_ID, SETTINGS, authorizeApiKeyForCurrentBaseUrl, describeProvider,
-  getProviderRequestConfig, normalizeApiBaseUrl, upsertActiveProviderConnection
+  getProviderRequestConfig, normalizeApiBaseUrl, upsertActiveProviderConnection,
+  withProviderConnectionGuard
 } from "./settings.mjs";
 
 export function findProviderPreset(id, presets) {
@@ -37,9 +38,17 @@ export function snapshotProviderConnection(read = (key) => game.settings.get(MOD
 /** Restore the exact pre-probe route, key binding and named-connection bank. */
 export async function restoreProviderConnection(
   snapshot,
-  write = (key, value) => game.settings.set(MODULE_ID, key, value)
+  write = (key, value) => game.settings.set(MODULE_ID, key, value),
+  read = (key) => game.settings.get(MODULE_ID, key)
 ) {
-  for (const key of CONNECTION_SNAPSHOT_KEYS) await write(key, structuredClone(snapshot[key]));
+  await withProviderConnectionGuard(async () => {
+    for (const key of CONNECTION_SNAPSHOT_KEYS) await write(key, structuredClone(snapshot[key]));
+  });
+  const restoredBinding = await read(SETTINGS.apiKeyBaseUrl);
+  if (restoredBinding !== snapshot[SETTINGS.apiKeyBaseUrl]) {
+    throw new Error("Previous API key endpoint binding was not restored");
+  }
+  return restoredBinding;
 }
 
 /** Save and authorize one exact provider route for Provider Setup and Welcome. */
