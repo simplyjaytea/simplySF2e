@@ -5,7 +5,7 @@
 import { execFileSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -28,7 +28,21 @@ export function listVersionTags() {
 export function parseMerge(subject, body, fallbackTitle = "") {
   const number = /#(\d+)/.exec(subject)?.[1];
   const title = body.split("\n").map((line) => line.trim()).find(Boolean) ?? fallbackTitle;
-  return { number: number ? Number(number) : null, title: title || subject };
+  return { subject, number: number ? Number(number) : null, title: title || subject };
+}
+
+/**
+ * Branch-style merges ("Merge branch ..." or "Merge <name>" with no PR number)
+ * are noise in a changelog. They are kept only when they are all a tag has.
+ */
+export function isBranchMerge(merge) {
+  return /^Merge branch /.test(merge.subject) || (merge.number === null && /^Merge /.test(merge.subject));
+}
+
+/** Entries for one tag: PR-style merges, or the branch-style ones when there are no others. */
+export function entriesForTag(merges) {
+  const kept = merges.filter((merge) => !isBranchMerge(merge));
+  return kept.length ? kept : merges;
 }
 
 /** Merge commits reachable from `to` but not from `from` (exclusive), newest first. */
@@ -53,7 +67,7 @@ export function buildChangelog(tags = listVersionTags()) {
     const previous = i > 0 ? tags[i - 1] : null;
     const date = git(["log", "-1", "--format=%cs", tag]).trim();
     sections.push(`## ${tag} (${date})`, "");
-    const merges = mergesBetween(previous, tag);
+    const merges = entriesForTag(mergesBetween(previous, tag));
     if (merges.length === 0) sections.push("- No merged pull requests recorded.");
     for (const merge of merges) {
       sections.push(merge.number ? `- ${merge.title} (#${merge.number})` : `- ${merge.title}`);
@@ -63,7 +77,7 @@ export function buildChangelog(tags = listVersionTags()) {
   return sections.join("\n");
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const text = buildChangelog();
   if (process.argv.includes("--write")) {
     writeFileSync(join(ROOT, "CHANGELOG.md"), text, "utf8");

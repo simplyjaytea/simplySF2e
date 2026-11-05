@@ -13,17 +13,10 @@ Generated from merged pull requests by `tools/changelog.mjs`.
 ## v0.1.10 (2026-10-31)
 
 - M5 batch 2: safe network retry, model matrix, faithful recorder, SSE fixtures, CI gates (#76)
-- Merge m5c-stream
-- Merge m5c-fuzz
-- Merge m5b-core
-- Merge m5b-matrix: provider/model matrix
-- Merge m5b-transport: network retry + /models backoff
 
 ## v0.1.9 (2026-10-31)
 
 - M5: per-run token budget + run deadline, and the golden prompt replay suite (#75)
-- Merge m5-golden-replay: replay harness
-- Merge m5-run-budget: run token budget + deadline
 
 ## v0.1.8 (2026-10-31)
 
@@ -32,9 +25,6 @@ Generated from merged pull requests by `tools/changelog.mjs`.
 ## v0.1.7 (2026-10-31)
 
 - M5: provider retry/backoff, AI fuzz, docs reconcile (#73)
-- Merge branch 'simplyjaytea/docs-reconcile' into work/reliability-and-actions
-- Merge branch 'simplyjaytea/m5-fuzz' into work/reliability-and-actions
-- Merge branch 'simplyjaytea/m5-retry-fixes' into work/reliability-and-actions
 
 ## v0.1.6 (2026-10-25)
 
@@ -307,10 +297,6 @@ Generated from merged pull requests by `tools/changelog.mjs`.
 ## v0.0.11 (2026-09-29)
 
 - Wave p0 p4 (#8)
-- Merge branch 'chore/p4-ux-docs' into integrate/wave-p0-p4
-- Merge branch 'chore/p3-coverage' into integrate/wave-p0-p4
-- Merge branch 'chore/p2-tables-provenance' into integrate/wave-p0-p4
-- Merge branch 'chore/p1-credits-prompts' into integrate/wave-p0-p4
 
 ## v0.0.10 (2026-09-26)
 
