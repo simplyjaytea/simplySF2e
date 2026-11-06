@@ -1,7 +1,7 @@
 // Pure HTML escaping independent of Foundry globals.
 // Run: node scripts/text.test.mjs
 import assert from "node:assert/strict";
-import { esc, toHtml, signed } from "./text.mjs";
+import { esc, toHtml, signed, plainAiText } from "./text.mjs";
 
 const originalFoundry = Object.getOwnPropertyDescriptor(globalThis, "foundry");
 const hostileText = `<img src="x" onerror='alert(1)'> & already &lt;`;
@@ -49,5 +49,14 @@ try {
   if (originalFoundry) Object.defineProperty(globalThis, "foundry", originalFoundry);
   else delete globalThis.foundry;
 }
+
+// plainAiText: inline-syntax characters go, whitespace collapses, the rest stays.
+assert.equal(plainAiText("Blast]]"), "Blast");
+assert.equal(plainAiText("[[/r 1d20]]"), "/r 1d20");
+assert.equal(plainAiText("@Damage[1d6]"), "Damage1d6");
+assert.equal(plainAiText("{x} a|b"), "x ab");
+assert.equal(plainAiText("  Searing   gust \n now "), "Searing gust now");
+assert.equal(plainAiText("<i>Gust</i> & 'x'"), "<i>Gust</i> & 'x'", "HTML characters are left for esc()");
+assert.equal(plainAiText(undefined), "");
 
 console.log("text.test.mjs: pure HTML escaping assertions passed");

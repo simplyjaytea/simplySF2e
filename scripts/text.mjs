@@ -29,6 +29,15 @@ export function esc(text) {
 }
 
 /**
+ * AI text made safe for inline syntax: removes the characters that open or
+ * close Foundry enrichers and inline rolls ([ ] { } @ |) and collapses
+ * whitespace. The result is still HTML-escaped with esc() by the caller.
+ */
+export function plainAiText(text) {
+  return String(text ?? "").replace(/[\[\]{}@|]/g, "").replace(/\s+/g, " ").trim();
+}
+
+/**
  * Escape plain multi-paragraph AI text and wrap it in <p> tags (blank-line
  * separated). Returns "" for empty input so callers can drop the field.
  */
