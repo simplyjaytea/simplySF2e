@@ -17,7 +17,7 @@
  */
 
 import { MODULE_ID } from "./settings.mjs";
-import { esc } from "./text.mjs";
+import { escAi } from "./text.mjs";
 import { cloneRulesForEffects } from "./item-builder.mjs";
 
 /* Folder the companion macros are filed under (created on first use). */
@@ -100,7 +100,8 @@ function header({ forgeId, itemName, itemLevel }, params, extra = {}) {
     // runtime helper is the final boundary before document names enter chat
     // HTML or roll flavor. It deliberately does not touch already-escaped
     // module-provided item/effect/duration strings.
-    `const escHtml = (value) => String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\"/g, "&quot;").replace(/'/g, "&#39;");`
+    // The same inert rule as text.mjs inertProse (ZWSP after @/& before Word[, between [[ and ]]): macros cannot import it.
+    `const escHtml = (value) => String(value ?? "").replace(/([@&])(?=[A-Za-z]+\\[)/g, "$1\\u200B").replace(/\\[(?=\\[)/g, "[\\u200B").replace(/\\](?=\\])/g, "]\\u200B").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\"/g, "&quot;").replace(/'/g, "&#39;");`
   ];
   for (const [name, value] of Object.entries(extra)) {
     lines.push(`const ${name} = ${JSON.stringify(value)};`);
@@ -357,7 +358,7 @@ export async function createActivationMacro({ item, concept }) {
   // before it's embedded as a JSON.stringify constant. The item's actual
   // Foundry document name below is deliberately left as plain text: it's a
   // document name field, not raw HTML, and the pf2e sheet escapes it itself.
-  const meta = { forgeId: forge.forgeId, itemName: esc(item.name), itemLevel: concept.level };
+  const meta = { forgeId: forge.forgeId, itemName: escAi(item.name), itemLevel: concept.level };
   const command = await buildActivationCommand(concept.activation, meta);
 
   const folder = await ensureForgeMacroFolder();
