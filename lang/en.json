@@ -187,6 +187,10 @@
           "Title": "Set up in one screen",
           "Body": "The Welcome window now connects your AI in one step: pick a provider, paste your key and press Connect. It loads the model list, tests the model and offers a sample monster. A failed connect leaves your previous setup untouched."
         },
+        "RelevelAbilities": {
+          "Title": "Re-leveled creatures keep their numbers in step",
+          "Body": "When you re-level a copy, the area blasts and auras the module built are rebuilt for the new level. Published abilities keep their text."
+        },
         "Aura": {
           "Title": "Auras with real effects",
           "Body": "Creatures can now have auras that sicken, frighten and similar conditions, or deal damage each turn. The radius, save DC and condition value come from GM Core and the creature's level."
@@ -812,7 +816,7 @@
       "Scale": "Scale",
       "AtLevel": "Level {level}",
       "Damage": "Damage: {name}",
-      "Unchanged": "Spells and their ranks, DCs or damage written in ability text, the ritual DC, gear, and Elite/Weak stay as they are. Attributes and skills also move, and very low ones (below every GM Core scale) stay put.",
+      "Unchanged": "Area blasts and auras the module built are rebuilt for the new level. Published abilities keep their text. Spells and their ranks, the ritual DC, gear, and Elite/Weak stay as they are. Attributes and skills also move, and very low ones (below every GM Core scale) stay put.",
       "Notice": "The copy is moved to level {level} with the GM Core tables. Rules, traits, spells, and items are copied unchanged. The original creature is not modified."
     },
     "Treasure": {

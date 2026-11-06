@@ -719,3 +719,16 @@ One row per failure, so each cluster can become one fix PR.
 | Step | Observed | Expected | Console / screenshot |
 |------|----------|----------|----------------------|
 | | | | |
+
+## 12t. Re-level: module-built abilities (T-RELEVEL)
+
+Generate a level 7 NPC with a limited cone breath (name "Frost Breath", cold), a sickening aura (Foul Air, sickened) and a glossary Constrict. Create Actor. Then Reskin the actor and re-level the copy to 12 (level field), and to 2.
+
+| # | Step | Expected | Where to look | Result | Evidence |
+|---|------|----------|---------------|--------|----------|
+| 12t.1 | Re-level the copy to 12. Read the Frost Breath item. | `@Damage[13d6[cold]|options:area-damage]`, `@Check[reflex|dc:32|basic|options:area-effect]`; the recharge sentence says Frost Breath (the name is kept). Cone stays 30 ft. | Actor sheet, Actions tab | | |
+| 12t.2 | Read the Foul Air aura at 12. | 30 feet; `@Check[fortitude|dc:29]`; "On a failure, it becomes sickened 2"; the Aura radius is 30. | Actor sheet, Actions tab | | |
+| 12t.3 | Read Constrict at 12. | Not rebuilt yet in the Reskin re-level: the generator does not pass the glossary sources (see the T-RELEVEL report). Expected once wired: `@Damage[(5d8)[bludgeoning]]`, `dc:32` (high). | Actor sheet, Actions tab | | |
+| 12t.4 | Re-level the same copy to 2. | Frost Breath `3d6`, `dc:18`; Foul Air sickened 1, `dc:15`; Constrict `(2d6)`, `dc:18`. | Actor sheet | | |
+| 12t.5 | Re-level to 12 and read a published ability (no provenance flag). | Its text is unchanged. | Actor sheet | | |
+| 12t.6 | Re-level a copy whose Swallow Whole has become tiny (set size tiny first). | The Swallow Whole text is unchanged (the rebuild is reported as kept at the old level; the preview list is not wired yet). | Actor sheet | | |
