@@ -187,6 +187,10 @@
           "Title": "Set up in one screen",
           "Body": "The Welcome window now connects your AI in one step: pick a provider, paste your key and press Connect. It loads the model list, tests the model and offers a sample monster. A failed connect leaves your previous setup untouched."
         },
+        "Aura": {
+          "Title": "Auras with real effects",
+          "Body": "Creatures can now have auras that sicken, frighten and similar conditions, or deal damage each turn. The radius, save DC and condition value come from GM Core and the creature's level."
+        },
         "AreaBlast": {
           "Title": "Breaths and blasts with real numbers",
           "Body": "Creatures' breath weapons and blasts can now be working abilities. The area, damage and DC come from GM Core for the creature's level, and a limited blast can be recharged."
