@@ -14,34 +14,27 @@ The one file every agent (Claude, Codex, anything else) reads first. It holds wh
 
 ## 1. Where we are (rewrite each session)
 
-*Updated 2026-11-05 (night).* Status **Beta**. `main` at `b933df8` (#78). Stable `releases/latest` is **v0.1.11** (tag = `0ff0561`). Verify with `https://github.com/simplyjaytea/simplySF2e/releases/latest/download/module.json`.
+*Updated 2026-11-07 (overnight).* Status **Beta**. `main` at `b933df8` (#78). Stable `releases/latest` is **v0.1.11** (tag = `0ff0561`). Verify with `https://github.com/simplyjaytea/simplySF2e/releases/latest/download/module.json`.
 
-**Open PR:** #79 (this playbook, docs only; JT holds the merge). **Local, unpushed:** everything below.
+**Open PR:** #79 (this playbook, docs only; JT holds the merge). **`batch/b1`** is pushed to `origin/batch/b1` as a backup; **no PR yet** — JT decides (each merge to `main` publishes a beta).
 
-- **`batch/b1`** (worktree `/root/sf2e-wt/B1`), reviewed and merged, release-check passes:
-  - T-M7: `module.json` listing fields, generated `CHANGELOG.md` (`tools/changelog.mjs`), "Open GitHub issue" button in the bug-report dialogs, `settingsSchema` world setting + `migrateSettings()`, README "Rolling back".
-  - T-ERR: every `Errors.*` and GM-facing warning states cause + next step.
-  - FIX-A: glossary abilities with blank published values are never cloned blank (`ability-fill.mjs` `hasPlaceholderValues`, `compendium.mjs` `placeholderState`).
-  - T-AREA: `AREA_DAMAGE` / `AREA_DAMAGE_AVERAGE` (GM Core pg. 128) in `tables.mjs`.
-  - FIX-B: the 7 blank glossary abilities (Constrict, Greater Constrict, Swallow Whole, Engulf, Trample, Frightful Presence, Stench) are filled per creature by JT-approved rules R1-R7 (`scripts/ability-fill.mjs`; data `/root/sf2e-wt/reports/D-FILL.md`).
-  - Two "What's new" notes (clearer errors; blank abilities).
-- **Not yet in `batch/b1`:**
-  - `work/T-M6` (one-screen Welcome, M6; Kimi). Tier 1 PASS, tier 2 re-review PASS with minors; a small fix round 2 (fresh snapshot per Connect, busy reset, guarded restore) was dispatched to Kimi at the pause. Next: read "Fix round 2" in `/root/sf2e-wt/reports/T-M6-P2.md`, re-review from tier 2, merge.
-  - `work/T-OVF` (CSS-only fix for a 172 px Generator overflow caused by T-ERR's longer `Party.None` copy; also touches the Treasure party row). Tier 1 PASS (`/root/sf2e-wt/reports/T-OVF-T1.md`); needs tier 2, then merge.
-  - `work/T-BLAST` (Area Blast template; Haiku was building at the pause; not reviewed). Next: read `/root/sf2e-wt/reports/T-BLAST.md`, all three review tiers (balance-sensitive), merge.
-- **Resume next session:** finish the three branches above; then a combined tier-1 review of `batch/b1`, full `tools/release-check.sh` (UI included), push, and ask JT before opening the batch PR (each merge publishes a beta). Prompts live in `/root/sf2e-wt/prompts/`, reports in `/root/sf2e-wt/reports/`. Branches built on an older `batch/b1` must be diffed with three dots (`git diff batch/b1...HEAD`).
-- **JT decisions 2026-11-05:**
-  - Welcome: Google shown now, tagged "Live check pending" (endpoint `https://generativelanguage.googleapis.com/v1beta/openai`, not live-verified); Ollama and any provider whose default model is missing make the GM pick from `/models`; the sample monster opens the Generator and starts a preview only; readiness rows show only as a failure banner; "Anthropic via OpenRouter" = OpenRouter filtered to `anthropic/*`.
-  - Where GM Core has no rule, use values published creatures use (like `PUBLISHED_SPEEDS`). Fill rules R1-R7 approved as written in `ability-fill.mjs`; Frightful Presence and Stench Aura radius = their 90/30 ft distance.
-  - Area Blast template approved: cone/line only (burst deferred), sizes cone 15/30/60, line 30/30/60, damage `AREA_DAMAGE` limited/unlimited, DC `SPELL_DC` high default, 2 actions, published recharge sentence.
-  - Filled ability numbers use the creature's base level (Elite/Weak and re-level do not change ability text, same as published abilities); flagged to JT, no objection yet.
-- **sf2e 1.7.0** (released 2026-11-05, tag = v14-dev `52dfeee`): offline compatible. Drift clean, all four benches identical case by case to the baselines below, every RE the module uses unchanged (`/root/sf2e-wt/reports/I-170.md`). Needs live checks: NPC speeds/saves after a `creature/document.ts` refactor; RollOption `ignored` guard; Foundry 14.370 (sf2e verified) vs `module.json` 14.369. Suggested: move `BENCH_SHA` to `52dfeee` (it is 72 commits past the 1.6.1 tag today).
-- **Next:** finish the batch above; M6 onboarding is built pending review. Further ability templates (auras, grabs, on-hit riders) only after Area Blast is live-tested. Milestones M5-M9: `docs/consumer-plan.md`.
-- **Waiting on JT:** a live `docs/release-pass.md` run on sf2e 1.6/1.7 logged to `docs/live-log.md` (incl. QA rows **12aa.1-12aa.4**, **12t.*** Welcome, **2.8/2.9** filled abilities); a live `tools/model-matrix/` run and the D5 model list; a number for `runDeadline` (ships 0 = off).
-- **Owner decisions (older):** hoard budgets stay independent of rarity; feat cap stays 8 (`docs/balance-proposals.md`); D6 = 60k per-run token budget. D3, D5, D8-D11 remain Fable's recommendations until JT changes them.
-- **Bench baselines (pinned source `675d2b7`, also identical on sf2e 1.7.0 `52dfeee`):** class 49 PASS / 31 WARN, forge 126 PASS / 48 WARN (+6 n/a), market 240 PASS, creature 35 PASS / 2 WARN; 0 FAIL. A WARN increase is a regression signal; CI fails only on FAIL.
-- **UI harness baseline:** every fixture passes except `shop-preview@460` (17 px horizontal scroll, pre-existing on `main`).
-- **Environment:** Linux VPS (bash, Node 22+, `gh` authenticated and set as the github.com git credential helper). Agents run as herdr terminals (§6). Repo at `/root/simplySF2e`; worktrees under `/root/sf2e-wt/`. Git identity (set per clone/worktree): `git config user.name jt`, `git config user.email jt_f@ymail.com`. Rules reference: Archives of Nethys SF2e, `https://2e.aonsrd.com/rules/<id>-<slug>` (the old `Rules.aspx` URLs 404); GM Core Building Creatures is `/rules/989-building-creatures`.
+- **`batch/b1` contents** (worktree `/root/sf2e-wt/B1`; every branch passed tier 1 + tier 2 (+ coordinator tier 3 for balance), plus combined batch reviews; all tests, `release-check.sh`, UI harness (82 fixtures, 0 problems), golden replay 20/20, creature bench 35/2/0 pass):
+  - T-M7 listing fields, `CHANGELOG.md`, Open-issue button, `settingsSchema`, rollback docs. T-ERR error copy.
+  - FIX-A/FIX-B/FIX-C: the 7 blank glossary abilities are filled per creature (rules R1-R7, `ability-fill.mjs`), on the normal selector path too (FIX-C), keeping the AI's DC scale/damage type.
+  - T-AREA `AREA_DAMAGE` (GM Core pg. 128). T-OVF and T-SHOP: UI harness has no exceptions now.
+  - T-M6 one-screen Welcome (M6), failure-safe Connect.
+  - T-BLAST Area Blast template; T-AURA Aura template (condition or damage kind). Both module-built from published scaffolds, numbers from cited tables/published data.
+  - T-INERT: AI text in enriched fields is inert (`inertProse`/`escAi` in `text.mjs`; macro chat too).
+  - T-COST: cost per run (provider-reported, or manual per-connection prices priced per request; Jev never priced with chat prices).
+  - T-RELEVEL: re-level rebuilds module-built abilities (provenance flag `flags.simplysf2e.built`), incl. the live Reskin path; published abilities untouched.
+- **Decisions the coordinator made overnight under JT's go-ahead (JT to confirm):** Aura numbers — condition auras 10/30/90 ft, condition value 1 (≤7) / 2 (8-13) / 3 (14+) capped at 2 except sickened, save fixed per condition; damage auras 5/10/30 ft, dice `AREA_DAMAGE` unlimited at level-2, basic save; DC `SPELL_DC` moderate default (GM Core pg. 129). Aura immunity sentence: 1 minute. Re-level ignores Elite/Weak (unchanged). Manual prices live per connection in the client-scoped bank.
+- **Known gaps (minor, accepted):** cost — a provider mixing split and total-only usage in one request can read as complete; single-ability reroll skips the resolve-time dry run (build backstop still guards); two drafts with one glossary name merge into the first.
+- **Next:** JT: decide the batch PR; live QA. Then further templates (grab/on-hit riders) only after Area Blast/Aura are live-tested.
+- **Waiting on JT:** live Foundry pass of `docs/qa-checklist.md` (new rows: 2.8-2.13, 12t.* Welcome, 12ab.* re-level, 13m cost, 12aa.* budget) logged to `docs/live-log.md`; model-matrix run + D5 list; `runDeadline` number; confirm the overnight aura numbers; clear Kimi's idle-session dialog in its terminal when it appears (the coordinator may not answer it).
+- **sf2e 1.7.0** (2026-11-05, v14-dev `52dfeee`): offline compatible (`/root/sf2e-wt/reports/I-170.md`). Live checks pending; suggested `BENCH_SHA` -> `52dfeee`.
+- **Owner decisions (older):** hoard budgets independent of rarity; feat cap 8; D6 60k run budget; D3, D5, D8-D11 Fable's recommendations until JT changes them. Welcome decisions and fill rules from 2026-11-05 are recorded in git history of this section and in the branch reports.
+- **Bench baselines (pinned `675d2b7`, identical on `52dfeee`):** class 49/31/0, forge 126/48/0 (+6 n/a), market 240/0/0, creature 35/2/0. UI harness: all fixtures pass (82 on `batch/b1`).
+- **Environment:** Linux VPS (bash, Node 22+, `gh` authenticated). Agents as herdr terminals (§6). Repo `/root/simplySF2e`; worktrees `/root/sf2e-wt/`; prompts `/root/sf2e-wt/prompts/`, reports `/root/sf2e-wt/reports/`. Git identity `jt` / `jt_f@ymail.com`. UI harness needs `npm install --no-save playwright@1.64.1` (the latest Playwright wants a browser build that is not downloaded). Rules reference: `https://2e.aonsrd.com/rules/<id>-<slug>`.
 
 ## 2. The project
 
@@ -227,6 +220,11 @@ Each line is a bug class that already cost a fix. The full story is in `docs/arc
 - When a pick is checked early (resolve) and built later, both must run the same decision. Two hand-kept checks drift; dry-run the build function at resolve instead.
 - A "longer, clearer" copy change can break layout: T-ERR's `Party.None` text widened the Generator by 172 px through a `min-width: max-content` row. Run the UI harness on any batch that changes GM-visible strings, not only on template/CSS changes.
 - `ai.creatureFidelity.test.mjs` forbids naming published abilities in the creature prompt. Describe behaviour, not names.
+
+- Kimi Code shows an idle-session dialog (compact / new session / continue) after long idle; `hc send` then reports `started:false`. The coordinator must not answer it (auto-mode blocks it, rightly); route the task to a Sonnet subagent instead and tell JT.
+- Reviewers repeatedly caught bugs whose tests used fixture shapes production never produces (Trample damage, selector `{name, candidate}` refs, cost total-only usage). Every new feature gets one end-to-end test through the real normalizer, the real candidate list and a selector stub with the production return shape.
+- QA row ids are global: pick a free prefix (`grep -n "^| <id>\." docs/qa-checklist.md`) and run `release-check.sh` — it catches duplicates.
+- A shared Claude account limits both Claude terminals and all subagents; prefer Kimi for reviews when it is free.
 
 **Release and process**
 - A tag pushed with the default `GITHUB_TOKEN` does not fire `push: tags`; releases chain through `workflow_call`. In a reusable workflow, `github.event_name` is the caller's event, so use `inputs.version`. `node --check` never catches these; a `.yml` change needs a real test merge.
