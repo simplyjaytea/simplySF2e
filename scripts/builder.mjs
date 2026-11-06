@@ -1580,11 +1580,6 @@ function actionIcon(actionType) {
 export const NPC_SLOTS_PER_RANK = 3;
 
 /**
- * Build the full actor + embedded item data and create the NPC actor.
- * @param {object} [options]
- * @param {string|null} [options.img]  portrait/token image path
- * @returns {Promise<{actor: Actor, expectedItems: object[]}>}
- */
 /**
  * The module-built "Narrative: <name>" action for a narrative-only ability.
  * The name is a document name (visible text kept; enricher syntax made inert);
@@ -1629,6 +1624,12 @@ export function npcPublicNotes(concept) {
   return notesParts.join("\n");
 }
 
+/**
+ * Build the full actor + embedded item data and create the NPC actor.
+ * @param {object} [options]
+ * @param {string|null} [options.img]  portrait/token image path
+ * @returns {Promise<{actor: Actor, expectedItems: object[]}>}
+ */
 export async function createActor(concept, resolved, { img = null, scaffold = null } = {}) {
   const stats = computeStats(concept);
   const items = [];
@@ -1695,7 +1696,7 @@ export async function createActor(concept, resolved, { img = null, scaffold = nu
         console.warn(`simplysf2e | dropped "${ability.name}": it is not a valid area blast and its text names dice, a DC or Hit Points`);
         continue;
       }
-      ability = { ...ability, narrative: true };
+      ability = { ...ability, areaBlast: null, narrative: true };
     }
     const doc = await getSelectedDocument(entry);
     if (doc) {

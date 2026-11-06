@@ -116,7 +116,7 @@ function creaturePreview(c, { abilities = [], spells = [], feats = [], equipment
   feats = feats.map(slot);
   const stats = adjustedStats(computeStats(c), c);
   const all = [...spells, ...feats, ...equipment, ...loot];
-  const total = all.length + abilities.filter((a) => !a.narrative).length;
+  const total = all.length + abilities.filter((a) => !a.narrative && !a.moduleBuilt).length;
   const matched = all.filter((i) => i.found).length + abilities.filter((a) => a.fromGlossary).length;
   // Same display object the real #buildPreviewContext() builds.
   const display = {
@@ -146,9 +146,10 @@ function creaturePreview(c, { abilities = [], spells = [], feats = [], equipment
 
 const RICH = {
   abilities: [
-    { name: "Lattice Surge", fromGlossary: false, glossaryName: null, narrative: false, description: "The vanguard's blade flares; each creature within 10 feet takes 2d6 force damage (basic Reflex save)." },
-    { name: "Shield Wall", fromGlossary: true, glossaryName: "Shield Block", narrative: false, description: "" },
-    { name: "Hums With the Lattice", fromGlossary: false, glossaryName: null, narrative: true, description: "Flavor only: the vanguard is always faintly audible." }
+    { name: "Lattice Surge", fromGlossary: false, glossaryName: null, narrative: false, moduleBuilt: false, description: "The vanguard's blade flares; each creature within 10 feet takes 2d6 force damage (basic Reflex save)." },
+    { name: "Shield Wall", fromGlossary: true, glossaryName: "Shield Block", narrative: false, moduleBuilt: false, description: "" },
+    { name: "Frost Breath", fromGlossary: false, glossaryName: null, narrative: false, moduleBuilt: true, description: "Frost pours from the vanguard in a 30-foot cone." },
+    { name: "Hums With the Lattice", fromGlossary: false, glossaryName: null, narrative: true, moduleBuilt: false, description: "Flavor only: the vanguard is always faintly audible." }
   ],
   spells: [spell("Force Barrage", 1), spell("Mystic Armor", 1, false)],
   feats: [named("Sudden Charge"), named("Lattice Reflex", false)],

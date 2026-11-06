@@ -140,4 +140,79 @@ for (const flavor of ["Gust @Check[reflex|dc:16|basic] save.", "Gust @Template[t
   assert.ok(concept.specialAbilities[0].areaBlast, "the template spec is kept");
 }
 
+// refineCreatureAbilities (T-BLAST-FIX2): templates never reach the selector and keep their
+// slots; glossary picks get the remaining budget on every path. Inputs are normalized.
+{
+  const { refineCreatureAbilities } = await import("./creature-pipeline.mjs");
+  const names = ["Darkvision", "All-Around Vision", "Aquatic Ambush", "Fast Healing", "Constant Spells", "Change Shape"];
+  const pack = {
+    async getIndex() { return names.map((name, i) => ({ _id: `g${i}`, name, type: "action", system: { traits: { value: [] }, actionType: { value: "passive" } } })); },
+    async getDocument(id) {
+      const i = Number(id.slice(1));
+      const data = { name: names[i], type: "action", system: { description: { value: "<p>It acts.</p>" }, rules: [] } };
+      return { ...data, uuid: `Compendium.test.refine.Item.${id}`, toObject: () => structuredClone(data) };
+    }
+  };
+  const emptyPack = { async getIndex() { return []; }, async getDocument() { return null; } };
+  const tmpl = (name) => ({ name, description: "Gust.", template: "area-blast", shape: "cone", damageType: "fire" });
+  const glossary = (name) => ({ name, glossary: name, description: "" });
+  const pick = (c) => ({ name: c.name, glossary: c.name, candidate: c.ref, description: "", narrative: false, actionType: "passive", actions: null, traits: [], abilityDcScale: null, damageType: null });
+  const run = async (raw, { packId = "test.refine-abilities", selector, throws = false }) => {
+    globalThis.game = { settings: { get: () => ({ abilities: [packId] }) }, packs: new Map([[packId, packId === "test.refine-abilities" ? pack : emptyPack]]) };
+    const concept = normalizeConcept(raw, { level: raw.level, rarity: "common" });
+    const ai = {
+      selectCreatureAbilities: async (args) => {
+        if (throws) throw new Error("selector down");
+        return selector(args);
+      }
+    };
+    await refineCreatureAbilities(concept, { ai, labels: {}, onTokens: () => {} });
+    return concept.specialAbilities;
+  };
+  const onlyPicks = async ({ candidates }) => ({ abilities: candidates.slice(0, 6).map(pick), usage: null, timing: null });
+
+  // Six templates: the selector never sees them, and six published picks cannot replace them.
+  const six = ["A", "B", "C", "D", "E", "F"].map((letter) => tmpl(`Breath ${letter}`));
+  let selectorInput = null;
+  const allTemplates = await run({ level: 7, size: "lg", specialAbilities: six }, {
+    selector: async (args) => {
+      selectorInput = args;
+      return onlyPicks(args);
+    }
+  });
+  assert.ok(selectorInput, "the selector ran");
+  assert.equal(selectorInput.concept.specialAbilities.length, 0, "the selector concept has no templates");
+  assert.ok(selectorInput.candidates.every((c) => !/Breath/.test(c.name)), "no template keyword reaches the candidates");
+  assert.equal(allTemplates.length, 6, "six templates survive a full six-pick selection");
+  assert.ok(allTemplates.every((a) => a.areaBlast && a.name.startsWith("Breath")), "all six are the templates");
+
+  // Two templates and four glossary drafts: the selector returns six picks, only four are kept.
+  const mixed = [tmpl("Breath A"), tmpl("Breath B"), glossary("Darkvision"), glossary("All-Around Vision"), glossary("Aquatic Ambush"), glossary("Fast Healing")];
+  const kept = await run({ level: 7, size: "lg", specialAbilities: mixed }, { selector: onlyPicks });
+  assert.equal(kept.filter((a) => a.areaBlast).length, 2, "two templates kept");
+  assert.equal(kept.filter((a) => !a.areaBlast).length, 4, "glossary picks limited to the remaining four slots");
+  assert.equal(kept.length, 6);
+
+  // Catch path: the same budget.
+  const caught = await run({ level: 7, size: "lg", specialAbilities: mixed }, { throws: true });
+  assert.equal(caught.filter((a) => a.areaBlast).length, 2, "catch path keeps the templates");
+  assert.equal(caught.length, 6, "catch path keeps the budget");
+
+  // No candidates: the same budget.
+  const none = await run({ level: 7, size: "lg", specialAbilities: [tmpl("Breath A"), tmpl("Breath B"), glossary("Darkvision"), glossary("Fast Healing"), glossary("Change Shape"), glossary("Aquatic Ambush")] }, { packId: "test.empty-abilities" });
+  assert.equal(none.filter((a) => a.areaBlast).length, 2, "no-candidates path keeps the templates");
+  assert.equal(none.length, 6, "no-candidates path keeps the budget");
+}
+
+// buildAreaBlast guard on its own: flavor with enricher syntax is blanked there too.
+{
+  const spec = normalizeAreaBlast({ template: "area-blast", shape: "cone", damageType: "fire" });
+  const item = buildAreaBlast(spec, { level: 7, name: "Blast", flavor: "Gust @Check[reflex|dc:16|basic] save." });
+  const value = item.system.description.value;
+  const flavorPart = value.split("The creature deals")[0];
+  assert.ok(!flavorPart.includes("@"), "no @ from the flavor");
+  assert.ok(!value.includes("Gust"), "the flavor text is dropped by the guard");
+  assert.match(value, /^<p>The creature deals @Damage\[4d6\[fire\]/);
+}
+
 console.log("ability-templates.test.mjs: ok");

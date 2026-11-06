@@ -671,7 +671,9 @@ export class GeneratorApp extends SpfApp {
       fromGlossary: Boolean(entry),
       glossaryName: entry?.name ?? null,
       // A module-built area blast shows with the narrative label (no compendium source).
-      narrative: Boolean(ability.narrative || ability.areaBlast),
+      narrative: Boolean(ability.narrative),
+      // A working area blast is module-built, not narrative-only (its own preview label).
+      moduleBuilt: Boolean(ability.areaBlast),
       description: ability.description,
       index,
       rerollable: rerollable("ability", index)
@@ -709,7 +711,7 @@ export class GeneratorApp extends SpfApp {
       equipment,
       loot,
       matchSummary: this.#matchSummary(
-        abilities.map((a) => ({ found: a.fromGlossary, narrative: a.narrative })), spells, feats, equipment, loot
+        abilities.map((a) => ({ found: a.fromGlossary, narrative: a.narrative || a.moduleBuilt })), spells, feats, equipment, loot
       ),
       iwr: {
         immunities: concept.immunities.join(", "),
