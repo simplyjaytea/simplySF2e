@@ -578,4 +578,21 @@ assert.equal(jevTestNotice({ ok: false, reason: "network", source: "openrouter" 
 assert.equal(jevTestNotice({ ok: false, reason: "timeout", source: "typesafe" }).data.source, "TypeSafe AI");
 assert.equal(jevTestNotice({ ok: false, reason: "shape", source: "openrouter" }).level, "error");
 
+resetBank();
+setCurrent({ baseUrl: "https://api.deepseek.com/v1", model: "deepseek-v4-flash", apiKey: "" });
+// Manual prices: stored with the connection, kept on a same-endpoint save, cleared when the endpoint changes.
+{
+  const { setActiveProviderPrices, getActiveProviderPrices } = await import("./settings.mjs");
+  const { saveProviderConnection } = await import("./provider-connect.mjs");
+  await setActiveProviderPrices({ inputPerM: "0.27", outputPerM: "1.1" });
+  assert.deepEqual(getActiveProviderPrices(), { inputPerM: 0.27, outputPerM: 1.1 });
+  await saveProviderConnection({ baseUrl: "https://api.deepseek.com/v1", model: "deepseek-v4-flash", notify: false });
+  assert.deepEqual(getActiveProviderPrices(), { inputPerM: 0.27, outputPerM: 1.1 }, "same endpoint keeps prices");
+  await assert.rejects(() => setActiveProviderPrices({ inputPerM: "-1" }), (err) => err.field === "inputPerM");
+  await assert.rejects(() => setActiveProviderPrices({ outputPerM: "abc" }), (err) => err.field === "outputPerM");
+  assert.deepEqual(getActiveProviderPrices(), { inputPerM: 0.27, outputPerM: 1.1 }, "a rejected value writes nothing");
+  await saveProviderConnection({ baseUrl: "https://api.openai.com/v1", model: "gpt-x", notify: false });
+  assert.deepEqual(getActiveProviderPrices(), { inputPerM: null, outputPerM: null }, "a changed endpoint clears stale prices");
+}
+
 console.log("provider-setup.test.mjs: setup save assertions passed");

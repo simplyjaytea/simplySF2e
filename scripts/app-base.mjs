@@ -268,7 +268,14 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
    * `{ source: "jev"|"llm", ms, jevMs? }`) is shown on the token report line.
    */
   _recordTokens(label, usage, timing = null) {
-    if (usage) this._tokenUsage.push({ label, usage, ...(timing ? { timing } : {}) });
+    if (!usage) return;
+    // Snapshot the manual prices of the connection making this request: a later
+    // connection switch, a mid-run switch or a restored history draft must not reprice it.
+    let prices = { inputPerM: null, outputPerM: null };
+    let connectionId = "";
+    try { prices = getActiveProviderPrices(); } catch { /* no bank yet: no manual prices */ }
+    try { connectionId = getProviderRequestConfig().connectionId ?? ""; } catch { /* unknown connection */ }
+    this._tokenUsage.push({ label, usage, prices, connectionId, ...(timing ? { timing } : {}) });
   }
 
   /** Per-step token usage lines plus a total, ready for the template. */
@@ -306,15 +313,14 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
     };
   }
 
-  /** Cost of this run: provider-reported amounts, else the active connection's manual prices. */
+  /** Cost of this run: provider-reported amounts, else each entry's own recorded manual prices. */
   _runCostInfo() {
-    let prices = {};
-    try { prices = getActiveProviderPrices(); } catch { /* no bank yet: no manual prices */ }
-    return runCost(this._tokenUsage.map(({ usage, timing }) => ({
+    return runCost(this._tokenUsage.map(({ usage, timing, prices }) => ({
       ...usage,
+      prices: prices ?? {},
       // Jev runs on its own model: the chat connection's prices do not apply to it.
       ...(timing?.source === "jev" ? { noManual: true } : {})
-    })), prices);
+    })));
   }
 
   /** "Cost: $0.0042" / "Cost: ≈ $0.0042 (partial: ...)"; null when nothing could be priced. */
@@ -349,8 +355,8 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
     );
     const amount = cost.money ? formatCost(cost.money.amount) : null;
     if (!amount) return base;
-    const approx = cost.money.partial || cost.money.source !== "provider";
-    return game.i18n.format("SIMPLYSF2E.Tokens.LastRunCost", { base, cost: approx ? `≈ ${amount}` : amount });
+    const mark = cost.money.partial ? "≥ " : cost.money.source !== "provider" ? "≈ " : "";
+    return game.i18n.format("SIMPLYSF2E.Tokens.LastRunCost", { base, cost: `${mark}${amount}` });
   }
 
   _armCancel({ cancellable = true } = {}) {

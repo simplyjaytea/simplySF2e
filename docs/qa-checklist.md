@@ -719,7 +719,7 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 | 13m.3 | In AI Provider Setup enter Input 0.27 and Output 1.10 on that DeepSeek connection, **Save & Authorize**, generate. | Token report shows "Cost: ≈ $… (from your per-connection prices)"; the number is prompt tokens x 0.27 / 1M plus completion tokens x 1.10 / 1M. | Generator, Provider Setup | | |
 | 13m.4 | Type -1 or text in a price field and save. | The save is refused with a field error naming the price; nothing is stored. Empty fields clear the prices. | Provider Setup | | |
 | 13m.5 | Switch to the OpenRouter connection and back. | Each connection keeps its own prices. | Provider Setup | | |
-| 13m.6 | Use OpenRouter with a run that includes a request the provider gave no cost for (for example Jev on another route), no prices set. | Cost shows "≈" and the "partial" wording; with prices set on the chat connection the chat requests are priced and shown as mixed. | Generator | | |
+| 13m.6 | Use OpenRouter with a run that includes a request the provider gave no cost for (for example Jev on another route), no prices set. | Cost shows "at least" wording; with prices set on the chat connection the unpriced chat requests are priced and shown as mixed. Jev tokens are never priced with chat prices. | Generator | | |
 | 13m.7 | Open the bug report after a failure. | Settings list "Manual prices set: yes/no" and no price values. | Bug report | | |
 
 ## Failure log

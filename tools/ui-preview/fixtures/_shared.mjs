@@ -57,7 +57,7 @@ export const TOKEN_REPORT_COST = { ...TOKEN_REPORT, costText: "Cost: $0.0042" };
 /** Token report where some requests reported no cost: approximate, labeled partial. */
 export const TOKEN_REPORT_PARTIAL = {
   ...TOKEN_REPORT,
-  costText: "Cost: ≈ $0.0042 (partial: some requests reported no cost)"
+  costText: "Cost: at least $0.0042 (some requests reported no cost)"
 };
 
 /** Progress card state as the real createProgress()/applyStep() produce it. */

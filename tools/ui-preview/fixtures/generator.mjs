@@ -252,7 +252,7 @@ export default [
   ...[
     ["generator-monster-preview", TOKEN_REPORT, "Last run: 2,716 tokens"],
     ["generator-monster-preview-cost", TOKEN_REPORT_COST, "Last run: 2,716 tokens · $0.0042"],
-    ["generator-monster-preview-cost-partial", TOKEN_REPORT_PARTIAL, "Last run: 2,716 tokens · ≈ $0.0042"]
+    ["generator-monster-preview-cost-partial", TOKEN_REPORT_PARTIAL, "Last run: 2,716 tokens · ≥ $0.0042"]
   ].map(([id, tokenReport, lastRunCost]) => {
     const c = concept({ rarity: "uncommon", specialAbilities: [], resistances: ["fire"], weaknesses: ["cold-iron"] });
     return {

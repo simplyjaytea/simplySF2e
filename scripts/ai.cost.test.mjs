@@ -2,6 +2,7 @@
 // Run: node scripts/ai.cost.test.mjs
 import assert from "node:assert/strict";
 import { SETTINGS } from "./settings.mjs";
+import { runCost } from "./cost.mjs";
 
 const settings = new Map([
   [SETTINGS.apiBaseUrl, "https://openrouter.ai/api/v1"],
@@ -41,7 +42,10 @@ replies.push(
 );
 result = await chooseSpellFocus(args);
 assert.ok(Math.abs(result.usage.cost - 0.0004) < 1e-12);
-assert.equal(result.usage.costMissing, true);
+assert.equal(result.usage.unpricedPrompt, 11, "the unpriced attempt's tokens are kept for manual pricing");
+assert.equal(result.usage.unpricedCompletion, 5);
+assert.equal(result.usage.costMissing, undefined);
+assert.equal(runCost([result.usage], { inputPerM: 1_000_000, outputPerM: 2_000_000 }).source, "mixed");
 
 // Missing first, then a priced retry: still partial.
 replies.push(
@@ -49,7 +53,8 @@ replies.push(
   ok({ prompt_tokens: 11, completion_tokens: 5, total_tokens: 16, cost: 0.0002 })
 );
 result = await chooseSpellFocus(args);
-assert.equal(result.usage.costMissing, true);
+assert.equal(result.usage.unpricedPrompt, 10);
+assert.equal(result.usage.unpricedCompletion, 20);
 
 // No cost anywhere: no cost field at all.
 replies.push(ok({ prompt_tokens: 11, completion_tokens: 5, total_tokens: 16 }));
