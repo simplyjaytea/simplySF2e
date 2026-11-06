@@ -5,6 +5,7 @@ import {
 import { AI_TASK, completionOptionsFor } from "./ai-task-profiles.mjs";
 import { fetchWithBackoff } from "./ai-transport.mjs";
 import { estimateTokens, normalizeUsage } from "./tokens.mjs";
+import { combineUsage } from "./cost.mjs";
 import { runBudgetProblem, spendRunTokens, remainingDeadlineMs, getRunBudget } from "./run-budget.mjs";
 import { encodeFeatCandidateSlots, resolveEncodedFeatPicks } from "./ai-candidate-format.mjs";
 import { normalizeMulticlassPick, taskResponseProblem } from "./ai-response-validation.mjs";
@@ -12,7 +13,7 @@ import { validateChoicePicks } from "./choice-set.mjs";
 import { CORE_SKILLS } from "./pc-skills.mjs";
 import { COMPLETE_PC_CLASS_SLUGS } from "./pc-support.mjs";
 import { resolveJevConfig } from "./jev.mjs";
-import { jevPickEquipment, jevPickLoot, jevPickCreatureFeats, jevPickCreatureAbilities, jevPickFeats, jevPickCharacterChoices, jevPickSpells, mergeUsage } from "./jev-picks.mjs";
+import { jevPickEquipment, jevPickLoot, jevPickCreatureFeats, jevPickCreatureAbilities, jevPickFeats, jevPickCharacterChoices, jevPickSpells, mergeChatJev } from "./jev-picks.mjs";
 import { ABILITY_DAMAGE_TYPES } from "./ability-fill.mjs";
 import { AREA_BLAST_DAMAGE_TYPES } from "./ability-templates.mjs";
 
@@ -243,13 +244,12 @@ async function requestJSON(args) {
   const retryBudget = { remaining: 1 };
   // Tokens spent by failed attempts are still spent — sum usage across every
   // attempt that returned one, so the report reflects the real total.
-  const total = { prompt: 0, completion: 0, total: 0, estimated: false };
+  let total = { prompt: 0, completion: 0, total: 0, estimated: false };
+  // Provider-reported cost (OpenRouter usage.cost) is summed across attempts; tokens of an
+  // attempt with no reported cost are kept apart for manual pricing (see combineUsage).
   const addUsage = (usage) => {
     if (!usage) return;
-    total.prompt += usage.prompt || 0;
-    total.completion += usage.completion || 0;
-    total.total += usage.total || 0;
-    if (usage.estimated) total.estimated = true;
+    total = combineUsage(total, usage);
   };
   for (let attempt = 0; attempt < 2; attempt++) {
     throwIfGenerationCancelled(args.signal);
@@ -704,7 +704,7 @@ ${focusCandidates.length ? "Choose up to three focusSpellIds only from the provi
       else console.warn(`simplysf2e | conflicting signature choices at rank ${rank}; keeping those spells regular`);
     }
     return {
-      spells, focusSpells, usage: mergeUsage(usage, jev?.usage),
+      spells, focusSpells, usage: mergeChatJev(usage, jev?.usage),
       ...(jev?.attempted ? { timing: { source: "llm", ms: Date.now() - started, jevMs: jev.ms } } : {})
     };
   }
@@ -790,7 +790,7 @@ Pick the logical items the creature would carry: the weapons it wields (match it
       value: 0
     }));
   return {
-    equipment, omitted: parsed.equipment.length === 0, usage: mergeUsage(usage, jev.usage),
+    equipment, omitted: parsed.equipment.length === 0, usage: mergeChatJev(usage, jev.usage),
     timing: { source: "llm", ms: Date.now() - started, ...(jev.attempted ? { jevMs: jev.ms } : {}) }
   };
 }
@@ -868,7 +868,7 @@ Recreate the first-draft haul: replace each non-coin entry with the closest vali
     });
   }
   return {
-    loot, omitted: parsed.loot.length === 0, usage: mergeUsage(usage, jev.usage),
+    loot, omitted: parsed.loot.length === 0, usage: mergeChatJev(usage, jev.usage),
     timing: { source: "llm", ms: Date.now() - started, ...(jev.attempted ? { jevMs: jev.ms } : {}) }
   };
 }
@@ -976,7 +976,7 @@ Include exactly one entry per slot number (1 to ${slots.length}). Never use an I
   });
   const picks = resolveEncodedFeatPicks(encoded, parsed.picks);
   return {
-    picks, usage: mergeUsage(usage, jev.usage),
+    picks, usage: mergeChatJev(usage, jev.usage),
     timing: { source: "llm", ms: Date.now() - started, ...(jev.attempted ? { jevMs: jev.ms } : {}) }
   };
 }
@@ -1023,7 +1023,7 @@ Choose feats that fit the creature's role and tactics. Do not choose a feat more
   // Only an explicitly empty, schema-validated reply declines the wishlist.
   // Nonempty replies that decode to no issued candidates remain failures.
   return {
-    feats, omitted: parsed.featIds.length === 0, usage: mergeUsage(usage, jev.usage),
+    feats, omitted: parsed.featIds.length === 0, usage: mergeChatJev(usage, jev.usage),
     timing: { source: "llm", ms: Date.now() - started, ...(jev.attempted ? { jevMs: jev.ms } : {}) }
   };
 }
@@ -1065,7 +1065,7 @@ Choose the actions that fit the creature's role and tactics. Omit a proposed abi
     .slice(0, maximum)
     .map((candidate) => ({ name: candidate.name, ...(candidate.ref ? { candidate: candidate.ref } : {}) }));
   return {
-    abilities, usage: mergeUsage(usage, jev.usage),
+    abilities, usage: mergeChatJev(usage, jev.usage),
     timing: { source: "llm", ms: Date.now() - started, ...(jev.attempted ? { jevMs: jev.ms } : {}) }
   };
 }
@@ -1155,7 +1155,7 @@ Use exact string IDs from the catalog. Each option must belong to that choice. R
     task: AI_TASK.CHARACTER_CHOICES, system, user, onProgress, signal
   });
   return {
-    picks: validateChoicePicks(groups, data.picks), usage: mergeUsage(usage, jev.usage),
+    picks: validateChoicePicks(groups, data.picks), usage: mergeChatJev(usage, jev.usage),
     timing: { source: "llm", ms: Date.now() - started, ...(jev.attempted ? { jevMs: jev.ms } : {}) }
   };
 }

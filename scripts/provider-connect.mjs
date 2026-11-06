@@ -1,6 +1,6 @@
 import {
   MODULE_ID, SETTINGS, authorizeApiKeyForCurrentBaseUrl, describeProvider,
-  getProviderRequestConfig, normalizeApiBaseUrl, upsertActiveProviderConnection,
+  getProviderRequestConfig, normalizeApiBaseUrl, setActiveProviderPrices, upsertActiveProviderConnection,
   withProviderConnectionGuard
 } from "./settings.mjs";
 
@@ -86,6 +86,8 @@ export async function saveProviderConnection({
     ? await authorizeApiKeyForCurrentBaseUrl(baseUrl)
     : false;
   await upsertActiveProviderConnection({ name: connectionName });
+  // Manual prices belong to the provider they were entered for.
+  if (baseChanged) await setActiveProviderPrices({});
   const provider = describeProvider(baseUrl, model);
   const state = getProviderRequestConfig();
   const insecure = Boolean(state.apiKeyInsecure);

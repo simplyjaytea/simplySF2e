@@ -3,6 +3,7 @@
  * Pure: no Foundry globals. Not a tokenizer — fallback counts are labeled
  * estimated and coarsened on display so they do not look counted.
  */
+import { parseCost } from "./cost.mjs";
 
 /** JSON punctuation that BPE-style tokenizers usually split off as their own token. */
 const JSON_PUNCT = /[{}\[\]":]/g;
@@ -66,6 +67,9 @@ export function lastRunTokenTotal(entries) {
  * the estimator and stay labeled estimated. No usage at all is fully estimated.
  */
 export function normalizeUsage(usage, { content, system, user, reasoningChars = 0 } = {}) {
+  // OpenRouter reports the charged amount as usage.cost; other providers omit it.
+  const parsedCost = parseCost(usage?.cost);
+  const costField = parsedCost == null ? {} : { cost: parsedCost };
   const prompt = Number(usage?.prompt_tokens);
   const completion = Number(usage?.completion_tokens);
   const total = Number(usage?.total_tokens);
@@ -77,6 +81,7 @@ export function normalizeUsage(usage, { content, system, user, reasoningChars = 
       prompt,
       completion,
       total: hasTotal ? total : prompt + completion,
+      ...costField,
       estimated: false
     };
   }
@@ -86,7 +91,7 @@ export function normalizeUsage(usage, { content, system, user, reasoningChars = 
     + (reasoningChars > 0 ? estimateTokens(reasoningChars) : 0);
 
   if (hasTotal && !hasPrompt && !hasCompletion) {
-    return { prompt: 0, completion: 0, total, estimated: false };
+    return { prompt: 0, completion: 0, total, ...costField, estimated: false };
   }
   if (hasPrompt || hasCompletion || hasTotal) {
     const p = hasPrompt ? prompt : promptEst;
@@ -95,6 +100,7 @@ export function normalizeUsage(usage, { content, system, user, reasoningChars = 
       prompt: p,
       completion: c,
       total: hasTotal ? total : p + c,
+      ...costField,
       estimated: true
     };
   }
@@ -102,6 +108,7 @@ export function normalizeUsage(usage, { content, system, user, reasoningChars = 
     prompt: promptEst,
     completion: completionEst,
     total: promptEst + completionEst,
+    ...costField,
     estimated: true
   };
 }
@@ -117,12 +124,11 @@ export function normalizeJevUsage(usage) {
   if (usage?.input_tokens == null || !Number.isFinite(input) || input < 0) return null;
   const output = Number(usage?.output_tokens);
   const completion = Number.isFinite(output) && output >= 0 ? output : 0;
-  const cost = usage?.cost == null ? NaN : Number(usage.cost);
   return {
     prompt: input,
     completion,
     total: input + completion,
-    cost: Number.isFinite(cost) && cost >= 0 ? cost : null,
+    cost: parseCost(usage?.cost),
     estimated: false
   };
 }

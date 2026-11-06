@@ -195,6 +195,8 @@ export function gatherEnvironment({ moduleId, provider = {}, jev = {}, getSettin
       "API key authorized for endpoint": Boolean(provider.apiKeyIsBound),
       "API key withheld (plain http)": Boolean(provider.apiKeyInsecure),
       "Keyless local endpoint": Boolean(provider.keylessLocal),
+      // Yes/no only; the price values stay out of the report.
+      "Manual prices set": Boolean(provider.prices && (provider.prices.inputPerM != null || provider.prices.outputPerM != null)),
       "Temperature": getSetting("temperature"),
       "Max tokens": getSetting("maxTokens"),
       "Request timeout": getSetting("requestTimeout"),

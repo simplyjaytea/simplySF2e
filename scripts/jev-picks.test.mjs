@@ -1,6 +1,7 @@
 // Jev equipment/loot pick logic with an injected request function (no network).
 import assert from "node:assert/strict";
-import { jevPickEquipment, jevPickLoot, jevPickCreatureFeats, jevPickCreatureAbilities, jevPickFeats, jevPickCharacterChoices, jevPickSpells, JEV_SPELL_FIT_WORDS, jevScoreIndex, mergeUsage, JEV_NONE_KEY } from "./jev-picks.mjs";
+import { jevPickEquipment, jevPickLoot, jevPickCreatureFeats, jevPickCreatureAbilities, jevPickFeats, jevPickCharacterChoices, jevPickSpells, JEV_SPELL_FIT_WORDS, jevScoreIndex, mergeUsage, mergeChatJev, JEV_NONE_KEY } from "./jev-picks.mjs";
+import { runCost } from "./cost.mjs";
 
 const jevConfig = { endpoint: "https://openrouter.ai/api/v1/systemone", apiKey: "k" };
 const ref = (id) => ({ packId: "sf2e.equipment", _id: id });
@@ -329,5 +330,24 @@ assert.equal(mergeUsage({ prompt: 1, completion: 1, total: 2, cost: 0.1 }, { pro
   assert.equal(unasked.calls.length, 0);
   assert.equal((await jevPickSpells({ ...args, jevConfig: null })).spells, null);
   assert.equal((await jevPickSpells({ ...args, plannedPicks: undefined, request: unasked.request })).spells, null, "creature path stays on the chat model");
+}
+// Merged Jev + chat step keeps Jev's cost and flags the unpriced chat side as partial.
+{
+  const merged = mergeUsage({ prompt: 100, completion: 50, total: 150, cost: null, estimated: false }, { prompt: 10, completion: 0, total: 10, cost: 0.001, estimated: false });
+  assert.equal(merged.cost, 0.001);
+  assert.equal(merged.unpricedPrompt, 100);
+  assert.equal(merged.unpricedCompletion, 50);
+  assert.equal(merged.costMissing, undefined);
+  // mergeChatJev: Jev's own tokens are carried apart and never priced as chat.
+  const fb = mergeChatJev({ prompt: 1_000_000, completion: 0, total: 1_000_000, estimated: false }, { prompt: 3_000_000, completion: 1_000_000, total: 4_000_000, cost: null, estimated: false });
+  assert.equal(fb.jevPrompt, 3_000_000);
+  assert.equal(fb.jevCompletion, 1_000_000);
+  assert.equal(runCost([fb], { inputPerM: 2, outputPerM: 4 }).amount, 2);
+  assert.equal(mergeChatJev({ prompt: 5, completion: 5, total: 10 }, { prompt: 10, completion: 0, total: 10, cost: 0.001 }).cost, 0.001, "Jev cost kept in a merged step");
+  assert.equal(mergeChatJev(null, null), null);
+  const priced = mergeUsage({ prompt: 1, completion: 1, total: 2, cost: 0.1 }, { prompt: 1, completion: 0, total: 1, cost: 0.2 });
+  assert.ok(Math.abs(priced.cost - 0.3) < 1e-12);
+  assert.equal("costMissing" in priced, false);
+  assert.equal(mergeUsage({ prompt: 1, completion: 1, total: 2, cost: 0.1 }, { prompt: 0, completion: 0, total: 0, cost: null }).unpricedPrompt, undefined, "an unrun step is not partial");
 }
 console.log("jev-picks tests passed");

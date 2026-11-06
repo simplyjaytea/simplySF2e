@@ -6,6 +6,7 @@
 import { JEV_MIN_CONFIDENCE, buildChoiceQuestion, requestJevDecision } from "./jev.mjs";
 import { estimateTokens, normalizeJevUsage } from "./tokens.mjs";
 import { parseCoins } from "./currency.mjs";
+import { combineUsage } from "./cost.mjs";
 
 /** Key of the extra "no weapon fits this strike" option. Candidate ids never equal it (buildChoiceQuestion rejects a duplicate). */
 export const JEV_NONE_KEY = "none";
@@ -24,18 +25,17 @@ const SPELL_GEM_NAME = /^\s*(?:scroll|spell gem) of\s/i;
 const tokensOf = (text) => String(text ?? "").toLowerCase().split(/[^a-z0-9]+/).filter((token) => token.length > 2);
 const clip = (text) => String(text ?? "").slice(0, STATE_TEXT_LIMIT);
 
-/** Sum two normalized usages (either may be null). */
+/** Sum two normalized usages (either may be null), keeping cost bookkeeping (see combineUsage). */
 export function mergeUsage(a, b) {
-  if (!a) return b ?? null;
-  if (!b) return a;
-  const cost = a.cost == null && b.cost == null ? null : (a.cost ?? 0) + (b.cost ?? 0);
-  return {
-    prompt: (a.prompt || 0) + (b.prompt || 0),
-    completion: (a.completion || 0) + (b.completion || 0),
-    total: (a.total || 0) + (b.total || 0),
-    estimated: Boolean(a.estimated || b.estimated),
-    ...(cost == null ? {} : { cost })
-  };
+  return combineUsage(a, b);
+}
+
+/**
+ * Merge a chat step's usage with the Jev usage that fed it. Jev's tokens are kept
+ * apart (jevPrompt/jevCompletion) so manual chat-model prices never cover them.
+ */
+export function mergeChatJev(chat, jev) {
+  return combineUsage(chat, jev, { b: true });
 }
 
 /** The concept summary Jev reads as `state`. Plain text, bounded. */

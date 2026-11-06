@@ -71,6 +71,13 @@
       "LocalServerHint": "Ollama: add {origin} to OLLAMA_ORIGINS. LM Studio: enable CORS (Developer → Server Settings, or lms server start --cors) and authentication. An HTTPS Foundry page cannot call an HTTP provider.",
       "BaseUrlHint": "The OpenAI-compatible API root (normally ending in /v1) or a full /chat/completions endpoint.",
       "ModelPlaceholder": "Exact provider model ID",
+      "PricesLabel": "Manual prices (optional, USD per 1M tokens)",
+      "PriceInput": "Input price",
+      "PriceOutput": "Output price",
+      "PricesPlaceholder": "e.g. 0.27",
+      "PricesHint": "Only used for requests where the provider reports no cost (OpenRouter reports it; most others do not). Input and output tokens are priced separately. Leave empty for no cost estimate. Saved with this connection.",
+      "PriceInputInvalid": "Input price must be empty or a number of 0 or more.",
+      "PriceOutputInvalid": "Output price must be empty or a number of 0 or more.",
       "ModelHint": "Use Load Models for IDs exposed by the saved provider, or enter an exact ID manually. LM Studio lists loaded models unless Just-In-Time loading is enabled.",
       "LoadModels": "Load Models",
       "ModelsLoaded": "Loaded {count} available model IDs. Choose one from the Model field.",
@@ -198,6 +205,10 @@
         "ClearerErrors": {
           "Title": "Clearer error messages and bug reports",
           "Body": "Error messages now say what went wrong and what to do next. After you copy a bug report, an Open GitHub issue button takes you straight to the issue form, and the report is never put in the link."
+        },
+        "RunCost": {
+          "Title": "Run cost",
+          "Body": "The token report now shows what a run cost when your provider reports it (OpenRouter does). For other providers, enter optional per-1M-token prices on the connection in AI Provider Setup for an estimate marked with ≈."
         },
         "RunBudget": {
           "Title": "Per-run token budget",
@@ -569,6 +580,11 @@
       "TotalEstimated": "Total: ≈ {total} tokens",
       "LastRun": "last: {total} tokens",
       "LastRunEstimated": "last: ≈ {total} tokens",
+      "LastRunCost": "{base} · {cost}",
+      "Cost": "Cost: {amount}",
+      "CostPartial": "Cost: at least {amount} (some requests reported no cost)",
+      "CostManual": "Cost: ≈ {amount} (from your per-connection prices)",
+      "CostMixed": "Cost: ≈ {amount} (provider-reported plus your prices)",
       "ViaJev": "Jev, {seconds} s",
       "ViaChat": "chat model, {seconds} s",
       "ViaChatFallback": "chat model after Jev fell back, {seconds} s"

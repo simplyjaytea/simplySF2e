@@ -2,7 +2,7 @@
 // #build*PreviewContext() / #mapGear / #mapNamed / #mapSpells helpers in
 // scripts/generator-app.mjs.
 import {
-  RARITIES, providerContext, PROVIDER_ATTENTION, TOKEN_REPORT, progressAt, MONSTER_STEPS,
+  RARITIES, providerContext, PROVIDER_ATTENTION, TOKEN_REPORT, TOKEN_REPORT_COST, TOKEN_REPORT_PARTIAL, progressAt, MONSTER_STEPS,
   concept, computeStats, adjustedStats, localize
 } from "./_shared.mjs";
 import { signed } from "../../../scripts/text.mjs";
@@ -249,18 +249,22 @@ export default [
       showEmptyState: false
     })
   },
-  (() => {
+  ...[
+    ["generator-monster-preview", TOKEN_REPORT, "Last run: 2,716 tokens"],
+    ["generator-monster-preview-cost", TOKEN_REPORT_COST, "Last run: 2,716 tokens · $0.0042"],
+    ["generator-monster-preview-cost-partial", TOKEN_REPORT_PARTIAL, "Last run: 2,716 tokens · ≥ $0.0042"]
+  ].map(([id, tokenReport, lastRunCost]) => {
     const c = concept({ rarity: "uncommon", specialAbilities: [], resistances: ["fire"], weaknesses: ["cold-iron"] });
     return {
-      id: "generator-monster-preview",
+      id,
       app: "generator",
       context: generatorContext("monster", {
-        input: { level: 4 }, showEmptyState: false, tokenReport: TOKEN_REPORT,
-        lastRunCost: "Last run: 2,716 tokens",
+        input: { level: 4 }, showEmptyState: false, tokenReport,
+        lastRunCost,
         preview: creaturePreview({ ...c, spellcasting: { tradition: "arcane", dcScale: "moderate", attackScale: "moderate" } }, RICH)
       })
     };
-  })(),
+  }),
   (() => {
     // Level -1, terrible scales, Weak adjustment: Perception, saves and skills go
     // negative, which is what the "+-1" bug shows. The strike bonus cannot: the

@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import vm from "node:vm";
+import { formatCost, runCost } from "./cost.mjs";
 
 if (!vm.SourceTextModule) {
   const run = spawnSync(process.execPath, ["--experimental-vm-modules", import.meta.filename], { stdio: "inherit" });
@@ -26,6 +27,7 @@ let testProviderResult = { total: 1250 };
 let testProviderShouldThrow = null;
 let activeConnectionSelected = null;
 let currentConnection = "default-conn";
+let activePrices = { inputPerM: null, outputPerM: null };
 const notifications = [];
 let confirmAnswer = true;
 let confirmCalls = 0;
@@ -90,7 +92,10 @@ const mocks = {
   resetStreamPhase,
   streamFraction,
   coarsenTokenEstimate,
-  lastRunTokenTotal
+  lastRunTokenTotal,
+  runCost,
+  formatCost,
+  getActiveProviderPrices: () => activePrices
 };
 
 const source = await readFile(new URL("./app-base.mjs", import.meta.url), "utf8");
@@ -145,6 +150,38 @@ app._tokenUsage.splice(2);
 app._finishRun();
 assert.ok(app._lastRunCost, "Last run cost snapshotted after _finishRun");
 assert.ok(app._formatLastRunCost().includes("SIMPLYSF2E.Tokens.LastRunEstimated"));
+
+// 1b. Run cost is tied to the connection that made each request.
+{
+  const costApp = new TestApp();
+  const usage = { prompt: 1_000_000, completion: 1_000_000, total: 2_000_000, estimated: false };
+  activePrices = { inputPerM: 1, outputPerM: 2 };
+  currentConnection = "priced-conn";
+  costApp._recordTokens("A", usage);
+  assert.ok(costApp._buildTokenReport().costText.includes("CostManual"), "manual prices price the run");
+  assert.ok(costApp._buildTokenReport().costText.includes("$3.00"));
+  // Switching connection after the run (to one with other or no prices) does not reprice it.
+  activePrices = { inputPerM: 50, outputPerM: 50 };
+  currentConnection = "other-conn";
+  assert.ok(costApp._buildTokenReport().costText.includes("$3.00"), "later switch: unchanged");
+  activePrices = { inputPerM: null, outputPerM: null };
+  assert.ok(costApp._buildTokenReport().costText.includes("$3.00"), "later switch to unpriced: still priced");
+  // Switching mid-run: each step keeps the prices of the connection active when it was recorded.
+  costApp._recordTokens("B", usage);
+  assert.equal(costApp._tokenUsage[0].connectionId, "priced-conn");
+  assert.equal(costApp._tokenUsage[1].connectionId, "other-conn");
+  assert.ok(costApp._buildTokenReport().costText.includes("CostPartial"), "unpriced second step: partial, first not repriced");
+  assert.ok(costApp._buildTokenReport().costText.includes("$3.00"));
+  // Restoring a history draft keeps its recorded prices; an old draft without any stays unpriced.
+  activePrices = { inputPerM: 100, outputPerM: 100 };
+  const restored = new TestApp();
+  restored._tokenUsage = [...costApp._tokenUsage.slice(0, 1)];
+  assert.ok(restored._buildTokenReport().costText.includes("$3.00"), "restored draft: recorded prices, not current");
+  const legacy = new TestApp();
+  legacy._tokenUsage = [{ label: "old", usage }];
+  assert.equal(legacy._buildTokenReport().costText, null, "legacy entry without prices: no cost");
+  activePrices = { inputPerM: null, outputPerM: null };
+}
 
 // 2. Cancellation lifecycle
 const stepDefs = [
