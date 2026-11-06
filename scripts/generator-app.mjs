@@ -19,7 +19,7 @@ import {
   dedupeLootAgainstEquipment, enforceNamedLootBudget, reskinActorData
 } from "./builder.mjs";
 import { normalizeReskin, reskinRenameTargets } from "./reskin.mjs";
-import { relevelActorData, relevelWithSources, loadRelevelSources, relevelAbilityLines, clampRelevel, RELEVEL_MIN, RELEVEL_MAX } from "./relevel.mjs";
+import { relevelPreview, relevelReskin, loadRelevelSources, clampRelevel, RELEVEL_MIN, RELEVEL_MAX } from "./relevel.mjs";
 import { REROLL_KINDS, rerollTarget, rerollPool, applyRerollPick, rerollKeywords } from "./reroll.mjs";
 import {
   normalizePCConcept, resolvePCConcept, resolveFeatPicks, createCharacterActor, pcStartingWealthGp, archetypeCasterPlan, resolveArchetypeBridges
@@ -353,8 +353,8 @@ export class GeneratorApp extends SpfApp {
   #buildRelevelContext() {
     if (!this.#reskinSource) return null;
     const level = this.#reskinTargetLevel();
-    const { rows, abilities } = this.#reskinData
-      ? relevelActorData(this.#reskinData, level, { sources: this.#reskinSources })
+    const preview = this.#reskinData
+      ? relevelPreview(this.#reskinData, level, this.#reskinSources)
       : { rows: [], abilities: [] };
     const bands = {
       extreme: "BandExtreme", high: "BandHigh", moderate: "BandModerate", low: "BandLow", terrible: "BandTerrible"
@@ -365,13 +365,13 @@ export class GeneratorApp extends SpfApp {
       min: RELEVEL_MIN,
       max: RELEVEL_MAX,
       changed: level !== this.#reskinSource.level,
-      rows: rows.map((row) => ({
+      rows: preview.rows.map((row) => ({
         label: row.name ? game.i18n.format(row.label, { name: row.name }) : game.i18n.localize(row.label),
         scale: bands[row.scale] ? game.i18n.localize(`SIMPLYSF2E.StatCheck.${bands[row.scale]}`) : "",
         from: row.from,
         to: row.to
       })),
-      abilities: relevelAbilityLines(abilities).map((line) => line.rebuilt
+      abilities: preview.abilities.map((line) => line.rebuilt
         ? { kept: false, label: game.i18n.format("SIMPLYSF2E.Relevel.AbilityRebuilt", { name: line.name, level }) }
         : { kept: true, label: game.i18n.format("SIMPLYSF2E.Relevel.AbilityKept", { name: line.name, reason: line.reason }) })
     };
@@ -1991,14 +1991,19 @@ export class GeneratorApp extends SpfApp {
         ?? actor.system?.details?.level?.value ?? actor.level ?? 0
     };
     this.#reskinLevel = null;
-    this.#reskinData = null;
-    this.#reskinSources = {};
+    const sourceUuid = this.#reskinSource.uuid;
+    let data = null;
+    let sources = {};
     try {
-      this.#reskinData = await this.#reskinSourceData();
-      this.#reskinSources = await loadRelevelSources(this.#reskinData, (uuid) => fromUuid(uuid));
+      data = await this.#reskinSourceData();
+      sources = await loadRelevelSources(data, (uuid) => fromUuid(uuid));
     } catch (err) {
       console.warn(`${MODULE_ID} | could not read the reskin source for its re-level preview`, err);
     }
+    // Another drop may have started while this one loaded; keep the newer source's preview.
+    if (this.#reskinSource?.uuid !== sourceUuid) return;
+    this.#reskinData = data;
+    this.#reskinSources = sources;
     this.#reskinFlavor = null;
     this.#created = null;
     this.#error = null;
@@ -2080,7 +2085,7 @@ export class GeneratorApp extends SpfApp {
     this.#error = null;
     await this.render();
     try {
-      const { data: releveled } = await relevelWithSources(await this.#reskinSourceData(), this.#reskinTargetLevel(), (uuid) => fromUuid(uuid));
+      const { data: releveled } = await relevelReskin(await this.#reskinSourceData(), this.#reskinTargetLevel(), (uuid) => fromUuid(uuid));
       const data = reskinActorData(releveled, flavor);
       const actor = await Actor.create(data);
       this.#reskinFlavor = null;

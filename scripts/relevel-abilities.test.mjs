@@ -111,7 +111,7 @@ assert.ok(byName(actor, "Constrict").flags.simplysf2e.built, "provenance flag on
   assert.equal(text(releveled.data, "Swallow Whole"), before, "item unchanged when the rebuild is null");
   const report = releveled.abilities.find((r) => r.name === "Swallow Whole");
   assert.equal(report.status, "kept", "reported as kept at the old level");
-  assert.match(report.reason, /tiny/, "with the reason");
+  assert.equal(report.reason, "size tiny has no smaller size", "with the real reason");
 }
 
 // A glossary source that is not loaded is reported, not guessed.

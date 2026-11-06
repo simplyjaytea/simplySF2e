@@ -1751,7 +1751,8 @@ export async function createActor(concept, resolved, { img = null, scaffold = nu
       items.push(withBuildProvenance(filled, {
         kind: "glossary-fill",
         spec: { slug: fillableSlug(data), abilityDcScale: ability.abilityDcScale ?? null, damageType: ability.damageType ?? null },
-        name: filled.name
+        name: filled.name,
+        source: data._stats?.compendiumSource ?? null
       }));
       continue;
     }

@@ -24,7 +24,7 @@ globalThis.foundry = { utils: { randomID: () => "id" } };
 console.warn = () => {};
 
 const { normalizeConcept, resolveConcept, createActor } = await import("./builder.mjs");
-const { relevelActorData, relevelSourceUuids, loadRelevelSources, relevelWithSources, relevelAbilityLines } = await import("./relevel.mjs");
+const { relevelActorData, relevelSourceUuids, loadRelevelSources, relevelReskin, relevelPreview, rebuildModuleAbilities } = await import("./relevel.mjs");
 const { refineCreatureAbilities } = await import("./creature-pipeline.mjs");
 
 // Real {name, candidate} selector shape; it picks only the glossary names the draft asked for.
@@ -83,29 +83,26 @@ assert.deepEqual(relevelSourceUuids(actor), [uuidOf("constrict")], "source uuids
 // 3. The real path the app uses: loaded sources reach the rebuild, so Constrict is rebuilt at 12.
 {
   const fetchDoc = async (uuid) => (uuid === uuidOf("constrict") ? { toObject: () => structuredClone(docs.constrict) } : null);
-  const releveled = await relevelWithSources(structuredClone(actor), 12, fetchDoc);
+  const releveled = await relevelReskin(structuredClone(actor), 12, fetchDoc);
   assert.match(text(releveled.data, "Constrict"), /@Damage\[\(5d8\)\[bludgeoning\]\]/, "Constrict dice rebuilt at 12");
   assert.match(text(releveled.data, "Constrict"), /dc:32/, "Constrict DC rebuilt at 12 (high)");
-  const lines = relevelAbilityLines(releveled.abilities);
-  assert.deepEqual(lines.find((line) => line.name === "Constrict"), { name: "Constrict", rebuilt: true }, "preview line: Constrict rebuilt");
+  const lines = releveled.abilities;
+  assert.equal(lines.find((line) => line.name === "Constrict").status, "rebuilt", "report: Constrict rebuilt");
   assert.equal(lines.some((line) => line.name === "Swallow Whole"), false, "published Swallow Whole is not in the report");
   assert.equal(text(releveled.data, "Swallow Whole"), SWALLOW, "published Swallow Whole text unchanged");
 }
 
 // 4. A source that cannot be loaded: Constrict is reported kept with the reason and its text is not guessed.
 {
-  const releveled = await relevelWithSources(structuredClone(actor), 12, async () => null);
+  const releveled = await relevelReskin(structuredClone(actor), 12, async () => null);
   assert.equal(text(releveled.data, "Constrict"), byName(actor, "Constrict").system.description.value, "text unchanged without the source");
-  assert.deepEqual(
-    relevelAbilityLines(releveled.abilities).find((line) => line.name === "Constrict"),
-    { name: "Constrict", rebuilt: false, reason: "the glossary source is not loaded" },
-    "preview line: Constrict kept with the reason"
-  );
+  const kept = releveled.abilities.find((line) => line.name === "Constrict");
+  assert.deepEqual([kept.status, kept.reason], ["kept", "the glossary source is not loaded"], "report: Constrict kept with the reason");
 }
 
 // 5. Same-level re-level loads nothing to rebuild and reports nothing.
 {
-  const releveled = await relevelWithSources(structuredClone(actor), 7, async () => { throw new Error("not called"); });
+  const releveled = await relevelReskin(structuredClone(actor), 7, async () => { throw new Error("not called"); });
   assert.deepEqual(releveled.abilities, [], "no report at the same level");
 }
 
@@ -114,6 +111,51 @@ assert.deepEqual(relevelSourceUuids(actor), [uuidOf("constrict")], "source uuids
   const sources = { [uuidOf("constrict")]: structuredClone(docs.constrict) };
   const releveled = relevelActorData(structuredClone(actor), 2, { sources });
   assert.match(text(releveled.data, "Constrict"), /@Damage\[\(2d6\)\[bludgeoning\]\]/, "Constrict dice at 2");
+}
+
+// 7. Preview (sync, the app calls it on each level change): rows and labelled lines come from the sources it is given.
+{
+  const sources = { [uuidOf("constrict")]: structuredClone(docs.constrict) };
+  const preview = relevelPreview(structuredClone(actor), 12, sources);
+  assert.equal(preview.level, 12, "preview level");
+  assert.deepEqual(preview.abilities.find((line) => line.name === "Constrict"), { name: "Constrict", rebuilt: true }, "preview: Constrict rebuilt with sources");
+  const without = relevelPreview(structuredClone(actor), 12, {});
+  assert.deepEqual(without.abilities.find((line) => line.name === "Constrict"),
+    { name: "Constrict", rebuilt: false, reason: "the glossary source is not loaded" }, "preview: kept without sources");
+}
+
+// 8. Source lookup: the flag's source is used; the compendium stamp is the fallback for items without it.
+{
+  const flagOnly = structuredClone(actor);
+  delete byName(flagOnly, "Constrict")._stats;
+  byName(flagOnly, "Constrict").flags.simplysf2e.built.source = uuidOf("constrict");
+  assert.deepEqual(relevelSourceUuids(flagOnly), [uuidOf("constrict")], "uuid from the flag alone");
+  const releveledFlag = await relevelReskin(flagOnly, 12, async (uuid) => (uuid === uuidOf("constrict") ? { toObject: () => structuredClone(docs.constrict) } : null));
+  assert.match(text(releveledFlag.data, "Constrict"), /\(5d8\)/, "rebuilt from the flag's source");
+
+  const stampOnly = structuredClone(actor);
+  delete byName(stampOnly, "Constrict").flags.simplysf2e.built.source;
+  assert.deepEqual(relevelSourceUuids(stampOnly), [uuidOf("constrict")], "uuid from the compendium stamp");
+  const releveledStamp = await relevelReskin(stampOnly, 12, async (uuid) => (uuid === uuidOf("constrict") ? { toObject: () => structuredClone(docs.constrict) } : null));
+  assert.match(text(releveledStamp.data, "Constrict"), /\(5d8\)/, "rebuilt from the stamp");
+}
+
+// 9. Apply path drops sources -> the fill is kept (mutation target). Already covered in 3; here the same fetch with the sources map.
+{
+  const sources = { [uuidOf("constrict")]: structuredClone(docs.constrict) };
+  const releveled = relevelActorData(structuredClone(actor), 12, { sources });
+  assert.match(text(releveled.data, "Constrict"), /\(5d8\)/, "relevelActorData with sources rebuilds");
+}
+
+// 10. Reasons: a broken template spec and a level outside the tables are named as such.
+{
+  const broken = structuredClone(actor);
+  byName(broken, "Frost Breath").flags.simplysf2e.built.spec.shape = "bogus";
+  const report = relevelActorData(broken, 12, { sources: {} }).abilities.find((r) => r.name === "Frost Breath");
+  assert.equal(report.status, "kept", "broken spec kept");
+  assert.equal(report.reason, "its saved template spec is no longer valid", "broken spec reason");
+  const outside = rebuildModuleAbilities(structuredClone(actor), 30, { sources: {} }).find((r) => r.name === "Frost Breath");
+  assert.equal(outside.reason, "level 30 is outside the GM Core tables (-1 to 24)", "out-of-range reason");
 }
 
 console.log("relevel-sources: ok");

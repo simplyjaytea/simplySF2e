@@ -135,13 +135,6 @@ export function shiftDamage(formula, from, to) {
 }
 
 /**
- * Re-level a plain NPC source object (toObject / fromCompendium). Returns a
- * new object; the input is not mutated. `rows` lists every changed number for
- * the preview: {key, label, name?, scale, from, to}. `label` is an i18n key.
- * @param {object} actorData
- * @param {number} level  the new level
- */
-/**
  * Rebuild the module-built abilities of a relevelled actor at its new level, in place.
  * Only items with flags.simplysf2e.built are touched; the name is kept, so a reskin
  * rename survives. `sources` maps a published compendium uuid to its item data, for
@@ -167,14 +160,17 @@ export function rebuildModuleAbilities(data, to, { sources = {} } = {}) {
       };
       const fresh = buildModuleTemplate(ability, { level: to });
       if (!fresh) {
-        report.push({ ...base, status: "kept", reason: `no rebuild at level ${to}` });
+        const outside = to < RELEVEL_MIN || to > RELEVEL_MAX;
+        const reason = outside ? `level ${to} is outside the GM Core tables (${RELEVEL_MIN} to ${RELEVEL_MAX})` : "its saved template spec is no longer valid";
+        report.push({ ...base, status: "kept", reason });
         continue;
       }
       item.system.description = { ...(item.system.description ?? {}), value: fresh.system.description.value };
       if (built.kind === "aura") item.system.rules = fresh.system.rules;
       report.push({ ...base, status: "rebuilt" });
     } else if (built.kind === "glossary-fill") {
-      const source = sources[item._stats?.compendiumSource];
+      // Flag first (survives any copy), then the compendium stamp on the item.
+      const source = sources[built.source] ?? sources[item._stats?.compendiumSource];
       if (!source) {
         report.push({ ...base, status: "kept", reason: "the glossary source is not loaded" });
         continue;
@@ -194,6 +190,13 @@ export function rebuildModuleAbilities(data, to, { sources = {} } = {}) {
   return report;
 }
 
+/**
+ * Re-level a plain NPC source object (toObject / fromCompendium). Returns a
+ * new object; the input is not mutated. `rows` lists every changed number for
+ * the preview: {key, label, name?, scale, from, to}. `label` is an i18n key.
+ * @param {object} actorData
+ * @param {number} level  the new level
+ */
 export function relevelActorData(actorData, level, { sources = {} } = {}) {
   const data = structuredClone(actorData ?? {});
   const system = data.system ??= {};
@@ -297,9 +300,11 @@ export function relevelActorData(actorData, level, { sources = {} } = {}) {
 export function relevelSourceUuids(actorData) {
   const uuids = new Set();
   for (const item of actorData?.items ?? []) {
-    if (item?.flags?.simplysf2e?.built?.kind !== "glossary-fill") continue;
-    const uuid = item._stats?.compendiumSource;
-    if (typeof uuid === "string" && uuid) uuids.add(uuid);
+    const built = item?.flags?.simplysf2e?.built;
+    if (built?.kind !== "glossary-fill") continue;
+    for (const uuid of [built.source, item._stats?.compendiumSource]) {
+      if (typeof uuid === "string" && uuid) uuids.add(uuid);
+    }
   }
   return [...uuids];
 }
@@ -322,15 +327,29 @@ export async function loadRelevelSources(actorData, fetchDoc) {
   return sources;
 }
 
-/** Re-level with the glossary sources loaded first: the one path the app uses for a re-levelled copy. */
-export async function relevelWithSources(actorData, level, fetchDoc) {
-  const sources = await loadRelevelSources(actorData, fetchDoc);
-  return relevelActorData(actorData, level, { sources });
-}
-
 /** Preview lines for the rebuild report: {name, rebuilt, reason?} (the app turns them into labels). */
 export function relevelAbilityLines(report) {
   return (report ?? []).map((ability) => ability.status === "rebuilt"
     ? { name: ability.name, rebuilt: true }
     : { name: ability.name, rebuilt: false, reason: ability.reason ?? "" });
+}
+
+/**
+ * The re-level preview for a copy at `level`, from glossary sources the caller already loaded.
+ * Sync, so the app can call it on every level change.
+ * @returns {{level: number, rows: object[], abilities: object[]}}
+ */
+export function relevelPreview(actorData, level, sources) {
+  const { rows, abilities, to } = relevelActorData(actorData, level, { sources });
+  return { level: to, rows, abilities: relevelAbilityLines(abilities) };
+}
+
+/**
+ * Load the copy's glossary sources, then re-level it. The app uses this for the create path;
+ * the preview uses relevelPreview with the sources it loaded when the reskin source was picked.
+ * @returns {Promise<{data: object, rows: object[], abilities: object[], from: number, to: number, sources: object}>}
+ */
+export async function relevelReskin(actorData, level, fetchDoc) {
+  const sources = await loadRelevelSources(actorData, fetchDoc);
+  return { ...relevelActorData(actorData, level, { sources }), sources };
 }
