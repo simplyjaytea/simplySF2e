@@ -19,7 +19,7 @@ import {
   dedupeLootAgainstEquipment, enforceNamedLootBudget, reskinActorData
 } from "./builder.mjs";
 import { normalizeReskin, reskinRenameTargets } from "./reskin.mjs";
-import { relevelActorData, clampRelevel, RELEVEL_MIN, RELEVEL_MAX } from "./relevel.mjs";
+import { relevelActorData, relevelWithSources, loadRelevelSources, relevelAbilityLines, clampRelevel, RELEVEL_MIN, RELEVEL_MAX } from "./relevel.mjs";
 import { REROLL_KINDS, rerollTarget, rerollPool, applyRerollPick, rerollKeywords } from "./reroll.mjs";
 import {
   normalizePCConcept, resolvePCConcept, resolveFeatPicks, createCharacterActor, pcStartingWealthGp, archetypeCasterPlan, resolveArchetypeBridges
@@ -125,6 +125,8 @@ export class GeneratorApp extends SpfApp {
   /** Reskin mode: the copy's level (re-level; null = the source's level) and the source data for its preview. */
   #reskinLevel = null;
   #reskinData = null;
+  // Glossary sources behind the copy's filled abilities (relevel.mjs loadRelevelSources).
+  #reskinSources = {};
   #busy = false;
   #busyMessage = null;
   #error = null;
@@ -351,7 +353,9 @@ export class GeneratorApp extends SpfApp {
   #buildRelevelContext() {
     if (!this.#reskinSource) return null;
     const level = this.#reskinTargetLevel();
-    const { rows } = this.#reskinData ? relevelActorData(this.#reskinData, level) : { rows: [] };
+    const { rows, abilities } = this.#reskinData
+      ? relevelActorData(this.#reskinData, level, { sources: this.#reskinSources })
+      : { rows: [], abilities: [] };
     const bands = {
       extreme: "BandExtreme", high: "BandHigh", moderate: "BandModerate", low: "BandLow", terrible: "BandTerrible"
     };
@@ -366,7 +370,10 @@ export class GeneratorApp extends SpfApp {
         scale: bands[row.scale] ? game.i18n.localize(`SIMPLYSF2E.StatCheck.${bands[row.scale]}`) : "",
         from: row.from,
         to: row.to
-      }))
+      })),
+      abilities: relevelAbilityLines(abilities).map((line) => line.rebuilt
+        ? { kept: false, label: game.i18n.format("SIMPLYSF2E.Relevel.AbilityRebuilt", { name: line.name, level }) }
+        : { kept: true, label: game.i18n.format("SIMPLYSF2E.Relevel.AbilityKept", { name: line.name, reason: line.reason }) })
     };
   }
 
@@ -1985,8 +1992,10 @@ export class GeneratorApp extends SpfApp {
     };
     this.#reskinLevel = null;
     this.#reskinData = null;
+    this.#reskinSources = {};
     try {
       this.#reskinData = await this.#reskinSourceData();
+      this.#reskinSources = await loadRelevelSources(this.#reskinData, (uuid) => fromUuid(uuid));
     } catch (err) {
       console.warn(`${MODULE_ID} | could not read the reskin source for its re-level preview`, err);
     }
@@ -2071,7 +2080,7 @@ export class GeneratorApp extends SpfApp {
     this.#error = null;
     await this.render();
     try {
-      const { data: releveled } = relevelActorData(await this.#reskinSourceData(), this.#reskinTargetLevel());
+      const { data: releveled } = await relevelWithSources(await this.#reskinSourceData(), this.#reskinTargetLevel(), (uuid) => fromUuid(uuid));
       const data = reskinActorData(releveled, flavor);
       const actor = await Actor.create(data);
       this.#reskinFlavor = null;
@@ -2249,7 +2258,7 @@ export class GeneratorApp extends SpfApp {
       concept: this.#concept, resolved: this.#resolved, manifest: this.#manifest,
       encounter: this.#encounter, pcConcept: this.#pcConcept, pcResolved: this.#pcResolved,
       reskinSource: this.#reskinSource, reskinFlavor: this.#reskinFlavor,
-      reskinLevel: this.#reskinLevel, reskinData: this.#reskinData
+      reskinLevel: this.#reskinLevel, reskinData: this.#reskinData, reskinSources: this.#reskinSources
     };
     const mode = previewModeOf(all, this.#previewMeta?.mode ?? this.#manifest?.mode);
     if (!mode) return null;
@@ -2260,7 +2269,7 @@ export class GeneratorApp extends SpfApp {
       npc: { concept: all.concept, resolved: all.resolved, manifest: all.manifest, rerollRejected: this.#copyRerollRejected() },
       encounter: { encounter: all.encounter },
       character: { pcConcept: all.pcConcept, pcResolved: all.pcResolved, manifest: all.manifest },
-      reskin: { reskinSource: all.reskinSource, reskinFlavor: all.reskinFlavor, reskinLevel: all.reskinLevel, reskinData: all.reskinData }
+      reskin: { reskinSource: all.reskinSource, reskinFlavor: all.reskinFlavor, reskinLevel: all.reskinLevel, reskinData: all.reskinData, reskinSources: all.reskinSources }
     }[mode];
     return {
       id: `recent-${++this.#recentSeq}`,
@@ -2336,6 +2345,7 @@ export class GeneratorApp extends SpfApp {
       this.#reskinSource = state.reskinSource;
       this.#reskinLevel = state.reskinLevel ?? null;
       this.#reskinData = state.reskinData ?? null;
+      this.#reskinSources = state.reskinSources ?? {};
     }
     this.#previewMeta = { mode: entry.mode, level: entry.level, at: entry.at };
     this._tokenUsage = [...entry.tokenUsage];

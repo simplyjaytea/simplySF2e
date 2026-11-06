@@ -292,3 +292,45 @@ export function relevelActorData(actorData, level, { sources = {} } = {}) {
   const abilities = rebuildModuleAbilities(data, to, { sources });
   return { data, rows, from, to, abilities };
 }
+
+/** Compendium uuids of the glossary sources behind the module's filled abilities (flagged glossary-fill items). */
+export function relevelSourceUuids(actorData) {
+  const uuids = new Set();
+  for (const item of actorData?.items ?? []) {
+    if (item?.flags?.simplysf2e?.built?.kind !== "glossary-fill") continue;
+    const uuid = item._stats?.compendiumSource;
+    if (typeof uuid === "string" && uuid) uuids.add(uuid);
+  }
+  return [...uuids];
+}
+
+/**
+ * Load those glossary sources through `fetchDoc(uuid)` (Foundry's fromUuid in the app).
+ * A source that is missing or throws is left out; the rebuild then reports the ability kept.
+ * @returns {Promise<Record<string, object>>} uuid -> item data
+ */
+export async function loadRelevelSources(actorData, fetchDoc) {
+  const sources = {};
+  for (const uuid of relevelSourceUuids(actorData)) {
+    try {
+      const doc = await fetchDoc(uuid);
+      if (doc) sources[uuid] = typeof doc.toObject === "function" ? doc.toObject() : structuredClone(doc);
+    } catch (err) {
+      console.warn(`simplysf2e | glossary source ${uuid} could not be loaded for re-level`, err);
+    }
+  }
+  return sources;
+}
+
+/** Re-level with the glossary sources loaded first: the one path the app uses for a re-levelled copy. */
+export async function relevelWithSources(actorData, level, fetchDoc) {
+  const sources = await loadRelevelSources(actorData, fetchDoc);
+  return relevelActorData(actorData, level, { sources });
+}
+
+/** Preview lines for the rebuild report: {name, rebuilt, reason?} (the app turns them into labels). */
+export function relevelAbilityLines(report) {
+  return (report ?? []).map((ability) => ability.status === "rebuilt"
+    ? { name: ability.name, rebuilt: true }
+    : { name: ability.name, rebuilt: false, reason: ability.reason ?? "" });
+}

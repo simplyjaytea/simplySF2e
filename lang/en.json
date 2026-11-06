@@ -189,7 +189,7 @@
         },
         "RelevelAbilities": {
           "Title": "Re-leveled creatures keep their numbers in step",
-          "Body": "When you re-level a copy, the area blasts and auras the module built are rebuilt for the new level. Published abilities keep their text."
+          "Body": "When you re-level a copy, the area blasts, auras and filled glossary abilities the module built are rebuilt for the new level. Published abilities keep their text."
         },
         "Aura": {
           "Title": "Auras with real numbers",
@@ -816,7 +816,9 @@
       "Scale": "Scale",
       "AtLevel": "Level {level}",
       "Damage": "Damage: {name}",
-      "Unchanged": "Area blasts and auras the module built are rebuilt for the new level. Published abilities keep their text. Spells and their ranks, the ritual DC, gear, and Elite/Weak stay as they are. Attributes and skills also move, and very low ones (below every GM Core scale) stay put.",
+      "AbilityRebuilt": "{name} rebuilt for level {level}",
+      "AbilityKept": "{name} kept at the old level: {reason}",
+      "Unchanged": "Area blasts, auras and filled glossary abilities the module built are rebuilt for the new level. Published abilities keep their text. Spells and their ranks, the ritual DC, gear, and Elite/Weak stay as they are. Attributes and skills also move, and very low ones (below every GM Core scale) stay put.",
       "Notice": "The copy is moved to level {level} with the GM Core tables. Rules, traits, spells, and items are copied unchanged. The original creature is not modified."
     },
     "Treasure": {
