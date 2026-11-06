@@ -742,3 +742,15 @@
   color: var(--spf-mode-reskin);
   font-weight: 600;
 }
+.simplysf2e .spf-relevel-abilities {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--spf-space-xs);
+  font-size: var(--spf-text-sm);
+}
+.simplysf2e .spf-relevel-kept {
+  color: var(--spf-text-muted);
+  font-style: italic;
+}

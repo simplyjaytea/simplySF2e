@@ -24,7 +24,7 @@ const AREA_ONLY_DAMAGE_TYPES = AREA_BLAST_DAMAGE_TYPES.filter((type) => !ABILITY
 /** Schema enum for specialAbilities.damageType (null allowed). */
 export const ABILITY_DAMAGE_TYPE_SCHEMA = `${ALL_ABILITY_DAMAGE_TYPES.map((type) => `"${type}"`).join("|")}|null`;
 /** Which types apply to which ability kind, stated next to the schema enum. */
-export const ABILITY_DAMAGE_TYPE_NOTE = `glossary fills use ${ABILITY_DAMAGE_TYPES.join(", ")}; area-blast uses these and also ${AREA_ONLY_DAMAGE_TYPES.join(", ")} (area-blast only, ignored for glossary abilities); required for area-blast`;
+export const ABILITY_DAMAGE_TYPE_NOTE = `glossary fills use ${ABILITY_DAMAGE_TYPES.join(", ")}; area-blast and aura use these and also ${AREA_ONLY_DAMAGE_TYPES.join(", ")} (area-blast and aura only, ignored for glossary abilities); required for area-blast and for aura damage`;
 
 /**
  * Client for any OpenAI-compatible chat completions API (DeepSeek, OpenAI,
@@ -171,13 +171,15 @@ JSON schema (all keys required unless marked optional):
     {
       "name": string,
       "glossary": string|null, // EXACT published Starfinder 2e bestiary glossary ability name if this is one, else null
-      "description": string, // short flavor only, with no rules or numeric mechanics; area-blast flavor accompanies the module-built mechanics
-      "abilityDcScale": "moderate"|"high"|null, // glossary or area-blast DC scale; null = default (high for area-blast)
+      "description": string, // short flavor only, with no rules or numeric mechanics; area-blast or aura flavor accompanies the module-built mechanics
+      "abilityDcScale": "moderate"|"high"|null, // glossary, area-blast or aura DC scale; null = default (high for area-blast, moderate for aura)
       "damageType": ${ABILITY_DAMAGE_TYPE_SCHEMA}, // ${ABILITY_DAMAGE_TYPE_NOTE}
-      "template": "area-blast"|null, // ONLY for a bespoke breath or blast: "area-blast" builds a working ability from these enum words; otherwise null
+      "template": "area-blast"|"aura"|null, // ONLY for a bespoke breath, blast or aura: "area-blast" or "aura" builds a working ability from these enum words; otherwise null
+      "kind": "condition"|"damage"|null, // aura only: "condition" (save and a condition) or "damage" (damage each turn)
+      "condition": "frightened"|"sickened"|"clumsy"|"stupefied"|"enfeebled"|null, // aura with kind condition only
       "shape": "cone"|"line"|null, // area-blast only
       "size": "small"|"medium"|"large"|null, // area-blast only; null = medium
-      "save": "reflex"|"fortitude"|"will"|null, // area-blast only; null = reflex
+      "save": "reflex"|"fortitude"|"will"|null, // area-blast (default reflex) or aura damage (default fortitude); not used for aura conditions
       "use": "at-will"|"limited"|null // area-blast only; null = at-will; "limited" when the creature must recharge it
     }
   ],
@@ -207,7 +209,7 @@ Design guidance (scale road maps):
 - Include spellcasting only when it truly fits the concept and the user allows it.
 - "focusSpells": only when the concept has spellcasting AND genuinely uses focus magic; leave [] otherwise. Uncommon, not the default.
 - Use published bestiary glossary abilities wherever they fit, copying exact names. The module selects them from the compendium afterward and keeps their real working automation; where a glossary ability is published without numbers, the module fills its DC, damage, size and distance from the creature's level, so never write numbers for glossary abilities.
-- For a bespoke cone or line breath or blast, set template to area-blast and choose its enum fields; never write its numbers or mechanics. Other bespoke signature abilities remain short narrative-only descriptions.
+- For a bespoke cone or line breath or blast, set template to area-blast and choose its enum fields; never write its numbers or mechanics. For a bespoke aura that affects creatures around the creature, set template to aura, kind to condition or damage, and choose its enum fields; never write its numbers or mechanics. Other bespoke signature abilities remain short narrative-only descriptions. Use a published glossary aura instead when one fits.
 - Traits, languages, senses and speeds must follow Starfinder 2e conventions.`;
 }
 

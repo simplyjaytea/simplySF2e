@@ -60,6 +60,8 @@ Repeat 2.1-2.7 for **Level 1**, **Level 5** and **Level 12**. Use the same promp
 | 2.9 | Same prompt as 2.8 at level 7, size Large. Read the glossary abilities on the sheet. | Filled values, as the cited tables give them: Constrict `@Damage[(4d6)[bludgeoning]]`, DC 25 (high); Greater Constrict DC 25 (high); Engulf `@Damage[(4d6)[bludgeoning]] damage`, DC 22 (moderate), escape DC 22, Rupture 15; Swallow Whole "Medium", `(4d6)`, Rupture 15; Trample "Medium or smaller", the strike name is one of the creature's own melee Strikes (the highest-damage one), DC 25 (high); Frightful Presence 90 feet, DC 22 (moderate), Aura radius 90; Stench 30 feet, DC 22 (moderate), Aura radius 30 (the Aura rule radius matches the distance). A DC scale chosen by the AI (high or moderate) changes only the DC. The filled numbers use the creature's base level: Elite, Weak and re-level do not change ability text, as with published abilities. A Reskin that renames a melee Strike leaves Trample's text naming the old Strike. | Sheet, Actions tab, chat card | | |
 | 2.10 | Generator → mode **NPC**, level 7. Prompt: "a dragon that exhales a searing cone of flame and must catch its breath". Generate, then Create Actor. Read the breath item. | A 2-action item named by the AI with a 30-foot cone, damage `8d6` fire, "DC 25 Reflex basic" (save line), and "It can't use <name> again for 1d4 rounds". Click the recharge roll in chat: it rolls 1d4 and the item can be used again after it. | Preview, Actions tab, chat | | |
 | 2.11 | Same level 7 NPC, prompt: "a serpent that spits an acid line down a corridor". Create Actor. | An at-will 2-action item with a 30-foot line, damage `4d6` acid, "DC 25 Reflex basic", and no recharge sentence. | Preview, Actions tab | | |
+| 2.12 | Generator → mode **NPC**, level 8. Prompt: "a fungal swamp hulk whose spores sicken everything that comes near it". Generate, then Create Actor. Read the aura item and place the token on the canvas. | A passive 30-foot aura visible on the canvas around the token (Aura radius 30 on the sheet). The ability text has a clickable `@Check[fortitude\|dc:23]` (DC 23 is SPELL_DC moderate at level 8) and reads "On a failure, it becomes sickened 2". The module applies nothing: the GM clicks the check and applies the condition. | Canvas, Actions tab, chat | | |
+| 2.13 | Same level 8 creature, prompt: "a glowing reactor core that burns everything within ten feet each turn". Create Actor. Place the token on the canvas. | A passive 10-foot aura visible on the canvas around the token. The ability text has a clickable `@Damage[4d6[fire]]` link (4d6 is the unlimited column at level 6, level 8 minus 2) and a clickable `@Check[fortitude\|dc:23\|basic]`. The module applies no damage: the GM rolls and applies it. | Canvas, Actions tab, chat | | |
 
 | Level | Result | Evidence |
 |-------|--------|----------|
@@ -729,3 +731,17 @@ One row per failure, so each cluster can become one fix PR.
 | Step | Observed | Expected | Console / screenshot |
 |------|----------|----------|----------------------|
 | | | | |
+
+## 12ab. Re-level: module-built abilities (T-RELEVEL)
+
+Generate a level 7 NPC with a limited cone breath (name "Frost Breath", cold), a sickening aura (Foul Air, sickened) and a glossary Constrict. Create Actor. Then Reskin the actor and re-level the copy to 12 (level field), and to 2.
+
+| # | Step | Expected | Where to look | Result | Evidence |
+|---|------|----------|---------------|--------|----------|
+| 12ab.1 | Re-level the copy to 12. Read the Frost Breath item. | `@Damage[13d6[cold]|options:area-damage]`, `@Check[reflex|dc:32|basic|options:area-effect]`; the recharge sentence says Frost Breath (the name is kept). Cone stays 30 ft. | Actor sheet, Actions tab | | |
+| 12ab.2 | Read the Foul Air aura at 12. | 30 feet; `@Check[fortitude|dc:29]`; "On a failure, it becomes sickened 2"; the Aura radius is 30. | Actor sheet, Actions tab | | |
+| 12ab.3 | Reskin a generated level 7 creature that has a filled Constrict. Re-level the copy to 12. Read Constrict. | Rebuilt: `@Damage[(5d8)[bludgeoning]]`, `dc:32` (high). The re-level preview lists "Constrict rebuilt for level 12". | Actor sheet, Actions tab | | |
+| 12ab.4 | Re-level the same copy to 2. | Frost Breath `3d6`, `dc:18`; Foul Air sickened 1, `dc:15`; Constrict `(2d6)`, `dc:18`. | Actor sheet | | |
+| 12ab.5 | Re-level to 12 and read a published ability (no provenance flag). | Its text is unchanged. | Actor sheet | | |
+| 12ab.6 | Re-level a copy whose Swallow Whole has become tiny (set size tiny first). | The Swallow Whole text is unchanged, and the re-level preview lists "Swallow Whole kept at the old level: …" with the reason. | Actor sheet | | |
+| 12ab.7 | Reskin a generated level 7 creature with a filled Constrict; then **Create** the copy at 12 and open the created actor's Constrict item (Item sheet, flags). | Constrict keeps its source: `flags.simplysf2e.built.source` and `_stats.compendiumSource` both name the sf2e glossary Constrict uuid. The created text is `@Damage[(5d8)[bludgeoning]]`, `dc:32`. | Actor sheet, Item sheet | | |

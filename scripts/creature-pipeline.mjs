@@ -18,6 +18,7 @@ import {
   getEquipmentCandidates, getLootCandidates, getScrollSpellCandidates,
   findEntry, getPacksFor, placeholderState, isFillableEntry
 } from "./compendium.mjs";
+import { isModuleTemplate } from "./ability-templates.mjs";
 import {
   normalizeConcept, normalizeLoot, resolveConcept, applyTreasureBudget, lootValueGp, parseCoins, parseScroll,
   narrativeHasMechanics
@@ -162,8 +163,8 @@ export async function refineCreatureAbilities(concept, ctxIn) {
   const draft = concept.specialAbilities;
   // Area blasts are module-built (createActor). They never reach the selector or
   // the keywords, and they keep their slots: glossary picks get the remaining budget.
-  const templates = draft.filter((ability) => ability.areaBlast);
-  const plain = draft.filter((ability) => !ability.areaBlast);
+  const templates = draft.filter((ability) => isModuleTemplate(ability));
+  const plain = draft.filter((ability) => !isModuleTemplate(ability));
   const budget = Math.max(0, 6 - templates.length);
   const narratives = plain.filter((ability) => !ability.glossary)
     .filter((ability) => {

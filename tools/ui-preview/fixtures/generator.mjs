@@ -458,6 +458,11 @@ export default [
             { label: "Fortitude", scale: "high", from: 19, to: 25 },
             { label: "Strike: Halberd of the Seventh Lattice Remnant", scale: "high", from: 20, to: 26 },
             { label: "Damage: Halberd of the Seventh Lattice Remnant", scale: "high", from: "2d10+11", to: "3d10+14" }
+          ],
+          abilities: [
+            { kept: false, label: "Frost Breath rebuilt for level 12" },
+            { kept: false, label: "Constrict rebuilt for level 12" },
+            { kept: true, label: "Swallow Whole kept at the old level: size tiny has no smaller size" }
           ]
         }
       })

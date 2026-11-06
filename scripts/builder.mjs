@@ -1,7 +1,7 @@
 import * as T from "./tables.mjs";
 import { getPacksFor, findEntry, getDocument, toItemData, priceToGp, isIssuedCandidate, placeholderState, placeholderDocFor } from "./compendium.mjs";
-import { ABILITY_DAMAGE_TYPES, ABILITY_DC_SCALES, fillBlocker, fillPlaceholderAbility, hasPlaceholderValues, isFillableEntry } from "./ability-fill.mjs";
-import { buildAreaBlast, normalizeAreaBlast } from "./ability-templates.mjs";
+import { ABILITY_DAMAGE_TYPES, ABILITY_DC_SCALES, fillBlocker, fillPlaceholderAbility, fillableSlug, hasPlaceholderValues, isFillableEntry } from "./ability-fill.mjs";
+import { buildModuleTemplate, isModuleTemplate, normalizeAreaBlast, normalizeAura } from "./ability-templates.mjs";
 import { slugify, capitalized, esc, escAi, toHtml } from "./text.mjs";
 import { applyReskin, recallKnowledgeNote } from "./reskin.mjs";
 import { isPlaceholderArt } from "./art.mjs";
@@ -373,6 +373,25 @@ export function alignStrikesToWeapons(strikes, weapons, allowedTraits = null) {
  * Coerce whatever the AI returned into a well-formed concept. Guarantees every
  * field downstream code touches exists and has a legal value.
  */
+/**
+ * Template abilities (area blast, aura) are the module's own: two with the same name on one
+ * creature would share a slug on the actor, so a repeated name gets " 2", " 3", ... (only on collision).
+ */
+function uniqueTemplateNames(abilities) {
+  const used = new Set();
+  return abilities.map((ability) => {
+    if (!ability?.areaBlast && !ability?.aura) return ability;
+    let name = ability.name;
+    if (used.has(name)) {
+      let n = 2;
+      while (used.has(`${ability.name} ${n}`)) n += 1;
+      name = `${ability.name} ${n}`;
+    }
+    used.add(name);
+    return name === ability.name ? ability : { ...ability, name };
+  });
+}
+
 export function normalizeConcept(raw, { level, rarity }) {
   const c = typeof raw === "object" && raw !== null ? raw : {};
   const clampedLevel = Math.min(Math.max(Math.round(Number(level) || 0), T.MIN_LEVEL), T.MAX_LEVEL);
@@ -508,29 +527,32 @@ export function normalizeConcept(raw, { level, rarity }) {
       .slice(0, 8)
       .map((s) => ({ name: String(s.name), scale: scale4(s.scale, "high") })),
     strikes,
-    specialAbilities: (Array.isArray(c.specialAbilities) ? c.specialAbilities : [])
+    specialAbilities: uniqueTemplateNames((Array.isArray(c.specialAbilities) ? c.specialAbilities : [])
       .filter((a) => a?.name)
       .slice(0, 6)
       .map((a) => {
         // A valid area-blast template is built from enums (ability-templates.mjs).
         // Its flavor is dropped when it names dice, a DC or Hit Points.
         const areaBlast = normalizeAreaBlast(a);
+        const aura = areaBlast ? null : normalizeAura(a);
+        const template = Boolean(areaBlast || aura);
         const rawDescription = String(a.description ?? "");
         return {
         name: String(a.name),
         // A valid template is built from enums: a glossary name would only route it past the template.
-        glossary: areaBlast ? null : (a.glossary ? String(a.glossary) : null),
+        glossary: template ? null : (a.glossary ? String(a.glossary) : null),
         candidate: a.candidate?.packId && a.candidate?._id ? a.candidate : null,
         narrative: Boolean(a.narrative),
         actionType: ["action", "reaction", "free", "passive"].includes(a.actionType) ? a.actionType : "passive",
         actions: [1, 2, 3].includes(Number(a.actions)) ? Number(a.actions) : null,
         areaBlast,
-        description: areaBlast && (narrativeHasMechanics(rawDescription) || /[@\[\]{}]/.test(rawDescription)) ? "" : rawDescription,
+        aura,
+        description: template && (narrativeHasMechanics(rawDescription) || /[@\[\]{}]/.test(rawDescription)) ? "" : rawDescription,
         abilityDcScale: ABILITY_DC_SCALES.includes(a.abilityDcScale) ? a.abilityDcScale : null,
         damageType: ABILITY_DAMAGE_TYPES.includes(a.damageType) ? a.damageType : null,
         traits: (Array.isArray(a.traits) ? a.traits : []).map(slugify).filter(Boolean)
         };
-      }),
+      })),
     spellcasting,
     // Focus spells ride on the normal spellcasting DC (v1 scope: focus-only
     // creatures are unsupported), so force [] when spellcasting is absent —
@@ -927,18 +949,18 @@ export async function resolveConcept(concept, { exactContent = false } = {}) {
   const abilities = [];
   for (const ability of concept.specialAbilities) {
     // An area blast is built by createActor from its enum spec: no compendium entry, not narrative.
-    if (ability.areaBlast) {
+    if (isModuleTemplate(ability)) {
       // Dry run of the build (same call as createActor), so early and late decisions match.
-      if (buildAreaBlast(ability.areaBlast, { level: concept.level, name: ability.name, flavor: ability.description })) {
+      if (buildModuleTemplate(ability, { level: concept.level })) {
         abilities.push({ ability, entry: null });
         continue;
       }
       console.warn(`simplysf2e | "${ability.name}" could not be built as an area blast for this creature (level ${concept.level})`);
       if (narrativeHasMechanics(ability.description)) {
-        console.warn(`simplysf2e | dropped "${ability.name}": it is not a valid area blast and its text names dice, a DC or Hit Points`);
+        console.warn(`simplysf2e | dropped "${ability.name}": it is not a valid template and its text names dice, a DC or Hit Points`);
         continue;
       }
-      abilities.push({ ability: { ...ability, areaBlast: null, narrative: true }, entry: null });
+      abilities.push({ ability: { ...ability, areaBlast: null, aura: null, narrative: true }, entry: null });
       continue;
     }
     let entry = null;
@@ -1582,6 +1604,11 @@ function actionIcon(actionType) {
  */
 export const NPC_SLOTS_PER_RANK = 3;
 
+/** Item data with the module's build provenance (data only, no rules), for re-level. */
+function withBuildProvenance(item, built) {
+  return { ...item, flags: { ...(item.flags ?? {}), simplysf2e: { ...(item.flags?.simplysf2e ?? {}), built } } };
+}
+
 /**
  * The module-built "Narrative: <name>" action for a narrative-only ability.
  * The stored document name stays plain (no zero-width characters: names are
@@ -1687,18 +1714,24 @@ export async function createActor(concept, resolved, { img = null, scaffold = nu
   const meleeStrikes = stats.strikes.filter((s) => s.type !== "ranged").map((s) => ({ name: capitalized(s.name), damage: s.damage, type: "melee" }));
   for (const { ability: resolvedAbility, entry } of resolved.abilities) {
     let ability = resolvedAbility;
-    if (ability.areaBlast) {
-      const blast = buildAreaBlast(ability.areaBlast, { level: concept.level, name: ability.name, flavor: ability.description });
+    if (isModuleTemplate(ability)) {
+      const blast = buildModuleTemplate(ability, { level: concept.level });
       if (blast) {
-        items.push(blast);
+        // Provenance (data only): lets a later re-level rebuild this item (relevel.mjs).
+        items.push(withBuildProvenance(blast, {
+          kind: ability.aura ? "aura" : "area-blast",
+          spec: ability.aura ?? ability.areaBlast,
+          flavor: ability.description ?? "",
+          name: blast.name
+        }));
         continue;
       }
       console.warn(`simplysf2e | "${ability.name}" could not be built as an area blast for this creature (level ${concept.level})`);
       if (narrativeHasMechanics(ability.description)) {
-        console.warn(`simplysf2e | dropped "${ability.name}": it is not a valid area blast and its text names dice, a DC or Hit Points`);
+        console.warn(`simplysf2e | dropped "${ability.name}": it is not a valid template and its text names dice, a DC or Hit Points`);
         continue;
       }
-      ability = { ...ability, areaBlast: null, narrative: true };
+      ability = { ...ability, areaBlast: null, aura: null, narrative: true };
     }
     const doc = await getSelectedDocument(entry);
     if (doc) {
@@ -1715,7 +1748,12 @@ export async function createActor(concept, resolved, { img = null, scaffold = nu
         console.warn(`simplysf2e | dropped "${ability.name}": its blank values cannot be filled for this creature (level ${concept.level}, size ${concept.size})`);
         continue;
       }
-      items.push(filled);
+      items.push(withBuildProvenance(filled, {
+        kind: "glossary-fill",
+        spec: { slug: fillableSlug(data), abilityDcScale: ability.abilityDcScale ?? null, damageType: ability.damageType ?? null },
+        name: filled.name,
+        source: data._stats?.compendiumSource ?? null
+      }));
       continue;
     }
     if (!ability.narrative) continue;

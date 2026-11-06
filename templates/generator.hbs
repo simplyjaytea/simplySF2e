@@ -130,6 +130,11 @@
           </table>
         </div>
         {{/if}}
+        {{#if reskinRelevel.abilities.length}}
+        <ul class="spf-relevel-abilities">
+          {{#each reskinRelevel.abilities}}<li{{#if this.kept}} class="spf-relevel-kept"{{/if}}>{{this.label}}</li>{{/each}}
+        </ul>
+        {{/if}}
         <p class="spf-hint">{{localize "SIMPLYSF2E.Relevel.Unchanged"}}</p>
       {{/if}}
     </div>
