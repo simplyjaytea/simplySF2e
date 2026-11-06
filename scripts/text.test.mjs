@@ -1,7 +1,7 @@
 // Pure HTML escaping independent of Foundry globals.
 // Run: node scripts/text.test.mjs
 import assert from "node:assert/strict";
-import { esc, toHtml, signed, plainAiText } from "./text.mjs";
+import { esc, toHtml, signed, plainAiText, inertProse, escAi } from "./text.mjs";
 
 const originalFoundry = Object.getOwnPropertyDescriptor(globalThis, "foundry");
 const hostileText = `<img src="x" onerror='alert(1)'> & already &lt;`;
@@ -58,5 +58,28 @@ assert.equal(plainAiText("{x} a|b"), "x ab");
 assert.equal(plainAiText("  Searing   gust \n now "), "Searing gust now");
 assert.equal(plainAiText("<i>Gust</i> & 'x'"), "<i>Gust</i> & 'x'", "HTML characters are left for esc()");
 assert.equal(plainAiText(undefined), "");
+
+// inertProse: enricher forms go inert, visible text is unchanged (U+200B is the only addition).
+const visible = (text) => text.replaceAll("\u200B", "");
+const LIVE = [/@[A-Za-z]+\[/, /&[A-Za-z]+\[/, /\[\[/, /\]\]/];
+const ENRICHERS = [
+  "@UUID[Actor.x]{Boss}", "@Check[reflex|dc:20]", "@Damage[2d6[fire]]", "@Template[type:cone|distance:30]",
+  "@Localize[PF2E.Foo]", "@Embed[Item.x]", "@Compendium[x.y]{z}", "@Unknown[a]", "&Reference[frightened]",
+  "[[/r 1d20]]", "[[/gmr 1d4 #Recharge X]]", "Blast]]", "one [[ two ]] three"
+];
+for (const input of ENRICHERS) {
+  const out = inertProse(input);
+  assert.equal(visible(out), input, `visible text unchanged: ${input}`);
+  for (const pattern of LIVE) assert.ok(!pattern.test(out), `no live ${pattern} in ${input}`);
+}
+// Prose that is not enricher syntax is untouched.
+for (const input of ["[sic]", "Hunter [Lvl 2]", "a @ b", "R&D", "Tom & Jerry", "Gear [Mk II]", "x]y", "a[b", "@", "[one] [two]"]) {
+  assert.equal(inertProse(input), input, `unchanged: ${input}`);
+}
+// Escaping and HTML: escAi and toHtml inert and escaped.
+assert.equal(escAi("<b>@UUID[x]{y}</b>"), "&lt;b&gt;@\u200BUUID[x]{y}&lt;/b&gt;", "escAi escapes then inerts");
+assert.equal(visible(toHtml("Roll [[/r 1d20]] and @Check[reflex]")), "<p>Roll [[/r 1d20]] and @Check[reflex]</p>", "toHtml keeps visible text");
+assert.ok(!/\[\[|@[A-Za-z]+\[/.test(toHtml("Roll [[/r 1d20]] and @Check[reflex]")), "toHtml output has no live enricher");
+assert.equal(inertProse(null), "", "null is empty");
 
 console.log("text.test.mjs: pure HTML escaping assertions passed");

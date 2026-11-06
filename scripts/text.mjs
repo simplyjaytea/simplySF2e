@@ -29,6 +29,24 @@ export function esc(text) {
 }
 
 /**
+ * Pure: breaks Foundry enricher syntax in AI prose without changing what a
+ * reader sees. Foundry enriches the decoded text, so `@UUID[...]{...}`,
+ * `@Check[...]`, `@Damage[...]`, `@Template[...]`, `@Localize[...]`, unknown
+ * `@Word[`, `&Word[` and `[[/r ...]]` would go live. A zero-width space (U+200B)
+ * after `@` or `&` before a word and `[`, between `[[`, and between `]]` stops
+ * the match. Brackets, `&` in "R&D" and `@` alone are not touched.
+ */
+export function inertProse(text) {
+  return String(text ?? "")
+    .replace(/([@&])(?=[A-Za-z]+\[)/g, "$1\u200B")
+    .replace(/\[(?=\[)/g, "[\u200B")
+    .replace(/\](?=\])/g, "]\u200B");
+}
+
+/** HTML-escaped AI text with enricher syntax made inert. Use for AI text in any enriched field. */
+export const escAi = (text) => esc(inertProse(text));
+
+/**
  * AI text made safe for inline syntax: removes the characters that open or
  * close Foundry enrichers and inline rolls ([ ] { } @ |) and collapses
  * whitespace. The result is still HTML-escaped with esc() by the caller.
@@ -41,9 +59,12 @@ export function plainAiText(text) {
  * Escape plain multi-paragraph AI text and wrap it in <p> tags (blank-line
  * separated). Returns "" for empty input so callers can drop the field.
  */
-export const toHtml = (text) => (text
-  ? `<p>${String(text).split(/\n{2,}/).map((p) => esc(p.trim())).filter(Boolean).join("</p><p>")}</p>`
-  : "");
+export const toHtml = (text) => {
+  const inert = inertProse(text);
+  return inert
+    ? `<p>${inert.split(/\n{2,}/).map((p) => esc(p.trim())).filter(Boolean).join("</p><p>")}</p>`
+    : "";
+};
 
 /**
  * Format a modifier with an explicit sign for display: 3 -> "+3", 0 -> "+0",
