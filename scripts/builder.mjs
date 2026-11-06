@@ -911,8 +911,8 @@ export function customEquipmentItem(name, quantity, value) {
  * build computes it), so a placeholder "1d4" stands in for the dry run only;
  * the build fills with the built strikes' real damage.
  */
-function fillDryRunBlocker(entry, doc, ability, concept) {
-  const reason = fillBlocker(entry, { level: concept.level, size: concept.size, strikes: concept.strikes ?? [] });
+function fillDryRunBlocker(item, doc, ability, concept) {
+  const reason = fillBlocker(item, { level: concept.level, size: concept.size, strikes: concept.strikes ?? [] });
   if (reason) return reason;
   if (!doc) return "its published text could not be read";
   const dryStrikes = (concept.strikes ?? []).filter((s) => s.type !== "ranged").map((s) => ({ name: s.name, type: "melee", damage: "1d4" }));
@@ -953,13 +953,16 @@ export async function resolveConcept(concept, { exactContent = false } = {}) {
     // is never cloned. Its thematic text stays narrative-only when it names no numbers.
     if (entry) {
       const state = await placeholderState(entry);
+      // The loaded document carries the name and slug; a selector's candidate ref has neither.
+      const doc = placeholderDocFor(entry);
+      const item = doc ?? entry;
       // A fillable blank is kept if this creature can take its fill (createActor fills it);
       // otherwise it is treated like any other blank ability.
-      const unfillable = state === "blank" && isFillableEntry(entry)
-        ? fillDryRunBlocker(entry, placeholderDocFor(entry), ability, concept)
+      const unfillable = state === "blank" && isFillableEntry(item)
+        ? fillDryRunBlocker(item, doc, ability, concept)
         : null;
       if (unfillable) console.warn(`simplysf2e | "${ability.name}" cannot be filled for this creature: ${unfillable}`);
-      if (state !== "clean" && !(state === "blank" && isFillableEntry(entry) && !unfillable)) {
+      if (state !== "clean" && !(state === "blank" && isFillableEntry(item) && !unfillable)) {
         entry = null;
         if (state === "blank" && !unfillable) {
           if (narrativeHasMechanics(ability.description)) {
