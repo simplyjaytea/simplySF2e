@@ -183,6 +183,10 @@
       "GotIt": "Got it",
       "Disable": "Don't show for updates",
       "Note": {
+        "OneScreenWelcome": {
+          "Title": "Set up in one screen",
+          "Body": "The Welcome window now connects your AI in one step: pick a provider, paste your key and press Connect. It loads the model list, tests the model and offers a sample monster. A failed connect leaves your previous setup untouched."
+        },
         "BlankAbilities": {
           "Title": "Creature abilities get real values again",
           "Body": "Constrict, Greater Constrict, Swallow Whole, Engulf, Trample, Frightful Presence and Stench now get their damage, DCs, sizes and aura sizes for the creature's level, from the GM Core tables and published creatures. Trample uses the creature's own strike. An ability that cannot be filled, such as a tiny creature with Swallow Whole, is left out, and the console names it."
