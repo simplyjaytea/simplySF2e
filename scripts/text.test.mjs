@@ -61,11 +61,12 @@ assert.equal(plainAiText(undefined), "");
 
 // inertProse: enricher forms go inert, visible text is unchanged (U+200B is the only addition).
 const visible = (text) => text.replaceAll("\u200B", "");
-const LIVE = [/@[A-Za-z]+\[/, /&[A-Za-z]+\[/, /\[\[/, /\]\]/];
+const LIVE = [/@\w+\[/, /&\w+\[/, /\[\[/, /\]\]/];
 const ENRICHERS = [
   "@UUID[Actor.x]{Boss}", "@Check[reflex|dc:20]", "@Damage[2d6[fire]]", "@Template[type:cone|distance:30]",
   "@Localize[PF2E.Foo]", "@Embed[Item.x]", "@Compendium[x.y]{z}", "@Unknown[a]", "&Reference[frightened]",
-  "[[/r 1d20]]", "[[/gmr 1d4 #Recharge X]]", "Blast]]", "one [[ two ]] three"
+  "[[/r 1d20]]", "[[/gmr 1d4 #Recharge X]]", "Blast]]", "one [[ two ]] three",
+  "@Foo1[x]", "@Foo_x[x]", "&Ref_1[x]"
 ];
 for (const input of ENRICHERS) {
   const out = inertProse(input);
@@ -81,5 +82,9 @@ assert.equal(escAi("<b>@UUID[x]{y}</b>"), "&lt;b&gt;@\u200BUUID[x]{y}&lt;/b&gt;"
 assert.equal(visible(toHtml("Roll [[/r 1d20]] and @Check[reflex]")), "<p>Roll [[/r 1d20]] and @Check[reflex]</p>", "toHtml keeps visible text");
 assert.ok(!/\[\[|@[A-Za-z]+\[/.test(toHtml("Roll [[/r 1d20]] and @Check[reflex]")), "toHtml output has no live enricher");
 assert.equal(inertProse(null), "", "null is empty");
+// toHtml keeps its falsy contract: no coerced "0" or "false" paragraphs.
+assert.equal(toHtml(0), "", "toHtml(0) is empty");
+assert.equal(toHtml(false), "", "toHtml(false) is empty");
+assert.equal(toHtml(""), "", "toHtml empty string is empty");
 
 console.log("text.test.mjs: pure HTML escaping assertions passed");

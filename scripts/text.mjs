@@ -38,7 +38,7 @@ export function esc(text) {
  */
 export function inertProse(text) {
   return String(text ?? "")
-    .replace(/([@&])(?=[A-Za-z]+\[)/g, "$1\u200B")
+    .replace(/([@&])(?=\w+\[)/g, "$1\u200B")
     .replace(/\[(?=\[)/g, "[\u200B")
     .replace(/\](?=\])/g, "]\u200B");
 }
@@ -60,7 +60,7 @@ export function plainAiText(text) {
  * separated). Returns "" for empty input so callers can drop the field.
  */
 export const toHtml = (text) => {
-  const inert = inertProse(text);
+  const inert = text ? inertProse(text) : "";
   return inert
     ? `<p>${inert.split(/\n{2,}/).map((p) => esc(p.trim())).filter(Boolean).join("</p><p>")}</p>`
     : "";

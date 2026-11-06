@@ -2,7 +2,7 @@ import * as T from "./tables.mjs";
 import { getPacksFor, findEntry, getDocument, toItemData, priceToGp, isIssuedCandidate, placeholderState, placeholderDocFor } from "./compendium.mjs";
 import { ABILITY_DAMAGE_TYPES, ABILITY_DC_SCALES, fillBlocker, fillPlaceholderAbility, hasPlaceholderValues, isFillableEntry } from "./ability-fill.mjs";
 import { buildAreaBlast, normalizeAreaBlast } from "./ability-templates.mjs";
-import { slugify, capitalized, esc, escAi, inertProse, toHtml } from "./text.mjs";
+import { slugify, capitalized, esc, escAi, toHtml } from "./text.mjs";
 import { applyReskin, recallKnowledgeNote } from "./reskin.mjs";
 import { isPlaceholderArt } from "./art.mjs";
 import { parseRunes, applyRunes, dropUncitedRunePrefix, runeGp, hasRunes } from "./runes.mjs";
@@ -1582,11 +1582,11 @@ export const NPC_SLOTS_PER_RANK = 3;
 /**
 /**
  * The module-built "Narrative: <name>" action for a narrative-only ability.
- * The name is a document name (visible text kept; enricher syntax made inert);
- * the description is AI prose and goes through escAi.
+ * The stored document name stays plain (no zero-width characters: names are
+ * copied, searched and compared); the description is AI prose and goes through escAi.
  */
 export function narrativeAbilityItem(ability) {
-  const label = inertProse(ability.name).trim() || "Ability";
+  const label = String(ability.name ?? "").trim() || "Ability";
   const escaped = escAi(ability.description);
   return {
     name: `Narrative: ${label}`,
