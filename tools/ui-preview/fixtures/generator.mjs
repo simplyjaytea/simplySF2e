@@ -458,7 +458,7 @@ export default [
           abilities: [
             { kept: false, label: "Frost Breath rebuilt for level 12" },
             { kept: false, label: "Constrict rebuilt for level 12" },
-            { kept: true, label: "Swallow Whole kept at the old level: tiny" }
+            { kept: true, label: "Swallow Whole kept at the old level: size tiny has no smaller size" }
           ]
         }
       })
