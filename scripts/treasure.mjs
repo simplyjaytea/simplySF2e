@@ -4,7 +4,7 @@
  * is a cited GM Core number, never an AI number. No Foundry globals, so this
  * file is node-testable.
  */
-import { esc, toHtml } from "./text.mjs";
+import { esc, escAi, toHtml } from "./text.mjs";
 import { gpToCredits } from "./currency.mjs";
 import { TREASURE_BY_LEVEL, treasureBudget, lookup } from "./tables.mjs";
 import { shopTypesFor } from "./shop.mjs";
@@ -144,7 +144,7 @@ export function hoardLeftover(budget, items) {
 
 /** The loot sheet description: escaped AI prose. */
 export function treasureDescriptionHtml(concept) {
-  return toHtml(concept?.description ?? "") || `<p>${esc(concept?.name ?? "")}</p>`;
+  return toHtml(concept?.description ?? "") || `<p>${escAi(concept?.name ?? "")}</p>`;
 }
 
 /**

@@ -8,7 +8,7 @@
  * node-testable. builder.mjs reskinActor() and the generator's Reskin mode
  * both go through applyReskin().
  */
-import { esc, toHtml, capitalized } from "./text.mjs";
+import { esc, escAi, toHtml, capitalized } from "./text.mjs";
 
 /** Item types whose display name Reskin may change (NPC strikes and abilities). */
 export const RENAMEABLE_TYPES = Object.freeze(["melee", "action"]);
@@ -97,7 +97,7 @@ export function recallKnowledgeNote(skills, dc, text) {
   const checks = list.length
     ? list.map((skill) => `<strong>${esc(capitalized(skill))}</strong> @Check[type:${skill}|dc:${dc}]`).join(" or ")
     : `<strong>DC ${dc}</strong>`;
-  return `<h3>Recall Knowledge</h3><p>${checks}: ${esc(text)}</p>`;
+  return `<h3>Recall Knowledge</h3><p>${checks}: ${escAi(text)}</p>`;
 }
 
 /**
@@ -116,7 +116,7 @@ export function applyReskin(actorData, flavor = {}, { recallSkill = null, recall
   }
 
   const notes = [];
-  if (flavor.readAloud) notes.push(`<blockquote class="spf-read-aloud"><em>${esc(flavor.readAloud)}</em></blockquote>`);
+  if (flavor.readAloud) notes.push(`<blockquote class="spf-read-aloud"><em>${escAi(flavor.readAloud)}</em></blockquote>`);
   if (flavor.description) notes.push(toHtml(flavor.description));
   if (flavor.recallKnowledge && recallSkill && recallDC) {
     const traits = data.system?.traits?.value ?? [];

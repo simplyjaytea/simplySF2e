@@ -1,4 +1,4 @@
-import { esc, slugify } from "./text.mjs";
+import { esc, escAi, slugify } from "./text.mjs";
 import { ARCHETYPE_CASTER_DEDICATIONS } from "./pc-tables.mjs";
 
 /**
@@ -216,7 +216,7 @@ export function withInitialFocusSpell(focusSpells, hack) {
 /** GM whisper body for manual follow-ups; `localize` is `game.i18n.localize`. */
 export function manualNotesContent(actorName, keys, localize) {
   if (!keys?.length) return "";
-  return `<p><strong>${esc(actorName)}</strong></p><ul>${keys.map((key) => `<li>${esc(localize(key))}</li>`).join("")}</ul>`;
+  return `<p><strong>${escAi(actorName)}</strong></p><ul>${keys.map((key) => `<li>${esc(localize(key))}</li>`).join("")}</ul>`;
 }
 
 /** Check if a class slug has an official multiclass dedication in SF2e. */

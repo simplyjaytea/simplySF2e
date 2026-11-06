@@ -2,7 +2,7 @@ import * as T from "./tables.mjs";
 import { getPacksFor, findEntry, getDocument, toItemData, priceToGp, isIssuedCandidate, placeholderState, placeholderDocFor } from "./compendium.mjs";
 import { ABILITY_DAMAGE_TYPES, ABILITY_DC_SCALES, fillBlocker, fillPlaceholderAbility, hasPlaceholderValues, isFillableEntry } from "./ability-fill.mjs";
 import { buildAreaBlast, normalizeAreaBlast } from "./ability-templates.mjs";
-import { slugify, capitalized, esc, toHtml, plainAiText } from "./text.mjs";
+import { slugify, capitalized, esc, escAi, inertProse, toHtml } from "./text.mjs";
 import { applyReskin, recallKnowledgeNote } from "./reskin.mjs";
 import { isPlaceholderArt } from "./art.mjs";
 import { parseRunes, applyRunes, dropUncitedRunePrefix, runeGp, hasRunes } from "./runes.mjs";
@@ -1586,12 +1586,13 @@ export const NPC_SLOTS_PER_RANK = 3;
  * @returns {Promise<{actor: Actor, expectedItems: object[]}>}
  */
 /**
- * The module-built "Narrative: <name>" action for a narrative-only ability. AI
- * text is cleaned of inline-syntax characters (plainAiText), then HTML-escaped.
+ * The module-built "Narrative: <name>" action for a narrative-only ability.
+ * The name is a document name (visible text kept; enricher syntax made inert);
+ * the description is AI prose and goes through escAi.
  */
 export function narrativeAbilityItem(ability) {
-  const label = plainAiText(ability.name) || "Ability";
-  const escaped = esc(plainAiText(ability.description));
+  const label = inertProse(ability.name).trim() || "Ability";
+  const escaped = escAi(ability.description);
   return {
     name: `Narrative: ${label}`,
     type: "action",
@@ -1606,6 +1607,26 @@ export function narrativeAbilityItem(ability) {
       traits: { value: [] }
     }
   };
+}
+
+/**
+ * NPC public notes (read-aloud, description, Recall Knowledge): AI prose made inert
+ * for the enriched actor description.
+ */
+export function npcPublicNotes(concept) {
+  const notesParts = [];
+  if (concept.readAloud) {
+    notesParts.push(`<blockquote class="spf-read-aloud"><em>${escAi(concept.readAloud)}</em></blockquote>`);
+  }
+  if (concept.description) {
+    notesParts.push(toHtml(concept.description));
+  }
+  if (concept.recallKnowledge) {
+    // pf2e recall-knowledge.ts uses the prepared (Elite/Weak-adjusted) level.
+    const dc = T.identificationDC(adjustedLevel(concept.level, concept.adjustment ?? null), concept.rarity);
+    notesParts.push(recallKnowledgeNote(recallKnowledgeSkills(concept.traits), dc, concept.recallKnowledge));
+  }
+  return notesParts.join("\n");
 }
 
 export async function createActor(concept, resolved, { img = null, scaffold = null } = {}) {
@@ -1785,19 +1806,7 @@ export async function createActor(concept, resolved, { img = null, scaffold = nu
 
   const safeItems = filterItemTypes(items, NPC_ITEM_TYPES, "NPC");
 
-  const notesParts = [];
-  if (concept.readAloud) {
-    notesParts.push(`<blockquote class="spf-read-aloud"><em>${esc(concept.readAloud)}</em></blockquote>`);
-  }
-  if (concept.description) {
-    notesParts.push(toHtml(concept.description));
-  }
-  if (concept.recallKnowledge) {
-    // pf2e recall-knowledge.ts uses the prepared (Elite/Weak-adjusted) level.
-    const dc = T.identificationDC(adjustedLevel(concept.level, concept.adjustment ?? null), concept.rarity);
-    notesParts.push(recallKnowledgeNote(recallKnowledgeSkills(concept.traits), dc, concept.recallKnowledge));
-  }
-  const description = notesParts.join("\n");
+  const description = npcPublicNotes(concept);
 
   const actorData = {
     name: concept.name,

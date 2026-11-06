@@ -1227,6 +1227,21 @@ export async function resolveArchetypeBridges(concept, resolved, { selectChoices
  * @param {(groups: object[]) => Promise<unknown>} [options.selectChoices]
  * @returns {Promise<{actor: Actor, skillReport: object}>}
  */
+/** Biography fields for a character: HTML prose through toHtml (inert), plain fields as text. */
+export function characterBiography(concept) {
+  return {
+    backstory: toHtml(concept.backstory),
+    appearance: toHtml(concept.appearance),
+    attitude: concept.personality,
+    beliefs: concept.alignmentFlavor,
+    likes: concept.likes,
+    dislikes: concept.dislikes,
+    allies: toHtml(concept.allies),
+    enemies: toHtml(concept.enemies),
+    organizations: toHtml(concept.organizations)
+  };
+}
+
 export async function createCharacterActor(concept, resolved, { img = null, selectChoices = null } = {}) {
   const items = [];
 
@@ -1506,17 +1521,7 @@ export async function createCharacterActor(concept, resolved, { img = null, sele
         // beliefs/likes/dislikes (plain text), allies/enemies/organizations
         // (HTML). "personality"/"alignmentFlavor" map onto the closest real
         // biography fields (attitude/beliefs) — issue #56.6.
-        biography: {
-          backstory: toHtml(concept.backstory),
-          appearance: toHtml(concept.appearance),
-          attitude: concept.personality,
-          beliefs: concept.alignmentFlavor,
-          likes: concept.likes,
-          dislikes: concept.dislikes,
-          allies: toHtml(concept.allies),
-          enemies: toHtml(concept.enemies),
-          organizations: toHtml(concept.organizations)
-        }
+        biography: characterBiography(concept)
       },
       attributes: { hp: { temp: 0 } },
       // Focus pool starts full. Source `value` survives data prep (verified in
