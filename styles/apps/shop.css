@@ -84,6 +84,7 @@
   .simplysf2e .spf-shop-stock th,
   .simplysf2e .spf-shop-stock td {
     box-sizing: border-box;
+    padding-inline: 2px;
   }
 
   .simplysf2e .spf-shop-stock thead th,
@@ -91,14 +92,15 @@
     white-space: normal;
   }
 
-  .simplysf2e .spf-shop-stock thead th:first-child { width: 30%; }
-  .simplysf2e .spf-shop-stock thead th:nth-child(3) { width: 50px; }
-  .simplysf2e .spf-shop-stock thead th:nth-child(4) { width: 65px; }
-  .simplysf2e .spf-shop-stock thead th:nth-child(5) { width: 40px; }
-  .simplysf2e .spf-shop-stock thead th:last-child { width: 48px; }
+  .simplysf2e .spf-shop-stock thead th:first-child { width: 160px; }
+  .simplysf2e .spf-shop-stock thead th:nth-child(2) { width: 80px; }
+  .simplysf2e .spf-shop-stock thead th:nth-child(3) { width: 43px; }
+  .simplysf2e .spf-shop-stock thead th:nth-child(4) { width: 55px; }
+  .simplysf2e .spf-shop-stock thead th:nth-child(5) { width: 32px; }
+  .simplysf2e .spf-shop-stock thead th:last-child { width: 44px; }
 
-  .simplysf2e .spf-shop-stock tbody th,
-  .simplysf2e .spf-shop-stock td {
-    overflow-wrap: anywhere;
+  .simplysf2e .spf-shop-stock tbody th {
+    overflow-wrap: break-word;
+    hyphens: auto;
   }
 }
