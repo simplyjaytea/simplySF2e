@@ -113,3 +113,11 @@ console.log("reskin.test.mjs: reskin changes fiction and display names only");
   assert.ok(!text.includes("Foul Air"), "no stale aura name");
   assert.ok(text.startsWith("<p>30 feet. A creature that enters"), "the rest of the text is unchanged");
 }
+
+// A rename whose cleaned name is empty keeps the builders' fallback names in each sentence.
+{
+  const blast = "It can't use Flame Breath again for [[/gmr 1d4 #Recharge Flame Breath]]{1d4 rounds}.";
+  assert.equal(renameRechargeText(blast, "Flame Breath", "[[]]"), "It can't use Area Blast again for [[/gmr 1d4 #Recharge Area Blast]]{1d4 rounds}.", "blast fallback");
+  const aura = "temporarily immune to Foul Air for 1 minute.";
+  assert.equal(renameRechargeText(aura, "Foul Air", "[[]]"), "temporarily immune to Aura for 1 minute.", "aura fallback");
+}
