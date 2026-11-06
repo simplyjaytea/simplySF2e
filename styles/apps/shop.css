@@ -92,6 +92,13 @@
     white-space: normal;
   }
 
+  .simplysf2e .spf-shop-stock thead .spf-num {
+    padding-inline: var(--spf-space-xs);
+    font-size: 0.65rem;
+    letter-spacing: 0;
+    text-align: center;
+  }
+
   .simplysf2e .spf-shop-stock thead th:first-child { width: 160px; }
   .simplysf2e .spf-shop-stock thead th:nth-child(2) { width: 80px; }
   .simplysf2e .spf-shop-stock thead th:nth-child(3) { width: 43px; }
