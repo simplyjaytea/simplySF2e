@@ -1,9 +1,9 @@
 import {
-  MODULE_ID, SETTINGS, authorizeApiKeyForCurrentBaseUrl,
-  createProviderConnection, deleteProviderConnection, describeProvider,
+  MODULE_ID, SETTINGS, createProviderConnection, deleteProviderConnection,
   ensureProviderBank, getJevRequestConfig, getProviderAuthWarningKey, getProviderRequestConfig,
-  normalizeApiBaseUrl, selectProviderConnection, upsertActiveProviderConnection
+  normalizeApiBaseUrl, selectProviderConnection
 } from "./settings.mjs";
+import { saveProviderConnection } from "./provider-connect.mjs";
 import { listProviderModels, testProviderConnection } from "./ai.mjs";
 import {
   JEV_SOURCES, TYPESAFE_JEV_ENDPOINT, normalizeJevSource, normalizeTypeSafeEndpoint, testJevConnection
@@ -298,58 +298,17 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
   }
 
   static async #saveSettings({ notify = true, requireModel = true } = {}) {
-    const baseUrl = normalizeApiBaseUrl(this.element.querySelector("[name='apiBaseUrl']")?.value);
-    const model = String(this.element.querySelector("[name='model']")?.value ?? "").trim();
-    const enteredApiKey = String(this.element.querySelector("[name='apiKey']")?.value ?? "").trim();
-    const clearApiKey = Boolean(this.element.querySelector("[name='clearApiKey']")?.checked);
-    const connectionName = String(this.element.querySelector("[name='connectionName']")?.value ?? "").trim();
-
-    let parsed;
-    try { parsed = new URL(baseUrl); }
-    catch { throw new Error(game.i18n.localize("SIMPLYSF2E.ProviderSetup.InvalidBaseUrl")); }
-    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-      throw new Error(game.i18n.localize("SIMPLYSF2E.ProviderSetup.InvalidBaseUrl"));
-    }
-    if (requireModel && !model) throw new Error(game.i18n.localize("SIMPLYSF2E.Errors.NoModel"));
-
-    const currentBaseUrl = normalizeApiBaseUrl(game.settings.get(MODULE_ID, SETTINGS.apiBaseUrl));
-    const baseChanged = currentBaseUrl !== baseUrl;
-    await game.settings.set(MODULE_ID, SETTINGS.apiBaseUrl, baseUrl);
-    await game.settings.set(MODULE_ID, SETTINGS.model, model);
-
-    // A stored key belongs to its old endpoint. Switching providers without
-    // entering a replacement clears it instead of silently offering that
-    // secret for authorization against a different service.
-    if (clearApiKey || baseChanged || enteredApiKey) {
-      await game.settings.set(MODULE_ID, SETTINGS.apiKey, clearApiKey ? "" : enteredApiKey);
-    }
-
-    const configuredKey = String(game.settings.get(MODULE_ID, SETTINGS.apiKey) ?? "").trim();
-    const authorized = configuredKey
-      ? await authorizeApiKeyForCurrentBaseUrl(baseUrl)
-      : false;
-    await upsertActiveProviderConnection({ name: connectionName });
-    const provider = describeProvider(baseUrl, model);
-    const state = getProviderRequestConfig();
-    const insecure = Boolean(state.apiKeyInsecure);
-    const messageKey = insecure
-      ? "SIMPLYSF2E.Errors.InsecureKeyEndpoint"
-      : authorized
-        ? "SIMPLYSF2E.ProviderSetup.SavedAuthorized"
-        : state.keylessLocal
-          ? "SIMPLYSF2E.ProviderSetup.Saved"
-          : "SIMPLYSF2E.ProviderSetup.SavedNeedsKey";
-    if (notify) {
-      const notifySaved = insecure || (!authorized && !state.keylessLocal)
-        ? ui.notifications.warn.bind(ui.notifications)
-        : ui.notifications.info.bind(ui.notifications);
-      notifySaved(game.i18n.format(
-        messageKey,
-        { provider: provider.name, model }
-      ));
-    }
+    const result = await saveProviderConnection({
+      baseUrl: this.element.querySelector("[name='apiBaseUrl']")?.value,
+      model: this.element.querySelector("[name='model']")?.value,
+      enteredApiKey: this.element.querySelector("[name='apiKey']")?.value,
+      clearApiKey: Boolean(this.element.querySelector("[name='clearApiKey']")?.checked),
+      connectionName: this.element.querySelector("[name='connectionName']")?.value,
+      notify,
+      requireModel
+    });
     await this.#onSaved?.();
-    return { provider, model, state };
+    return result;
   }
 
   /**

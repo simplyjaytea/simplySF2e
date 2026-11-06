@@ -34,37 +34,22 @@ https://github.com/simplyjaytea/simplySF2e/releases/download/beta/module.json
 
 To roll back, install a specific version's manifest: `https://github.com/simplyjaytea/simplySF2e/releases/download/v<version>/module.json`. See [Releases](https://github.com/simplyjaytea/simplySF2e/releases) for every version.
 
-When a GM logs in and no AI connection works yet, the **Welcome to SimplySF2e** window opens. It checks the Starfinder 2e system version, your compendium content and the AI connection, shows whether fast picks are on, and links to the window that fixes each row. It stops opening by itself once the connection works, or when you tick **Don't show this again at login**. Reopen it any time with **Open Welcome** in the module settings or `/sf2e welcome` in chat.
+When a GM logs in and no AI connection works yet, the **Welcome to SimplySF2e** window opens. Choose a provider, connect it and pick a model if asked, then generate a sample monster preview. System or compendium problems appear as one warning only when they need attention. Welcome stops opening by itself once the connection works, or when you tick **Don't show this again at login**. Reopen it any time with **Open Welcome** in the module settings or `/sf2e welcome` in chat.
 
 After an update that changes something you can see, a **What's new in SimplySF2e** window opens once for the GM, listing only the new changes. **Got it** closes it; **Don't show for updates** stops it opening by itself. A fresh install does not show it. Reopen it any time with `/sf2e whatsnew` or the **What's New** button in the module settings.
 
 ### 2. Connect an AI provider
 
-Open **Configure Settings → SimplySF2e** and click **Configure Provider** (or press **Set Up AI Connection** in the welcome window). This opens the **AI Provider Setup** window.
+Use the **Welcome** window for first-run setup:
 
-1. Pick a provider button: **DeepSeek**, **OpenAI**, **OpenRouter**, **Ollama**, **LM Studio**, or **Custom**. The preset buttons fill in the **API Base URL** and, where there is one, a suggested **Model**:
+1. Pick **OpenRouter** (recommended), **OpenAI**, **DeepSeek**, **Google** or **Ollama**. Google uses `https://generativelanguage.googleapis.com/v1beta/openai` and is marked **Live check pending** until that route is proven live. **Advanced** holds Anthropic via OpenRouter, LM Studio, Jev, TypeSafe and the full Provider Setup window.
+2. Paste the provider's API key. Ollama and other local keyless servers show their **API Base URL** instead.
+3. Click **Connect** (or press Enter in the key/URL field). Connect validates through `/models`. It uses the preset's default only when that exact ID is listed; otherwise, including for Google and Ollama, pick one of the returned models. Anthropic shows only `anthropic/*` models. The chosen model then gets a small connection test.
+4. Click **Generate a sample monster** to open a level-1 Monster preview with a fixed sample prompt. Nothing is created until you click **Create**.
 
-   | Button | API Base URL | Suggested model |
-   | --- | --- | --- |
-   | DeepSeek | `https://api.deepseek.com/v1` | `deepseek-v4-flash` |
-   | OpenAI | `https://api.openai.com/v1` | `gpt-6-luna` |
-   | OpenRouter | `https://openrouter.ai/api/v1` | `deepseek/deepseek-v4.1-flash` |
-   | Ollama | `http://localhost:11434/v1` | (enter one) |
-   | LM Studio | `http://localhost:1234/v1` | (enter one) |
-   | Custom | (enter your own) | (enter one) |
+The existing recommendations are **DeepSeek V4.1 Flash** (`deepseek/deepseek-v4.1-flash` on OpenRouter) and **GPT-6 Luna** (`gpt-6-luna` on OpenAI). An OpenRouter key reaches both and shows each request's cost. Local models work too, but small ones often fail the structured steps.
 
-   The API Base URL can be the API root (normally ending in `/v1`) or a full `/chat/completions` address.
-
-   **Which model?** We recommend two:
-
-   - **DeepSeek V4.1 Flash** is our first choice: fast, cheap and good at the structured answers SimplySF2e needs. On OpenRouter its ID is `deepseek/deepseek-v4.1-flash`. On DeepSeek's own API it is `deepseek-v4.1-flash`: press **Load Models** to check that your account lists it. Until it does, the DeepSeek button fills `deepseek-v4-flash`, which also works well.
-   - **GPT-6 Luna** from OpenAI (`gpt-6-luna`, or `openai/gpt-6-luna` on OpenRouter) is the alternative if you already use OpenAI.
-
-   An **OpenRouter** key reaches both with one account, and it shows each request's cost. Local models (Ollama, LM Studio) work too, but small ones often fail the structured steps; if a run keeps failing with "not valid JSON" or "incomplete", switch to one of the models above.
-2. Give the connection a **Connection name** (for example "DeepSeek" or "local GPU").
-3. Enter the **Model**. **Load Models** saves the connection and then fills the Model field's suggestions from the provider's model list. You can also type an exact model ID by hand.
-4. For a hosted provider, paste your key into **API key (this browser only)**. Leave it blank for a keyless local server.
-5. Click **Save & Test** to save and send one small test request, or **Save & Authorize** to save without testing.
+For named connections, custom endpoints, manual model IDs or saving without a test, open **Advanced → Set Up AI Connection**. The API Base URL can be the API root (normally ending in `/v1`) or a full `/chat/completions` address.
 
 **Keys are tied to one exact endpoint.** When you save, the key is authorized only for the API Base URL shown in the window. If you later change the URL without entering a new key, the old key is cleared, so it is never sent to a different service. If the generator ever says "Stored API key is not authorized for the current API Base URL and will not be sent", it shows the endpoint and an **Authorize for this endpoint** button. Click it only if that endpoint is the one you meant.
 
