@@ -178,7 +178,7 @@ JSON schema (all keys required unless marked optional):
       "kind": "condition"|"damage"|null, // aura only: "condition" (save and a condition) or "damage" (damage each turn)
       "condition": "frightened"|"sickened"|"clumsy"|"stupefied"|"enfeebled"|null, // aura with kind condition only
       "shape": "cone"|"line"|null, // area-blast only
-      "size": "small"|"medium"|"large"|null, // area-blast only; null = medium
+      "size": "small"|"medium"|"large"|null, // area-blast and aura; null = medium
       "save": "reflex"|"fortitude"|"will"|null, // area-blast (default reflex) or aura damage (default fortitude); not used for aura conditions
       "use": "at-will"|"limited"|null // area-blast only; null = at-will; "limited" when the creature must recharge it
     }
