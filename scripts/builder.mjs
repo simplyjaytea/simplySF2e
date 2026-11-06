@@ -1,7 +1,7 @@
 import * as T from "./tables.mjs";
 import { getPacksFor, findEntry, getDocument, toItemData, priceToGp, isIssuedCandidate, placeholderState, placeholderDocFor } from "./compendium.mjs";
 import { ABILITY_DAMAGE_TYPES, ABILITY_DC_SCALES, fillBlocker, fillPlaceholderAbility, hasPlaceholderValues, isFillableEntry } from "./ability-fill.mjs";
-import { buildAreaBlast, normalizeAreaBlast } from "./ability-templates.mjs";
+import { buildModuleTemplate, isModuleTemplate, normalizeAreaBlast, normalizeAura } from "./ability-templates.mjs";
 import { slugify, capitalized, esc, escAi, toHtml } from "./text.mjs";
 import { applyReskin, recallKnowledgeNote } from "./reskin.mjs";
 import { isPlaceholderArt } from "./art.mjs";
@@ -515,17 +515,20 @@ export function normalizeConcept(raw, { level, rarity }) {
         // A valid area-blast template is built from enums (ability-templates.mjs).
         // Its flavor is dropped when it names dice, a DC or Hit Points.
         const areaBlast = normalizeAreaBlast(a);
+        const aura = areaBlast ? null : normalizeAura(a);
+        const template = Boolean(areaBlast || aura);
         const rawDescription = String(a.description ?? "");
         return {
         name: String(a.name),
         // A valid template is built from enums: a glossary name would only route it past the template.
-        glossary: areaBlast ? null : (a.glossary ? String(a.glossary) : null),
+        glossary: template ? null : (a.glossary ? String(a.glossary) : null),
         candidate: a.candidate?.packId && a.candidate?._id ? a.candidate : null,
         narrative: Boolean(a.narrative),
         actionType: ["action", "reaction", "free", "passive"].includes(a.actionType) ? a.actionType : "passive",
         actions: [1, 2, 3].includes(Number(a.actions)) ? Number(a.actions) : null,
         areaBlast,
-        description: areaBlast && (narrativeHasMechanics(rawDescription) || /[@\[\]{}]/.test(rawDescription)) ? "" : rawDescription,
+        aura,
+        description: template && (narrativeHasMechanics(rawDescription) || /[@\[\]{}]/.test(rawDescription)) ? "" : rawDescription,
         abilityDcScale: ABILITY_DC_SCALES.includes(a.abilityDcScale) ? a.abilityDcScale : null,
         damageType: ABILITY_DAMAGE_TYPES.includes(a.damageType) ? a.damageType : null,
         traits: (Array.isArray(a.traits) ? a.traits : []).map(slugify).filter(Boolean)
@@ -927,9 +930,9 @@ export async function resolveConcept(concept, { exactContent = false } = {}) {
   const abilities = [];
   for (const ability of concept.specialAbilities) {
     // An area blast is built by createActor from its enum spec: no compendium entry, not narrative.
-    if (ability.areaBlast) {
+    if (isModuleTemplate(ability)) {
       // Dry run of the build (same call as createActor), so early and late decisions match.
-      if (buildAreaBlast(ability.areaBlast, { level: concept.level, name: ability.name, flavor: ability.description })) {
+      if (buildModuleTemplate(ability, { level: concept.level })) {
         abilities.push({ ability, entry: null });
         continue;
       }
@@ -938,7 +941,7 @@ export async function resolveConcept(concept, { exactContent = false } = {}) {
         console.warn(`simplysf2e | dropped "${ability.name}": it is not a valid area blast and its text names dice, a DC or Hit Points`);
         continue;
       }
-      abilities.push({ ability: { ...ability, areaBlast: null, narrative: true }, entry: null });
+      abilities.push({ ability: { ...ability, areaBlast: null, aura: null, narrative: true }, entry: null });
       continue;
     }
     let entry = null;
@@ -1687,8 +1690,8 @@ export async function createActor(concept, resolved, { img = null, scaffold = nu
   const meleeStrikes = stats.strikes.filter((s) => s.type !== "ranged").map((s) => ({ name: capitalized(s.name), damage: s.damage, type: "melee" }));
   for (const { ability: resolvedAbility, entry } of resolved.abilities) {
     let ability = resolvedAbility;
-    if (ability.areaBlast) {
-      const blast = buildAreaBlast(ability.areaBlast, { level: concept.level, name: ability.name, flavor: ability.description });
+    if (isModuleTemplate(ability)) {
+      const blast = buildModuleTemplate(ability, { level: concept.level });
       if (blast) {
         items.push(blast);
         continue;
@@ -1698,7 +1701,7 @@ export async function createActor(concept, resolved, { img = null, scaffold = nu
         console.warn(`simplysf2e | dropped "${ability.name}": it is not a valid area blast and its text names dice, a DC or Hit Points`);
         continue;
       }
-      ability = { ...ability, areaBlast: null, narrative: true };
+      ability = { ...ability, areaBlast: null, aura: null, narrative: true };
     }
     const doc = await getSelectedDocument(entry);
     if (doc) {

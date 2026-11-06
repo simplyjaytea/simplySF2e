@@ -146,15 +146,24 @@ export function applyReskin(actorData, flavor = {}, { recallSkill = null, recall
 }
 
 /**
- * The module's recharge sentence for an area blast, with the old name replaced
- * by the new one: the sentence uses esc(name), the #Recharge label uses the
- * plainAiText label (inline-syntax safe). Other text is unchanged.
+ * The module's name-bearing sentences for a renamed template: an area blast's
+ * recharge sentence and an aura's immunity sentence. The old name is replaced by the
+ * new one: sentences use esc(name), the #Recharge label uses the plainAiText label
+ * (inline-syntax safe). Other text is unchanged.
  */
 export function renameRechargeText(description, oldName, newName) {
   const oldLabel = esc(String(oldName ?? ""));
-  const newLabel = plainAiText(newName) || "Area Blast";
-  const oldSentence = `It can't use ${oldLabel} again for [[/gmr 1d4 #Recharge ${oldLabel}]]{1d4 rounds}.`;
-  if (!oldLabel || !description.includes(oldSentence)) return description;
-  const newEscaped = esc(newLabel);
-  return description.split(oldSentence).join(`It can't use ${newEscaped} again for [[/gmr 1d4 #Recharge ${newEscaped}]]{1d4 rounds}.`);
+  const label = plainAiText(newName);
+  if (!oldLabel || !label) return description;
+  const newEscaped = esc(label);
+  const oldRecharge = `It can't use ${oldLabel} again for [[/gmr 1d4 #Recharge ${oldLabel}]]{1d4 rounds}.`;
+  const oldImmunity = `temporarily immune to ${oldLabel} for 1 minute.`;
+  let out = description;
+  if (out.includes(oldRecharge)) {
+    out = out.split(oldRecharge).join(`It can't use ${newEscaped} again for [[/gmr 1d4 #Recharge ${newEscaped}]]{1d4 rounds}.`);
+  }
+  if (out.includes(oldImmunity)) {
+    out = out.split(oldImmunity).join(`temporarily immune to ${newEscaped} for 1 minute.`);
+  }
+  return out;
 }

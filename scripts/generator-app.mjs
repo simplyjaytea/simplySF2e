@@ -684,7 +684,7 @@ export class GeneratorApp extends SpfApp {
       // A module-built area blast shows the Module-built label (no compendium source), not the narrative label.
       narrative: Boolean(ability.narrative),
       // A working area blast is module-built, not narrative-only (its own preview label).
-      moduleBuilt: Boolean(ability.areaBlast),
+      moduleBuilt: Boolean(ability.areaBlast || ability.aura),
       description: ability.description,
       index,
       rerollable: rerollable("ability", index)
