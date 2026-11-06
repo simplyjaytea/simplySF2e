@@ -161,7 +161,7 @@ JSON schema (all keys required unless marked optional):
       "glossary": string|null, // EXACT published Starfinder 2e bestiary glossary ability name if this is one, else null
       "description": string, // short flavor only, with no rules or numeric mechanics; area-blast flavor accompanies the module-built mechanics
       "abilityDcScale": "moderate"|"high"|null, // glossary or area-blast DC scale; null = default (high for area-blast)
-      "damageType": "bludgeoning"|"piercing"|"slashing"|"acid"|"cold"|"electricity"|"fire"|"sonic"|"poison"|"spirit"|"mental"|"force"|"void"|null, // glossary or area-blast damage type; required for area-blast
+      "damageType": "bludgeoning"|"piercing"|"slashing"|"acid"|"cold"|"electricity"|"fire"|"sonic"|"poison"|"spirit"|"mental"|"force"|"void"|null, // glossary or area-blast damage type; required for area-blast; spirit, mental, force and void are area-blast only (ignored for glossary abilities)
       "template": "area-blast"|null, // ONLY for a bespoke breath or blast: "area-blast" builds a working ability from these enum words; otherwise null
       "shape": "cone"|"line"|null, // area-blast only
       "size": "small"|"medium"|"large"|null, // area-blast only; null = medium
