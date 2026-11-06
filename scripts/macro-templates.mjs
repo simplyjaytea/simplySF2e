@@ -101,7 +101,7 @@ function header({ forgeId, itemName, itemLevel }, params, extra = {}) {
     // HTML or roll flavor. It deliberately does not touch already-escaped
     // module-provided item/effect/duration strings.
     // The same inert rule as text.mjs inertProse (ZWSP after @/& before Word[, between [[ and ]]): macros cannot import it.
-    `const escHtml = (value) => String(value ?? "").replace(/([@&])(?=[A-Za-z]+\\[)/g, "$1\\u200B").replace(/\\[(?=\\[)/g, "[\\u200B").replace(/\\](?=\\])/g, "]\\u200B").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\"/g, "&quot;").replace(/'/g, "&#39;");`
+    `const escHtml = (value) => String(value ?? "").replace(/([@&])(?=\\w+\\[)/g, "$1\\u200B").replace(/\\[(?=\\[)/g, "[\\u200B").replace(/\\](?=\\])/g, "]\\u200B").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\"/g, "&quot;").replace(/'/g, "&#39;");`
   ];
   for (const [name, value] of Object.entries(extra)) {
     lines.push(`const ${name} = ${JSON.stringify(value)};`);

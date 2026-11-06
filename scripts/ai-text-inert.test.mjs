@@ -11,8 +11,8 @@ const AI = "@UUID[Actor.x]{Boss} [[/r 1d20]] @Check[reflex|dc:30]";
 const visible = (html) => html.replaceAll("​", "");
 
 function assertInert(html, label) {
-  assert.ok(!/@[A-Za-z]+\[/.test(html), `${label}: no live @Word[`);
-  assert.ok(!/&[A-Za-z]+\[/.test(html), `${label}: no live &Word[`);
+  assert.ok(!/@\w+\[/.test(html), `${label}: no live @Word[`);
+  assert.ok(!/&\w+\[/.test(html), `${label}: no live &Word[`);
   assert.ok(!/\[\[/.test(html), `${label}: no live [[`);
   assert.ok(!/\]\]/.test(html), `${label}: no ]] left intact`);
   assert.ok(visible(html).includes("@UUID[Actor.x]{Boss}"), `${label}: visible text kept`);
@@ -38,7 +38,7 @@ assertInert(npcPublicNotes({ level: 5, rarity: "common", traits: [], readAloud: 
 // Narrative-only ability: the item name and description.
 const narrative = narrativeAbilityItem({ name: AI, description: AI });
 assertInert(narrative.system.description.value, "narrative description");
-assertInert(narrative.name, "narrative name");
+// The stored name is plain (asserted below); only the description is inert.
 
 // PC biography: backstory, appearance, allies, enemies, organizations.
 const bio = characterBiography({ backstory: AI, appearance: AI, allies: AI, enemies: AI, organizations: AI, personality: "plain", likes: "plain", dislikes: "plain", alignmentFlavor: "plain" });
@@ -62,5 +62,27 @@ assertInert(escHtml(`Actor ${AI}`), "macro escHtml(actor name)");
 const metaLine = command.split("\n").find((line) => line.startsWith("const META"));
 const meta = JSON.parse(metaLine.slice("const META = ".length, -1));
 assertInert(meta.itemName, "macro META item name");
+
+// Drift guard: the macro's escHtml (a copy of the rule, since macros cannot import text.mjs)
+// must equal escAi on a fixed corpus of tricky strings. Change both copies together.
+const CORPUS = [
+  "@UUID[Actor.x]{Boss}", "@Check[reflex|dc:20]", "@Damage[2d6[fire]]", "@Template[type:cone|distance:30]",
+  "@Localize[PF2E.X]", "@Embed[Item.x]", "@Compendium[x.y]{z}", "@Foo1[x]", "@Foo_x[x]", "@Foo-bar[x]",
+  "&Reference[frightened]", "&Ref_1[x]", "&&Ref[x]", "[[/r 1d20]]", "[[/gmr 1d4 #Recharge X]]",
+  "[[/act escape dc=20]]", "Blast]]", "a ]] b", "one [[ two", "[[[", "]]]", "[sic]", "Hunter [Lvl 2]",
+  "a @ b", "R&D", "Tom & Jerry", "x]y", "a[b", "@", "&", "[", "]", "{", "}", "|", "@@", "@@UUID[x]",
+  "@ Check[reflex]", "@Check [reflex]", "@1[x]", "@_[x]", "&amp; entity", "<b>bold</b>",
+  "Tom & <i>Jerry</i>", "\"quoted\" and 'single'", "line one\nline two", "  padded  ", "tab\tchar",
+  "émoji 🐉 and 中文", "@UUID[x]{a}[[/r 1d6]]", "@Localize[X] and @Damage[1d4[acid]]", "\u200B@UUID[x]",
+  "", "plain text with no enricher"
+];
+assert.ok(CORPUS.length >= 50, "corpus has about fifty strings");
+for (const sample of CORPUS) {
+  assert.equal(escHtml(sample), escAi(sample), `macro escHtml matches escAi for ${JSON.stringify(sample)}`);
+}
+
+// Document names stay plain: the narrative item name is not given zero-width characters.
+const named = narrativeAbilityItem({ name: "@Check[reflex]", description: "x" });
+assert.equal(named.name, "Narrative: @Check[reflex]", "stored name is the plain name");
 
 console.log("ai-text-inert.test.mjs: ok");
