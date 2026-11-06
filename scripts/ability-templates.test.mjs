@@ -128,8 +128,9 @@ for (const flavor of ["Gust @Check[reflex|dc:16|basic] save.", "Gust @Template[t
   const { narrativeAbilityItem } = await import("./builder.mjs");
   const item = narrativeAbilityItem({ name: "Hiss", description: "It hisses @Check[reflex] and [[/r 1d20]] here." });
   const value = item.system.description.value;
-  assert.ok(!value.includes("@") && !value.includes("[["), "no enricher or roll syntax in narrative text");
-  assert.ok(value.includes("It hisses Check"), "plain words kept");
+  assert.ok(!/@[A-Za-z]+\[/.test(value), "no live enricher");
+  assert.ok(!/\[\[/.test(value), "no live roll");
+  assert.ok(value.replaceAll("\u200B", "").includes("It hisses @Check[reflex] and [[/r 1d20]] here."), "visible text kept");
 }
 
 // A template with a glossary name keeps only the template (glossary cleared at normalize).
