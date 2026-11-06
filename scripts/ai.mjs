@@ -244,12 +244,25 @@ async function requestJSON(args) {
   // Tokens spent by failed attempts are still spent — sum usage across every
   // attempt that returned one, so the report reflects the real total.
   const total = { prompt: 0, completion: 0, total: 0, estimated: false };
+  let unpricedAttempt = false;
   const addUsage = (usage) => {
     if (!usage) return;
     total.prompt += usage.prompt || 0;
     total.completion += usage.completion || 0;
     total.total += usage.total || 0;
     if (usage.estimated) total.estimated = true;
+    // Provider-reported cost (OpenRouter usage.cost) is summed across attempts. An
+    // attempt that spent tokens with no reported cost makes the run total partial.
+    // costMissing is only set once some attempt did report one, so providers that never
+    // report cost keep the plain usage shape (runCost treats those as unpriced).
+    if (usage.cost != null && Number.isFinite(usage.cost)) {
+      total.cost = (total.cost ?? 0) + usage.cost;
+      if (unpricedAttempt) total.costMissing = true;
+    } else if (usage.prompt || usage.completion || usage.total) {
+      unpricedAttempt = true;
+      if (total.cost != null) total.costMissing = true;
+    }
+    if (usage.costMissing) total.costMissing = true;
   };
   for (let attempt = 0; attempt < 2; attempt++) {
     throwIfGenerationCancelled(args.signal);

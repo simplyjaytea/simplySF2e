@@ -29,12 +29,17 @@ export function mergeUsage(a, b) {
   if (!a) return b ?? null;
   if (!b) return a;
   const cost = a.cost == null && b.cost == null ? null : (a.cost ?? 0) + (b.cost ?? 0);
+  // One side priced and the other spent tokens without a cost: the sum is partial.
+  const spent = (u) => Boolean(u.prompt || u.completion || u.total);
+  const costMissing = Boolean(a.costMissing || b.costMissing
+    || (a.cost == null && spent(a) && b.cost != null) || (b.cost == null && spent(b) && a.cost != null));
   return {
     prompt: (a.prompt || 0) + (b.prompt || 0),
     completion: (a.completion || 0) + (b.completion || 0),
     total: (a.total || 0) + (b.total || 0),
     estimated: Boolean(a.estimated || b.estimated),
-    ...(cost == null ? {} : { cost })
+    ...(cost == null ? {} : { cost }),
+    ...(costMissing ? { costMissing: true } : {})
   };
 }
 

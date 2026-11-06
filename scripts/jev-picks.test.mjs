@@ -331,3 +331,14 @@ assert.equal(mergeUsage({ prompt: 1, completion: 1, total: 2, cost: 0.1 }, { pro
   assert.equal((await jevPickSpells({ ...args, plannedPicks: undefined, request: unasked.request })).spells, null, "creature path stays on the chat model");
 }
 console.log("jev-picks tests passed");
+
+// Merged Jev + chat step keeps Jev's cost and flags the unpriced chat side as partial.
+{
+  const merged = mergeUsage({ prompt: 100, completion: 50, total: 150, cost: null, estimated: false }, { prompt: 10, completion: 0, total: 10, cost: 0.001, estimated: false });
+  assert.equal(merged.cost, 0.001);
+  assert.equal(merged.costMissing, true);
+  const priced = mergeUsage({ prompt: 1, completion: 1, total: 2, cost: 0.1 }, { prompt: 1, completion: 0, total: 1, cost: 0.2 });
+  assert.ok(Math.abs(priced.cost - 0.3) < 1e-12);
+  assert.equal("costMissing" in priced, false);
+  assert.equal(mergeUsage({ prompt: 1, completion: 1, total: 2, cost: 0.1 }, { prompt: 0, completion: 0, total: 0, cost: null }).costMissing, undefined, "an unrun step is not partial");
+}
