@@ -901,10 +901,6 @@ export function customEquipmentItem(name, quantity, value) {
 }
 
 /**
- * Resolve every compendium reference in a concept. Returns lookup results so
- * the preview can show what was found and what will become a custom ability.
- */
-/**
  * Why a fillable blank cannot be filled for this creature, or null (FIX-B5).
  * A dry run of the build-time fill on the loaded document, so resolve and build
  * share one decision. The concept's strikes have no damage formula yet (the
@@ -923,6 +919,10 @@ function fillDryRunBlocker(item, doc, ability, concept) {
   return filled ? null : "published text does not match the expected blanks";
 }
 
+/**
+ * Resolve every compendium reference in a concept. Returns lookup results so
+ * the preview can show what was found and what will become a custom ability.
+ */
 export async function resolveConcept(concept, { exactContent = false } = {}) {
   const abilities = [];
   for (const ability of concept.specialAbilities) {
@@ -1582,7 +1582,6 @@ function actionIcon(actionType) {
  */
 export const NPC_SLOTS_PER_RANK = 3;
 
-/**
 /**
  * The module-built "Narrative: <name>" action for a narrative-only ability.
  * The stored document name stays plain (no zero-width characters: names are
