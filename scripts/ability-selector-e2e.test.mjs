@@ -97,4 +97,32 @@ async function build(draft) {
   assert.match(constrict.system.description.value, /dc:25/, "Constrict defaults to high (DC 25)");
 }
 
+// Collision: a draft named Constrict whose glossary is Stench must not feed Constrict's pick.
+// Stench's own pick takes that draft (its glossary matches), so Constrict uses its default.
+{
+  const run = await build([
+    { name: "Constrict", glossary: "Stench", description: "Stench draft text", abilityDcScale: "moderate" },
+    { name: "Stench", glossary: "Stench", description: "x" }
+  ]);
+  const constrictPick = run.resolved.find((a) => a.ability.name === "Constrict").ability;
+  assert.notEqual(constrictPick.description, "Stench draft text", "Constrict does not take another ability's description");
+  assert.equal(constrictPick.abilityDcScale, null, "Constrict does not take another ability's DC scale");
+  const constrict = run.items.find((item) => item.name === "Constrict");
+  assert.match(constrict.system.description.value, /dc:25/, "Constrict keeps its default DC (high)");
+  const stenchPick = run.resolved.find((a) => a.ability.name === "Stench").ability;
+  assert.equal(stenchPick.description, "Stench draft text", "Stench takes its own draft by glossary");
+  assert.equal(stenchPick.abilityDcScale, "moderate", "Stench takes its own DC scale");
+}
+
+// Duplicate glossary drafts: the first matching draft applies, deterministically.
+{
+  const run = await build([
+    { name: "Constrict", glossary: "Constrict", description: "first draft", abilityDcScale: "moderate" },
+    { name: "Constrict", glossary: "Constrict", description: "second draft", abilityDcScale: "high" }
+  ]);
+  const pick = run.resolved.find((a) => a.ability.name === "Constrict").ability;
+  assert.equal(pick.description, "first draft", "the first matching draft is used");
+  assert.equal(pick.abilityDcScale, "moderate", "its DC scale is used");
+}
+
 console.log("ability-selector-e2e.test.mjs: ok");

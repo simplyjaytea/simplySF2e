@@ -179,11 +179,14 @@ export async function refineCreatureAbilities(concept, ctxIn) {
   // action data survive; the pick's own candidate and name win.
   const withDraft = (pick, drafts) => {
     const key = String(pick?.name ?? "").toLowerCase();
+    // A draft with a glossary name matches only by that name; a name match is allowed only
+    // for a draft with no glossary name, so one ability never inherits another's draft.
     const draft = drafts.find((d) => String(d.glossary ?? "").toLowerCase() === key)
-      ?? drafts.find((d) => String(d.name ?? "").toLowerCase() === key);
+      ?? drafts.find((d) => !d.glossary && String(d.name ?? "").toLowerCase() === key);
+    const glossary = draft && String(draft.glossary ?? "").toLowerCase() === key ? draft.glossary : null;
     return {
       ...pick,
-      glossary: pick.glossary ?? draft?.glossary ?? null,
+      glossary: pick.glossary ?? glossary,
       candidate: pick.candidate ?? draft?.candidate ?? null,
       narrative: false,
       actionType: pick.actionType ?? draft?.actionType ?? "passive",
