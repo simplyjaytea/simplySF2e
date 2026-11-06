@@ -373,6 +373,25 @@ export function alignStrikesToWeapons(strikes, weapons, allowedTraits = null) {
  * Coerce whatever the AI returned into a well-formed concept. Guarantees every
  * field downstream code touches exists and has a legal value.
  */
+/**
+ * Template abilities (area blast, aura) are the module's own: two with the same name on one
+ * creature would share a slug on the actor, so a repeated name gets " 2", " 3", ... (only on collision).
+ */
+function uniqueTemplateNames(abilities) {
+  const used = new Set();
+  return abilities.map((ability) => {
+    if (!ability?.areaBlast && !ability?.aura) return ability;
+    let name = ability.name;
+    if (used.has(name)) {
+      let n = 2;
+      while (used.has(`${ability.name} ${n}`)) n += 1;
+      name = `${ability.name} ${n}`;
+    }
+    used.add(name);
+    return name === ability.name ? ability : { ...ability, name };
+  });
+}
+
 export function normalizeConcept(raw, { level, rarity }) {
   const c = typeof raw === "object" && raw !== null ? raw : {};
   const clampedLevel = Math.min(Math.max(Math.round(Number(level) || 0), T.MIN_LEVEL), T.MAX_LEVEL);
@@ -508,7 +527,7 @@ export function normalizeConcept(raw, { level, rarity }) {
       .slice(0, 8)
       .map((s) => ({ name: String(s.name), scale: scale4(s.scale, "high") })),
     strikes,
-    specialAbilities: (Array.isArray(c.specialAbilities) ? c.specialAbilities : [])
+    specialAbilities: uniqueTemplateNames((Array.isArray(c.specialAbilities) ? c.specialAbilities : [])
       .filter((a) => a?.name)
       .slice(0, 6)
       .map((a) => {
@@ -533,7 +552,7 @@ export function normalizeConcept(raw, { level, rarity }) {
         damageType: ABILITY_DAMAGE_TYPES.includes(a.damageType) ? a.damageType : null,
         traits: (Array.isArray(a.traits) ? a.traits : []).map(slugify).filter(Boolean)
         };
-      }),
+      })),
     spellcasting,
     // Focus spells ride on the normal spellcasting DC (v1 scope: focus-only
     // creatures are unsupported), so force [] when spellcasting is absent —
@@ -938,7 +957,7 @@ export async function resolveConcept(concept, { exactContent = false } = {}) {
       }
       console.warn(`simplysf2e | "${ability.name}" could not be built as an area blast for this creature (level ${concept.level})`);
       if (narrativeHasMechanics(ability.description)) {
-        console.warn(`simplysf2e | dropped "${ability.name}": it is not a valid area blast and its text names dice, a DC or Hit Points`);
+        console.warn(`simplysf2e | dropped "${ability.name}": it is not a valid template and its text names dice, a DC or Hit Points`);
         continue;
       }
       abilities.push({ ability: { ...ability, areaBlast: null, aura: null, narrative: true }, entry: null });
@@ -1698,7 +1717,7 @@ export async function createActor(concept, resolved, { img = null, scaffold = nu
       }
       console.warn(`simplysf2e | "${ability.name}" could not be built as an area blast for this creature (level ${concept.level})`);
       if (narrativeHasMechanics(ability.description)) {
-        console.warn(`simplysf2e | dropped "${ability.name}": it is not a valid area blast and its text names dice, a DC or Hit Points`);
+        console.warn(`simplysf2e | dropped "${ability.name}": it is not a valid template and its text names dice, a DC or Hit Points`);
         continue;
       }
       ability = { ...ability, areaBlast: null, aura: null, narrative: true };
