@@ -2,7 +2,7 @@ import * as T from "./tables.mjs";
 import { getPacksFor, findEntry, getDocument, toItemData, priceToGp, isIssuedCandidate, placeholderState, placeholderDocFor } from "./compendium.mjs";
 import { ABILITY_DAMAGE_TYPES, ABILITY_DC_SCALES, fillBlocker, fillPlaceholderAbility, hasPlaceholderValues, isFillableEntry } from "./ability-fill.mjs";
 import { buildAreaBlast, normalizeAreaBlast } from "./ability-templates.mjs";
-import { slugify, capitalized, esc, toHtml } from "./text.mjs";
+import { slugify, capitalized, esc, toHtml, plainAiText } from "./text.mjs";
 import { applyReskin, recallKnowledgeNote } from "./reskin.mjs";
 import { isPlaceholderArt } from "./art.mjs";
 import { parseRunes, applyRunes, dropUncitedRunePrefix, runeGp, hasRunes } from "./runes.mjs";
@@ -518,13 +518,14 @@ export function normalizeConcept(raw, { level, rarity }) {
         const rawDescription = String(a.description ?? "");
         return {
         name: String(a.name),
-        glossary: a.glossary ? String(a.glossary) : null,
+        // A valid template is built from enums: a glossary name would only route it past the template.
+        glossary: areaBlast ? null : (a.glossary ? String(a.glossary) : null),
         candidate: a.candidate?.packId && a.candidate?._id ? a.candidate : null,
         narrative: Boolean(a.narrative),
         actionType: ["action", "reaction", "free", "passive"].includes(a.actionType) ? a.actionType : "passive",
         actions: [1, 2, 3].includes(Number(a.actions)) ? Number(a.actions) : null,
         areaBlast,
-        description: areaBlast && narrativeHasMechanics(rawDescription) ? "" : rawDescription,
+        description: areaBlast && (narrativeHasMechanics(rawDescription) || /[@\[\]{}]/.test(rawDescription)) ? "" : rawDescription,
         abilityDcScale: ABILITY_DC_SCALES.includes(a.abilityDcScale) ? a.abilityDcScale : null,
         damageType: ABILITY_DAMAGE_TYPES.includes(a.damageType) ? a.damageType : null,
         traits: (Array.isArray(a.traits) ? a.traits : []).map(slugify).filter(Boolean)
@@ -927,7 +928,17 @@ export async function resolveConcept(concept, { exactContent = false } = {}) {
   for (const ability of concept.specialAbilities) {
     // An area blast is built by createActor from its enum spec: no compendium entry, not narrative.
     if (ability.areaBlast) {
-      abilities.push({ ability, entry: null });
+      // Dry run of the build (same call as createActor), so early and late decisions match.
+      if (buildAreaBlast(ability.areaBlast, { level: concept.level, name: ability.name, flavor: ability.description })) {
+        abilities.push({ ability, entry: null });
+        continue;
+      }
+      console.warn(`simplysf2e | "${ability.name}" could not be built as an area blast for this creature (level ${concept.level})`);
+      if (narrativeHasMechanics(ability.description)) {
+        console.warn(`simplysf2e | dropped "${ability.name}": it is not a valid area blast and its text names dice, a DC or Hit Points`);
+        continue;
+      }
+      abilities.push({ ability: { ...ability, areaBlast: null, narrative: true }, entry: null });
       continue;
     }
     let entry = null;
@@ -1574,6 +1585,29 @@ export const NPC_SLOTS_PER_RANK = 3;
  * @param {string|null} [options.img]  portrait/token image path
  * @returns {Promise<{actor: Actor, expectedItems: object[]}>}
  */
+/**
+ * The module-built "Narrative: <name>" action for a narrative-only ability. AI
+ * text is cleaned of inline-syntax characters (plainAiText), then HTML-escaped.
+ */
+export function narrativeAbilityItem(ability) {
+  const label = plainAiText(ability.name) || "Ability";
+  const escaped = esc(plainAiText(ability.description));
+  return {
+    name: `Narrative: ${label}`,
+    type: "action",
+    img: actionIcon("passive"),
+    system: {
+      actionType: { value: "passive" },
+      actions: { value: null },
+      category: "interaction",
+      description: {
+        value: `<p><em>Custom narrative only — no module-authored mechanics.</em></p><p>${escaped}</p>`
+      },
+      traits: { value: [] }
+    }
+  };
+}
+
 export async function createActor(concept, resolved, { img = null, scaffold = null } = {}) {
   const stats = computeStats(concept);
   const items = [];
@@ -1661,21 +1695,7 @@ export async function createActor(concept, resolved, { img = null, scaffold = nu
       continue;
     }
     if (!ability.narrative) continue;
-    const escaped = esc(ability.description);
-    items.push({
-      name: `Narrative: ${ability.name}`,
-      type: "action",
-      img: actionIcon("passive"),
-      system: {
-        actionType: { value: "passive" },
-        actions: { value: null },
-        category: "interaction",
-        description: {
-          value: `<p><em>Custom narrative only — no module-authored mechanics.</em></p><p>${escaped}</p>`
-        },
-        traits: { value: [] }
-      }
-    });
+    items.push(narrativeAbilityItem(ability));
   }
 
   // Feats (class-like trained techniques) become NPC action items
