@@ -19,8 +19,16 @@
  * - item/spellcasting-entry/data.ts: `spelldc.value` (attack), `spelldc.dc`.
  * - item/lore.ts: an NPC lore item's `system.mod.value` is its skill base.
  *
+ * Module-built abilities are rebuilt for the new level: area blasts and auras
+ * (ability-templates.mjs, from their build provenance flag), and glossary
+ * abilities the module filled (ability-fill.mjs, from the published source
+ * they were cloned from). Published abilities keep their text, and items
+ * without the provenance flag are never touched. A rebuild that cannot be made
+ * (level outside the tables, a tiny creature for Swallow Whole, a source that
+ * is not loaded) leaves the item as it was and is reported.
+ *
  * Left unchanged (and said so in the preview): spells and their ranks, DCs
- * and damage written into ability text, the ritual DC, items and gear,
+ * and damage written into published ability text, the ritual DC, items and gear,
  * Elite/Weak. An attribute or skill below the lowest printed scale (a
  * mindless creature's Int -5) also stays as it is: the tables print no scale
  * that low, so there is no step to keep.
@@ -28,6 +36,8 @@
  * Pure module (no Foundry globals), node-testable.
  */
 import * as T from "./tables.mjs";
+import { buildModuleTemplate } from "./ability-templates.mjs";
+import { fillBlocker, fillPlaceholderAbility } from "./ability-fill.mjs";
 
 export const RELEVEL_MIN = T.MIN_LEVEL;
 export const RELEVEL_MAX = T.MAX_LEVEL;
@@ -131,13 +141,66 @@ export function shiftDamage(formula, from, to) {
  * @param {object} actorData
  * @param {number} level  the new level
  */
-export function relevelActorData(actorData, level) {
+/**
+ * Rebuild the module-built abilities of a relevelled actor at its new level, in place.
+ * Only items with flags.simplysf2e.built are touched; the name is kept, so a reskin
+ * rename survives. `sources` maps a published compendium uuid to its item data, for
+ * glossary fills (the caller loads them; a missing source is reported, not guessed).
+ * @returns {{id: string, name: string, kind: string, status: "rebuilt"|"kept", reason?: string}[]}
+ */
+export function rebuildModuleAbilities(data, to, { sources = {} } = {}) {
+  const size = data.system?.traits?.size?.value;
+  const melee = (data.items ?? [])
+    .filter((item) => item?.type === "melee")
+    .map((item) => ({ name: item.name, type: "melee", damage: Object.values(item.system?.damageRolls ?? {})[0]?.damage ?? "" }))
+    .filter((strike) => strike.damage);
+  const report = [];
+  for (const item of data.items ?? []) {
+    const built = item?.flags?.simplysf2e?.built;
+    if (!built || !item.system) continue; // unflagged items are never touched (published or older)
+    const base = { id: item._id, name: item.name, kind: built.kind };
+    if (built.kind === "area-blast" || built.kind === "aura") {
+      const ability = {
+        name: item.name,
+        description: built.flavor ?? "",
+        ...(built.kind === "aura" ? { aura: built.spec } : { areaBlast: built.spec })
+      };
+      const fresh = buildModuleTemplate(ability, { level: to });
+      if (!fresh) {
+        report.push({ ...base, status: "kept", reason: `no rebuild at level ${to}` });
+        continue;
+      }
+      item.system.description = { ...(item.system.description ?? {}), value: fresh.system.description.value };
+      if (built.kind === "aura") item.system.rules = fresh.system.rules;
+      report.push({ ...base, status: "rebuilt" });
+    } else if (built.kind === "glossary-fill") {
+      const source = sources[item._stats?.compendiumSource];
+      if (!source) {
+        report.push({ ...base, status: "kept", reason: "the glossary source is not loaded" });
+        continue;
+      }
+      const spec = built.spec ?? {};
+      const options = { level: to, size, strikes: melee, abilityDcScale: spec.abilityDcScale ?? null, damageType: spec.damageType ?? null };
+      const fresh = fillPlaceholderAbility(source, options);
+      if (!fresh) {
+        report.push({ ...base, status: "kept", reason: fillBlocker(source, options) ?? "published text does not match the expected blanks" });
+        continue;
+      }
+      item.system.description = { ...(item.system.description ?? {}), value: fresh.system.description.value };
+      if ((fresh.system.rules ?? []).some((rule) => rule?.key === "Aura")) item.system.rules = fresh.system.rules;
+      report.push({ ...base, status: "rebuilt" });
+    }
+  }
+  return report;
+}
+
+export function relevelActorData(actorData, level, { sources = {} } = {}) {
   const data = structuredClone(actorData ?? {});
   const system = data.system ??= {};
   const from = Number(system.details?.level?.value ?? 0);
   const to = clampRelevel(level, from);
   const rows = [];
-  if (!Number.isFinite(from) || from === to) return { data, rows, from, to };
+  if (!Number.isFinite(from) || from === to) return { data, rows, from, to, abilities: [] };
 
   const note = (key, label, result, before, extra = {}) => {
     if (result && result.value !== before) rows.push({ key, label, scale: result.scale, from: before, to: result.value, ...extra });
@@ -226,5 +289,6 @@ export function relevelActorData(actorData, level) {
     }
   }
 
-  return { data, rows, from, to };
+  const abilities = rebuildModuleAbilities(data, to, { sources });
+  return { data, rows, from, to, abilities };
 }
