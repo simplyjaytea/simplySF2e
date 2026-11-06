@@ -8,7 +8,7 @@
  * node-testable. builder.mjs reskinActor() and the generator's Reskin mode
  * both go through applyReskin().
  */
-import { esc, toHtml, capitalized } from "./text.mjs";
+import { esc, escAi, plainAiText, toHtml, capitalized } from "./text.mjs";
 
 /** Item types whose display name Reskin may change (NPC strikes and abilities). */
 export const RENAMEABLE_TYPES = Object.freeze(["melee", "action"]);
@@ -97,7 +97,7 @@ export function recallKnowledgeNote(skills, dc, text) {
   const checks = list.length
     ? list.map((skill) => `<strong>${esc(capitalized(skill))}</strong> @Check[type:${skill}|dc:${dc}]`).join(" or ")
     : `<strong>DC ${dc}</strong>`;
-  return `<h3>Recall Knowledge</h3><p>${checks}: ${esc(text)}</p>`;
+  return `<h3>Recall Knowledge</h3><p>${checks}: ${escAi(text)}</p>`;
 }
 
 /**
@@ -116,7 +116,7 @@ export function applyReskin(actorData, flavor = {}, { recallSkill = null, recall
   }
 
   const notes = [];
-  if (flavor.readAloud) notes.push(`<blockquote class="spf-read-aloud"><em>${esc(flavor.readAloud)}</em></blockquote>`);
+  if (flavor.readAloud) notes.push(`<blockquote class="spf-read-aloud"><em>${escAi(flavor.readAloud)}</em></blockquote>`);
   if (flavor.description) notes.push(toHtml(flavor.description));
   if (flavor.recallKnowledge && recallSkill && recallDC) {
     const traits = data.system?.traits?.value ?? [];
@@ -134,9 +134,27 @@ export function applyReskin(actorData, flavor = {}, { recallSkill = null, recall
   for (const item of data.items ?? []) {
     const name = renames.get(item._id);
     if (!name || !RENAMEABLE_TYPES.includes(item.type)) continue;
+    // A renamed area blast keeps its own recharge sentence and #Recharge label in step with the new name.
+    if (item.type === "action" && typeof item.system?.description?.value === "string") {
+      item.system.description.value = renameRechargeText(item.system.description.value, item.name, name);
+    }
     item.system ??= {};
     item.system.slug ||= pf2eSluggify(item.name);
     item.name = name;
   }
   return data;
+}
+
+/**
+ * The module's recharge sentence for an area blast, with the old name replaced
+ * by the new one: the sentence uses esc(name), the #Recharge label uses the
+ * plainAiText label (inline-syntax safe). Other text is unchanged.
+ */
+export function renameRechargeText(description, oldName, newName) {
+  const oldLabel = esc(String(oldName ?? ""));
+  const newLabel = plainAiText(newName) || "Area Blast";
+  const oldSentence = `It can't use ${oldLabel} again for [[/gmr 1d4 #Recharge ${oldLabel}]]{1d4 rounds}.`;
+  if (!oldLabel || !description.includes(oldSentence)) return description;
+  const newEscaped = esc(newLabel);
+  return description.split(oldSentence).join(`It can't use ${newEscaped} again for [[/gmr 1d4 #Recharge ${newEscaped}]]{1d4 rounds}.`);
 }

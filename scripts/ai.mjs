@@ -159,9 +159,14 @@ JSON schema (all keys required unless marked optional):
     {
       "name": string,
       "glossary": string|null, // EXACT published Starfinder 2e bestiary glossary ability name if this is one, else null
-      "description": string, // for glossary abilities, a brief thematic hint only; otherwise a short narrative-only description with NO rules, damage, DCs, actions, traits, conditions, or numeric mechanics
-      "abilityDcScale": "moderate"|"high"|null, // ONLY for a glossary ability that has a DC (not spellcasting): moderate = default for auras; high = stronger saves; null = default
-      "damageType": "bludgeoning"|"piercing"|"slashing"|"acid"|"cold"|"electricity"|"fire"|"sonic"|"poison"|null // glossary abilities with damage: the damage type that fits; null for the default
+      "description": string, // short flavor only, with no rules or numeric mechanics; area-blast flavor accompanies the module-built mechanics
+      "abilityDcScale": "moderate"|"high"|null, // glossary or area-blast DC scale; null = default (high for area-blast)
+      "damageType": "bludgeoning"|"piercing"|"slashing"|"acid"|"cold"|"electricity"|"fire"|"sonic"|"poison"|"spirit"|"mental"|"force"|"void"|null, // glossary or area-blast damage type; required for area-blast
+      "template": "area-blast"|null, // ONLY for a bespoke breath or blast: "area-blast" builds a working ability from these enum words; otherwise null
+      "shape": "cone"|"line"|null, // area-blast only
+      "size": "small"|"medium"|"large"|null, // area-blast only; null = medium
+      "save": "reflex"|"fortitude"|"will"|null, // area-blast only; null = reflex
+      "use": "at-will"|"limited"|null // area-blast only; null = at-will; "limited" when the creature must recharge it
     }
   ],
   "spellcasting": null | {
@@ -190,7 +195,7 @@ Design guidance (scale road maps):
 - Include spellcasting only when it truly fits the concept and the user allows it.
 - "focusSpells": only when the concept has spellcasting AND genuinely uses focus magic; leave [] otherwise. Uncommon, not the default.
 - Use published bestiary glossary abilities wherever they fit, copying exact names. The module selects them from the compendium afterward and keeps their real working automation; where a glossary ability is published without numbers, the module fills its DC, damage, size and distance from the creature's level, so never write numbers for glossary abilities.
-- A bespoke signature ability is allowed only as a short, clearly narrative description (a scent, texture, visual aura, or mannerism). Do not give it rules text or mechanical effects; the module will label it narrative-only rather than create custom mechanics.
+- For a bespoke cone or line breath or blast, set template to area-blast and choose its enum fields; never write its numbers or mechanics. Other bespoke signature abilities remain short narrative-only descriptions.
 - Traits, languages, senses and speeds must follow Starfinder 2e conventions.`;
 }
 

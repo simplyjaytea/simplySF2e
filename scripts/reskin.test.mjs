@@ -5,7 +5,8 @@
 // Run: node scripts/reskin.test.mjs
 
 import assert from "node:assert/strict";
-import { normalizeReskin, applyReskin, reskinRenameTargets, pf2eSluggify } from "./reskin.mjs";
+import { normalizeReskin, applyReskin, reskinRenameTargets, pf2eSluggify, renameRechargeText } from "./reskin.mjs";
+import { buildAreaBlast, normalizeAreaBlast } from "./ability-templates.mjs";
 
 const source = {
   _id: "src", name: "Cave Bear", type: "npc",
@@ -88,3 +89,16 @@ assert.equal(pf2eSluggify("Ferocity (Constant)"), "ferocity-constant");
 assert.equal(pf2eSluggify("AutoFire"), "auto-fire");
 
 console.log("reskin.test.mjs: reskin changes fiction and display names only");
+
+// Renaming a limited area blast keeps its recharge sentence and roll in step (Flame Breath -> Frost Breath).
+{
+  const spec = normalizeAreaBlast({ template: "area-blast", shape: "cone", use: "limited", damageType: "fire" });
+  const blast = { ...buildAreaBlast(spec, { level: 7, name: "Flame Breath", flavor: "" }), _id: "b1" };
+  const before = blast.system.description.value;
+  const data = applyReskin({ name: "Dragon", type: "npc", items: [blast] }, { renames: [{ id: "b1", name: "Frost Breath" }] });
+  const after = data.items[0].system.description.value;
+  assert.equal(data.items[0].name, "Frost Breath");
+  assert.equal(after, before.split("It can't use Flame Breath again for [[/gmr 1d4 #Recharge Flame Breath]]{1d4 rounds}.").join("It can't use Frost Breath again for [[/gmr 1d4 #Recharge Frost Breath]]{1d4 rounds}."), "only the recharge text changes");
+  assert.ok(!after.includes("Flame Breath"), "no stale name");
+  assert.equal(renameRechargeText("<p>plain text</p>", "Flame Breath", "Frost Breath"), "<p>plain text</p>", "unrelated text untouched");
+}

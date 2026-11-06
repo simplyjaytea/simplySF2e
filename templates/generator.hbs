@@ -448,6 +448,9 @@
             {{#if this.rerollable}}<button type="button" class="spf-icon-btn spf-reroll-pick" data-action="rerollPick" data-kind="ability" data-index="{{this.index}}" data-tooltip="{{localize 'SIMPLYSF2E.Generator.RerollPickTooltip'}}" aria-label="{{localize 'SIMPLYSF2E.Generator.RerollPickLabel' name=this.name}}" {{#if @root.busy}}disabled{{/if}}><i aria-hidden="true" class="fa-solid fa-dice-d20"></i></button>{{/if}}
             {{#if this.fromGlossary}}
               <span class="spf-found" title="{{localize 'SIMPLYSF2E.Preview.FromCompendium'}}"><i aria-hidden="true" class="fa-solid fa-book"></i> {{this.glossaryName}}</span>
+            {{else if this.moduleBuilt}}
+              <span class="spf-custom">{{localize "SIMPLYSF2E.Preview.ModuleBuilt"}}</span>
+              {{#if this.description}}<div class="spf-ability-desc">{{this.description}}</div>{{/if}}
             {{else if this.narrative}}
               <span class="spf-custom">{{localize "SIMPLYSF2E.Preview.NarrativeOnly"}}</span>
               {{#if this.description}}<div class="spf-ability-desc">{{this.description}}</div>{{/if}}

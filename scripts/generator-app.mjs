@@ -43,7 +43,7 @@ import {
 import { validateArchetypeSlotPlacement, stagedActorContext } from "./pc-prerequisites.mjs";
 import { SpfApp } from "./app-base.mjs";
 import { jevKeySource } from "./jev.mjs";
-import { signed, esc, capitalized } from "./text.mjs";
+import { signed, esc, escAi, capitalized } from "./text.mjs";
 import { statCheckForActor, describeStatCheck, hasSpellEntry } from "./stat-check.mjs";
 import { moveToGeneratedFolder, generatedFolderId } from "./folders.mjs";
 import { createHandout } from "./handout.mjs";
@@ -569,8 +569,8 @@ export class GeneratorApp extends SpfApp {
   }
 
   static #whisperStatCheck(creatures) {
-    const body = creatures.map((creature) => `<p><strong>${esc(creature.summary)}</strong></p><ul>${
-      creature.rows.filter((row) => row.status !== "ok").map((row) => `<li>${esc(row.text)}</li>`).join("")
+    const body = creatures.map((creature) => `<p><strong>${escAi(creature.summary)}</strong></p><ul>${
+      creature.rows.filter((row) => row.status !== "ok").map((row) => `<li>${escAi(row.text)}</li>`).join("")
     }</ul>`).join("");
     ChatMessage.create({
       content: `<p>${esc(game.i18n.localize("SIMPLYSF2E.StatCheck.ChatIntro"))}</p>${body}`,
@@ -681,7 +681,10 @@ export class GeneratorApp extends SpfApp {
       name: ability.name,
       fromGlossary: Boolean(entry),
       glossaryName: entry?.name ?? null,
+      // A module-built area blast shows the Module-built label (no compendium source), not the narrative label.
       narrative: Boolean(ability.narrative),
+      // A working area blast is module-built, not narrative-only (its own preview label).
+      moduleBuilt: Boolean(ability.areaBlast),
       description: ability.description,
       index,
       rerollable: rerollable("ability", index)
@@ -719,7 +722,7 @@ export class GeneratorApp extends SpfApp {
       equipment,
       loot,
       matchSummary: this.#matchSummary(
-        abilities.map((a) => ({ found: a.fromGlossary, narrative: a.narrative })), spells, feats, equipment, loot
+        abilities.map((a) => ({ found: a.fromGlossary, narrative: a.narrative || a.moduleBuilt })), spells, feats, equipment, loot
       ),
       iwr: {
         immunities: concept.immunities.join(", "),

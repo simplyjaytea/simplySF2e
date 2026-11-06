@@ -14,6 +14,11 @@ export const RELEASE_NOTES = [
     body: "SIMPLYSF2E.WhatsNew.Note.OneScreenWelcome.Body"
   },
   {
+    id: "2026-11-05-area-blast",
+    title: "SIMPLYSF2E.WhatsNew.Note.AreaBlast.Title",
+    body: "SIMPLYSF2E.WhatsNew.Note.AreaBlast.Body"
+  },
+  {
     id: "2026-11-05-blank-abilities",
     title: "SIMPLYSF2E.WhatsNew.Note.BlankAbilities.Title",
     body: "SIMPLYSF2E.WhatsNew.Note.BlankAbilities.Body"

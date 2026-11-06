@@ -32,7 +32,7 @@
 // After filling, the text must pass hasPlaceholderValues; otherwise null.
 
 import { lookup, SPELL_DC, AREA_DAMAGE, AREA_DAMAGE_AVERAGE, averageDamage, MIN_LEVEL, MAX_LEVEL } from "./tables.mjs";
-import { esc, slugify } from "./text.mjs";
+import { escAi, slugify } from "./text.mjs";
 
 /** Glossary abilities that FIX-B fills, keyed by system.slug (or the slugified name). */
 export const FILLABLE_ABILITIES = Object.freeze({
@@ -181,7 +181,7 @@ export function fillPlaceholderAbility(itemData, { level, size, strikes = [], ab
     const melee = strikes.filter((s) => s?.name && s?.damage && s.type !== "ranged");
     const best = melee.reduce((top, s) => (!top || averageDamage(s.damage) > averageDamage(top.damage) ? s : top), null);
     if (!best) return null;
-    ok = fill(/\[Listed Strike\]/g, () => esc(best.name), 1) && ok;
+    ok = fill(/\[Listed Strike\]/g, () => escAi(best.name), 1) && ok;
   }
 
   // R4 aura radius (stench only).

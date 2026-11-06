@@ -1,7 +1,8 @@
 // Pure player handout HTML: escaping and the player-safe field allowlist.
 // Run: node scripts/handout.test.mjs
 import assert from "node:assert/strict";
-import { handoutHtml, inertProse } from "./handout.mjs";
+import { handoutHtml } from "./handout.mjs";
+import { inertProse } from "./text.mjs";
 
 const hostile = `<script>alert("x")</script>'"`;
 const escaped = "&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt;&#39;&quot;";
