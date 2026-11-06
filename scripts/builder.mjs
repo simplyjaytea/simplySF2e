@@ -1,6 +1,6 @@
 import * as T from "./tables.mjs";
 import { getPacksFor, findEntry, getDocument, toItemData, priceToGp, isIssuedCandidate, placeholderState, placeholderDocFor } from "./compendium.mjs";
-import { ABILITY_DAMAGE_TYPES, ABILITY_DC_SCALES, fillBlocker, fillPlaceholderAbility, hasPlaceholderValues, isFillableEntry } from "./ability-fill.mjs";
+import { ABILITY_DAMAGE_TYPES, ABILITY_DC_SCALES, fillBlocker, fillPlaceholderAbility, fillableSlug, hasPlaceholderValues, isFillableEntry } from "./ability-fill.mjs";
 import { buildModuleTemplate, isModuleTemplate, normalizeAreaBlast, normalizeAura } from "./ability-templates.mjs";
 import { slugify, capitalized, esc, escAi, toHtml } from "./text.mjs";
 import { applyReskin, recallKnowledgeNote } from "./reskin.mjs";
@@ -1585,6 +1585,11 @@ function actionIcon(actionType) {
  */
 export const NPC_SLOTS_PER_RANK = 3;
 
+/** Item data with the module's build provenance (data only, no rules), for re-level. */
+function withBuildProvenance(item, built) {
+  return { ...item, flags: { ...(item.flags ?? {}), simplysf2e: { ...(item.flags?.simplysf2e ?? {}), built } } };
+}
+
 /**
  * The module-built "Narrative: <name>" action for a narrative-only ability.
  * The stored document name stays plain (no zero-width characters: names are
@@ -1693,7 +1698,13 @@ export async function createActor(concept, resolved, { img = null, scaffold = nu
     if (isModuleTemplate(ability)) {
       const blast = buildModuleTemplate(ability, { level: concept.level });
       if (blast) {
-        items.push(blast);
+        // Provenance (data only): lets a later re-level rebuild this item (relevel.mjs).
+        items.push(withBuildProvenance(blast, {
+          kind: ability.aura ? "aura" : "area-blast",
+          spec: ability.aura ?? ability.areaBlast,
+          flavor: ability.description ?? "",
+          name: blast.name
+        }));
         continue;
       }
       console.warn(`simplysf2e | "${ability.name}" could not be built as an area blast for this creature (level ${concept.level})`);
@@ -1718,7 +1729,11 @@ export async function createActor(concept, resolved, { img = null, scaffold = nu
         console.warn(`simplysf2e | dropped "${ability.name}": its blank values cannot be filled for this creature (level ${concept.level}, size ${concept.size})`);
         continue;
       }
-      items.push(filled);
+      items.push(withBuildProvenance(filled, {
+        kind: "glossary-fill",
+        spec: { slug: fillableSlug(data), abilityDcScale: ability.abilityDcScale ?? null, damageType: ability.damageType ?? null },
+        name: filled.name
+      }));
       continue;
     }
     if (!ability.narrative) continue;
