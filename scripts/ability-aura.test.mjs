@@ -159,4 +159,21 @@ assert.equal(normalizeAura({ template: "aura", kind: "damage", damageType: "psyc
   assert.equal(out.filter((o) => o.entry).length, 3, "the glossary picks fill the remaining three slots");
 }
 
+// A condition aura with an invalid save falls back (any invalid enum does); a valid save is ignored.
+{
+  const bad = await onlyOne(aura({ save: "burst" }), 7);
+  assert.equal(bad.item, null, "invalid save on a condition aura is not built");
+  assert.equal(bad.ability.narrative, true, "and falls back to narrative");
+  const ok = await onlyOne(aura({ save: "reflex" }), 7);
+  assert.match(ok.item.system.description.value, /@Check\[fortitude\|dc:22\]/, "a valid save is ignored: sickened stays fortitude");
+}
+
+// Two auras with the same name on one creature get distinct names (only on collision).
+{
+  const out = await built([aura({ name: "Foul Air" }), aura({ name: "Foul Air", condition: "clumsy" }), aura({ name: "Foul Air" })], 7);
+  const names = out.map((o) => o.ability.name);
+  assert.deepEqual(names, ["Foul Air", "Foul Air 2", "Foul Air 3"], "collisions get numbered names");
+  assert.equal(out.every((o) => o.item), true, "each renamed aura still builds");
+}
+
 console.log("ability-aura.test.mjs: ok");

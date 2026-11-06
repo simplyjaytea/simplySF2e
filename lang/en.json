@@ -192,8 +192,8 @@
           "Body": "When you re-level a copy, the area blasts and auras the module built are rebuilt for the new level. Published abilities keep their text."
         },
         "Aura": {
-          "Title": "Auras with real effects",
-          "Body": "Creatures can now have auras that sicken, frighten and similar conditions, or deal damage each turn. The radius, save DC and condition value come from GM Core and the creature's level."
+          "Title": "Auras with real numbers",
+          "Body": "Creatures can now have auras that call for a save and apply a condition, or deal damage each turn. The radius, save DC, condition value and damage come from GM Core and the creature's level. The aura shows on the canvas; you apply the result."
         },
         "AreaBlast": {
           "Title": "Breaths and blasts with real numbers",

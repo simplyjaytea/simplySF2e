@@ -153,17 +153,19 @@ export function applyReskin(actorData, flavor = {}, { recallSkill = null, recall
  */
 export function renameRechargeText(description, oldName, newName) {
   const oldLabel = esc(String(oldName ?? ""));
-  const label = plainAiText(newName);
-  if (!oldLabel || !label) return description;
-  const newEscaped = esc(label);
+  if (!oldLabel) return description;
+  // Same fallback names the builders use when the cleaned name is empty.
+  const clean = plainAiText(newName);
+  const blastEscaped = esc(clean || "Area Blast");
+  const auraEscaped = esc(clean || "Aura");
   const oldRecharge = `It can't use ${oldLabel} again for [[/gmr 1d4 #Recharge ${oldLabel}]]{1d4 rounds}.`;
   const oldImmunity = `temporarily immune to ${oldLabel} for 1 minute.`;
   let out = description;
   if (out.includes(oldRecharge)) {
-    out = out.split(oldRecharge).join(`It can't use ${newEscaped} again for [[/gmr 1d4 #Recharge ${newEscaped}]]{1d4 rounds}.`);
+    out = out.split(oldRecharge).join(`It can't use ${blastEscaped} again for [[/gmr 1d4 #Recharge ${blastEscaped}]]{1d4 rounds}.`);
   }
   if (out.includes(oldImmunity)) {
-    out = out.split(oldImmunity).join(`temporarily immune to ${newEscaped} for 1 minute.`);
+    out = out.split(oldImmunity).join(`temporarily immune to ${auraEscaped} for 1 minute.`);
   }
   return out;
 }

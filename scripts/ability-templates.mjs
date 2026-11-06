@@ -146,6 +146,8 @@ export function normalizeAura(raw) {
   const abilityDcScale = raw.abilityDcScale ?? "moderate";
   if (!AURA_KINDS.includes(raw.kind)) return null;
   if (!AREA_BLAST_SIZES.includes(size) || !AREA_BLAST_DC_SCALES.includes(abilityDcScale)) return null;
+  // Any non-null save must be a real save, even on a condition aura (the save itself is fixed by the condition).
+  if (raw.save != null && !AURA_SAVES.includes(raw.save)) return null;
   if (raw.kind === "condition") {
     if (!AURA_CONDITIONS.includes(raw.condition)) return null;
     return { kind: "condition", condition: raw.condition, size, save: AURA_CONDITION_SAVE[raw.condition], abilityDcScale, damageType: null };
