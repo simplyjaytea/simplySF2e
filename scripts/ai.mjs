@@ -13,6 +13,17 @@ import { CORE_SKILLS } from "./pc-skills.mjs";
 import { COMPLETE_PC_CLASS_SLUGS } from "./pc-support.mjs";
 import { resolveJevConfig } from "./jev.mjs";
 import { jevPickEquipment, jevPickLoot, jevPickCreatureFeats, jevPickCreatureAbilities, jevPickFeats, jevPickCharacterChoices, jevPickSpells, mergeUsage } from "./jev-picks.mjs";
+import { ABILITY_DAMAGE_TYPES } from "./ability-fill.mjs";
+import { AREA_BLAST_DAMAGE_TYPES } from "./ability-templates.mjs";
+
+// One source of truth for ability damage types: the validators' lists build the prompt text.
+// Glossary fills use ABILITY_DAMAGE_TYPES; area blasts use AREA_BLAST_DAMAGE_TYPES.
+const ALL_ABILITY_DAMAGE_TYPES = [...new Set([...ABILITY_DAMAGE_TYPES, ...AREA_BLAST_DAMAGE_TYPES])];
+const AREA_ONLY_DAMAGE_TYPES = AREA_BLAST_DAMAGE_TYPES.filter((type) => !ABILITY_DAMAGE_TYPES.includes(type));
+/** Schema enum for specialAbilities.damageType (null allowed). */
+export const ABILITY_DAMAGE_TYPE_SCHEMA = `${ALL_ABILITY_DAMAGE_TYPES.map((type) => `"${type}"`).join("|")}|null`;
+/** Which types apply to which ability kind, stated next to the schema enum. */
+export const ABILITY_DAMAGE_TYPE_NOTE = `glossary fills use ${ABILITY_DAMAGE_TYPES.join(", ")}; area-blast uses these and also ${AREA_ONLY_DAMAGE_TYPES.join(", ")} (area-blast only, ignored for glossary abilities); required for area-blast`;
 
 /**
  * Client for any OpenAI-compatible chat completions API (DeepSeek, OpenAI,
@@ -161,7 +172,7 @@ JSON schema (all keys required unless marked optional):
       "glossary": string|null, // EXACT published Starfinder 2e bestiary glossary ability name if this is one, else null
       "description": string, // short flavor only, with no rules or numeric mechanics; area-blast flavor accompanies the module-built mechanics
       "abilityDcScale": "moderate"|"high"|null, // glossary or area-blast DC scale; null = default (high for area-blast)
-      "damageType": "bludgeoning"|"piercing"|"slashing"|"acid"|"cold"|"electricity"|"fire"|"sonic"|"poison"|"spirit"|"mental"|"force"|"void"|null, // glossary or area-blast damage type; required for area-blast
+      "damageType": ${ABILITY_DAMAGE_TYPE_SCHEMA}, // ${ABILITY_DAMAGE_TYPE_NOTE}
       "template": "area-blast"|null, // ONLY for a bespoke breath or blast: "area-blast" builds a working ability from these enum words; otherwise null
       "shape": "cone"|"line"|null, // area-blast only
       "size": "small"|"medium"|"large"|null, // area-blast only; null = medium

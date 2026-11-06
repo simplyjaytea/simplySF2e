@@ -723,10 +723,10 @@
     "Errors": {
       "GMOnly": "Only a GM can use SimplySF2e generation and provider setup. Ask a GM to do this.",
       "NoPrompt": "Fill in the Describe box first, then try again.",
-      "NoBaseUrl": "No API Base URL is set. Open AI Provider Setup and enter your provider's address.",
-      "NoModel": "No model is set. Enter a model name in AI Provider Setup or Module Settings → SimplySF2e, then try again.",
+      "NoBaseUrl": "No API Base URL is set. Open AI Provider Setup and enter your provider's address. It is also under Welcome > Advanced.",
+      "NoModel": "No model is set. Enter a model name in AI Provider Setup (also under Welcome > Advanced) or Module Settings → SimplySF2e, then try again.",
       "InsecureKeyEndpoint": "This AI address starts with http://, so your API key would travel unencrypted. The key was not sent. Use an https:// address, or a provider on this computer or your local network.",
-      "MixedContentProvider": "Foundry is open over https://, but the AI provider address starts with http://, and the browser blocks that. Use an https:// API Base URL in AI Provider Setup, or open Foundry over http:// if both are on your local network.",
+      "MixedContentProvider": "Foundry is open over https://, but the AI provider address starts with http://, and the browser blocks that. Use an https:// API Base URL in AI Provider Setup, or open Foundry over http:// if both are on your local network. AI Provider Setup is also under Welcome > Advanced.",
       "ApiError": "The AI provider returned an error ({status}): {detail} {hint}",
       "ProviderError": "The AI provider reported an error: {detail} Check the provider's dashboard for billing, credit or key problems, then try again.",
       "NoErrorDetail": "No additional details were provided.",

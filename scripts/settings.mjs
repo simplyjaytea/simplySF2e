@@ -572,12 +572,16 @@ async function persistProviderBank(bank) {
   });
 }
 
-let applyingProviderConnection = false;
+let providerConnectionDepth = 0;
 
+/** True while any withProviderConnectionGuard call is still running. */
+export const isApplyingProviderConnection = () => providerConnectionDepth > 0;
+
+// Re-entrant: nested calls share one guard; it lifts only when the outermost call ends.
 export async function withProviderConnectionGuard(callback) {
-  applyingProviderConnection = true;
+  providerConnectionDepth += 1;
   try { return await callback(); }
-  finally { applyingProviderConnection = false; }
+  finally { providerConnectionDepth -= 1; }
 }
 
 async function applyConnectionToSettings(connection) {
@@ -806,14 +810,14 @@ export async function authorizeApiKeyForCurrentBaseUrl(expectedBaseUrl) {
 }
 
 async function clearApiKeyBindingForChangedKey() {
-  if (applyingProviderConnection) return;
+  if (isApplyingProviderConnection()) return;
   if (getSetting(SETTINGS.apiKeyBaseUrl)) {
     await game.settings.set(MODULE_ID, SETTINGS.apiKeyBaseUrl, "");
   }
 }
 
 async function clearApiKeyBindingForChangedBaseUrl(value) {
-  if (applyingProviderConnection) return;
+  if (isApplyingProviderConnection()) return;
   const nextBaseUrl = normalizeApiBaseUrl(value);
   const boundBaseUrl = normalizeApiBaseUrl(getSetting(SETTINGS.apiKeyBaseUrl));
   if (boundBaseUrl && boundBaseUrl !== nextBaseUrl) {

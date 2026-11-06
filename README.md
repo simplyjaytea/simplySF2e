@@ -32,7 +32,7 @@ That URL is the **stable** channel: it updates only when a release is promoted t
 https://github.com/simplyjaytea/simplySF2e/releases/download/beta/module.json
 ```
 
-To roll back, install a specific version's manifest: `https://github.com/simplyjaytea/simplySF2e/releases/download/v<version>/module.json`. See [Releases](https://github.com/simplyjaytea/simplySF2e/releases) for every version.
+To roll back to an earlier version, see [Rolling back](#rolling-back).
 
 When a GM logs in and no AI connection works yet, the **Welcome to SimplySF2e** window opens. Choose a provider, connect it and pick a model if asked, then generate a sample monster preview. System or compendium problems appear as one warning only when they need attention. Welcome stops opening by itself once the connection works, or when you tick **Don't show this again at login**. Reopen it any time with **Open Welcome** in the module settings or `/sf2e welcome` in chat.
 
@@ -106,7 +106,7 @@ All launchers are GM-only and only appear in an `sf2e` world.
 | Chat: `/sf2e shop` | The shop generator |
 | **Treasure** button in the **Actors** sidebar header | The treasure hoard window |
 | Chat: `/sf2e treasure` | The treasure hoard window |
-| Chat: `/sf2e welcome` | The welcome and setup check |
+| Chat: `/sf2e welcome` | The Welcome window: connect an AI provider and generate a sample monster |
 | Chat: `/sf2e whatsnew` | The What's new window |
 | Chat: `/sf2e [monster\|npc\|character\|encounter] [level] [description]` | The generator, pre-filled. Every part is optional, but they must come in that order, so a description that starts with a number is read as the level. Example: `/sf2e npc 4 street doc who patches up gang runners`. |
 | Macro: `game.modules.get("simplysf2e").api.open()` / `.openItemForge()` / `.openShop()` / `.openTreasure()` / `.openWelcome()` / `.openWhatsNew()` | The generator / the Item Forge / the shop generator / the treasure window / the welcome window / the What's new window |

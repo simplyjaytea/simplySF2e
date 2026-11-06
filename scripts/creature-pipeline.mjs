@@ -174,7 +174,34 @@ export async function refineCreatureAbilities(concept, ctxIn) {
     .map((ability) => ({ ...ability, narrative: true }));
   const glossaryDraft = plain.filter((ability) => ability.glossary);
   // Templates first (their slots are reserved), then the picks within budget, then narratives.
-  const finish = (picks) => [...templates, ...picks.slice(0, budget), ...narratives].slice(0, 6);
+  // A selector pick is only {name, candidate}. Merge it onto its draft ability (by glossary,
+  // then name, case-insensitive) so the draft's DC scale, damage type, description and
+  // action data survive; the pick's own candidate and name win.
+  const withDraft = (pick, drafts) => {
+    const key = String(pick?.name ?? "").toLowerCase();
+    // A draft with a glossary name matches only by that name; a name match is allowed only
+    // for a draft with no glossary name, so one ability never inherits another's draft.
+    const draft = drafts.find((d) => String(d.glossary ?? "").toLowerCase() === key)
+      ?? drafts.find((d) => !d.glossary && String(d.name ?? "").toLowerCase() === key);
+    const glossary = draft && String(draft.glossary ?? "").toLowerCase() === key ? draft.glossary : null;
+    return {
+      ...pick,
+      glossary: pick.glossary ?? glossary,
+      candidate: pick.candidate ?? draft?.candidate ?? null,
+      narrative: false,
+      actionType: pick.actionType ?? draft?.actionType ?? "passive",
+      actions: pick.actions ?? draft?.actions ?? null,
+      description: pick.description || draft?.description || "",
+      abilityDcScale: pick.abilityDcScale ?? draft?.abilityDcScale ?? null,
+      damageType: pick.damageType ?? draft?.damageType ?? null,
+      traits: pick.traits?.length ? pick.traits : (draft?.traits ?? [])
+    };
+  };
+  const finish = (picks) => [
+    ...templates,
+    ...picks.map((pick) => withDraft(pick, plain)).slice(0, budget),
+    ...narratives
+  ].slice(0, 6);
   try {
     const keywords = plain.flatMap((ability) => [ability.glossary, ability.name])
       .map((name) => String(name ?? "").toLowerCase()).filter(Boolean);
