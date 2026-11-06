@@ -47,7 +47,17 @@ export const TOKEN_REPORT = {
     { label: "Concept", text: "1,204 prompt + 612 completion = 1,816 tokens" },
     { label: "Equipment", text: "820 tokens · Jev, 0.8 s" }
   ],
-  totalText: "Total: 2,716 tokens"
+  totalText: "Total: 2,716 tokens",
+  costText: null
+};
+
+/** Token report with a provider-reported run cost (OpenRouter). */
+export const TOKEN_REPORT_COST = { ...TOKEN_REPORT, costText: "Cost: $0.0042" };
+
+/** Token report where some requests reported no cost: approximate, labeled partial. */
+export const TOKEN_REPORT_PARTIAL = {
+  ...TOKEN_REPORT,
+  costText: "Cost: ≈ $0.0042 (partial: some requests reported no cost)"
 };
 
 /** Progress card state as the real createProgress()/applyStep() produce it. */

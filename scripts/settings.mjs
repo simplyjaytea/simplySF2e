@@ -1,3 +1,5 @@
+import { normalizePrices, parsePrice } from "./cost.mjs";
+
 export const MODULE_ID = "simplysf2e";
 
 export const SETTINGS = {
@@ -540,7 +542,8 @@ function normalizeProviderConnection(raw) {
     apiBaseUrl,
     model,
     apiKey: String(raw.apiKey ?? "").trim(),
-    apiKeyBaseUrl: normalizeApiBaseUrl(raw.apiKeyBaseUrl)
+    apiKeyBaseUrl: normalizeApiBaseUrl(raw.apiKeyBaseUrl),
+    ...normalizePrices(raw)
   };
 }
 
@@ -567,7 +570,9 @@ async function persistProviderBank(bank) {
       apiBaseUrl: connection.apiBaseUrl,
       model: connection.model,
       apiKey: connection.apiKey,
-      apiKeyBaseUrl: connection.apiKeyBaseUrl
+      apiKeyBaseUrl: connection.apiKeyBaseUrl,
+      inputPerM: connection.inputPerM ?? null,
+      outputPerM: connection.outputPerM ?? null
     }))
   });
 }
@@ -620,6 +625,35 @@ export function listProviderConnections() {
     name: connection.name,
     active: connection.id === bank.activeId
   }));
+}
+
+/** Manual USD prices per 1M tokens of the active connection: `{ inputPerM, outputPerM }`, each a number or null. */
+export function getActiveProviderPrices() {
+  const bank = readProviderBank();
+  const active = bank.connections.find((connection) => connection.id === bank.activeId);
+  return normalizePrices(active);
+}
+
+/**
+ * Store manual prices on the active connection (empty = unset). Throws an Error
+ * whose `field` is "inputPerM" or "outputPerM" on a negative or non-numeric value,
+ * before anything is written.
+ */
+export async function setActiveProviderPrices({ inputPerM, outputPerM } = {}) {
+  const parsed = { inputPerM: parsePrice(inputPerM), outputPerM: parsePrice(outputPerM) };
+  for (const field of ["inputPerM", "outputPerM"]) {
+    if (!parsed[field].error) continue;
+    const err = new Error(game.i18n.localize(`SIMPLYSF2E.ProviderSetup.${field === "inputPerM" ? "PriceInput" : "PriceOutput"}Invalid`));
+    err.field = field;
+    throw err;
+  }
+  const bank = await ensureProviderBank();
+  const active = bank.connections.find((connection) => connection.id === bank.activeId);
+  if (!active) return null;
+  active.inputPerM = parsed.inputPerM.value;
+  active.outputPerM = parsed.outputPerM.value;
+  await persistProviderBank(bank);
+  return { inputPerM: active.inputPerM, outputPerM: active.outputPerM };
 }
 
 /** Write the live endpoint/key/model into the active named profile. */
@@ -744,6 +778,7 @@ export function getProviderRequestConfig() {
     provider,
     connectionId: active?.id ?? "",
     connectionName: active?.name || provider.name,
+    prices: normalizePrices(active),
     connections: bank.connections.map((connection) => ({
       id: connection.id,
       name: connection.name,

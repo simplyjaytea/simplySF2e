@@ -710,6 +710,18 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 | 13l.3 | Repeat 13l.1 with no art module. | Portrait and token keep the default sf2e NPC icon; nothing errors. | Actors sidebar | | |
 | 13l.4 | Create an encounter with a member count of 3. | Each copy has the same correct art; actor and Prototype Token names are both numbered ("Name 1", "Name 2", "Name 3"). | Encounter folder, Prototype Token | | |
 
+## 13m. Run cost
+
+| # | Do | Expect | Where | Pass | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 13m.1 | Connect OpenRouter with no manual prices and generate a creature preview. | The token report ends with "Cost: $0.00xx" (4 decimals under $0.01) and the header shows "last: N tokens · $0.00xx". No "≈". | Generator token report, header | | |
+| 13m.2 | Connect DeepSeek (or any provider that reports no cost) with both price fields empty and generate. | No cost line in the token report and none in the header; no "$0.00". | Generator | | |
+| 13m.3 | In AI Provider Setup enter Input 0.27 and Output 1.10 on that DeepSeek connection, **Save & Authorize**, generate. | Token report shows "Cost: ≈ $… (from your per-connection prices)"; the number is prompt tokens x 0.27 / 1M plus completion tokens x 1.10 / 1M. | Generator, Provider Setup | | |
+| 13m.4 | Type -1 or text in a price field and save. | The save is refused with a field error naming the price; nothing is stored. Empty fields clear the prices. | Provider Setup | | |
+| 13m.5 | Switch to the OpenRouter connection and back. | Each connection keeps its own prices. | Provider Setup | | |
+| 13m.6 | Use OpenRouter with a run that includes a request the provider gave no cost for (for example Jev on another route), no prices set. | Cost shows "≈" and the "partial" wording; with prices set on the chat connection the chat requests are priced and shown as mixed. | Generator | | |
+| 13m.7 | Open the bug report after a failure. | Settings list "Manual prices set: yes/no" and no price values. | Bug report | | |
+
 ## Failure log
 
 One row per failure, so each cluster can become one fix PR.

@@ -90,7 +90,10 @@ const mocks = {
   resetStreamPhase,
   streamFraction,
   coarsenTokenEstimate,
-  lastRunTokenTotal
+  lastRunTokenTotal,
+  runCost: () => ({ amount: null, partial: false, source: null }),
+  formatCost: () => null,
+  getActiveProviderPrices: () => ({ inputPerM: null, outputPerM: null })
 };
 
 const source = await readFile(new URL("./app-base.mjs", import.meta.url), "utf8");

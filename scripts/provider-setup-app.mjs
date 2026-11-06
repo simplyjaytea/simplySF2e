@@ -1,7 +1,7 @@
 import {
   MODULE_ID, SETTINGS, createProviderConnection, deleteProviderConnection,
-  ensureProviderBank, getJevRequestConfig, getProviderAuthWarningKey, getProviderRequestConfig,
-  normalizeApiBaseUrl, selectProviderConnection
+  ensureProviderBank, getActiveProviderPrices, getJevRequestConfig, getProviderAuthWarningKey, getProviderRequestConfig,
+  normalizeApiBaseUrl, selectProviderConnection, setActiveProviderPrices
 } from "./settings.mjs";
 import { saveProviderConnection } from "./provider-connect.mjs";
 import { listProviderModels, testProviderConnection } from "./ai.mjs";
@@ -9,6 +9,7 @@ import {
   JEV_SOURCES, TYPESAFE_JEV_ENDPOINT, normalizeJevSource, normalizeTypeSafeEndpoint, testJevConnection
 } from "./jev.mjs";
 import { esc } from "./text.mjs";
+import { parsePrice } from "./cost.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -109,6 +110,7 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
       ? state.provider.id
       : "custom";
     const selected = this.#selectedPreset ?? inferred;
+    const prices = getActiveProviderPrices();
     return {
       providers: PROVIDER_PRESETS.map((provider) => ({
         ...provider,
@@ -120,6 +122,8 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
       apiBaseUrl: state.baseUrl,
       model: state.model,
       availableModels: this.#availableModels,
+      inputPerM: prices.inputPerM ?? "",
+      outputPerM: prices.outputPerM ?? "",
       hasApiKey: state.hasConfiguredApiKey,
       ...ProviderSetupApp.#jevContext(),
       showLocalHint: LOCAL_PRESET_IDS.has(selected),
@@ -298,6 +302,21 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
   }
 
   static async #saveSettings({ notify = true, requireModel = true } = {}) {
+    // Validate the price fields first: a bad value blocks the whole save with a field error.
+    const priceInputs = {
+      inputPerM: this.element.querySelector("[name='inputPerM']"),
+      outputPerM: this.element.querySelector("[name='outputPerM']")
+    };
+    for (const input of Object.values(priceInputs)) input?.setCustomValidity?.("");
+    const prices = { inputPerM: priceInputs.inputPerM?.value, outputPerM: priceInputs.outputPerM?.value };
+    for (const field of ["inputPerM", "outputPerM"]) {
+      // A number field blanks non-numeric text; validity.badInput still sees it.
+      if (!parsePrice(prices[field]).error && !priceInputs[field]?.validity?.badInput) continue;
+      const message = game.i18n.localize(`SIMPLYSF2E.ProviderSetup.Price${field === "inputPerM" ? "Input" : "Output"}Invalid`);
+      priceInputs[field]?.setCustomValidity?.(message);
+      priceInputs[field]?.reportValidity?.();
+      throw new Error(message);
+    }
     const result = await saveProviderConnection({
       baseUrl: this.element.querySelector("[name='apiBaseUrl']")?.value,
       model: this.element.querySelector("[name='model']")?.value,
@@ -307,6 +326,8 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
       notify,
       requireModel
     });
+    // After the connection save, so the prices land on the connection just saved.
+    if (priceInputs.inputPerM && priceInputs.outputPerM) await setActiveProviderPrices(prices);
     await this.#onSaved?.();
     return result;
   }

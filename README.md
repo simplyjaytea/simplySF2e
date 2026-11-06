@@ -67,6 +67,8 @@ For named connections, custom endpoints, manual model IDs or saving without a te
 - **Delete connection** (the trash button) removes the active connection. You cannot delete the last one.
 - When you have more than one saved connection, the generator and Item Forge headers show a drop-down so you can switch without opening setup. The headers also have **Test provider connection** and **Configure AI provider** buttons.
 
+**Run cost.** The token report shows what a run cost when the provider reports it (OpenRouter does). For providers that do not, enter optional **Input price** and **Output price** (USD per 1M tokens) on the connection in AI Provider Setup; the report then shows an estimate marked with ≈. Prices are saved with the connection, used only when the provider reports no cost, and leaving them empty shows no cost at all.
+
 ### Fast picks (Jev)
 
 Jev is TypeSafe's fast decision model. It never writes text: it only picks from lists, which is the "choose the right compendium entry" part of a generation. SimplySF2e uses it for equipment and loot, creature feats and abilities, Player Character feats, class and ancestry choices, and Player Character spells. Concepts, descriptions and everything the AI writes still come from your chat model.
