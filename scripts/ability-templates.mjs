@@ -19,7 +19,7 @@
 // rules, no publication data).
 
 import { lookup, SPELL_DC, AREA_DAMAGE, MIN_LEVEL, MAX_LEVEL } from "./tables.mjs";
-import { esc } from "./text.mjs";
+import { esc, plainAiText } from "./text.mjs";
 
 export const AREA_BLAST_SHAPES = Object.freeze(["cone", "line"]);
 export const AREA_BLAST_SIZES = Object.freeze(["small", "medium", "large"]);
@@ -76,11 +76,15 @@ export function buildAreaBlast(spec, { level, name, flavor = "" } = {}) {
   const limited = spec.use === "limited";
   const dice = lookup(AREA_DAMAGE, lv, limited ? "limited" : "unlimited", []);
   const dc = lookup(SPELL_DC, lv, spec.abilityDcScale, []);
-  const label = String(name ?? "").trim() || "Area Blast";
+  // AI text: inline-syntax characters removed (plainAiText), then HTML-escaped.
+  // Flavor that still carries enricher or roll syntax is blanked, not escaped into live mechanics.
+  const label = plainAiText(name) || "Area Blast";
+  const rollName = label;
   const safeName = esc(label);
-  const text = String(flavor ?? "").trim();
+  const rawFlavor = String(flavor ?? "");
+  const text = /[@\[\]{}]/.test(rawFlavor) ? "" : plainAiText(rawFlavor);
   const lead = text ? `${esc(text)} ` : "";
-  const recharge = limited ? ` It can't use ${safeName} again for [[/gmr 1d4 #Recharge ${safeName}]]{1d4 rounds}.` : "";
+  const recharge = limited ? ` It can't use ${safeName} again for [[/gmr 1d4 #Recharge ${esc(rollName)}]]{1d4 rounds}.` : "";
   const description = `<p>${lead}The creature deals @Damage[${dice}[${spec.damageType}]|options:area-damage] damage in a @Template[type:${spec.shape}|distance:${distance}] (@Check[${spec.save}|dc:${dc}|basic|options:area-effect] save).${recharge}</p>`;
   return {
     name: label,

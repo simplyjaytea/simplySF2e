@@ -100,4 +100,43 @@ for (const sample of [CONE_LIMITED(7), { name: "Spray", template: "area-blast", 
   assert.equal(hasPlaceholderValues(m.item), false, "built description has no placeholder");
 }
 
+// Inline syntax in the AI name cannot inject a roll: the recharge roll closes once.
+{
+  const closed = await buildFromRaw(7, { name: "Blast]]", description: "", template: "area-blast", shape: "cone", use: "limited", damageType: "fire" });
+  assert.ok(closed.item.system.description.value.includes("It can't use Blast again for [[/gmr 1d4 #Recharge Blast]]{1d4 rounds}.</p>"));
+  assert.equal(closed.item.system.description.value.split("[[").length - 1, 1, "one roll");
+  const injected = await buildFromRaw(7, { name: "[[/r 1d20]]", description: "", template: "area-blast", shape: "cone", use: "limited", damageType: "fire" });
+  assert.ok(injected.item.system.description.value.includes("It can't use /r 1d20 again for [[/gmr 1d4 #Recharge /r 1d20]]{1d4 rounds}.</p>"));
+  assert.equal(injected.item.system.description.value.split("[[").length - 1, 1, "no injected roll");
+}
+
+// Flavor is HTML-escaped, never live markup.
+{
+  const m = await buildFromRaw(7, { name: "Blast", description: "<i>Gust</i>", template: "area-blast", shape: "cone", damageType: "fire" });
+  assert.match(m.item.system.description.value, /^<p>&lt;i&gt;Gust&lt;\/i&gt; The creature deals/);
+}
+
+// Flavor that carries enricher or roll syntax is omitted.
+for (const flavor of ["Gust @Check[reflex|dc:16|basic] save.", "Gust @Template[type:cone|distance:90] here.", "Gust @UUID[x]{hi}."]) {
+  const m = await buildFromRaw(7, { name: "Blast", description: flavor, template: "area-blast", shape: "cone", damageType: "fire" });
+  assert.match(m.item.system.description.value, /^<p>The creature deals @Damage\[4d6\[fire\]/, `flavor omitted: ${flavor}`);
+  assert.ok(!m.item.system.description.value.includes("Gust"), "no flavor text");
+}
+
+// A narrative-only ability's text is cleaned of enricher syntax.
+{
+  const { narrativeAbilityItem } = await import("./builder.mjs");
+  const item = narrativeAbilityItem({ name: "Hiss", description: "It hisses @Check[reflex] and [[/r 1d20]] here." });
+  const value = item.system.description.value;
+  assert.ok(!value.includes("@") && !value.includes("[["), "no enricher or roll syntax in narrative text");
+  assert.ok(value.includes("It hisses Check"), "plain words kept");
+}
+
+// A template with a glossary name keeps only the template (glossary cleared at normalize).
+{
+  const concept = normalizeConcept({ specialAbilities: [{ name: "Stench", glossary: "Stench", description: "", template: "area-blast", shape: "cone", damageType: "fire" }] }, { level: 7, rarity: "common" });
+  assert.equal(concept.specialAbilities[0].glossary, null, "a valid template clears the glossary name");
+  assert.ok(concept.specialAbilities[0].areaBlast, "the template spec is kept");
+}
+
 console.log("ability-templates.test.mjs: ok");
