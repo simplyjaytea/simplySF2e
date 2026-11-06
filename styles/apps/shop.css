@@ -75,3 +75,39 @@
   margin-left: var(--spf-space-xs);
   font-size: var(--spf-text-xs);
 }
+
+@container spf-window (max-width: 520px) {
+  .simplysf2e .spf-shop-stock {
+    table-layout: fixed;
+  }
+
+  .simplysf2e .spf-shop-stock th,
+  .simplysf2e .spf-shop-stock td {
+    box-sizing: border-box;
+    padding-inline: 2px;
+  }
+
+  .simplysf2e .spf-shop-stock thead th,
+  .simplysf2e .spf-shop-stock .spf-num {
+    white-space: normal;
+  }
+
+  .simplysf2e .spf-shop-stock thead .spf-num {
+    padding-inline: var(--spf-space-xs);
+    font-size: 0.65rem;
+    letter-spacing: 0;
+    text-align: center;
+  }
+
+  .simplysf2e .spf-shop-stock thead th:first-child { width: 160px; }
+  .simplysf2e .spf-shop-stock thead th:nth-child(2) { width: 80px; }
+  .simplysf2e .spf-shop-stock thead th:nth-child(3) { width: 43px; }
+  .simplysf2e .spf-shop-stock thead th:nth-child(4) { width: 55px; }
+  .simplysf2e .spf-shop-stock thead th:nth-child(5) { width: 32px; }
+  .simplysf2e .spf-shop-stock thead th:last-child { width: 44px; }
+
+  .simplysf2e .spf-shop-stock tbody th {
+    overflow-wrap: break-word;
+    hyphens: auto;
+  }
+}
