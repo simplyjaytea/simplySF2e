@@ -103,7 +103,7 @@ These appear directly in **Configure Settings → SimplySF2e**:
 | **Max response tokens** | 8000 | Upper limit for one AI response. Each step uses its own smaller cap where it can. |
 | **Request timeout (seconds)** | 90 | Abort a request if the provider sends **no data** for this long. Responses stream, so this setting does not cut off a slow model that keeps sending text. |
 | **Run token budget** | 60,000 | Stop a run when its chat-model calls reach this total. Jev fast picks do not count. Set 0 to disable. |
-| **Run deadline (minutes)** | 0 (off) | Stop the whole run after this many minutes, even if data is still arriving. Set 0 to disable. |
+| **Run deadline (minutes)** | 5 | Stop the whole run after this many minutes, even if data is still arriving. Set 0 to disable. |
 | **Free Archetype variant rule** | Off | Gives generated player characters the variant's extra archetype feat slot at each even level. Picks that cannot be proven legal are left empty, not guessed. |
 
 The **Compendium Sources** menu (button **Configure Sources**) chooses which compendium packs each category draws from: Bestiary Abilities, Spells, Feats, Equipment, Ancestries, Backgrounds, Classes, Class Features, Heritages and Bestiary Actors. Homebrew and module packs work too. A category left empty uses the SF2e system defaults (`sf2e.classes`, `class-features`, `feats`, `spells`, `equipment`, `ancestries`, `heritages`, `backgrounds`, `bestiary-ability-glossary-srd`). Bestiary Actors defaults to all seven creature packs: `alien-core-bestiary`, `guilt-of-the-grave-world-bestiary`, `secrets-of-the-swarm-bestiary`, `standalone-adventure-bestiary`, `starfinder-society-bestiary`, `rulebook-bestiaries`, `tales-from-the-vast-bestiary`. **Reset to defaults** restores them.
