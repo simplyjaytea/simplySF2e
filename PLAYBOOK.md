@@ -18,7 +18,7 @@ The one file every agent (Claude, Codex, anything else) reads first. It holds wh
 
 **Merged 2026-11-07:** #80 (the `batch/b1` batch: one-screen Welcome (M6), glossary-ability fills, Area Blast and Aura templates, inert AI text, cost per run, re-level rebuilds, error copy, listing fields, CHANGELOG, Generator/Shop layout fixes) -> beta v0.1.13; #79 (this playbook's herdr workflow) -> beta v0.1.14.
 
-**In flight:** repo cleanup (`work/T-CLEAN`: dead code, unused keys, stale docs, CHANGELOG), README refresh (`work/T-README`), and this §1 (`docs/playbook-v0114`). One PR when done.
+**This PR (`docs/playbook-v0114`):** repo cleanup (dead code, unused keys, i18n-keys runtime-family allow-list, archived `multiclass-plan.md` and `openai-oauth-investigation.md`, stale doc lines fixed, CHANGELOG regenerated), README refresh for v0.1.14, and this playbook update. Reviewed: cleanup by Kimi, README by Sonnet; both fix rounds applied.
 
 - **Next:** JT live-tests v0.1.14 on the beta manifest, then promotes to stable (Actions > Release, version `0.1.14`, channel `stable`, ref tag `v0.1.14`) and checks `releases/latest/download/module.json`. Further ability templates (grab, on-hit riders, burst) only after Area Blast and Aura are live-tested. M8/M9 in `docs/consumer-plan.md`.
 - **Waiting on JT:** live pass of `docs/qa-checklist.md` logged to `docs/live-log.md` — new rows 2.8-2.13 (filled abilities, Area Blast, Aura), 12t.* (Welcome), 12ab.* (re-level), 13m (cost), plus 12aa.* (run budget); model-matrix run + D5 list; a `runDeadline` number; confirm the Aura numbers (below); OK to delete merged remote branches `batch/b1`, `docs/playbook-herdr`.
