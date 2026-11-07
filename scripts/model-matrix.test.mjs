@@ -154,7 +154,7 @@ for (const [id, task] of Object.entries(TASKS)) {
 assert.ok(requestedUrls.every((url) => url === "https://example.test/v1/chat/completions"), "the matrix must hit the configured chat path");
 
 // --- The run loop: key refusal, classification, failed-attempt usage -------
-const { runMatrix } = await import("../tools/model-matrix/runner.mjs");
+const { runMatrix, resolveKey, discoverLocalModels } = await import("../tools/model-matrix/runner.mjs");
 class FakeAIRequestError extends Error {
   constructor(message, { usage = null } = {}) {
     super(message);
@@ -214,5 +214,61 @@ const okRuns = await runMatrix({
 });
 assert.equal(okRuns[0].ok, true);
 assert.equal(okRuns[0].usage.total, 15);
+
+// --- Local mode (Ollama): every installed model, no key, no Authorization ----
+// Keyless only in local mode; the hosted path still needs its key.
+assert.equal(resolveKey({ local: true, env: {}, apiKeyEnv: "MATRIX_KEY" }), "", "local mode reads no key and never throws");
+assert.throws(() => resolveKey({ local: false, env: {}, apiKeyEnv: "MATRIX_KEY" }), /unset or empty/);
+
+const localIds = ["llama3.2:latest", "qwen2.5:7b"];
+const modelsReply = () => new Response(JSON.stringify({ data: localIds.map((id) => ({ id })) }), {
+  status: 200, headers: { "content-type": "application/json" }
+});
+{
+  const seen = [];
+  const ids = await discoverLocalModels({
+    url: "http://localhost:11434/v1/",
+    fetchImpl: async (url, options) => { seen.push({ url: String(url), headers: options?.headers ?? {} }); return modelsReply(); }
+  });
+  assert.deepEqual(ids, localIds, "both installed ids are returned");
+  assert.equal(seen[0].url, "http://localhost:11434/v1/models", "trailing slash trimmed, GET /models");
+  assert.equal(seen[0].headers.Authorization, undefined, "discovery sends no Authorization header");
+}
+await assert.rejects(discoverLocalModels({ url: "http://x/v1", fetchImpl: async () => new Response(JSON.stringify({ data: [] }), { status: 200 }) }), /lists no models/);
+await assert.rejects(discoverLocalModels({ url: "http://x/v1", fetchImpl: async () => { throw new Error("ECONNREFUSED"); } }), /no local server answered/);
+await assert.rejects(discoverLocalModels({ url: "http://x/v1", fetchImpl: async () => new Response("no", { status: 500 }) }), /HTTP 500/);
+await assert.rejects(discoverLocalModels({ url: "" }), /needs a --local-url/);
+
+// End to end through the real ai.mjs: each task runs for each id, no header is sent.
+const localUrl = "http://localhost:11434/v1";
+settings.set(SETTINGS.apiBaseUrl, localUrl);
+settings.set(SETTINGS.apiKeyBaseUrl, localUrl);
+settings.set(SETTINGS.apiKey, "");
+const chatCalls = [];
+globalThis.fetch = async (url, options = {}) => {
+  if (String(url).endsWith("/models")) return modelsReply();
+  chatCalls.push({ url: String(url), headers: options.headers ?? {}, model: JSON.parse(options.body).model });
+  return new Response(JSON.stringify({ choices: [{ message: { content: "{}" }, finish_reason: "stop" }], usage: {} }), {
+    status: 200, headers: { "content-type": "application/json" }
+  });
+};
+const ids = await discoverLocalModels({ url: localUrl });
+const localTasks = ["creatureConcept", "spellFocus"];
+const localRuns = await runMatrix({
+  cfg: { apiKeyEnv: "MATRIX_KEY", models: ids.map((id) => ({ id })), tasks: localTasks },
+  tasks: localTasks, runs: 1, ai, env: {}, local: true,
+  setModel: (id) => settings.set(SETTINGS.model, id)
+});
+assert.equal(localRuns.length, ids.length * localTasks.length, "every task runs for every installed model");
+for (const id of ids) {
+  for (const task of localTasks) {
+    assert.ok(localRuns.some((run) => run.model === id && run.task === task), `${id} ran ${task}`);
+  }
+}
+assert.ok(localRuns.every((run) => !run.crash), "no harness crash in local mode");
+assert.ok(chatCalls.length >= localRuns.length, "each run reached the local chat endpoint");
+assert.ok(chatCalls.every((call) => call.url === `${localUrl}/chat/completions`), "requests go to the local server");
+assert.ok(chatCalls.every((call) => !("Authorization" in call.headers)), "no request carries an Authorization header");
+assert.deepEqual([...new Set(chatCalls.map((call) => call.model))].sort(), [...ids].sort(), "both ids were requested");
 
 console.log("model-matrix.test.mjs passed");
