@@ -549,6 +549,7 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 | 12w.4 | Reroll a feat and a published ability (book icon). | Each changes to a different published feat or bestiary action; the ability shows the book icon with its compendium name. Narrative-only abilities have no dice. | Preview | | |
 | 12w.5 | Reroll a spell, then Create Actor. | The sheet has the new spell (not the old one) at the shown rank, and the feat or ability you rerolled is the new one. | Spellcasting and Actions tabs | | |
 | 12w.6 | Start a reroll and close the window or press Stop. | The preview keeps its old pick; only the usual "cancelled" notice appears. | Preview | | |
+| 12w.7 | Generate a level 7 large creature with a narrative signature ability. Click the dice next to that ability until the pick is Constrict, then Create Actor. | The created Constrict shows `@Damage[(4d6)[bludgeoning]]` and a DC from the slot's scale, with no blank values. If a pick cannot be used for this creature, the preview is unchanged and the console says why. | Generator, Actions tab, F12 console | | |
 
 ## 12x. Stat check after Create
 

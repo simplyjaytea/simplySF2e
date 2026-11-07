@@ -46,6 +46,13 @@ const mocks = {
   },
   ...reroll,
   ...recentGenerations,
+  // The real resolve decision is tested in reroll.resolve.test.mjs; here only the swap is checked.
+  rerollAbilityInto: async (concept, resolved, { index, candidate }) => {
+    const next = reroll.applyRerollPick(concept, { kind: "ability", index, candidate });
+    const abilities = [...resolved.abilities];
+    abilities[index] = { ability: next.specialAbilities[index], entry: candidate.ref };
+    return { concept: next, resolved: { ...resolved, abilities } };
+  },
   completionManifest, assertComplete,
   getSpellCandidates: async (...args) => { spellArgs = args; return spellCatalog; },
   getFeatCandidates: async (args) => {

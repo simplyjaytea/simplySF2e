@@ -4,6 +4,7 @@ import { ABILITY_DAMAGE_TYPES, ABILITY_DC_SCALES, fillBlocker, fillPlaceholderAb
 import { buildModuleTemplate, isModuleTemplate, normalizeAreaBlast, normalizeAura } from "./ability-templates.mjs";
 import { slugify, capitalized, esc, escAi, toHtml } from "./text.mjs";
 import { applyReskin, recallKnowledgeNote } from "./reskin.mjs";
+import { applyRerollPick } from "./reroll.mjs";
 import { isPlaceholderArt } from "./art.mjs";
 import { parseRunes, applyRunes, dropUncitedRunePrefix, runeGp, hasRunes } from "./runes.mjs";
 import {
@@ -377,6 +378,25 @@ export function alignStrikesToWeapons(strikes, weapons, allowedTraits = null) {
  * Template abilities (area blast, aura) are the module's own: two with the same name on one
  * creature would share a slug on the actor, so a repeated name gets " 2", " 3", ... (only on collision).
  */
+/**
+ * A creature has each published ability once: a second draft of the same glossary
+ * name is dropped before the 6-slot cap, so it cannot waste a slot or be merged onto
+ * the first draft. Templates keep their own names (uniqueTemplateNames).
+ */
+function dedupeGlossaryDrafts(abilities) {
+  const seen = new Set();
+  return abilities.filter((ability) => {
+    const glossary = ability.glossary ? String(ability.glossary).trim().toLowerCase() : "";
+    if (!glossary || normalizeAreaBlast(ability) || normalizeAura(ability)) return true;
+    if (seen.has(glossary)) {
+      console.warn(`simplysf2e | duplicate glossary ability "${ability.glossary}" dropped: a creature has it once`);
+      return false;
+    }
+    seen.add(glossary);
+    return true;
+  });
+}
+
 function uniqueTemplateNames(abilities) {
   const used = new Set();
   return abilities.map((ability) => {
@@ -527,8 +547,8 @@ export function normalizeConcept(raw, { level, rarity }) {
       .slice(0, 8)
       .map((s) => ({ name: String(s.name), scale: scale4(s.scale, "high") })),
     strikes,
-    specialAbilities: uniqueTemplateNames((Array.isArray(c.specialAbilities) ? c.specialAbilities : [])
-      .filter((a) => a?.name)
+    specialAbilities: uniqueTemplateNames(dedupeGlossaryDrafts((Array.isArray(c.specialAbilities) ? c.specialAbilities : [])
+      .filter((a) => a?.name))
       .slice(0, 6)
       .map((a) => {
         // A valid area-blast template is built from enums (ability-templates.mjs).
@@ -942,61 +962,89 @@ function fillDryRunBlocker(item, doc, ability, concept) {
 }
 
 /**
+ * One ability's resolve decision. resolveConcept and the single-ability reroll
+ * (rerollAbilityInto) both call it, so the early check and the reroll apply one rule.
+ * Returns {ability, entry}, or null when the ability is dropped.
+ */
+export async function resolveAbilityPick(ability, concept, { exactContent = false } = {}) {
+  // An area blast is built by createActor from its enum spec: no compendium entry, not narrative.
+  if (isModuleTemplate(ability)) {
+    // Dry run of the build (same call as createActor), so early and late decisions match.
+    if (buildModuleTemplate(ability, { level: concept.level })) return { ability, entry: null };
+    console.warn(`simplysf2e | "${ability.name}" could not be built as an area blast for this creature (level ${concept.level})`);
+    if (narrativeHasMechanics(ability.description)) {
+      console.warn(`simplysf2e | dropped "${ability.name}": it is not a valid template and its text names dice, a DC or Hit Points`);
+      return null;
+    }
+    return { ability: { ...ability, areaBlast: null, aura: null, narrative: true }, entry: null };
+  }
+  let entry = null;
+  if (isIssuedCandidate(ability.candidate, getPacksFor("abilities"))) {
+    entry = ability.candidate;
+  } else if (!exactContent) {
+    if (ability.glossary) entry = await findEntry(getPacksFor("abilities"), ability.glossary, (e) => e.type === "action");
+    if (!entry) entry = await findEntry(getPacksFor("abilities"), ability.name, (e) => e.type === "action");
+  }
+  let kept = ability;
+  // A published ability with blank values (I-ZERO) or one that cannot be read
+  // is never cloned. Its thematic text stays narrative-only when it names no numbers.
+  if (entry) {
+    const state = await placeholderState(entry);
+    // The loaded document carries the name and slug; a selector's candidate ref has neither.
+    const doc = placeholderDocFor(entry);
+    const item = doc ?? entry;
+    // A fillable blank is kept if this creature can take its fill (createActor fills it);
+    // otherwise it is treated like any other blank ability.
+    const unfillable = state === "blank" && isFillableEntry(item)
+      ? fillDryRunBlocker(item, doc, ability, concept)
+      : null;
+    if (unfillable) console.warn(`simplysf2e | "${ability.name}" cannot be filled for this creature: ${unfillable}`);
+    if (state !== "clean" && !(state === "blank" && isFillableEntry(item) && !unfillable)) {
+      entry = null;
+      if (state === "blank" && !unfillable) {
+        if (narrativeHasMechanics(ability.description)) {
+          console.warn(`simplysf2e | dropped "${ability.name}": its glossary ability has blank published values and its text names dice, a DC or Hit Points`);
+        } else {
+          console.warn(`simplysf2e | "${ability.name}" has blank published values in the glossary; kept as narrative only`);
+        }
+      }
+      if (!narrativeHasMechanics(ability.description)) kept = { ...ability, narrative: true };
+    }
+  }
+  return { ability: kept, entry };
+}
+
+/**
+ * Single-ability reroll: the slot at `index` takes `candidate` and goes through the
+ * same resolve decision as resolveConcept. Returns the new concept and its resolved
+ * list, or null when the replacement is dropped (the caller keeps the old pick).
+ */
+export async function rerollAbilityInto(concept, resolved, { index, candidate }) {
+  const target = concept.specialAbilities[index];
+  const replaced = applyRerollPick(concept, { kind: "ability", index, candidate });
+  // The slot's draft DC scale and damage type survive the reroll (refine's withDraft fields).
+  const replacement = {
+    ...replaced.specialAbilities[index],
+    abilityDcScale: target?.abilityDcScale ?? null,
+    damageType: target?.damageType ?? null
+  };
+  const next = { ...replaced, specialAbilities: replaced.specialAbilities.map((a, i) => (i === index ? replacement : a)) };
+  const picked = await resolveAbilityPick(next.specialAbilities[index], next);
+  if (!picked) return null;
+  const abilities = [...resolved.abilities];
+  abilities[index] = picked;
+  return { concept: next, resolved: { ...resolved, abilities } };
+}
+
+/**
  * Resolve every compendium reference in a concept. Returns lookup results so
  * the preview can show what was found and what will become a custom ability.
  */
 export async function resolveConcept(concept, { exactContent = false } = {}) {
   const abilities = [];
   for (const ability of concept.specialAbilities) {
-    // An area blast is built by createActor from its enum spec: no compendium entry, not narrative.
-    if (isModuleTemplate(ability)) {
-      // Dry run of the build (same call as createActor), so early and late decisions match.
-      if (buildModuleTemplate(ability, { level: concept.level })) {
-        abilities.push({ ability, entry: null });
-        continue;
-      }
-      console.warn(`simplysf2e | "${ability.name}" could not be built as an area blast for this creature (level ${concept.level})`);
-      if (narrativeHasMechanics(ability.description)) {
-        console.warn(`simplysf2e | dropped "${ability.name}": it is not a valid template and its text names dice, a DC or Hit Points`);
-        continue;
-      }
-      abilities.push({ ability: { ...ability, areaBlast: null, aura: null, narrative: true }, entry: null });
-      continue;
-    }
-    let entry = null;
-    if (isIssuedCandidate(ability.candidate, getPacksFor("abilities"))) {
-      entry = ability.candidate;
-    } else if (!exactContent) {
-      if (ability.glossary) entry = await findEntry(getPacksFor("abilities"), ability.glossary, (e) => e.type === "action");
-      if (!entry) entry = await findEntry(getPacksFor("abilities"), ability.name, (e) => e.type === "action");
-    }
-    let kept = ability;
-    // A published ability with blank values (I-ZERO) or one that cannot be read
-    // is never cloned. Its thematic text stays narrative-only when it names no numbers.
-    if (entry) {
-      const state = await placeholderState(entry);
-      // The loaded document carries the name and slug; a selector's candidate ref has neither.
-      const doc = placeholderDocFor(entry);
-      const item = doc ?? entry;
-      // A fillable blank is kept if this creature can take its fill (createActor fills it);
-      // otherwise it is treated like any other blank ability.
-      const unfillable = state === "blank" && isFillableEntry(item)
-        ? fillDryRunBlocker(item, doc, ability, concept)
-        : null;
-      if (unfillable) console.warn(`simplysf2e | "${ability.name}" cannot be filled for this creature: ${unfillable}`);
-      if (state !== "clean" && !(state === "blank" && isFillableEntry(item) && !unfillable)) {
-        entry = null;
-        if (state === "blank" && !unfillable) {
-          if (narrativeHasMechanics(ability.description)) {
-            console.warn(`simplysf2e | dropped "${ability.name}": its glossary ability has blank published values and its text names dice, a DC or Hit Points`);
-          } else {
-            console.warn(`simplysf2e | "${ability.name}" has blank published values in the glossary; kept as narrative only`);
-          }
-        }
-        if (!narrativeHasMechanics(ability.description)) kept = { ...ability, narrative: true };
-      }
-    }
-    abilities.push({ ability: kept, entry });
+    const picked = await resolveAbilityPick(ability, concept, { exactContent });
+    if (picked) abilities.push(picked);
   }
 
   const spells = [];
