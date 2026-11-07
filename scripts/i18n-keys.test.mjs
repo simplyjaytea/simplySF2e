@@ -52,7 +52,22 @@ const looseUsed = new Set([
   ...collect("templates", ".hbs", new RegExp(`["'](${KEY})["']`, "g")).keys(),
   ...collect("scripts", ".mjs", new RegExp(`["'](${KEY})["']`, "g"), (f) => !f.endsWith(".test.mjs")).keys(),
 ]);
-const unused = [...known].filter((key) => !used.has(key) && !looseUsed.has(key));
+// Keys built at runtime (a template string, or a small map of names). Each family
+// names the line that builds it, so the warning lists only keys nothing can reach.
+const RUNTIME_FAMILIES = [
+  /^SIMPLYSF2E\.ProviderSetup\.(Price(Input|Output)Invalid|JevTest[A-Za-z]+)$/, // settings.mjs:646, provider-setup-app.mjs:37-49,315
+  /^SIMPLYSF2E\.Threat\.[A-Za-z]+$/, // generator-app.mjs:303 (THREATS, encounter.mjs:10)
+  /^SIMPLYSF2E\.Role\.[A-Za-z]+$/, // generator-app.mjs:667 (encounter.mjs:54,66)
+  /^SIMPLYSF2E\.TreasureAmount\.[A-Za-z]+$/, // generator-app.mjs:308, manage-presets-app.mjs:28 (tables.mjs:223)
+  /^SIMPLYSF2E\.Treasure\.Amount[A-Za-z]+$/, // treasure-app.mjs:105 (treasure.mjs:22)
+  /^SIMPLYSF2E\.Shop\.(Size|Category)[A-Za-z]+$/, // shop-app.mjs:100,126 (shop.mjs:22)
+  /^SIMPLYSF2E\.Skills\.[A-Za-z0-9]+$/, // generator-app.mjs:536-542 (Rank${n}, warningKeys map)
+  /^SIMPLYSF2E\.Loadout\.[A-Za-z]+$/, // generator-app.mjs:546-551 (literal map)
+  /^SIMPLYSF2E\.Tokens\.Cost[A-Za-z]*$/, // app-base.mjs:330-334
+  /^SIMPLYSF2E\.Preview\.PerceptionShort$/, // generator-app.mjs:671 (t() in the statline)
+  /^SIMPLYSF2E\.StatCheck\.(Fortitude|Reflex|Will)$/, // stat-check.mjs:135 (save-${save})
+];
+const unused = [...known].filter((key) => !used.has(key) && !looseUsed.has(key) && !RUNTIME_FAMILIES.some((re) => re.test(key)));
 if (unused.length) {
   console.warn(`i18n-keys: ${unused.length} en.json keys not used by a literal lookup (may be built dynamically):`);
   for (const key of unused) console.warn(`  ${key}`);

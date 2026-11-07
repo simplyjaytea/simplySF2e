@@ -9,7 +9,7 @@ import {
   describeActivation, MIN_ITEM_LEVEL, MAX_ITEM_LEVEL,
   getBaseItemCandidates, getPropertyRuneCandidates, getFundamentalRuneTiers,
   normalizeRunedItemConcept, buildRunedItem, RUNED_ITEM_KINDS, CONCEPT_ITEM_KINDS, KIND_USAGE,
-  getGradeTiers, getUpgradeCandidates, GRADE_LEVELS, EQUIPMENT_GRADES
+  getGradeTiers
 } from "./item-builder.mjs";
 import { createActivationMacro } from "./macro-templates.mjs";
 import { SourcesConfigApp } from "./sources-app.mjs";

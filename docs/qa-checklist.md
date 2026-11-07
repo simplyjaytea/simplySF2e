@@ -1,6 +1,6 @@
 # SimplySF2e live QA checklist
 
-Run this in a real Foundry v14 world (14.367 or later) with the `sf2e` system 1.6.x and the module enabled. Nothing here is self-checkable by node tests. Labels are the UI text from `lang/en.json`.
+Run this in a real Foundry v14 world (14.361 or later; the module verifies 14.369) with the `sf2e` system 1.6.x and the module enabled. Nothing here is self-checkable by node tests. Labels are the UI text from `lang/en.json`.
 
 How to use: work the sections in order (Section 0 first). For every step fill **Result** with `PASS`, `FAIL` or `N/A`, and **Evidence** with a screenshot filename, a copied value, or a console line. Keep the browser console (F12) open throughout and paste any `simplysf2e |` warning or error into Evidence. Use a scratch world: the checks create actors, items, folders and macros. When something fails, note it in the Failure log at the end and continue.
 
@@ -510,7 +510,7 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 | 12t.8 | Open Advanced and choose **LM Studio**; then open full Provider Setup and Compendium Sources from Advanced. | LM Studio uses its local preset and model-choice flow. Both existing secondary windows still open normally. | Welcome window, Advanced | | |
 | 12t.9 | Reject a key (for example with a 401), then correct it and retry. | The error states the cause and next step, the draft key remains, focus returns to the key field, and a successful retry reaches connected or model choice. | Welcome window | | |
 | 12t.10 | From a connected state, press **Generate a sample monster**. | The Generator opens in Monster mode at level 1 with “A level 1 space-pirate scout with a laser pistol” and starts a preview. No actor is created until the GM clicks Create. | Welcome window, Generator | | |
-| 12t.11 | Run Welcome on sf2e older than 1.6.0, with compendium problems also present. | One top warning names the old system and the update fix; the old readiness checklist rows do not appear. | Welcome window | | |
+| 12t.11 | Run Welcome on sf2e older than 1.6.0, with compendium problems also present. | One top warning banner names the old version and the update fix ("Version X is older than 1.6.0. Update the Starfinder 2e system."). It takes the place of the compendium warning, so only one shows. | Welcome window | | |
 | 12t.12 | On a supported system, disable every Spells pack, then press **Check Again**. | One top warning names Spells and says to enable a pack in Compendium Sources. Restoring the pack and rechecking hides the warning. | Welcome window, Compendium Sources | | |
 | 12t.13 | Complete a working connection and reload; then reopen with `/sf2e welcome` and the module-settings button. | Welcome no longer auto-opens after reload, and both manual routes open it. | Chat, module settings | | |
 | 12t.14 | Clear the key again (or use a second browser), tick **Don't show this again at login**, reload. | Welcome stays closed even though the connection does not work. | Welcome window | | |

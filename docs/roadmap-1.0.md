@@ -2,16 +2,18 @@
 
 Planned by Fable on 2026-10-25 against branch `batch/class-fixes` (stacked on PR #70). JT's answers to §4 go here as they are made. Update this file when a milestone lands.
 
+**Status (2026-11-07):** code for P1-P8 is merged (PRs #70-#80; stable v0.1.11, beta v0.1.14). No bar is live-logged yet: `docs/live-log.md` has no per-row PASS. P9 needs a live-log entry for the release candidate.
+
 ## 1. What "playable" means
 
 A GM uses a live Foundry v14 (14.361+) world on sf2e 1.6.x with one hosted provider. JT fixes the reference model, for example DeepSeek. With the browser console open, every step below shows **zero `simplysf2e |` errors**. Warnings appear only in documented fail-closed cases.
 
 | # | Capability | Bar |
 | --- | --- | --- |
-| P1 | Install from the manifest, connect a provider, Welcome readiness, Sources defaults | qa 0.1-0.12 and 12t all PASS |
+| P1 | Install from the manifest, connect a provider, Welcome readiness, Sources defaults | qa 0.1-0.12 and 12t not yet live-logged (`docs/live-log.md` has no rows) |
 | P2 | Monster/NPC generate and create, levels -1 to 24, Elite/Weak applied once, stat check | 9 of 10 runs create an actor whose every item is a real compendium copy. Stat check is green or explained (qa 2.x at L1/5/12, 3.x, 12x, 12s) |
 | P3 | Encounter: budget, pooled build, create all, all-or-nothing rollback, cancel | qa 4.1-4.8, 13k |
-| P4 | Player Character: all 8 classes, L1-20, Free Archetype off and on | Offline bench 48 PASS / 32 WARN, 0 FAIL (sf2e 1.6.1). Live: each class at L1 and L5 creates with no unexpected native prompt, every feat slot filled, and casters' slots and focus right (qa 7, 7a, 7b, 7c). One L20 caster live |
+| P4 | Player Character: all 8 classes, L1-20, Free Archetype off and on | Offline bench class 49 PASS / 31 WARN / 0 FAIL (pinned sf2e `675d2b7`). Live: each class at L1 and L5 creates with no unexpected native prompt, every feat slot filled, and casters' slots and focus right (qa 7, 7a, 7b, 7c). One L20 caster live |
 | P5 | Reskin and re-level | qa 5.3-5.11, 13j.1-13j.5 |
 | P6 | Item Forge, all 5 kinds, and the item works on a sheet (Activate macro, rest recharge, strike, AC) | qa 6a-6e, 9.1-9.6 |
 | P7 | Shop and Treasure create real loot actors on budget; merchant buy flow | qa 12z.1-12z.6, 13h.1-13h.5 |
@@ -27,8 +29,8 @@ A GM uses a live Foundry v14 (14.361+) world on sf2e 1.6.x with one hosted provi
 | P1 setup, welcome | Works, unverified on 1.6 | sf2e gate `scripts/welcome.mjs`; `module.json` min 1.6.0. Last live pass was 2026-10-08 on 1.5.x, verbal only |
 | P2 NPC pipeline | Works (most tested); stat check and art fix unverified | 37 `builder.*` tests. Stat check 12x never logged. Art fix #69 never live |
 | P3 encounter | Works, unverified | Pooled build in `generator-app.mjs`; "faster encounters" never live |
-| P4 PC | 48 PASS / 32 WARN, 0 FAIL offline; everything since #70 unverified live | `tools/class-bench/REPORT.md`. Object-valued ChoiceSets (Hardlight Body, SRO Frame) are pre-answered (`choice-set.mjs`). Technomancer spell database is modelled (qa 7c.4). Drone companion is a manual whisper. Archetype placement uses a real staged context in `generator-app.mjs`. PF2e dead paths and Skillful Lessons removed (M4). Presets cover 8 classes (1.6) |
-| P4 multiclass | Missing (planned) | `docs/multiclass-plan.md` |
+| P4 PC | 49 PASS / 31 WARN, 0 FAIL offline; everything since #70 unverified live | `tools/class-bench/REPORT.md`. Object-valued ChoiceSets (Hardlight Body, SRO Frame) are pre-answered (`choice-set.mjs`). Technomancer spell database is modelled (qa 7c.4). Drone companion is a manual whisper. Archetype placement uses a real staged context in `generator-app.mjs`. PF2e dead paths and Skillful Lessons removed (M4). Presets cover 8 classes (1.6) |
+| P4 multiclass | Built in #70 (dedications, caster spell lists); live check pending | `docs/archive/multiclass-plan.md` |
 | P5 reskin, re-level | Works, unverified | Reskin rows never confirmed one by one; re-level never live |
 | P6 Forge | Works, unverified live; has gaps | Projectile-weapon usage added (`installed-in-a-weapon-that-uses-projectiles`, gated on the base weapon's group), so Tech Core projectile upgrades are reachable (qa 6d.7). Slot capacity uncited. No shields or ammunition |
 | P7 shop, treasure | Shop live 2026-10-08 (verbal); treasure never live | README "Live checks" |
@@ -93,7 +95,7 @@ Each task touches separate files.
 
 ### M3: PC depth (multiclass and Technomancer spell database); cannot be cut (JT decision 2026-10-25)
 
-- **Multiclass** per `docs/multiclass-plan.md`:
+- **Multiclass** per `docs/archive/multiclass-plan.md`:
   - The dedication rule and a real context for archetype placement.
   - A GM picker (Free Archetype only) plus an AI pick.
   - Slot pinning.

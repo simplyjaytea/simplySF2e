@@ -3,7 +3,6 @@
 // Run: node scripts/settings.auth.test.mjs
 import assert from "node:assert/strict";
 import {
-  MODULE_ID,
   SETTINGS,
   authorizeApiKeyForCurrentBaseUrl,
   chatCompletionsUrl,
