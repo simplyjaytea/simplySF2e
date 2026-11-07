@@ -154,6 +154,7 @@ export function runCost(usages, prices = {}) {
       const c = count(usage.unpricedCompletion);
       if ((p || c) && !priceTokens(p, c, usage)) partial = true;
       if (usage.costMissing) partial = true;
+      if (count(usage.total) > count(usage.prompt) + count(usage.completion)) partial = true;
       continue;
     }
     // A request that spent nothing (e.g. a Jev step that never ran) has no cost to miss.
@@ -165,6 +166,7 @@ export function runCost(usages, prices = {}) {
     const p = Math.max(0, count(usage.prompt) - count(usage.jevPrompt));
     const c = Math.max(0, count(usage.completion) - count(usage.jevCompletion));
     if (!priceTokens(p, c, usage) && (p || c)) partial = true;
+    if (count(usage.total) > count(usage.prompt) + count(usage.completion)) partial = true;
   }
   if (!provider && !manual) return { amount: null, partial: false, source: null };
   return {
