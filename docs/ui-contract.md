@@ -165,3 +165,13 @@ Behaviour (`_onRender`):
 Keys: new `SIMPLYSF2E.Sources.FilterLabel`, `.FilterPlaceholder`, `.SelectedOnly`, `.FilterStatus`, `.ClearFilter`, `.NoMatches`, `.CategoryCount`.
 
 Shared CSS: `input[type="search"]` now gets the module's console input styling (`styles/simplysf2e.css`).
+
+## Polish nits 2–4
+
+No new context. Nit 2 (Welcome provider note: shared `--spf-text-xs`, up to two balanced lines) and nit 4 (Manage Presets: hairline divider and `--spf-space-lg` gap before Delete) are CSS only. Nit 3 reorders the API-key warning in Generator, Item Forge, Shop and Treasure: message, then the **Authorize for this endpoint** button, then the endpoint as a muted detail line; the box keeps `notification warning spf-provider-warning" role="status"`.
+
+## Removed context fields (all items)
+
+- `encounterPreview.members[].statline` (item 9).
+- Strike attack/damage rows inside `reskinRelevel.rows` (item 7; they move to `reskinRelevel.strikes`).
+- `characterReview.skills.warnings` / `.loadoutWarnings` as plain strings (item 1; now `{title, detail}`).

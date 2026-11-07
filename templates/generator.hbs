@@ -71,8 +71,9 @@
     <p class="notification warning spf-provider-warning" role="status">
       <span>{{apiKeyWarning}}</span>
       {{#if canAuthorizeApiKey}}
-        <span class="spf-provider-endpoint"><strong>{{localize "SIMPLYSF2E.Generator.ApiKeyEndpoint"}}</strong> <code>{{providerBaseUrl}}</code></span>
+        {{! Action first, endpoint detail second: the next step reads first in a narrow window. }}
         <button type="button" data-action="authorizeApiKey" data-base-url="{{providerBaseUrl}}" {{#if busy}}disabled{{/if}}>{{localize "SIMPLYSF2E.Generator.AuthorizeApiKey"}}</button>
+        <span class="spf-provider-endpoint"><strong>{{localize "SIMPLYSF2E.Generator.ApiKeyEndpoint"}}</strong> <code>{{providerBaseUrl}}</code></span>
       {{/if}}
     </p>
   {{/if}}

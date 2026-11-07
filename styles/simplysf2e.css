@@ -502,9 +502,18 @@
   gap: var(--spf-space-md);
 }
 
+.simplysf2e .spf-provider-warning > span:first-child {
+  flex: 1 1 100%;
+}
+
+/* The endpoint is supporting detail under the action: smaller, muted, on
+   its own line. */
 .simplysf2e .spf-provider-endpoint {
+  flex: 1 1 100%;
   min-width: 0;
   overflow-wrap: anywhere;
+  font-size: var(--spf-text-sm);
+  color: var(--spf-text-muted);
 }
 
 .simplysf2e .spf-provider-warning button {

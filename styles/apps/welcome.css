@@ -62,10 +62,17 @@
   font-size: 1.1rem;
 }
 
+/* Recommended / Live check pending: the shared small size, wrapping to at
+   most two clean lines (whole words, centred) inside the tile. */
 .simplysf2e .spf-welcome-provider-note {
+  max-width: 100%;
   color: var(--spf-brand-accent);
-  font-size: 0.72rem;
-  line-height: 1.1;
+  font-size: var(--spf-text-xs);
+  line-height: 1.2;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: normal;
+  text-wrap: balance;
 }
 
 .simplysf2e .spf-welcome-provider-active {
