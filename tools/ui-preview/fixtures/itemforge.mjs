@@ -1,7 +1,7 @@
 // Item Forge window. Shapes follow ItemForgeApp._prepareContext(),
 // #buildPreviewContext() (wondrous / augmentation / crystal) and
 // #buildRunedPreviewContext() (weapon / armor) in scripts/itemforge-app.mjs.
-import { RARITIES, providerContext, PROVIDER_ATTENTION, TOKEN_REPORT, progressAt, localize } from "./_shared.mjs";
+import { RARITIES, providerContext, PROVIDER_ATTENTION, TOKEN_REPORT, TOKEN_REPORT_COST, progressAt, localize } from "./_shared.mjs";
 
 const KINDS = [
   { value: "wondrous", label: "SIMPLYSF2E.ItemForge.KindWondrous", hint: "SIMPLYSF2E.ItemForge.KindWondrousHint", icon: "fa-ring" },
@@ -85,9 +85,10 @@ export default [
   },
   {
     id: "itemforge-wondrous-preview",
+    open: [".spf-token-report"],
     app: "itemforge",
     optionalKeys: ["preview.runed"],
-    context: itemforgeContext("wondrous", { showEmptyState: false, tokenReport: TOKEN_REPORT, lastRunCost: "Last run: 1,840 tokens", preview: wondrous() })
+    context: itemforgeContext("wondrous", { showEmptyState: false, tokenReport: TOKEN_REPORT_COST, lastRunCost: "Last run: 1,840 tokens", preview: wondrous() })
   },
   {
     id: "itemforge-wondrous-no-effects",

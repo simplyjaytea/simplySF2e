@@ -811,32 +811,97 @@
 }
 
 /* Per-step token usage shown under the finished preview */
+/* --------------------------------------------------------------------------
+   Disclosure — native <details>/<summary> with one chevron style, shared by
+   every collapsible section (token report, readiness detail, provider
+   setup sections, re-level notes, earlier release notes, review details).
+   The summary stays a single keyboard target; its label wraps beside the
+   chevron instead of under it.
+   -------------------------------------------------------------------------- */
+.simplysf2e .spf-disclosure > summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: baseline;
+  gap: var(--spf-space-sm);
+  padding: var(--spf-space-xs) 0;
+  min-width: 0;
+}
+
+.simplysf2e .spf-disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+
+.simplysf2e .spf-disclosure > summary::before {
+  content: "";
+  flex: none;
+  width: 0.42em;
+  height: 0.42em;
+  margin: 0 0.1em 0.12em;
+  border-right: 2px solid var(--spf-brand-accent);
+  border-bottom: 2px solid var(--spf-brand-accent);
+  transform: rotate(-45deg);
+  transition: transform 120ms ease;
+}
+
+.simplysf2e .spf-disclosure[open] > summary::before {
+  transform: rotate(45deg);
+}
+
+.simplysf2e .spf-disclosure > summary:hover {
+  color: var(--spf-text);
+}
+
+.simplysf2e .spf-disclosure-label {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Token usage: collapsed run summary (total + cost) above the actions. */
 .simplysf2e .spf-token-report {
   margin-top: var(--spf-space-md);
-  padding-top: var(--spf-space-sm);
+  padding-top: var(--spf-space-xs);
   border-top: 1px solid var(--spf-border);
   font-size: var(--spf-text-sm);
   color: var(--spf-text-muted);
 }
 
-.simplysf2e .spf-token-report h3 {
-  font-size: 1em;
+.simplysf2e .spf-token-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.1rem var(--spf-space-md);
 }
 
-.simplysf2e .spf-token-report ul {
-  list-style: none;
-  margin: 0.2rem 0;
-  padding: 0;
+.simplysf2e .spf-token-heading {
+  font-weight: 700;
+  font-size: 0.92em;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--spf-brand-accent);
 }
 
 .simplysf2e .spf-token-total {
-  margin: 0.2rem 0 0;
-  font-weight: bold;
+  font-weight: 700;
+  color: var(--spf-text);
 }
 
 .simplysf2e .spf-token-cost {
-  margin: 0.1rem 0 0;
+  min-width: 0;
   overflow-wrap: anywhere;
+  color: var(--spf-text);
+}
+
+.simplysf2e .spf-token-steps {
+  list-style: none;
+  margin: 0 0 var(--spf-space-xs);
+  padding: var(--spf-space-xs) 0 0 1.05rem;
+  border-left: 1px solid var(--spf-border);
+  margin-left: 0.2rem;
+}
+
+.simplysf2e .spf-token-steps li + li {
+  margin-top: 0.15rem;
 }
 
 /* --------------------------------------------------------------------------

@@ -374,14 +374,20 @@
       </div>
     {{/if}}
     {{#if tokenReport}}
-      <div class="spf-token-report">
-        <h3>{{localize "SIMPLYSF2E.Tokens.Heading"}}</h3>
-        <ul>
+      {{! Collapsed by default: the summary always carries the run total and the
+          cost line (incl. its "at least" / ≈ wording); the per-step report is one click away. }}
+      <details class="spf-token-report spf-disclosure">
+        <summary>
+          <span class="spf-disclosure-label spf-token-line">
+            <span class="spf-token-heading">{{localize "SIMPLYSF2E.Tokens.Heading"}}</span>
+            <span class="spf-token-total">{{tokenReport.totalText}}</span>
+            {{#if tokenReport.costText}}<span class="spf-token-cost">{{tokenReport.costText}}</span>{{/if}}
+          </span>
+        </summary>
+        <ul class="spf-token-steps">
           {{#each tokenReport.steps}}<li><strong>{{this.label}}</strong> — {{this.text}}</li>{{/each}}
         </ul>
-        <p class="spf-token-total">{{tokenReport.totalText}}</p>
-        {{#if tokenReport.costText}}<p class="spf-token-cost">{{tokenReport.costText}}</p>{{/if}}
-      </div>
+      </details>
     {{/if}}
     <footer class="spf-actions">
       {{#if created.actorId}}<button type="button" class="spf-primary" data-action="openCreatedActor"><i aria-hidden="true" class="fa-solid fa-arrow-up-right-from-square"></i> {{localize "SIMPLYSF2E.Generator.OpenSheet"}}</button>{{/if}}
@@ -527,16 +533,20 @@
     {{/if}}
 
     {{#if tokenReport}}
-      <div class="spf-token-report">
-        <h3>{{localize "SIMPLYSF2E.Tokens.Heading"}}</h3>
-        <ul>
-          {{#each tokenReport.steps}}
-            <li><strong>{{this.label}}</strong> — {{this.text}}</li>
-          {{/each}}
+      {{! Collapsed by default: the summary always carries the run total and the
+          cost line (incl. its "at least" / ≈ wording); the per-step report is one click away. }}
+      <details class="spf-token-report spf-disclosure">
+        <summary>
+          <span class="spf-disclosure-label spf-token-line">
+            <span class="spf-token-heading">{{localize "SIMPLYSF2E.Tokens.Heading"}}</span>
+            <span class="spf-token-total">{{tokenReport.totalText}}</span>
+            {{#if tokenReport.costText}}<span class="spf-token-cost">{{tokenReport.costText}}</span>{{/if}}
+          </span>
+        </summary>
+        <ul class="spf-token-steps">
+          {{#each tokenReport.steps}}<li><strong>{{this.label}}</strong> — {{this.text}}</li>{{/each}}
         </ul>
-        <p class="spf-token-total">{{tokenReport.totalText}}</p>
-        {{#if tokenReport.costText}}<p class="spf-token-cost">{{tokenReport.costText}}</p>{{/if}}
-      </div>
+      </details>
     {{/if}}
 
     <footer class="spf-actions">
@@ -584,16 +594,20 @@
       {{/each}}
     </ul>
     {{#if tokenReport}}
-      <div class="spf-token-report">
-        <h3>{{localize "SIMPLYSF2E.Tokens.Heading"}}</h3>
-        <ul>
-          {{#each tokenReport.steps}}
-            <li><strong>{{this.label}}</strong> — {{this.text}}</li>
-          {{/each}}
+      {{! Collapsed by default: the summary always carries the run total and the
+          cost line (incl. its "at least" / ≈ wording); the per-step report is one click away. }}
+      <details class="spf-token-report spf-disclosure">
+        <summary>
+          <span class="spf-disclosure-label spf-token-line">
+            <span class="spf-token-heading">{{localize "SIMPLYSF2E.Tokens.Heading"}}</span>
+            <span class="spf-token-total">{{tokenReport.totalText}}</span>
+            {{#if tokenReport.costText}}<span class="spf-token-cost">{{tokenReport.costText}}</span>{{/if}}
+          </span>
+        </summary>
+        <ul class="spf-token-steps">
+          {{#each tokenReport.steps}}<li><strong>{{this.label}}</strong> — {{this.text}}</li>{{/each}}
         </ul>
-        <p class="spf-token-total">{{tokenReport.totalText}}</p>
-        {{#if tokenReport.costText}}<p class="spf-token-cost">{{tokenReport.costText}}</p>{{/if}}
-      </div>
+      </details>
     {{/if}}
     <footer class="spf-actions">
       <button type="button" class="spf-primary" data-action="createActor" {{#if busy}}disabled{{/if}}>
@@ -707,16 +721,20 @@
     {{/if}}
 
     {{#if tokenReport}}
-      <div class="spf-token-report">
-        <h3>{{localize "SIMPLYSF2E.Tokens.Heading"}}</h3>
-        <ul>
-          {{#each tokenReport.steps}}
-            <li><strong>{{this.label}}</strong> — {{this.text}}</li>
-          {{/each}}
+      {{! Collapsed by default: the summary always carries the run total and the
+          cost line (incl. its "at least" / ≈ wording); the per-step report is one click away. }}
+      <details class="spf-token-report spf-disclosure">
+        <summary>
+          <span class="spf-disclosure-label spf-token-line">
+            <span class="spf-token-heading">{{localize "SIMPLYSF2E.Tokens.Heading"}}</span>
+            <span class="spf-token-total">{{tokenReport.totalText}}</span>
+            {{#if tokenReport.costText}}<span class="spf-token-cost">{{tokenReport.costText}}</span>{{/if}}
+          </span>
+        </summary>
+        <ul class="spf-token-steps">
+          {{#each tokenReport.steps}}<li><strong>{{this.label}}</strong> — {{this.text}}</li>{{/each}}
         </ul>
-        <p class="spf-token-total">{{tokenReport.totalText}}</p>
-        {{#if tokenReport.costText}}<p class="spf-token-cost">{{tokenReport.costText}}</p>{{/if}}
-      </div>
+      </details>
     {{/if}}
 
     <footer class="spf-actions">
@@ -756,14 +774,20 @@
       <p class="spf-hint">{{localize "SIMPLYSF2E.Generator.ReskinNoRenames"}}</p>
     {{/if}}
     {{#if tokenReport}}
-      <div class="spf-token-report">
-        <h3>{{localize "SIMPLYSF2E.Tokens.Heading"}}</h3>
-        <ul>
+      {{! Collapsed by default: the summary always carries the run total and the
+          cost line (incl. its "at least" / ≈ wording); the per-step report is one click away. }}
+      <details class="spf-token-report spf-disclosure">
+        <summary>
+          <span class="spf-disclosure-label spf-token-line">
+            <span class="spf-token-heading">{{localize "SIMPLYSF2E.Tokens.Heading"}}</span>
+            <span class="spf-token-total">{{tokenReport.totalText}}</span>
+            {{#if tokenReport.costText}}<span class="spf-token-cost">{{tokenReport.costText}}</span>{{/if}}
+          </span>
+        </summary>
+        <ul class="spf-token-steps">
           {{#each tokenReport.steps}}<li><strong>{{this.label}}</strong> — {{this.text}}</li>{{/each}}
         </ul>
-        <p class="spf-token-total">{{tokenReport.totalText}}</p>
-        {{#if tokenReport.costText}}<p class="spf-token-cost">{{tokenReport.costText}}</p>{{/if}}
-      </div>
+      </details>
     {{/if}}
     <footer class="spf-actions">
       <button type="button" class="spf-primary" data-action="createActor" {{#if busy}}disabled{{/if}}>

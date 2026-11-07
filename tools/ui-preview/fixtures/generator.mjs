@@ -252,12 +252,14 @@ export default [
   ...[
     ["generator-monster-preview", TOKEN_REPORT, "Last run: 2,716 tokens"],
     ["generator-monster-preview-cost", TOKEN_REPORT_COST, "Last run: 2,716 tokens · $0.0042"],
-    ["generator-monster-preview-cost-partial", TOKEN_REPORT_PARTIAL, "Last run: 2,716 tokens · ≥ $0.0042"]
-  ].map(([id, tokenReport, lastRunCost]) => {
+    ["generator-monster-preview-cost-partial", TOKEN_REPORT_PARTIAL, "Last run: 2,716 tokens · ≥ $0.0042"],
+    ["generator-monster-preview-tokens-open", TOKEN_REPORT_PARTIAL, "Last run: 2,716 tokens · ≥ $0.0042", [".spf-token-report"]]
+  ].map(([id, tokenReport, lastRunCost, open]) => {
     const c = concept({ rarity: "uncommon", specialAbilities: [], resistances: ["fire"], weaknesses: ["cold-iron"] });
     return {
       id,
       app: "generator",
+      ...(open ? { open } : {}),
       context: generatorContext("monster", {
         input: { level: 4 }, showEmptyState: false, tokenReport,
         lastRunCost,

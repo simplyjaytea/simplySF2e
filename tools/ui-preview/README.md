@@ -41,7 +41,7 @@ It also prints a `note:` line when a window scrolls sideways.
 
 ## Adding or changing a fixture
 
-Fixture context shapes are copied from the real code: `GeneratorApp._prepareContext()` and its `#build*PreviewContext()` helpers, `ItemForgeApp._prepareContext()`, and the other apps' `_prepareContext()`. Read the code, do not guess. When one of those methods changes, update the matching fixture in the same PR. A fixture is `{ id, app, context, optionalKeys?, height? }`; `app` is a key of `APPS` in `render.mjs`.
+Fixture context shapes are copied from the real code: `GeneratorApp._prepareContext()` and its `#build*PreviewContext()` helpers, `ItemForgeApp._prepareContext()`, and the other apps' `_prepareContext()`. Read the code, do not guess. When one of those methods changes, update the matching fixture in the same PR. A fixture is `{ id, app, context, optionalKeys?, height?, open? }`; `app` is a key of `APPS` in `render.mjs`. `open` lists CSS selectors of `<details>` elements to expand before the screenshot (a stand-in for the GM's click), so a collapsed-by-default section can also be reviewed expanded; a selector that matches nothing fails the run.
 
 ## Caveats
 
