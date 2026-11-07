@@ -99,3 +99,25 @@ Behaviour:
 - Nit 1: the Reskin empty hint now reads `Generator.EmptyHintReskinReady` when `reskinSource` is set (template-only; `reskinSource` already exists).
 
 Keys: new `SIMPLYSF2E.Relevel.AttackRow`, `.DamageRow`, `.UnchangedSummary`, `SIMPLYSF2E.Generator.EmptyHintReskinReady`. `Relevel.Damage` and `StatCheck.Strike` stay (still the row labels `relevel.mjs` emits; the app simply stops showing them as labels).
+
+## Item 2 — AI Provider Setup: Cost estimate and Fast picks fold away
+
+Template: `templates/provider-setup.hbs`. Supply in: `ProviderSetupApp._prepareContext()` / `#jevContext()`; behaviour in `#saveSettings()` and `_onRender()` (`scripts/provider-setup-app.mjs`).
+
+| Field | Type | Meaning | Example |
+| --- | --- | --- | --- |
+| `pricesOpen` (new) | boolean | Render the **Cost estimate** section open. `true` when the last save attempt failed price validation (`#priceError` set) or the GM opened it in this window; else `false`. | `false` (`provider-setup-prices`), `true` (`provider-setup-price-error`) |
+| `priceError` (new) | string or `null` | The localized price error (`ProviderSetup.PriceInputInvalid` / `PriceOutputInvalid`) when the section re-renders after a failed save; else `null`. | `"Input price must be empty or a number of 0 or more."` |
+| `pricesSummary` (new) | `{input, output}` or `null` | Formatted saved prices for the closed summary (`"$0.27"`; use `"—"` for a blank side). `null` when both are empty (the summary then says "Not set"). | `{ input: "$0.27", output: "$1.10" }` |
+| `jevOpen` (new) | boolean | Render **Fast picks** open: `source === "typesafe" \|\| hasJevKey` (the route needs its key/endpoint), or the GM opened it in this window. | `true` (`provider-setup-jev-typesafe`) |
+
+Unchanged: every existing field and every `name=` / `data-action=` (the save path reads the same inputs; closed `<details>` content stays in the form and is still submitted).
+
+Behaviour:
+- **Validation error opens its section.** In `#saveSettings()`, when a price is invalid and before `reportValidity()`: set `input.closest("details").open = true` (a closed section cannot show the browser bubble or take focus), then fill and unhide `[data-price-error]` inside it (`textContent` of its `<span>`, `hidden = false`). Clear and hide it again at the start of the next save. No re-render needed; if a re-render does happen, `priceError`/`pricesOpen` keep the state.
+- **Route opens Fast picks.** In `syncJevRoute` (`_onRender`), when the source becomes `typesafe`, set `details[data-section='jev'].open = true`. Never close it automatically.
+- **Open state survives re-renders** (Welcome `#advancedOpen` pattern): a `toggle` listener on each `details[data-section]` stores `#pricesOpen` / `#jevOpen`; `_prepareContext` ORs them into the fields above.
+- Never hide unsaved edits: the folds only collapse visually, inputs keep their values, and a fold that holds a typed-but-unsaved price stays as the GM left it.
+- Save buttons and their order are unchanged.
+
+Keys: new `SIMPLYSF2E.ProviderSetup.CostLegend`, `.CostNotSet`, `.CostSummary`, `.FoldNeedsFix`, `.JevKeySavedShort`.

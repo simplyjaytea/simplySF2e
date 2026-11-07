@@ -51,6 +51,11 @@ function providerSetup(selected, patch = {}) {
     jevEndpoint: "",
     jevDefaultEndpoint: "https://api.typesafe.ai/v1/systemone",
     jevKeyPlaceholder: localize("SIMPLYSF2E.ProviderSetup.JevKeyPlaceholder", { source: "OpenRouter" }),
+    // Contract (docs/ui-contract.md, item 2): fold state and summaries.
+    pricesOpen: false,
+    priceError: null,
+    pricesSummary: null,
+    jevOpen: false,
     showLocalHint: ["ollama", "lmstudio", "custom"].includes(selected),
     localServerHint: localize("SIMPLYSF2E.ProviderSetup.LocalServerHint", { origin: "http://localhost:30000" }),
     ...patch
@@ -97,7 +102,26 @@ export default [
     app: "provider-setup",
     context: providerSetup("deepseek", {
       connectionName: "DeepSeek", apiBaseUrl: "https://api.deepseek.com/v1", model: "deepseek-v4-flash",
-      inputPerM: 0.27, outputPerM: 1.1
+      inputPerM: 0.27, outputPerM: 1.1, pricesSummary: { input: "$0.27", output: "$1.10" }
+    })
+  },
+  {
+    id: "provider-setup-prices-open",
+    app: "provider-setup",
+    open: ["[data-section='prices']"],
+    context: providerSetup("deepseek", {
+      connectionName: "DeepSeek", apiBaseUrl: "https://api.deepseek.com/v1", model: "deepseek-v4-flash",
+      inputPerM: 0.27, outputPerM: 1.1, pricesSummary: { input: "$0.27", output: "$1.10" }
+    })
+  },
+  {
+    // A save with a bad price: the section opened itself and shows the error.
+    id: "provider-setup-price-error",
+    app: "provider-setup",
+    context: providerSetup("deepseek", {
+      connectionName: "DeepSeek", apiBaseUrl: "https://api.deepseek.com/v1", model: "deepseek-v4-flash",
+      inputPerM: -2, outputPerM: 1.1, pricesOpen: true,
+      priceError: localize("SIMPLYSF2E.ProviderSetup.PriceInputInvalid")
     })
   },
   {
@@ -110,6 +134,7 @@ export default [
         { id: "typesafe", label: "TypeSafe AI", selected: true }
       ],
       jevOnTypeSafe: true,
+      jevOpen: true,
       jevEndpoint: "https://jev-proxy.example.com/v1/systemone",
       jevKeyPlaceholder: localize("SIMPLYSF2E.ProviderSetup.JevKeySaved")
     })

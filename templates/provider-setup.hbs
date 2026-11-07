@@ -54,20 +54,6 @@
       <p class="spf-hint">{{localize "SIMPLYSF2E.ProviderSetup.ModelHint"}}</p>
     </div>
 
-    <div class="form-group stacked spf-prices">
-      <label>{{localize "SIMPLYSF2E.ProviderSetup.PricesLabel"}}</label>
-      <div class="spf-price-row">
-        <label class="spf-price-field" for="spf-price-input">
-          <span>{{localize "SIMPLYSF2E.ProviderSetup.PriceInput"}}</span>
-          <input id="spf-price-input" type="number" name="inputPerM" value="{{inputPerM}}" min="0" step="any" inputmode="decimal" placeholder="{{localize 'SIMPLYSF2E.ProviderSetup.PricesPlaceholder'}}">
-        </label>
-        <label class="spf-price-field" for="spf-price-output">
-          <span>{{localize "SIMPLYSF2E.ProviderSetup.PriceOutput"}}</span>
-          <input id="spf-price-output" type="number" name="outputPerM" value="{{outputPerM}}" min="0" step="any" inputmode="decimal" placeholder="{{localize 'SIMPLYSF2E.ProviderSetup.PricesPlaceholder'}}">
-        </label>
-      </div>
-      <p class="spf-hint">{{localize "SIMPLYSF2E.ProviderSetup.PricesHint"}}</p>
-    </div>
   </fieldset>
 
   <fieldset class="spf-card spf-provider-section">
@@ -88,38 +74,75 @@
     <p class="notification info spf-provider-privacy"><i aria-hidden="true" class="fa-solid fa-shield-halved"></i> {{localize "SIMPLYSF2E.ProviderSetup.Privacy"}}</p>
   </fieldset>
 
-  <fieldset class="spf-card spf-provider-section spf-jev-section">
-    <legend>{{localize "SIMPLYSF2E.ProviderSetup.JevLegend"}}</legend>
-    <p class="spf-hint">{{localize "SIMPLYSF2E.ProviderSetup.JevHint"}}</p>
-    <div class="form-group stacked">
-      <label for="spf-jev-source">{{localize "SIMPLYSF2E.ProviderSetup.JevSourceLabel"}}</label>
-      <select id="spf-jev-source" name="jevSource">
-        {{#each jevSources}}
-          <option value="{{this.id}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
-        {{/each}}
-      </select>
-    </div>
-    <div class="form-group stacked spf-jev-endpoint" {{#unless jevOnTypeSafe}}hidden{{/unless}}>
-      <label for="spf-jev-endpoint">{{localize "SIMPLYSF2E.ProviderSetup.JevEndpointLabel"}}</label>
-      <input id="spf-jev-endpoint" type="text" inputmode="url" name="jevEndpoint" value="{{jevEndpoint}}" spellcheck="false" autocomplete="url" placeholder="{{jevDefaultEndpoint}}">
-      <p class="spf-hint">{{localize "SIMPLYSF2E.ProviderSetup.JevEndpointHint"}}</p>
-    </div>
-    <div class="form-group stacked">
-      <label for="spf-jev-api-key">{{localize "SIMPLYSF2E.ProviderSetup.JevKeyLabel"}}</label>
-      <div class="spf-model-picker">
-        <input id="spf-jev-api-key" type="password" name="jevApiKey" value="" spellcheck="false" autocomplete="new-password" placeholder="{{jevKeyPlaceholder}}">
-        <button type="button" data-action="saveJevKey"><i aria-hidden="true" class="fa-solid fa-bolt"></i> {{localize "SIMPLYSF2E.ProviderSetup.SaveJevKey"}}</button>
-        <button type="button" data-action="testJev"><i aria-hidden="true" class="fa-solid fa-signal"></i> {{localize "SIMPLYSF2E.ProviderSetup.TestJev"}}</button>
+  {{! Optional sections fold away. Each opens by itself when it holds a
+      validation error (pricesOpen) or the active route needs it (jevOpen:
+      TypeSafe chosen or a separate Jev key saved). The summary shows the
+      current state so a closed section still reads at a glance. }}
+  <details class="spf-card spf-provider-fold spf-disclosure" data-section="prices" {{#if pricesOpen}}open{{/if}}>
+    <summary>
+      <span class="spf-disclosure-label spf-fold-line">
+        <span class="spf-fold-title">{{localize "SIMPLYSF2E.ProviderSetup.CostLegend"}}</span>
+        <span class="spf-fold-state">{{#if priceError}}<i aria-hidden="true" class="fa-solid fa-circle-exclamation"></i> {{localize "SIMPLYSF2E.ProviderSetup.FoldNeedsFix"}}{{else if pricesSummary}}{{localize "SIMPLYSF2E.ProviderSetup.CostSummary" input=pricesSummary.input output=pricesSummary.output}}{{else}}{{localize "SIMPLYSF2E.ProviderSetup.CostNotSet"}}{{/if}}</span>
+      </span>
+    </summary>
+    <div class="spf-fold-body">
+      <div class="form-group stacked spf-prices" role="group" aria-labelledby="spf-prices-label">
+        <span id="spf-prices-label" class="spf-prices-label">{{localize "SIMPLYSF2E.ProviderSetup.PricesLabel"}}</span>
+        <div class="spf-price-row">
+          <label class="spf-price-field" for="spf-price-input">
+            <span>{{localize "SIMPLYSF2E.ProviderSetup.PriceInput"}}</span>
+            <input id="spf-price-input" type="number" name="inputPerM" value="{{inputPerM}}" min="0" step="any" inputmode="decimal" placeholder="{{localize 'SIMPLYSF2E.ProviderSetup.PricesPlaceholder'}}">
+          </label>
+          <label class="spf-price-field" for="spf-price-output">
+            <span>{{localize "SIMPLYSF2E.ProviderSetup.PriceOutput"}}</span>
+            <input id="spf-price-output" type="number" name="outputPerM" value="{{outputPerM}}" min="0" step="any" inputmode="decimal" placeholder="{{localize 'SIMPLYSF2E.ProviderSetup.PricesPlaceholder'}}">
+          </label>
+        </div>
+        <p class="spf-field-error" data-price-error role="alert" {{#unless priceError}}hidden{{/unless}}><i aria-hidden="true" class="fa-solid fa-circle-exclamation"></i> <span>{{priceError}}</span></p>
+        <p class="spf-hint">{{localize "SIMPLYSF2E.ProviderSetup.PricesHint"}}</p>
       </div>
     </div>
+  </details>
 
-    <label class="spf-provider-clear-key spf-jev-clear" {{#unless hasJevKey}}hidden{{/unless}}>
-      <input type="checkbox" name="clearJevApiKey">
-      {{localize "SIMPLYSF2E.ProviderSetup.ClearJevKey"}}
-    </label>
+  <details class="spf-card spf-provider-fold spf-disclosure spf-jev-section" data-section="jev" {{#if jevOpen}}open{{/if}}>
+    <summary>
+      <span class="spf-disclosure-label spf-fold-line">
+        <span class="spf-fold-title">{{localize "SIMPLYSF2E.ProviderSetup.JevLegend"}}</span>
+        <span class="spf-fold-state">{{#each jevSources}}{{#if this.selected}}{{this.label}}{{/if}}{{/each}}{{#if hasJevKey}} · {{localize "SIMPLYSF2E.ProviderSetup.JevKeySavedShort"}}{{/if}}</span>
+      </span>
+    </summary>
+    <div class="spf-fold-body">
+      <p class="spf-hint">{{localize "SIMPLYSF2E.ProviderSetup.JevHint"}}</p>
+      <div class="form-group stacked">
+        <label for="spf-jev-source">{{localize "SIMPLYSF2E.ProviderSetup.JevSourceLabel"}}</label>
+        <select id="spf-jev-source" name="jevSource">
+          {{#each jevSources}}
+            <option value="{{this.id}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
+          {{/each}}
+        </select>
+      </div>
+      <div class="form-group stacked spf-jev-endpoint" {{#unless jevOnTypeSafe}}hidden{{/unless}}>
+        <label for="spf-jev-endpoint">{{localize "SIMPLYSF2E.ProviderSetup.JevEndpointLabel"}}</label>
+        <input id="spf-jev-endpoint" type="text" inputmode="url" name="jevEndpoint" value="{{jevEndpoint}}" spellcheck="false" autocomplete="url" placeholder="{{jevDefaultEndpoint}}">
+        <p class="spf-hint">{{localize "SIMPLYSF2E.ProviderSetup.JevEndpointHint"}}</p>
+      </div>
+      <div class="form-group stacked">
+        <label for="spf-jev-api-key">{{localize "SIMPLYSF2E.ProviderSetup.JevKeyLabel"}}</label>
+        <div class="spf-model-picker">
+          <input id="spf-jev-api-key" type="password" name="jevApiKey" value="" spellcheck="false" autocomplete="new-password" placeholder="{{jevKeyPlaceholder}}">
+          <button type="button" data-action="saveJevKey"><i aria-hidden="true" class="fa-solid fa-bolt"></i> {{localize "SIMPLYSF2E.ProviderSetup.SaveJevKey"}}</button>
+          <button type="button" data-action="testJev"><i aria-hidden="true" class="fa-solid fa-signal"></i> {{localize "SIMPLYSF2E.ProviderSetup.TestJev"}}</button>
+        </div>
+      </div>
 
-    <p class="notification warning spf-jev-warning" {{#unless jevOnTypeSafe}}hidden{{/unless}}><i aria-hidden="true" class="fa-solid fa-triangle-exclamation"></i> {{localize "SIMPLYSF2E.ProviderSetup.JevCorsWarning"}}</p>
-  </fieldset>
+      <label class="spf-provider-clear-key spf-jev-clear" {{#unless hasJevKey}}hidden{{/unless}}>
+        <input type="checkbox" name="clearJevApiKey">
+        {{localize "SIMPLYSF2E.ProviderSetup.ClearJevKey"}}
+      </label>
+
+      <p class="notification warning spf-jev-warning" {{#unless jevOnTypeSafe}}hidden{{/unless}}><i aria-hidden="true" class="fa-solid fa-triangle-exclamation"></i> {{localize "SIMPLYSF2E.ProviderSetup.JevCorsWarning"}}</p>
+    </div>
+  </details>
 
   <footer class="spf-actions">
     <button type="button" class="spf-primary" data-action="saveAndTest">
