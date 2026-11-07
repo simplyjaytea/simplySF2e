@@ -13,7 +13,7 @@ A GM uses a live Foundry v14 (14.361+) world on sf2e 1.6.x with one hosted provi
 | P1 | Install from the manifest, connect a provider, Welcome readiness, Sources defaults | qa 0.1-0.12 and 12t not yet live-logged (`docs/live-log.md` has no rows) |
 | P2 | Monster/NPC generate and create, levels -1 to 24, Elite/Weak applied once, stat check | 9 of 10 runs create an actor whose every item is a real compendium copy. Stat check is green or explained (qa 2.x at L1/5/12, 3.x, 12x, 12s) |
 | P3 | Encounter: budget, pooled build, create all, all-or-nothing rollback, cancel | qa 4.1-4.8, 13k |
-| P4 | Player Character: all 8 classes, L1-20, Free Archetype off and on | Offline bench class 49 PASS / 31 WARN / 0 FAIL (pinned sf2e `675d2b7`). Live: each class at L1 and L5 creates with no unexpected native prompt, every feat slot filled, and casters' slots and focus right (qa 7, 7a, 7b, 7c). One L20 caster live |
+| P4 | Player Character: all 8 classes, L1-20, Free Archetype off and on | Offline bench class 49 PASS / 31 WARN / 0 FAIL (pinned sf2e `52dfeee`, tag sf2e-1.7.0). Live: each class at L1 and L5 creates with no unexpected native prompt, every feat slot filled, and casters' slots and focus right (qa 7, 7a, 7b, 7c). One L20 caster live |
 | P5 | Reskin and re-level | qa 5.3-5.11, 13j.1-13j.5 |
 | P6 | Item Forge, all 5 kinds, and the item works on a sheet (Activate macro, rest recharge, strike, AC) | qa 6a-6e, 9.1-9.6 |
 | P7 | Shop and Treasure create real loot actors on budget; merchant buy flow | qa 12z.1-12z.6, 13h.1-13h.5 |

@@ -15,7 +15,7 @@ permissions:
   contents: read
 
 env:
-  BENCH_SHA: 675d2b7d613a80572b0330364ce84659068abe66
+  BENCH_SHA: 52dfeee703b887237f5e454747bcae45b136f9af  # tag sf2e-1.7.0
 
 jobs:
   benches:
