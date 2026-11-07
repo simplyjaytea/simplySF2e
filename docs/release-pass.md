@@ -33,9 +33,9 @@ Test record: Foundry version `____` · sf2e version `____` · module version `__
 | 4 | 12t.1 | In a fresh browser profile, log in as GM. | Welcome to SimplySF2e opens by itself; the readiness rows show as 12t.1 describes. | | |
 | 5 | 0.6 | Provider Setup → **Load Models**, pick a model, name the connection. | "Loaded N available model IDs." | | |
 | 6 | 0.7 | Provider Setup → **Save & Test**. | "Connected to {provider} with model {model} ({total} tokens)." | | |
-| 7 | 12t.2 | Save and authorize the working connection; the welcome refreshes. | The main button becomes **Open Generator**; pressing it opens the Generator and closes the welcome. | | |
+| 7 | 12t.3 | Connect the working provider with its default model (or the model you pick). | The connected state names the model and offers **Generate a sample monster**. | | |
 | 8 | 0.8 | Open the Generator's provider row. | Green check, "Provider configuration is ready", and the model ID. | | |
-| 9 | 12t.5 | Untick every Spells pack, save, press **Check Again** in the welcome. Then restore the packs. | Compendium Content warns and names Spells; the gear opens Sources. | | |
+| 9 | 12t.12 | On a supported system, untick every Spells pack and press **Check Again** in the welcome. Then restore the pack and check again. | One top warning names Spells and says to enable a pack in Compendium Sources; restoring the pack and rechecking hides it. | | |
 | 10 | 0.12 | Reopen the Generator with the packs restored. | Compendium Content reads "Ready — N enabled packs". | | |
 
 ## P2. NPC generation and stat check
@@ -168,7 +168,7 @@ These ids stay in [docs/qa-checklist.md](qa-checklist.md) for the full pass. The
 - P2: 2.1, 2.2, 2.3, 2.5, 2.6, 3.2, 3.5, 3.7, 3.8, 12s.2, 12s.3, 12x.4, 12x.6.
 - P3: 4.3, 4.4, 4.8, 13d.1–13d.4 (party button).
 - P4: 7.1, 7.3, 7.5, 7.7, 7.8, 7a.1, 7a.4, 7a.6, 7a.7, 7b.1, 7b.2, 8.1–8.5.
-- P5: 5.1, 5.2, 5.4, 5.6 (run as part of row 54), 13j.1.
+- P5: 5.1, 5.2, 5.4, 5.6 (5.6 has no table row; check it with row 54, id 5.7), 13j.1.
 - P6: 6a.3–6a.6, 6a.10–6a.13, 6b, 6c, 6d.1, 6d.4, 6d.6, 6e.2, 6e.3, 9.1, 9.2, 9.5, 9.6.
 - P7: 12z.1, 12z.5, 13h.1, 13h.2, 13h.4.
 - P8: 12.3–12.5, 12u.3–12u.5, 13c.2, 13c.3, 13a.x, 13b.x, 12k.x.
