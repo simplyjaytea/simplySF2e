@@ -360,22 +360,55 @@ export class GeneratorApp extends SpfApp {
     const bands = {
       extreme: "BandExtreme", high: "BandHigh", moderate: "BandModerate", low: "BandLow", terrible: "BandTerrible"
     };
+    const locScale = (row) => bands[row.scale] ? game.i18n.localize(`SIMPLYSF2E.StatCheck.${bands[row.scale]}`) : "";
+    const locRow = (row) => ({
+      label: row.name ? game.i18n.format(row.label, { name: row.name }) : game.i18n.localize(row.label),
+      scale: locScale(row),
+      from: row.from,
+      to: row.to
+    });
+    const rows = [];
+    const strikesMap = new Map();
+    const strikeOrder = [];
+    for (const row of preview.rows) {
+      const key = String(row.key ?? "");
+      const m = key.match(/^(strike|damage)-(.+)$/);
+      if (m) {
+        const kind = m[1];
+        const id = m[2];
+        if (!strikesMap.has(id)) {
+          strikesMap.set(id, { name: row.name, attack: null, damage: null });
+          strikeOrder.push(id);
+        }
+        const entry = strikesMap.get(id);
+        if (!entry.name && row.name) entry.name = row.name;
+        const obj = { scale: locScale(row), from: row.from, to: row.to };
+        if (kind === "strike") entry.attack = obj;
+        else entry.damage = obj;
+      } else {
+        rows.push(locRow(row));
+      }
+    }
+    const strikes = strikeOrder.map((id) => strikesMap.get(id));
+    const changed = level !== this.#reskinSource.level;
+    if (!changed) {
+      rows.length = 0;
+      strikes.length = 0;
+    }
     return {
       from: this.#reskinSource.level,
       level,
       min: RELEVEL_MIN,
       max: RELEVEL_MAX,
-      changed: level !== this.#reskinSource.level,
-      rows: preview.rows.map((row) => ({
-        label: row.name ? game.i18n.format(row.label, { name: row.name }) : game.i18n.localize(row.label),
-        scale: bands[row.scale] ? game.i18n.localize(`SIMPLYSF2E.StatCheck.${bands[row.scale]}`) : "",
-        from: row.from,
-        to: row.to
-      })),
+      changed,
+      rows,
+      strikes,
+      hasRows: changed ? (rows.length > 0 || strikes.length > 0) : false,
       abilities: preview.abilities.map((line) => line.rebuilt
         ? { kept: false, label: game.i18n.format("SIMPLYSF2E.Relevel.AbilityRebuilt", { name: line.name, level }) }
         : { kept: true, label: game.i18n.format("SIMPLYSF2E.Relevel.AbilityKept", { name: line.name, reason: line.reason }) })
     };
+  }
   }
 
   /** Free Archetype is the campaign rule multiclass depends on; read it live, and treat an unreadable setting as off. */
