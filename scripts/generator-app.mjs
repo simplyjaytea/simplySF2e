@@ -130,6 +130,7 @@ export class GeneratorApp extends SpfApp {
   #busy = false;
   #busyMessage = null;
   #error = null;
+  #readinessOpen = false;
   #concept = null;
   #resolved = null;
   /** Encounter mode result: {name, budget, spent, members: [...]}. */
@@ -254,7 +255,7 @@ export class GeneratorApp extends SpfApp {
       jevSource: jevKeySource(),
       sourcePackCount: sources?.packCount ?? 0,
       sourceMissing: describeMissingSources(sources?.missing),
-      canAuthorizeApiKey: Boolean(
+      readinessOpen: this.#readinessOpen,      canAuthorizeApiKey: Boolean(
         authState.baseUrl && authState.hasConfiguredApiKey && !authState.apiKeyIsBound && !authState.apiKeyInsecure
       ),
       model: authState.model,
@@ -359,18 +360,50 @@ export class GeneratorApp extends SpfApp {
     const bands = {
       extreme: "BandExtreme", high: "BandHigh", moderate: "BandModerate", low: "BandLow", terrible: "BandTerrible"
     };
+    const locScale = (row) => bands[row.scale] ? game.i18n.localize(`SIMPLYSF2E.StatCheck.${bands[row.scale]}`) : "";
+    const locRow = (row) => ({
+      label: row.name ? game.i18n.format(row.label, { name: row.name }) : game.i18n.localize(row.label),
+      scale: locScale(row),
+      from: row.from,
+      to: row.to
+    });
+    const rows = [];
+    const strikesMap = new Map();
+    const strikeOrder = [];
+    for (const row of preview.rows) {
+      const key = String(row.key ?? "");
+      const m = key.match(/^(strike|damage)-(.+)$/);
+      if (m) {
+        const kind = m[1];
+        const id = m[2];
+        if (!strikesMap.has(id)) {
+          strikesMap.set(id, { name: row.name, attack: null, damage: null });
+          strikeOrder.push(id);
+        }
+        const entry = strikesMap.get(id);
+        if (!entry.name && row.name) entry.name = row.name;
+        const obj = { scale: locScale(row), from: row.from, to: row.to };
+        if (kind === "strike") entry.attack = obj;
+        else entry.damage = obj;
+      } else {
+        rows.push(locRow(row));
+      }
+    }
+    const strikes = strikeOrder.map((id) => strikesMap.get(id));
+    const changed = level !== this.#reskinSource.level;
+    if (!changed) {
+      rows.length = 0;
+      strikes.length = 0;
+    }
     return {
       from: this.#reskinSource.level,
       level,
       min: RELEVEL_MIN,
       max: RELEVEL_MAX,
-      changed: level !== this.#reskinSource.level,
-      rows: preview.rows.map((row) => ({
-        label: row.name ? game.i18n.format(row.label, { name: row.name }) : game.i18n.localize(row.label),
-        scale: bands[row.scale] ? game.i18n.localize(`SIMPLYSF2E.StatCheck.${bands[row.scale]}`) : "",
-        from: row.from,
-        to: row.to
-      })),
+      changed,
+      rows,
+      strikes,
+      hasRows: changed ? (rows.length > 0 || strikes.length > 0) : false,
       abilities: preview.abilities.map((line) => line.rebuilt
         ? { kept: false, label: game.i18n.format("SIMPLYSF2E.Relevel.AbilityRebuilt", { name: line.name, level }) }
         : { kept: true, label: game.i18n.format("SIMPLYSF2E.Relevel.AbilityKept", { name: line.name, reason: line.reason }) })
@@ -539,16 +572,26 @@ export class GeneratorApp extends SpfApp {
         ? game.i18n.format("SIMPLYSF2E.Skills.Budget", {
           spent: report.trainingBudget - report.unspentTraining, total: report.trainingBudget
         }) : null,
-      warnings: report.warnings.map((code) => game.i18n.format(`SIMPLYSF2E.Skills.${warningKeys[code] ?? "NativeData"}`, {
-        count: code === "unspent-training" ? report.unspentTraining : report.unspentIncreases
-      })),
-      loadoutWarnings: (report.loadoutWarnings ?? []).map((code) =>
-        game.i18n.localize(`SIMPLYSF2E.Loadout.${{
+      warnings: report.warnings.map((code) => {
+        const key = warningKeys[code] ?? "NativeData";
+        const count = code === "unspent-training" ? report.unspentTraining : report.unspentIncreases;
+        return {
+          title: game.i18n.format(`SIMPLYSF2E.Skills.${key}Title`, { count }),
+          detail: game.i18n.format(`SIMPLYSF2E.Skills.${key}`, { count })
+        };
+      }),
+      loadoutWarnings: (report.loadoutWarnings ?? []).map((code) => {
+        const key = {
           "loadout-native-data": "NativeData", "loadout-untrained-armor": "UntrainedArmor",
           "loadout-armor-conflict": "ArmorConflict", "loadout-untrained-weapon": "UntrainedWeapon",
           "loadout-hand-conflict": "HandConflict", "loadout-manual-ammo": "ManualAmmo",
           "loadout-missing-ammo": "MissingAmmo"
-        }[code] ?? "NativeData"}`))
+        }[code] ?? "NativeData";
+        return {
+          title: game.i18n.localize(`SIMPLYSF2E.Loadout.${key}Title`),
+          detail: game.i18n.localize(`SIMPLYSF2E.Loadout.${key}`)
+        };
+      })
     };
   }
 
@@ -659,7 +702,6 @@ export class GeneratorApp extends SpfApp {
       members: this.#encounter.members.map((member, index) => {
         const stats = adjustedStats(computeStats(member.concept), member.concept);
         const strike = stats.strikes[0];
-        const t = (key) => game.i18n.localize(`SIMPLYSF2E.Preview.${key}`);
         return {
           index,
           count: member.count,
@@ -668,9 +710,16 @@ export class GeneratorApp extends SpfApp {
           name: member.concept.name,
           level: stats.level,
           blurb: member.concept.blurb,
-          statline: `${t("AC")} ${stats.ac}, ${t("Fort")} ${signed(stats.saves.fortitude)}, ${t("Ref")} ${signed(stats.saves.reflex)}, ${t("Will")} ${signed(stats.saves.will)}, ${t("HP")} ${stats.hp}, ${t("PerceptionShort")} ${signed(stats.perception)}`
-            + (strike ? `, ${strike.name} ${signed(strike.bonus)} (${strike.damage})` : "")
-            + (stats.spellDC ? `, ${t("Spells")} ${t("DC")} ${stats.spellDC}` : "")
+          stats: {
+            ac: stats.ac,
+            hp: stats.hp,
+            perception: signed(stats.perception),
+            fort: signed(stats.saves.fortitude),
+            ref: signed(stats.saves.reflex),
+            will: signed(stats.saves.will),
+            strike: strike ? { name: strike.name, bonus: signed(strike.bonus), damage: strike.damage } : null,
+            spellDC: stats.spellDC ?? null
+          }
         };
       })
     };
@@ -833,7 +882,9 @@ export class GeneratorApp extends SpfApp {
   _onRender(context, options) {
     super._onRender?.(context, options);
     this.element?.classList?.toggle("spf-busy", Boolean(context?.busy));
-    this.element.querySelector('select[name="preset"]')?.addEventListener("change", () => {
+    this.element.querySelector("details[data-readiness]")?.addEventListener("toggle", (event) => {
+      this.#readinessOpen = event.currentTarget.open;
+    });    this.element.querySelector('select[name="preset"]')?.addEventListener("change", () => {
       this.#readForm();
       // Restore the preset's saved generator defaults into the live form —
       // only the fields the preset actually defines (built-ins and older
@@ -1797,8 +1848,13 @@ export class GeneratorApp extends SpfApp {
           review = { choices: [], incomplete: true };
         }
         if (skillReport || review.choices.length || review.incomplete) {
+          const skills = GeneratorApp.#skillReportContext(skillReport);
+          const actionCount = (review.choices?.length ?? 0)
+            + (skills?.warnings?.length ?? 0)
+            + (skills?.loadoutWarnings?.length ?? 0)
+            + (review.incomplete ? 1 : 0);
           this.#characterReview = { ...review, actorId: actor.id, actorName: actor.name,
-            skills: GeneratorApp.#skillReportContext(skillReport) };
+            actionCount, skills };
         }
         if (review.choices.length || review.incomplete || skillReport?.warnings.length || skillReport?.loadoutWarnings?.length) {
           ui.notifications.warn(game.i18n.format("SIMPLYSF2E.Generator.ReviewCreated", { name: actor.name }));
