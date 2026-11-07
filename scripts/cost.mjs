@@ -165,6 +165,7 @@ export function runCost(usages, prices = {}) {
     const p = Math.max(0, count(usage.prompt) - count(usage.jevPrompt));
     const c = Math.max(0, count(usage.completion) - count(usage.jevCompletion));
     if (!priceTokens(p, c, usage) && (p || c)) partial = true;
+    if (count(usage.total) > count(usage.prompt) + count(usage.completion)) partial = true;
   }
   if (!provider && !manual) return { amount: null, partial: false, source: null };
   return {
