@@ -848,31 +848,49 @@
       <h2>{{localize "SIMPLYSF2E.Generator.ReviewTitle"}}</h2>
     </header>
     <p class="spf-subtitle">{{characterReview.actorName}}</p>
-    <p>{{localize "SIMPLYSF2E.Skills.Snapshot"}}</p>
+    {{! The snapshot caveat appears once; each warning below is a short action
+        title with its full explanation one click away. Every warning stays in
+        the list (and in the status region); none is dropped or merged. }}
+    <p class="spf-review-caveat"><i aria-hidden="true" class="fa-solid fa-circle-info"></i> <span>{{localize "SIMPLYSF2E.Skills.Snapshot"}}</span></p>
+    {{#if characterReview.actionCount}}
+    <div class="spf-review-actions" role="status">
+      <h3><i aria-hidden="true" class="fa-solid fa-triangle-exclamation"></i> {{localize "SIMPLYSF2E.Generator.ReviewActionsHeading" count=characterReview.actionCount}}</h3>
+      <ul class="spf-review-list">
+        {{#each characterReview.choices}}
+          <li><details class="spf-disclosure spf-review-action">
+            <summary><span class="spf-disclosure-label">{{localize "SIMPLYSF2E.Generator.ReviewChoiceTitle" item=this.itemName}}</span></summary>
+            <p><em class="spf-review-prompt">{{localize this.prompt}}</em> {{localize "SIMPLYSF2E.Generator.ReviewChoiceDetail"}}</p>
+          </details></li>
+        {{/each}}
+        {{#each characterReview.skills.warnings}}
+          <li><details class="spf-disclosure spf-review-action">
+            <summary><span class="spf-disclosure-label">{{this.title}}</span></summary>
+            <p>{{this.detail}}</p>
+          </details></li>
+        {{/each}}
+        {{#each characterReview.skills.loadoutWarnings}}
+          <li><details class="spf-disclosure spf-review-action">
+            <summary><span class="spf-disclosure-label">{{this.title}}</span></summary>
+            <p>{{this.detail}}</p>
+          </details></li>
+        {{/each}}
+        {{#if characterReview.incomplete}}
+          <li><details class="spf-disclosure spf-review-action">
+            <summary><span class="spf-disclosure-label">{{localize "SIMPLYSF2E.Generator.ReviewIncompleteTitle"}}</span></summary>
+            <p>{{localize "SIMPLYSF2E.Generator.ReviewIncomplete"}}</p>
+          </details></li>
+        {{/if}}
+      </ul>
+    </div>
+    {{/if}}
     {{#if characterReview.skills}}
       <h3>{{localize "SIMPLYSF2E.Skills.Result"}}</h3>
-      {{#if characterReview.skills.automatic}}<p>{{localize "SIMPLYSF2E.Skills.Automatic"}}</p>{{/if}}
-      {{#if characterReview.skills.budget}}<p>{{characterReview.skills.budget}}</p>{{/if}}
+      {{#if characterReview.skills.automatic}}<p class="spf-hint">{{localize "SIMPLYSF2E.Skills.Automatic"}}</p>{{/if}}
+      {{#if characterReview.skills.budget}}<p class="spf-hint">{{characterReview.skills.budget}}</p>{{/if}}
       <ul class="spf-list spf-inline">
         {{#each characterReview.skills.rows}}<li>{{this.name}} — {{this.rank}}</li>{{/each}}
       </ul>
-      {{#each characterReview.skills.warnings}}<p class="notification warning" role="status">{{this}}</p>{{/each}}
-      {{#if characterReview.skills.loadoutWarnings}}
-        <h3>{{localize "SIMPLYSF2E.Loadout.Result"}}</h3>
-        {{#each characterReview.skills.loadoutWarnings}}<p class="notification warning" role="status">{{this}}</p>{{/each}}
-      {{/if}}
     {{/if}}
-    {{#if characterReview.choices.length}}
-      <p class="notification warning" role="status">{{localize "SIMPLYSF2E.Generator.ReviewHint"}}</p>
-    {{/if}}
-    {{#if characterReview.incomplete}}
-      <p class="notification warning" role="status">{{localize "SIMPLYSF2E.Generator.ReviewIncomplete"}}</p>
-    {{/if}}
-    <ul class="spf-list">
-      {{#each characterReview.choices}}
-        <li><strong>{{this.itemName}}</strong> — {{localize this.prompt}}</li>
-      {{/each}}
-    </ul>
     <footer class="spf-actions">
       <button type="button" class="spf-primary" data-action="openReviewedCharacter"><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i> {{localize "SIMPLYSF2E.Generator.OpenCharacter"}}</button>
       <button type="button" data-action="dismissCharacterReview"><i class="fa-solid fa-xmark" aria-hidden="true"></i> {{localize "SIMPLYSF2E.Generator.DismissReview"}}</button>

@@ -60,3 +60,24 @@ Behaviour:
 - Existing fields `sourcesReady`, `sourcePackCount`, `sourceMissing`, `jevSource` are unchanged. The `configureSources` / `configureProvider` actions keep their names.
 
 Keys: new `SIMPLYSF2E.Generator.CompendiumShort`, `.ReadyShort`, `.JevShort`, `.JevShortOn`, `.JevShortOff`.
+
+## Item 1 — Character review: one caveat, short action titles
+
+Template: `templates/generator.hbs` (`characterReview`). Supply in: `GeneratorApp.#skillReportContext()` and where `#characterReview` is built (~l.1800 of `generator-app.mjs`).
+
+| Field | Type | Meaning | Example (fixture `generator-character-review`) |
+| --- | --- | --- | --- |
+| `characterReview.actionCount` (new) | number | Rows in the "To review" list: `choices.length + skills.warnings.length + skills.loadoutWarnings.length + (incomplete ? 1 : 0)` (`skills` may be null: count 0 for its lists). | `5` |
+| `characterReview.skills.warnings` (changed) | `{title, detail}[]` (was `string[]`) | `title` = `game.i18n.format("SIMPLYSF2E.Skills.<Key>Title", {count})`, `detail` = today's string from `SIMPLYSF2E.Skills.<Key>` (same `warningKeys` map, same `count`). | `{ title: "Assign 1 more trained skill(s)", detail: "1 additional training choices could not be assigned safely." }` |
+| `characterReview.skills.loadoutWarnings` (changed) | `{title, detail}[]` (was `string[]`) | `title` = `SIMPLYSF2E.Loadout.<Key>Title`, `detail` = today's `SIMPLYSF2E.Loadout.<Key>` (same code map). | `{ title: "Review one untrained weapon", detail: "An untrained weapon was left stowed." }` |
+
+Unchanged: `actorName`, `incomplete`, `choices[] {itemName, prompt}` (the template now titles each "Choose an option for {itemName}" and shows `localize(prompt)` plus `Generator.ReviewChoiceDetail` as its explanation), `skills.rows`, `skills.automatic`, `skills.budget`.
+
+Behaviour:
+- The ui notification after create (`ReviewCreated` vs `Created`) is unchanged.
+- Title key for each code: append `Title` to the existing key (`UnspentTraining` -> `UnspentTrainingTitle`, `UntrainedWeapon` -> `UntrainedWeaponTitle`, fallback `NativeDataTitle`). All 9 Skills and 7 Loadout title keys exist in `lang/en.json`.
+- Keep `skills.warnings` non-empty whenever today it is non-empty: no warning is dropped or merged.
+
+Keys: new `SIMPLYSF2E.Generator.ReviewActionsHeading`, `.ReviewChoiceTitle`, `.ReviewChoiceDetail`, `.ReviewIncompleteTitle`, `SIMPLYSF2E.Skills.*Title` (9), `SIMPLYSF2E.Loadout.*Title` (7). Deleted: `SIMPLYSF2E.Generator.ReviewHint` (its snapshot sentence duplicated `Skills.Snapshot`; the rest is `ReviewChoiceDetail`) and `SIMPLYSF2E.Loadout.Result` (the "Equipment readiness" heading; loadout warnings are now rows of the To review list).
+
+Harness note: `tools/ui-preview/render.mjs` resolves the one system key a fixture uses, `PF2E.UI.RuleElements.ChoiceSet.Prompt`, from a small stub, since the harness does not load the system's language file.

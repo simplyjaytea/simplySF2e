@@ -828,3 +828,62 @@
   color: var(--spf-text-muted);
   font-style: italic;
 }
+
+/* --------------------------------------------------------------------------
+   Character review: one snapshot caveat, then a "To review" list of short
+   action titles, each expanding to its full explanation.
+   -------------------------------------------------------------------------- */
+.simplysf2e .spf-review-caveat {
+  display: flex;
+  align-items: baseline;
+  gap: var(--spf-space-sm);
+  margin: var(--spf-space-xs) 0 var(--spf-space-md);
+  font-size: var(--spf-text-sm);
+  color: var(--spf-text-muted);
+}
+
+.simplysf2e .spf-review-actions {
+  margin: 0 0 var(--spf-space-md);
+  padding: var(--spf-space-sm) var(--spf-space-md);
+  border: 1px solid color-mix(in srgb, var(--spf-amber) 45%, var(--spf-border));
+  border-left: 3px solid var(--spf-amber);
+  border-radius: var(--spf-radius);
+  background: color-mix(in srgb, var(--spf-amber) 7%, var(--spf-surface));
+}
+
+.simplysf2e .spf-review-actions h3 {
+  display: flex;
+  align-items: baseline;
+  gap: var(--spf-space-sm);
+  margin: 0 0 var(--spf-space-xs);
+  font-size: var(--spf-text-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--spf-amber);
+}
+
+.simplysf2e .spf-review-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.simplysf2e .spf-review-list > li + li {
+  border-top: 1px solid color-mix(in srgb, var(--spf-border) 60%, transparent);
+}
+
+.simplysf2e .spf-review-action > summary {
+  padding: var(--spf-space-xs) 0;
+  font-weight: 700;
+  color: var(--spf-text);
+}
+
+.simplysf2e .spf-review-action > p {
+  margin: 0 0 var(--spf-space-sm) 1.05rem;
+  font-size: var(--spf-text-sm);
+  color: var(--spf-text-muted);
+}
+
+.simplysf2e .spf-review-prompt {
+  color: var(--spf-text);
+}

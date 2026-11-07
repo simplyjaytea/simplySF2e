@@ -361,14 +361,58 @@ export default [
     app: "generator",
     context: generatorContext("character", {
       input: { level: 3 }, showEmptyState: false,
+      // Contract (docs/ui-contract.md, item 1): skills.warnings and
+      // skills.loadoutWarnings are {title, detail} pairs; actionCount totals
+      // every row of the "To review" list.
       characterReview: {
-        actorId: "a1", actorName: "Kess Vandrel", incomplete: true,
-        choices: [{ itemName: "Skilled Heritage", prompt: "SIMPLYSF2E.Generator.ReviewHint" }],
+        actorId: "a1", actorName: "Kess Vandrel", incomplete: true, actionCount: 5,
+        choices: [
+          { itemName: "Skilled Heritage", prompt: "PF2E.UI.RuleElements.ChoiceSet.Prompt" },
+          { itemName: "Operative's Specialization", prompt: "PF2E.UI.RuleElements.ChoiceSet.Prompt" }
+        ],
+        skills: {
+          rows: [{ name: "Diplomacy", rank: "Expert" }, { name: "Society", rank: "Trained" }, { name: "Stealth", rank: "Trained" }, { name: "Computers", rank: "Trained" }],
+          automatic: false, budget: localize("SIMPLYSF2E.Skills.Budget", { spent: 5, total: 6 }),
+          warnings: [{ title: localize("SIMPLYSF2E.Skills.UnspentTrainingTitle", { count: 1 }), detail: localize("SIMPLYSF2E.Skills.UnspentTraining", { count: 1 }) }],
+          loadoutWarnings: [{ title: localize("SIMPLYSF2E.Loadout.UntrainedWeaponTitle"), detail: localize("SIMPLYSF2E.Loadout.UntrainedWeapon") }]
+        }
+      }
+    })
+  },
+  {
+    id: "generator-character-review-open",
+    open: [".spf-review-action"],
+    app: "generator",
+    context: generatorContext("character", {
+      input: { level: 3 }, showEmptyState: false,
+      // Contract (docs/ui-contract.md, item 1): skills.warnings and
+      // skills.loadoutWarnings are {title, detail} pairs; actionCount totals
+      // every row of the "To review" list.
+      characterReview: {
+        actorId: "a1", actorName: "Kess Vandrel", incomplete: true, actionCount: 5,
+        choices: [
+          { itemName: "Skilled Heritage", prompt: "PF2E.UI.RuleElements.ChoiceSet.Prompt" },
+          { itemName: "Operative's Specialization", prompt: "PF2E.UI.RuleElements.ChoiceSet.Prompt" }
+        ],
+        skills: {
+          rows: [{ name: "Diplomacy", rank: "Expert" }, { name: "Society", rank: "Trained" }, { name: "Stealth", rank: "Trained" }, { name: "Computers", rank: "Trained" }],
+          automatic: false, budget: localize("SIMPLYSF2E.Skills.Budget", { spent: 5, total: 6 }),
+          warnings: [{ title: localize("SIMPLYSF2E.Skills.UnspentTrainingTitle", { count: 1 }), detail: localize("SIMPLYSF2E.Skills.UnspentTraining", { count: 1 }) }],
+          loadoutWarnings: [{ title: localize("SIMPLYSF2E.Loadout.UntrainedWeaponTitle"), detail: localize("SIMPLYSF2E.Loadout.UntrainedWeapon") }]
+        }
+      }
+    })
+  },
+  {
+    id: "generator-character-review-clean",
+    app: "generator",
+    context: generatorContext("character", {
+      input: { level: 3 }, showEmptyState: false,
+      characterReview: {
+        actorId: "a1", actorName: "Kess Vandrel", incomplete: false, actionCount: 0, choices: [],
         skills: {
           rows: [{ name: "Diplomacy", rank: "Expert" }, { name: "Society", rank: "Trained" }],
-          automatic: false, budget: "Training: 5 of 6 spent",
-          warnings: ["1 unspent skill training remains."],
-          loadoutWarnings: ["Tactical Pistol: untrained in this weapon."]
+          automatic: true, budget: null, warnings: [], loadoutWarnings: []
         }
       }
     })
