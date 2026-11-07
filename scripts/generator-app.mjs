@@ -540,16 +540,26 @@ export class GeneratorApp extends SpfApp {
         ? game.i18n.format("SIMPLYSF2E.Skills.Budget", {
           spent: report.trainingBudget - report.unspentTraining, total: report.trainingBudget
         }) : null,
-      warnings: report.warnings.map((code) => game.i18n.format(`SIMPLYSF2E.Skills.${warningKeys[code] ?? "NativeData"}`, {
-        count: code === "unspent-training" ? report.unspentTraining : report.unspentIncreases
-      })),
-      loadoutWarnings: (report.loadoutWarnings ?? []).map((code) =>
-        game.i18n.localize(`SIMPLYSF2E.Loadout.${{
+      warnings: report.warnings.map((code) => {
+        const key = warningKeys[code] ?? "NativeData";
+        const count = code === "unspent-training" ? report.unspentTraining : report.unspentIncreases;
+        return {
+          title: game.i18n.format(`SIMPLYSF2E.Skills.${key}Title`, { count }),
+          detail: game.i18n.format(`SIMPLYSF2E.Skills.${key}`, { count })
+        };
+      }),
+      loadoutWarnings: (report.loadoutWarnings ?? []).map((code) => {
+        const key = {
           "loadout-native-data": "NativeData", "loadout-untrained-armor": "UntrainedArmor",
           "loadout-armor-conflict": "ArmorConflict", "loadout-untrained-weapon": "UntrainedWeapon",
           "loadout-hand-conflict": "HandConflict", "loadout-manual-ammo": "ManualAmmo",
           "loadout-missing-ammo": "MissingAmmo"
-        }[code] ?? "NativeData"}`))
+        }[code] ?? "NativeData";
+        return {
+          title: game.i18n.localize(`SIMPLYSF2E.Loadout.${key}Title`),
+          detail: game.i18n.localize(`SIMPLYSF2E.Loadout.${key}`)
+        };
+      })
     };
   }
 
@@ -1806,8 +1816,13 @@ export class GeneratorApp extends SpfApp {
           review = { choices: [], incomplete: true };
         }
         if (skillReport || review.choices.length || review.incomplete) {
+          const skills = GeneratorApp.#skillReportContext(skillReport);
+          const actionCount = (review.choices?.length ?? 0)
+            + (skills?.warnings?.length ?? 0)
+            + (skills?.loadoutWarnings?.length ?? 0)
+            + (review.incomplete ? 1 : 0);
           this.#characterReview = { ...review, actorId: actor.id, actorName: actor.name,
-            skills: GeneratorApp.#skillReportContext(skillReport) };
+            actionCount, skills };
         }
         if (review.choices.length || review.incomplete || skillReport?.warnings.length || skillReport?.loadoutWarnings?.length) {
           ui.notifications.warn(game.i18n.format("SIMPLYSF2E.Generator.ReviewCreated", { name: actor.name }));
