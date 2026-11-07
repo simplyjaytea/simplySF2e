@@ -122,3 +122,17 @@ Copy these rows into the session in `docs/live-log.md`, then replace the result 
 | I-170.5.1 |  | NPC speeds and saves |
 | I-170.5.2 |  | RollOption item and affected roll |
 | I-170.5.3 |  | Foundry 14.370 loads without a version warning |
+
+## UI polish pass
+Walk through windows and log 12ac.1-12ac.11.
+| 12ac.1 |  |  |
+| 12ac.2 |  |  |
+| 12ac.3 |  |  |
+| 12ac.4 |  |  |
+| 12ac.5 |  |  |
+| 12ac.6 |  |  |
+| 12ac.7 |  |  |
+| 12ac.8 |  |  |
+| 12ac.9 |  |  |
+| 12ac.10 |  |  |
+| 12ac.11 |  |  |
