@@ -30,7 +30,7 @@ Test record: Foundry version `____` · sf2e version `____` · module version `__
 | 1 | 0.1 | Enable SimplySF2e in Manage Modules, save, reload the world. | Reloads with no red error notifications and no `simplysf2e` console errors. | | |
 | 2 | 0.10 | Compendium Sources → **Configure Sources**. Read every category before changing anything. | Each category lists its packs; the sf2e defaults are marked "default". | | |
 | 3 | 0.11 | Compendium Sources → **Reset to defaults**, confirm, **Save**. | "Compendium sources reset to the SF2e system pack defaults." then "Compendium sources saved." | | |
-| 4 | 12t.1 | In a fresh browser profile, log in as GM. | Welcome to SimplySF2e opens by itself; the readiness rows show as 12t.1 describes. | | |
+| 4 | 12t.1 | In a fresh browser profile, log in as GM. | Welcome opens by itself with OpenRouter selected and marked Recommended, an empty key field and **Connect** disabled. No readiness warning appears. | | |
 | 5 | 0.6 | Provider Setup → **Load Models**, pick a model, name the connection. | "Loaded N available model IDs." | | |
 | 6 | 0.7 | Provider Setup → **Save & Test**. | "Connected to {provider} with model {model} ({total} tokens)." | | |
 | 7 | 12t.3 | Connect the working provider with its default model (or the model you pick). | The connected state names the model and offers **Generate a sample monster**. | | |
@@ -164,7 +164,7 @@ P9 also needs a live-log entry for this build (roadmap P9). `docs/live-log.md` e
 
 These ids stay in [docs/qa-checklist.md](qa-checklist.md) for the full pass. The 90-row cap leaves them out, so the roadmap bars below are not fully covered here:
 
-- P1: 0.2–0.5, 0.9, 0.13–0.15, 12t.3, 12t.4, 12t.6.
+- P1: 0.2–0.5, 0.9, 0.13–0.15, 12t.4, 12t.6.
 - P2: 2.1, 2.2, 2.3, 2.5, 2.6, 3.2, 3.5, 3.7, 3.8, 12s.2, 12s.3, 12x.4, 12x.6.
 - P3: 4.3, 4.4, 4.8, 13d.1–13d.4 (party button).
 - P4: 7.1, 7.3, 7.5, 7.7, 7.8, 7a.1, 7a.4, 7a.6, 7a.7, 7b.1, 7b.2, 8.1–8.5.
