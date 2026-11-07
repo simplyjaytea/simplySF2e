@@ -43,7 +43,7 @@
       },
       "RunDeadline": {
         "Name": "Run deadline (minutes)",
-        "Hint": "Minutes before a run times out; 0 disables it."
+        "Hint": "Minutes before a run times out (default 5). Set 0 to turn the limit off."
       },
       "FreeArchetype": {
         "Name": "Free Archetype variant rule",
@@ -213,6 +213,10 @@
         "ClearerErrors": {
           "Title": "Clearer error messages and bug reports",
           "Body": "Error messages now say what went wrong and what to do next. After you copy a bug report, an Open GitHub issue button takes you straight to the issue form, and the report is never put in the link."
+        },
+        "RunDeadline": {
+          "Title": "Runs stop after 5 minutes",
+          "Body": "Runs now stop after 5 minutes by default, so a stuck request cannot hang the Generator. Change the limit, or turn it off with 0, in Module Settings: SimplySF2e, Run deadline (minutes)."
         },
         "RunCost": {
           "Title": "Run cost",
