@@ -46,17 +46,19 @@
 
   <fieldset class="spf-inputs spf-card" {{#if busy}}disabled{{/if}}>
     <legend>{{localize "SIMPLYSF2E.ItemForge.ConceptLegend"}}</legend>
+    {{! Compact kind switch: all five kinds equally visible as one segmented
+        row; the selected kind's description shows once below. The selected
+        button carries aria-pressed, a frame and a thick underline bar, not
+        colour alone; each button's tooltip holds its own description. }}
     <div class="spf-kind-choices" role="group" aria-label="{{localize 'SIMPLYSF2E.ItemForge.Kind'}}">
       {{#each kinds}}
-        <button type="button" class="spf-kind-choice {{#if this.selected}}spf-kind-selected{{/if}}" data-action="selectKind" data-kind="{{this.value}}" aria-pressed="{{this.selected}}" {{#if @root.busy}}disabled{{/if}}>
+        <button type="button" class="spf-kind-choice {{#if this.selected}}spf-kind-selected{{/if}}" data-action="selectKind" data-kind="{{this.value}}" aria-pressed="{{this.selected}}" data-tooltip="{{localize this.hint}}" {{#if this.selected}}aria-describedby="spf-kind-hint"{{/if}} {{#if @root.busy}}disabled{{/if}}>
           <i class="fa-solid {{this.icon}}" aria-hidden="true"></i>
-          <span class="spf-kind-choice-copy">
-            <strong>{{localize this.label}}</strong>
-            <small>{{localize this.hint}}</small>
-          </span>
+          <span class="spf-kind-label">{{localize this.short}}</span>
         </button>
       {{/each}}
     </div>
+    <p id="spf-kind-hint" class="spf-kind-hint">{{#each kinds}}{{#if this.selected}}<strong>{{localize this.label}}:</strong> {{localize this.hint}}{{/if}}{{/each}}</p>
     <div class="form-group stacked">
       <label for="spf-itemforge-prompt">{{localize "SIMPLYSF2E.ItemForge.Prompt"}}</label>
       <textarea id="spf-itemforge-prompt" name="prompt" rows="3" placeholder="{{localize 'SIMPLYSF2E.ItemForge.PromptPlaceholder'}}">{{input.prompt}}</textarea>

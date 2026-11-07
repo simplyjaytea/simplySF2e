@@ -121,3 +121,16 @@ Behaviour:
 - Save buttons and their order are unchanged.
 
 Keys: new `SIMPLYSF2E.ProviderSetup.CostLegend`, `.CostNotSet`, `.CostSummary`, `.FoldNeedsFix`, `.JevKeySavedShort`.
+
+## Item 5 — Item Forge compact kind picker
+
+Template: `templates/itemforge.hbs`. Supply in: `ItemForgeApp._prepareContext()` (`kinds` array, ~l.99 of `scripts/itemforge-app.mjs`).
+
+| Field | Type | Meaning | Example |
+| --- | --- | --- | --- |
+| `kinds[].short` (new) | i18n key | Compact button label. | `"SIMPLYSF2E.ItemForge.KindAugmentationShort"` ("Augment") |
+| `kinds[].icon` (changed for weapon) | string | `fa-sword` is a Font Awesome **Pro** icon and renders blank with Foundry's free FA 6; use `fa-gun`. | `"fa-gun"` |
+
+Unchanged: `value`, `label` (now shown once in the description line under the buttons, and still the source of the selected kind's name), `hint`, `selected`; action `selectKind` with `data-kind`. The selected button keeps `aria-pressed="true"` and gets `aria-describedby="spf-kind-hint"`; every button's tooltip carries its own hint. No JS behaviour change.
+
+Keys: new `SIMPLYSF2E.ItemForge.KindWondrousShort`, `KindWeaponShort`, `KindArmorShort`, `KindAugmentationShort`, `KindCrystalShort` (read through `kinds[].short`, so `i18n-keys.test.mjs` lists them as unused until the app supplies the field).
