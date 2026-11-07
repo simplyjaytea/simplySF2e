@@ -409,7 +409,6 @@ export class GeneratorApp extends SpfApp {
         : { kept: true, label: game.i18n.format("SIMPLYSF2E.Relevel.AbilityKept", { name: line.name, reason: line.reason }) })
     };
   }
-  }
 
   /** Free Archetype is the campaign rule multiclass depends on; read it live, and treat an unreadable setting as off. */
   #freeArchetypeOn() {

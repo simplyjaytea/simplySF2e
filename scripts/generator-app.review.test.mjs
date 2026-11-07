@@ -228,7 +228,7 @@ await actions.createActor.call(skills);
 assert.equal(skills.context.characterReview.skills.rows[0].name, "medicine");
 assert.equal(skills.context.characterReview.skills.rows[0].rank, "SIMPLYSF2E.Skills.Rank2");
 assert.equal(skills.context.characterReview.skills.rows[1].name, "<img src=x> Lore");
-assert.deepEqual(Array.from(skills.context.characterReview.skills.warnings), ["SIMPLYSF2E.Skills.UnspentIncreases"]);
+assert.equal(JSON.stringify(skills.context.characterReview.skills.warnings), JSON.stringify([{ title: "SIMPLYSF2E.Skills.UnspentIncreasesTitle", detail: "SIMPLYSF2E.Skills.UnspentIncreases" }]));
 assert.equal(skills.context.pcPreview, null);
 skillReport = undefined;
 
