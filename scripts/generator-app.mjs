@@ -16,7 +16,7 @@ import {
 import {
   normalizeLoot, resolveLoot, computeStats, adjustedStats, createActor,
   applyTreasureBudget, equipmentValueGp, lootValueGp, parseCoins, slugify,
-  dedupeLootAgainstEquipment, enforceNamedLootBudget, reskinActorData
+  dedupeLootAgainstEquipment, enforceNamedLootBudget, reskinActorData, rerollAbilityInto
 } from "./builder.mjs";
 import { normalizeReskin, reskinRenameTargets } from "./reskin.mjs";
 import { relevelPreview, relevelReskin, loadRelevelSources, clampRelevel, RELEVEL_MIN, RELEVEL_MAX } from "./relevel.mjs";
@@ -2194,17 +2194,27 @@ export class GeneratorApp extends SpfApp {
         ui.notifications.warn(game.i18n.format("SIMPLYSF2E.Generator.RerollPickInvalid", { name: currentName }));
         return;
       }
-      const next = applyRerollPick(concept, { kind, index, candidate });
-      const resolved = { ...this.#resolved };
-      if (kind === "spell") {
-        resolved.spells = [...resolved.spells];
-        resolved.spells[index] = { spell: next.spellcasting.spells[index], entry: candidate.ref };
-      } else if (kind === "feat") {
-        resolved.feats = [...resolved.feats];
-        resolved.feats[index] = { name: candidate.name, entry: candidate.ref };
+      let next;
+      let resolved;
+      if (kind === "ability") {
+        // The same resolve decision as the early check (builder.mjs rerollAbilityInto).
+        const rerolled = await rerollAbilityInto(concept, this.#resolved, { index, candidate });
+        if (!rerolled) {
+          ui.notifications.warn(game.i18n.format("SIMPLYSF2E.Generator.RerollPickBlocked", { name: currentName }));
+          return;
+        }
+        next = rerolled.concept;
+        resolved = rerolled.resolved;
       } else {
-        resolved.abilities = [...resolved.abilities];
-        resolved.abilities[index] = { ability: next.specialAbilities[index], entry: candidate.ref };
+        next = applyRerollPick(concept, { kind, index, candidate });
+        resolved = { ...this.#resolved };
+        if (kind === "spell") {
+          resolved.spells = [...resolved.spells];
+          resolved.spells[index] = { spell: next.spellcasting.spells[index], entry: candidate.ref };
+        } else {
+          resolved.feats = [...resolved.feats];
+          resolved.feats[index] = { name: candidate.name, entry: candidate.ref };
+        }
       }
       const manifest = completionManifest({ mode: this.#manifest?.mode ?? "monster", concept: next, resolved });
       assertComplete(manifest);

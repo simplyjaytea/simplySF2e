@@ -334,6 +334,7 @@
       "RerollPickLabel": "Reroll {name}",
       "RerollPickNone": "No other compendium option fits in place of {name}. Keep it, or enable more packs in Compendium Sources.",
       "RerollPickInvalid": "The AI did not pick a listed option for {name}. The preview is unchanged. Try the reroll again.",
+      "RerollPickBlocked": "{name} cannot be used for this creature (the console says why). The preview is unchanged.",
       "Discard": "Discard",
       "EmptyHintReskin": "Nothing generated yet — drop an NPC above, then press Generate. The preview appears here before anything is created.",
       "XPUnit": "XP",
