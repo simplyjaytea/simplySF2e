@@ -834,6 +834,11 @@
   font-weight: bold;
 }
 
+.simplysf2e .spf-token-cost {
+  margin: 0.1rem 0 0;
+  overflow-wrap: anywhere;
+}
+
 /* --------------------------------------------------------------------------
    Stat-block style preview (shared by generator + item forge)
    -------------------------------------------------------------------------- */

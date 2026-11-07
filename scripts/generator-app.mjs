@@ -19,7 +19,7 @@ import {
   dedupeLootAgainstEquipment, enforceNamedLootBudget, reskinActorData
 } from "./builder.mjs";
 import { normalizeReskin, reskinRenameTargets } from "./reskin.mjs";
-import { relevelActorData, clampRelevel, RELEVEL_MIN, RELEVEL_MAX } from "./relevel.mjs";
+import { relevelPreview, relevelReskin, loadRelevelSources, clampRelevel, RELEVEL_MIN, RELEVEL_MAX } from "./relevel.mjs";
 import { REROLL_KINDS, rerollTarget, rerollPool, applyRerollPick, rerollKeywords } from "./reroll.mjs";
 import {
   normalizePCConcept, resolvePCConcept, resolveFeatPicks, createCharacterActor, pcStartingWealthGp, archetypeCasterPlan, resolveArchetypeBridges
@@ -43,7 +43,7 @@ import {
 import { validateArchetypeSlotPlacement, stagedActorContext } from "./pc-prerequisites.mjs";
 import { SpfApp } from "./app-base.mjs";
 import { jevKeySource } from "./jev.mjs";
-import { signed, esc, capitalized } from "./text.mjs";
+import { signed, esc, escAi, capitalized } from "./text.mjs";
 import { statCheckForActor, describeStatCheck, hasSpellEntry } from "./stat-check.mjs";
 import { moveToGeneratedFolder, generatedFolderId } from "./folders.mjs";
 import { createHandout } from "./handout.mjs";
@@ -125,6 +125,8 @@ export class GeneratorApp extends SpfApp {
   /** Reskin mode: the copy's level (re-level; null = the source's level) and the source data for its preview. */
   #reskinLevel = null;
   #reskinData = null;
+  // Glossary sources behind the copy's filled abilities (relevel.mjs loadRelevelSources).
+  #reskinSources = {};
   #busy = false;
   #busyMessage = null;
   #error = null;
@@ -157,6 +159,8 @@ export class GeneratorApp extends SpfApp {
   #savedInputJson = null;
   /** True while a chat command is rendering the form before its run starts. */
   #chatPending = false;
+  /** Preview-only samples leave the GM's remembered Generator inputs untouched. */
+  #rememberInputSuspended = false;
   constructor(...args) {
     super(...args);
     // Isolated tests build the app without Foundry's settings.
@@ -193,11 +197,18 @@ export class GeneratorApp extends SpfApp {
     this.#rememberInput();
   }
 
-  /** Chat command with a prompt: fill the form and start a preview (no Create). */
-  async runFromChat(updates = {}) {
+  /** Chat/sample prompt: fill the form and start a preview (no Create). */
+  async runFromChat(updates = {}, { remember = true } = {}) {
+    const previousRememberSuspension = this.#rememberInputSuspended;
+    this.#rememberInputSuspended = previousRememberSuspension || !remember;
     if (this.#busy || this.#createPending || this.#chatPending) {
-      this.setInput(updates);
-      ui.notifications.warn(game.i18n.localize("SIMPLYSF2E.Chat.Busy"));
+      try {
+        if (remember) this.setInput(updates);
+        else this.#mergeInput(updates);
+        ui.notifications.warn(game.i18n.localize("SIMPLYSF2E.Chat.Busy"));
+      } finally {
+        this.#rememberInputSuspended = previousRememberSuspension;
+      }
       return;
     }
     // Held across the render so a second command cannot slip in before the run starts.
@@ -205,10 +216,12 @@ export class GeneratorApp extends SpfApp {
     try {
       this.#mergeInput(updates);
       await this.render({ force: true });
+      this.#chatPending = false;
+      return await this.#runGeneration(false, { create: false });   // preview only; the GM still clicks Create
     } finally {
       this.#chatPending = false;
+      this.#rememberInputSuspended = previousRememberSuspension;
     }
-    return this.#runGeneration(false, { create: false });   // preview only; the GM still clicks Create
   }
 
 
@@ -340,7 +353,9 @@ export class GeneratorApp extends SpfApp {
   #buildRelevelContext() {
     if (!this.#reskinSource) return null;
     const level = this.#reskinTargetLevel();
-    const { rows } = this.#reskinData ? relevelActorData(this.#reskinData, level) : { rows: [] };
+    const preview = this.#reskinData
+      ? relevelPreview(this.#reskinData, level, this.#reskinSources)
+      : { rows: [], abilities: [] };
     const bands = {
       extreme: "BandExtreme", high: "BandHigh", moderate: "BandModerate", low: "BandLow", terrible: "BandTerrible"
     };
@@ -350,12 +365,15 @@ export class GeneratorApp extends SpfApp {
       min: RELEVEL_MIN,
       max: RELEVEL_MAX,
       changed: level !== this.#reskinSource.level,
-      rows: rows.map((row) => ({
+      rows: preview.rows.map((row) => ({
         label: row.name ? game.i18n.format(row.label, { name: row.name }) : game.i18n.localize(row.label),
         scale: bands[row.scale] ? game.i18n.localize(`SIMPLYSF2E.StatCheck.${bands[row.scale]}`) : "",
         from: row.from,
         to: row.to
-      }))
+      })),
+      abilities: preview.abilities.map((line) => line.rebuilt
+        ? { kept: false, label: game.i18n.format("SIMPLYSF2E.Relevel.AbilityRebuilt", { name: line.name, level }) }
+        : { kept: true, label: game.i18n.format("SIMPLYSF2E.Relevel.AbilityKept", { name: line.name, reason: line.reason }) })
     };
   }
 
@@ -558,8 +576,8 @@ export class GeneratorApp extends SpfApp {
   }
 
   static #whisperStatCheck(creatures) {
-    const body = creatures.map((creature) => `<p><strong>${esc(creature.summary)}</strong></p><ul>${
-      creature.rows.filter((row) => row.status !== "ok").map((row) => `<li>${esc(row.text)}</li>`).join("")
+    const body = creatures.map((creature) => `<p><strong>${escAi(creature.summary)}</strong></p><ul>${
+      creature.rows.filter((row) => row.status !== "ok").map((row) => `<li>${escAi(row.text)}</li>`).join("")
     }</ul>`).join("");
     ChatMessage.create({
       content: `<p>${esc(game.i18n.localize("SIMPLYSF2E.StatCheck.ChatIntro"))}</p>${body}`,
@@ -670,7 +688,10 @@ export class GeneratorApp extends SpfApp {
       name: ability.name,
       fromGlossary: Boolean(entry),
       glossaryName: entry?.name ?? null,
+      // A module-built area blast shows the Module-built label (no compendium source), not the narrative label.
       narrative: Boolean(ability.narrative),
+      // A working area blast is module-built, not narrative-only (its own preview label).
+      moduleBuilt: Boolean(ability.areaBlast || ability.aura),
       description: ability.description,
       index,
       rerollable: rerollable("ability", index)
@@ -708,7 +729,7 @@ export class GeneratorApp extends SpfApp {
       equipment,
       loot,
       matchSummary: this.#matchSummary(
-        abilities.map((a) => ({ found: a.fromGlossary, narrative: a.narrative })), spells, feats, equipment, loot
+        abilities.map((a) => ({ found: a.fromGlossary, narrative: a.narrative || a.moduleBuilt })), spells, feats, equipment, loot
       ),
       iwr: {
         immunities: concept.immunities.join(", "),
@@ -789,6 +810,7 @@ export class GeneratorApp extends SpfApp {
 
   /** Save the remembered settings (never the prompt) to this browser's client setting. */
   #rememberInput() {
+    if (this.#rememberInputSuspended) return;
     const json = JSON.stringify(rememberedInput(this.#input));
     if (json === this.#savedInputJson) return;
     this.#savedInputJson = json;
@@ -1969,12 +1991,19 @@ export class GeneratorApp extends SpfApp {
         ?? actor.system?.details?.level?.value ?? actor.level ?? 0
     };
     this.#reskinLevel = null;
-    this.#reskinData = null;
+    const sourceUuid = this.#reskinSource.uuid;
+    let data = null;
+    let sources = {};
     try {
-      this.#reskinData = await this.#reskinSourceData();
+      data = await this.#reskinSourceData();
+      sources = await loadRelevelSources(data, (uuid) => fromUuid(uuid));
     } catch (err) {
       console.warn(`${MODULE_ID} | could not read the reskin source for its re-level preview`, err);
     }
+    // Another drop may have started while this one loaded; keep the newer source's preview.
+    if (this.#reskinSource?.uuid !== sourceUuid) return;
+    this.#reskinData = data;
+    this.#reskinSources = sources;
     this.#reskinFlavor = null;
     this.#created = null;
     this.#error = null;
@@ -2056,7 +2085,7 @@ export class GeneratorApp extends SpfApp {
     this.#error = null;
     await this.render();
     try {
-      const { data: releveled } = relevelActorData(await this.#reskinSourceData(), this.#reskinTargetLevel());
+      const { data: releveled } = await relevelReskin(await this.#reskinSourceData(), this.#reskinTargetLevel(), (uuid) => fromUuid(uuid));
       const data = reskinActorData(releveled, flavor);
       const actor = await Actor.create(data);
       this.#reskinFlavor = null;
@@ -2234,7 +2263,7 @@ export class GeneratorApp extends SpfApp {
       concept: this.#concept, resolved: this.#resolved, manifest: this.#manifest,
       encounter: this.#encounter, pcConcept: this.#pcConcept, pcResolved: this.#pcResolved,
       reskinSource: this.#reskinSource, reskinFlavor: this.#reskinFlavor,
-      reskinLevel: this.#reskinLevel, reskinData: this.#reskinData
+      reskinLevel: this.#reskinLevel, reskinData: this.#reskinData, reskinSources: this.#reskinSources
     };
     const mode = previewModeOf(all, this.#previewMeta?.mode ?? this.#manifest?.mode);
     if (!mode) return null;
@@ -2245,7 +2274,7 @@ export class GeneratorApp extends SpfApp {
       npc: { concept: all.concept, resolved: all.resolved, manifest: all.manifest, rerollRejected: this.#copyRerollRejected() },
       encounter: { encounter: all.encounter },
       character: { pcConcept: all.pcConcept, pcResolved: all.pcResolved, manifest: all.manifest },
-      reskin: { reskinSource: all.reskinSource, reskinFlavor: all.reskinFlavor, reskinLevel: all.reskinLevel, reskinData: all.reskinData }
+      reskin: { reskinSource: all.reskinSource, reskinFlavor: all.reskinFlavor, reskinLevel: all.reskinLevel, reskinData: all.reskinData, reskinSources: all.reskinSources }
     }[mode];
     return {
       id: `recent-${++this.#recentSeq}`,
@@ -2321,6 +2350,7 @@ export class GeneratorApp extends SpfApp {
       this.#reskinSource = state.reskinSource;
       this.#reskinLevel = state.reskinLevel ?? null;
       this.#reskinData = state.reskinData ?? null;
+      this.#reskinSources = state.reskinSources ?? {};
     }
     this.#previewMeta = { mode: entry.mode, level: entry.level, at: entry.at };
     this._tokenUsage = [...entry.tokenUsage];

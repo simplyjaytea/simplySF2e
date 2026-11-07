@@ -1,14 +1,15 @@
 import {
-  MODULE_ID, SETTINGS, authorizeApiKeyForCurrentBaseUrl,
-  createProviderConnection, deleteProviderConnection, describeProvider,
-  ensureProviderBank, getJevRequestConfig, getProviderAuthWarningKey, getProviderRequestConfig,
-  normalizeApiBaseUrl, selectProviderConnection, upsertActiveProviderConnection
+  MODULE_ID, SETTINGS, createProviderConnection, deleteProviderConnection,
+  ensureProviderBank, getActiveProviderPrices, getJevRequestConfig, getProviderAuthWarningKey, getProviderRequestConfig,
+  normalizeApiBaseUrl, selectProviderConnection, setActiveProviderPrices
 } from "./settings.mjs";
+import { saveProviderConnection } from "./provider-connect.mjs";
 import { listProviderModels, testProviderConnection } from "./ai.mjs";
 import {
   JEV_SOURCES, TYPESAFE_JEV_ENDPOINT, normalizeJevSource, normalizeTypeSafeEndpoint, testJevConnection
 } from "./jev.mjs";
 import { esc } from "./text.mjs";
+import { parsePrice } from "./cost.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -109,6 +110,7 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
       ? state.provider.id
       : "custom";
     const selected = this.#selectedPreset ?? inferred;
+    const prices = getActiveProviderPrices();
     return {
       providers: PROVIDER_PRESETS.map((provider) => ({
         ...provider,
@@ -120,6 +122,8 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
       apiBaseUrl: state.baseUrl,
       model: state.model,
       availableModels: this.#availableModels,
+      inputPerM: prices.inputPerM ?? "",
+      outputPerM: prices.outputPerM ?? "",
       hasApiKey: state.hasConfiguredApiKey,
       ...ProviderSetupApp.#jevContext(),
       showLocalHint: LOCAL_PRESET_IDS.has(selected),
@@ -298,58 +302,34 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
   }
 
   static async #saveSettings({ notify = true, requireModel = true } = {}) {
-    const baseUrl = normalizeApiBaseUrl(this.element.querySelector("[name='apiBaseUrl']")?.value);
-    const model = String(this.element.querySelector("[name='model']")?.value ?? "").trim();
-    const enteredApiKey = String(this.element.querySelector("[name='apiKey']")?.value ?? "").trim();
-    const clearApiKey = Boolean(this.element.querySelector("[name='clearApiKey']")?.checked);
-    const connectionName = String(this.element.querySelector("[name='connectionName']")?.value ?? "").trim();
-
-    let parsed;
-    try { parsed = new URL(baseUrl); }
-    catch { throw new Error(game.i18n.localize("SIMPLYSF2E.ProviderSetup.InvalidBaseUrl")); }
-    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-      throw new Error(game.i18n.localize("SIMPLYSF2E.ProviderSetup.InvalidBaseUrl"));
+    // Validate the price fields first: a bad value blocks the whole save with a field error.
+    const priceInputs = {
+      inputPerM: this.element.querySelector("[name='inputPerM']"),
+      outputPerM: this.element.querySelector("[name='outputPerM']")
+    };
+    for (const input of Object.values(priceInputs)) input?.setCustomValidity?.("");
+    const prices = { inputPerM: priceInputs.inputPerM?.value, outputPerM: priceInputs.outputPerM?.value };
+    for (const field of ["inputPerM", "outputPerM"]) {
+      // A number field blanks non-numeric text; validity.badInput still sees it.
+      if (!parsePrice(prices[field]).error && !priceInputs[field]?.validity?.badInput) continue;
+      const message = game.i18n.localize(`SIMPLYSF2E.ProviderSetup.Price${field === "inputPerM" ? "Input" : "Output"}Invalid`);
+      priceInputs[field]?.setCustomValidity?.(message);
+      priceInputs[field]?.reportValidity?.();
+      throw new Error(message);
     }
-    if (requireModel && !model) throw new Error(game.i18n.localize("SIMPLYSF2E.Errors.NoModel"));
-
-    const currentBaseUrl = normalizeApiBaseUrl(game.settings.get(MODULE_ID, SETTINGS.apiBaseUrl));
-    const baseChanged = currentBaseUrl !== baseUrl;
-    await game.settings.set(MODULE_ID, SETTINGS.apiBaseUrl, baseUrl);
-    await game.settings.set(MODULE_ID, SETTINGS.model, model);
-
-    // A stored key belongs to its old endpoint. Switching providers without
-    // entering a replacement clears it instead of silently offering that
-    // secret for authorization against a different service.
-    if (clearApiKey || baseChanged || enteredApiKey) {
-      await game.settings.set(MODULE_ID, SETTINGS.apiKey, clearApiKey ? "" : enteredApiKey);
-    }
-
-    const configuredKey = String(game.settings.get(MODULE_ID, SETTINGS.apiKey) ?? "").trim();
-    const authorized = configuredKey
-      ? await authorizeApiKeyForCurrentBaseUrl(baseUrl)
-      : false;
-    await upsertActiveProviderConnection({ name: connectionName });
-    const provider = describeProvider(baseUrl, model);
-    const state = getProviderRequestConfig();
-    const insecure = Boolean(state.apiKeyInsecure);
-    const messageKey = insecure
-      ? "SIMPLYSF2E.Errors.InsecureKeyEndpoint"
-      : authorized
-        ? "SIMPLYSF2E.ProviderSetup.SavedAuthorized"
-        : state.keylessLocal
-          ? "SIMPLYSF2E.ProviderSetup.Saved"
-          : "SIMPLYSF2E.ProviderSetup.SavedNeedsKey";
-    if (notify) {
-      const notifySaved = insecure || (!authorized && !state.keylessLocal)
-        ? ui.notifications.warn.bind(ui.notifications)
-        : ui.notifications.info.bind(ui.notifications);
-      notifySaved(game.i18n.format(
-        messageKey,
-        { provider: provider.name, model }
-      ));
-    }
+    const result = await saveProviderConnection({
+      baseUrl: this.element.querySelector("[name='apiBaseUrl']")?.value,
+      model: this.element.querySelector("[name='model']")?.value,
+      enteredApiKey: this.element.querySelector("[name='apiKey']")?.value,
+      clearApiKey: Boolean(this.element.querySelector("[name='clearApiKey']")?.checked),
+      connectionName: this.element.querySelector("[name='connectionName']")?.value,
+      notify,
+      requireModel
+    });
+    // After the connection save, so the prices land on the connection just saved.
+    if (priceInputs.inputPerM && priceInputs.outputPerM) await setActiveProviderPrices(prices);
     await this.#onSaved?.();
-    return { provider, model, state };
+    return result;
   }
 
   /**

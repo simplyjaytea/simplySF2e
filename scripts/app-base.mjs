@@ -1,13 +1,14 @@
 import { testProviderConnection } from "./ai.mjs";
 import {
   MODULE_ID,
+  getActiveProviderPrices,
   getJevRequestConfig,
   getProviderRequestConfig,
   getSetting,
   selectProviderConnection,
   SETTINGS
 } from "./settings.mjs";
-import { captureFailure, formatBugReport, gatherEnvironment } from "./bug-report.mjs";
+import { BUG_REPORT_ISSUE_URL, captureFailure, formatBugReport, gatherEnvironment } from "./bug-report.mjs";
 import { esc } from "./text.mjs";
 import { beginRunBudget, endRunBudget } from "./run-budget.mjs";
 import { ProviderSetupApp } from "./provider-setup-app.mjs";
@@ -21,8 +22,25 @@ import {
   streamFraction
 } from "./progress.mjs";
 import { coarsenTokenEstimate, lastRunTokenTotal } from "./tokens.mjs";
+import { formatCost, runCost } from "./cost.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
+
+/**
+ * Buttons for the bug-report dialogs. The issue URL carries no report text:
+ * the GM pastes the copied report into the new issue.
+ */
+function issueButtons() {
+  return [
+    {
+      action: "issue",
+      label: "SIMPLYSF2E.BugReport.OpenIssue",
+      icon: "fa-solid fa-arrow-up-right-from-square",
+      callback: () => { window.open(BUG_REPORT_ISSUE_URL, "_blank", "noopener"); }
+    },
+    { action: "close", label: "SIMPLYSF2E.BugReport.ManualClose", default: true }
+  ];
+}
 
 /**
  * Shared base for the generator and item-forge dialogs: token-usage tracking
@@ -88,19 +106,24 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
       getSetting
     });
     const text = formatBugReport({ app: appName, failure, input, env, secrets });
+    const { DialogV2 } = foundry.applications.api;
     if (await this._writeClipboard(text)) {
-      ui.notifications.info(game.i18n.localize("SIMPLYSF2E.BugReport.Copied"));
+      await DialogV2.wait({
+        window: { title: "SIMPLYSF2E.BugReport.CopiedTitle" },
+        content: `<p>${esc(game.i18n.localize("SIMPLYSF2E.BugReport.Copied"))}</p>`,
+        buttons: issueButtons(),
+        rejectClose: false
+      });
       return;
     }
     // No clipboard access (plain-http world, denied permission): show the
     // text selected so the GM can copy it by hand.
-    const { DialogV2 } = foundry.applications.api;
-    await DialogV2.prompt({
+    await DialogV2.wait({
       window: { title: "SIMPLYSF2E.BugReport.ManualTitle" },
       position: { width: 640 },
       content: `<p>${esc(game.i18n.localize("SIMPLYSF2E.BugReport.ManualHint"))}</p>`
         + `<textarea class="spf-bug-report-text" readonly rows="14" aria-label="${esc(game.i18n.localize("SIMPLYSF2E.BugReport.ManualTitle"))}">${esc(text)}</textarea>`,
-      ok: { label: "SIMPLYSF2E.BugReport.ManualClose" },
+      buttons: issueButtons(),
       rejectClose: false,
       render: (_event, dialog) => {
         const area = (dialog?.element ?? dialog)?.querySelector?.(".spf-bug-report-text");
@@ -245,7 +268,14 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
    * `{ source: "jev"|"llm", ms, jevMs? }`) is shown on the token report line.
    */
   _recordTokens(label, usage, timing = null) {
-    if (usage) this._tokenUsage.push({ label, usage, ...(timing ? { timing } : {}) });
+    if (!usage) return;
+    // Snapshot the manual prices of the connection making this request: a later
+    // connection switch, a mid-run switch or a restored history draft must not reprice it.
+    let prices = { inputPerM: null, outputPerM: null };
+    let connectionId = "";
+    try { prices = getActiveProviderPrices(); } catch { /* no bank yet: no manual prices */ }
+    try { connectionId = getProviderRequestConfig().connectionId ?? ""; } catch { /* unknown connection */ }
+    this._tokenUsage.push({ label, usage, prices, connectionId, ...(timing ? { timing } : {}) });
   }
 
   /** Per-step token usage lines plus a total, ready for the template. */
@@ -278,8 +308,30 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
       totalText: game.i18n.format(
         anyEstimated ? "SIMPLYSF2E.Tokens.TotalEstimated" : "SIMPLYSF2E.Tokens.Total",
         { total: total.toLocaleString() }
-      )
+      ),
+      costText: this._formatRunCost(this._runCostInfo())
     };
+  }
+
+  /** Cost of this run: provider-reported amounts, else each entry's own recorded manual prices. */
+  _runCostInfo() {
+    return runCost(this._tokenUsage.map(({ usage, timing, prices }) => ({
+      ...usage,
+      prices: prices ?? {},
+      // Jev runs on its own model: the chat connection's prices do not apply to it.
+      ...(timing?.source === "jev" ? { noManual: true } : {})
+    })));
+  }
+
+  /** "Cost: $0.0042" / "Cost: ≈ $0.0042 (partial: ...)"; null when nothing could be priced. */
+  _formatRunCost(info) {
+    const amount = info ? formatCost(info.amount) : null;
+    if (!amount) return null;
+    const key = info.partial ? "CostPartial"
+      : info.source === "manual" ? "CostManual"
+      : info.source === "mixed" ? "CostMixed"
+      : "Cost";
+    return game.i18n.format(`SIMPLYSF2E.Tokens.${key}`, { amount });
   }
 
   /** "Jev, 0.8 s" / "chat model, 6.1 s" / fallback wording; null without a usable timing. */
@@ -297,10 +349,14 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _formatLastRunCost() {
     const cost = this._lastRunCost;
     if (!cost) return null;
-    return game.i18n.format(
+    const base = game.i18n.format(
       cost.estimated ? "SIMPLYSF2E.Tokens.LastRunEstimated" : "SIMPLYSF2E.Tokens.LastRun",
       { total: cost.total.toLocaleString() }
     );
+    const amount = cost.money ? formatCost(cost.money.amount) : null;
+    if (!amount) return base;
+    const mark = cost.money.partial ? "≥ " : cost.money.source !== "provider" ? "≈ " : "";
+    return game.i18n.format("SIMPLYSF2E.Tokens.LastRunCost", { base, cost: `${mark}${amount}` });
   }
 
   _armCancel({ cancellable = true } = {}) {
@@ -358,7 +414,7 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
   /** Snapshot last-run cost, drop the bar, and unlink the abort signal. */
   _finishRun() {
     const cost = lastRunTokenTotal(this._tokenUsage);
-    if (cost) this._lastRunCost = cost;
+    if (cost) this._lastRunCost = { ...cost, money: this._runCostInfo() };
     this._progress = null;
     this._disarmCancel();
   }

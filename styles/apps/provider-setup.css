@@ -126,6 +126,25 @@
   width: auto;
 }
 
+.simplysf2e .spf-price-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spf-space-sm);
+}
+
+.simplysf2e .spf-price-field {
+  display: flex;
+  flex: 1 1 10rem;
+  flex-direction: column;
+  gap: var(--spf-space-xs);
+  min-width: 0;
+}
+
+.simplysf2e .spf-price-field input {
+  width: 100%;
+  min-width: 0;
+}
+
 .simplysf2e .spf-provider-privacy,
 .simplysf2e .spf-jev-warning {
   margin: 0;

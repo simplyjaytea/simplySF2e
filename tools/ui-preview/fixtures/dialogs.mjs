@@ -39,6 +39,8 @@ function providerSetup(selected, patch = {}) {
     apiBaseUrl: "https://openrouter.ai/api/v1",
     model: "anthropic/claude-sonnet-5",
     availableModels: [],
+    inputPerM: "",
+    outputPerM: "",
     hasApiKey: true,
     hasJevKey: false,
     jevSources: [
@@ -88,6 +90,14 @@ export default [
     context: providerSetup("ollama", {
       apiBaseUrl: "http://localhost:11434/v1", model: "llama3.1:70b-instruct-q4_K_M", hasApiKey: false,
       availableModels: ["llama3.1:70b-instruct-q4_K_M", "qwen2.5:32b", "mistral-nemo:12b"]
+    })
+  },
+  {
+    id: "provider-setup-prices",
+    app: "provider-setup",
+    context: providerSetup("deepseek", {
+      connectionName: "DeepSeek", apiBaseUrl: "https://api.deepseek.com/v1", model: "deepseek-v4-flash",
+      inputPerM: 0.27, outputPerM: 1.1
     })
   },
   {

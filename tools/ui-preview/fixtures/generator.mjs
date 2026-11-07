@@ -2,7 +2,7 @@
 // #build*PreviewContext() / #mapGear / #mapNamed / #mapSpells helpers in
 // scripts/generator-app.mjs.
 import {
-  RARITIES, providerContext, PROVIDER_ATTENTION, TOKEN_REPORT, progressAt, MONSTER_STEPS,
+  RARITIES, providerContext, PROVIDER_ATTENTION, TOKEN_REPORT, TOKEN_REPORT_COST, TOKEN_REPORT_PARTIAL, progressAt, MONSTER_STEPS,
   concept, computeStats, adjustedStats, localize
 } from "./_shared.mjs";
 import { signed } from "../../../scripts/text.mjs";
@@ -116,7 +116,7 @@ function creaturePreview(c, { abilities = [], spells = [], feats = [], equipment
   feats = feats.map(slot);
   const stats = adjustedStats(computeStats(c), c);
   const all = [...spells, ...feats, ...equipment, ...loot];
-  const total = all.length + abilities.filter((a) => !a.narrative).length;
+  const total = all.length + abilities.filter((a) => !a.narrative && !a.moduleBuilt).length;
   const matched = all.filter((i) => i.found).length + abilities.filter((a) => a.fromGlossary).length;
   // Same display object the real #buildPreviewContext() builds.
   const display = {
@@ -146,9 +146,10 @@ function creaturePreview(c, { abilities = [], spells = [], feats = [], equipment
 
 const RICH = {
   abilities: [
-    { name: "Lattice Surge", fromGlossary: false, glossaryName: null, narrative: false, description: "The vanguard's blade flares; each creature within 10 feet takes 2d6 force damage (basic Reflex save)." },
-    { name: "Shield Wall", fromGlossary: true, glossaryName: "Shield Block", narrative: false, description: "" },
-    { name: "Hums With the Lattice", fromGlossary: false, glossaryName: null, narrative: true, description: "Flavor only: the vanguard is always faintly audible." }
+    { name: "Lattice Surge", fromGlossary: false, glossaryName: null, narrative: false, moduleBuilt: false, description: "The vanguard's blade flares; each creature within 10 feet takes 2d6 force damage (basic Reflex save)." },
+    { name: "Shield Wall", fromGlossary: true, glossaryName: "Shield Block", narrative: false, moduleBuilt: false, description: "" },
+    { name: "Frost Breath", fromGlossary: false, glossaryName: null, narrative: false, moduleBuilt: true, description: "Frost pours from the vanguard in a 30-foot cone." },
+    { name: "Hums With the Lattice", fromGlossary: false, glossaryName: null, narrative: true, moduleBuilt: false, description: "Flavor only: the vanguard is always faintly audible." }
   ],
   spells: [spell("Force Barrage", 1), spell("Mystic Armor", 1, false)],
   feats: [named("Sudden Charge"), named("Lattice Reflex", false)],
@@ -248,18 +249,22 @@ export default [
       showEmptyState: false
     })
   },
-  (() => {
+  ...[
+    ["generator-monster-preview", TOKEN_REPORT, "Last run: 2,716 tokens"],
+    ["generator-monster-preview-cost", TOKEN_REPORT_COST, "Last run: 2,716 tokens · $0.0042"],
+    ["generator-monster-preview-cost-partial", TOKEN_REPORT_PARTIAL, "Last run: 2,716 tokens · ≥ $0.0042"]
+  ].map(([id, tokenReport, lastRunCost]) => {
     const c = concept({ rarity: "uncommon", specialAbilities: [], resistances: ["fire"], weaknesses: ["cold-iron"] });
     return {
-      id: "generator-monster-preview",
+      id,
       app: "generator",
       context: generatorContext("monster", {
-        input: { level: 4 }, showEmptyState: false, tokenReport: TOKEN_REPORT,
-        lastRunCost: "Last run: 2,716 tokens",
+        input: { level: 4 }, showEmptyState: false, tokenReport,
+        lastRunCost,
         preview: creaturePreview({ ...c, spellcasting: { tradition: "arcane", dcScale: "moderate", attackScale: "moderate" } }, RICH)
       })
     };
-  })(),
+  }),
   (() => {
     // Level -1, terrible scales, Weak adjustment: Perception, saves and skills go
     // negative, which is what the "+-1" bug shows. The strike bonus cannot: the
@@ -453,6 +458,11 @@ export default [
             { label: "Fortitude", scale: "high", from: 19, to: 25 },
             { label: "Strike: Halberd of the Seventh Lattice Remnant", scale: "high", from: 20, to: 26 },
             { label: "Damage: Halberd of the Seventh Lattice Remnant", scale: "high", from: "2d10+11", to: "3d10+14" }
+          ],
+          abilities: [
+            { kept: false, label: "Frost Breath rebuilt for level 12" },
+            { kept: false, label: "Constrict rebuilt for level 12" },
+            { kept: true, label: "Swallow Whole kept at the old level: size tiny has no smaller size" }
           ]
         }
       })

@@ -1,4 +1,4 @@
-import { MODULE_ID, SETTINGS, getSetting, getProviderAuthWarningKey, registerSettings } from "./settings.mjs";
+import { MODULE_ID, SETTINGS, getSetting, getProviderAuthWarningKey, migrateSettings, registerSettings } from "./settings.mjs";
 import { GeneratorApp } from "./generator-app.mjs";
 import { ItemForgeApp } from "./itemforge-app.mjs";
 import { ShopApp } from "./shop-app.mjs";
@@ -134,6 +134,7 @@ Hooks.once("ready", () => {
   // First-run welcome ("Until ready", JT 2026-10-03). Players never read the
   // settings; a failure here must not break the rest of the module's ready.
   if (!game.user.isGM) return;
+  migrateSettings().catch((err) => console.warn(`${MODULE_ID} | could not migrate the settings`, err));
   let welcomeOpening = false;
   try {
     welcomeOpening = shouldAutoOpenWelcome({

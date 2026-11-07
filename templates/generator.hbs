@@ -130,6 +130,11 @@
           </table>
         </div>
         {{/if}}
+        {{#if reskinRelevel.abilities.length}}
+        <ul class="spf-relevel-abilities">
+          {{#each reskinRelevel.abilities}}<li{{#if this.kept}} class="spf-relevel-kept"{{/if}}>{{this.label}}</li>{{/each}}
+        </ul>
+        {{/if}}
         <p class="spf-hint">{{localize "SIMPLYSF2E.Relevel.Unchanged"}}</p>
       {{/if}}
     </div>
@@ -375,6 +380,7 @@
           {{#each tokenReport.steps}}<li><strong>{{this.label}}</strong> — {{this.text}}</li>{{/each}}
         </ul>
         <p class="spf-token-total">{{tokenReport.totalText}}</p>
+        {{#if tokenReport.costText}}<p class="spf-token-cost">{{tokenReport.costText}}</p>{{/if}}
       </div>
     {{/if}}
     <footer class="spf-actions">
@@ -448,6 +454,9 @@
             {{#if this.rerollable}}<button type="button" class="spf-icon-btn spf-reroll-pick" data-action="rerollPick" data-kind="ability" data-index="{{this.index}}" data-tooltip="{{localize 'SIMPLYSF2E.Generator.RerollPickTooltip'}}" aria-label="{{localize 'SIMPLYSF2E.Generator.RerollPickLabel' name=this.name}}" {{#if @root.busy}}disabled{{/if}}><i aria-hidden="true" class="fa-solid fa-dice-d20"></i></button>{{/if}}
             {{#if this.fromGlossary}}
               <span class="spf-found" title="{{localize 'SIMPLYSF2E.Preview.FromCompendium'}}"><i aria-hidden="true" class="fa-solid fa-book"></i> {{this.glossaryName}}</span>
+            {{else if this.moduleBuilt}}
+              <span class="spf-custom">{{localize "SIMPLYSF2E.Preview.ModuleBuilt"}}</span>
+              {{#if this.description}}<div class="spf-ability-desc">{{this.description}}</div>{{/if}}
             {{else if this.narrative}}
               <span class="spf-custom">{{localize "SIMPLYSF2E.Preview.NarrativeOnly"}}</span>
               {{#if this.description}}<div class="spf-ability-desc">{{this.description}}</div>{{/if}}
@@ -526,6 +535,7 @@
           {{/each}}
         </ul>
         <p class="spf-token-total">{{tokenReport.totalText}}</p>
+        {{#if tokenReport.costText}}<p class="spf-token-cost">{{tokenReport.costText}}</p>{{/if}}
       </div>
     {{/if}}
 
@@ -582,6 +592,7 @@
           {{/each}}
         </ul>
         <p class="spf-token-total">{{tokenReport.totalText}}</p>
+        {{#if tokenReport.costText}}<p class="spf-token-cost">{{tokenReport.costText}}</p>{{/if}}
       </div>
     {{/if}}
     <footer class="spf-actions">
@@ -704,6 +715,7 @@
           {{/each}}
         </ul>
         <p class="spf-token-total">{{tokenReport.totalText}}</p>
+        {{#if tokenReport.costText}}<p class="spf-token-cost">{{tokenReport.costText}}</p>{{/if}}
       </div>
     {{/if}}
 
@@ -750,6 +762,7 @@
           {{#each tokenReport.steps}}<li><strong>{{this.label}}</strong> — {{this.text}}</li>{{/each}}
         </ul>
         <p class="spf-token-total">{{tokenReport.totalText}}</p>
+        {{#if tokenReport.costText}}<p class="spf-token-cost">{{tokenReport.costText}}</p>{{/if}}
       </div>
     {{/if}}
     <footer class="spf-actions">

@@ -1,6 +1,8 @@
 import * as T from "./tables.mjs";
-import { getPacksFor, findEntry, getDocument, toItemData, priceToGp, isIssuedCandidate } from "./compendium.mjs";
-import { slugify, capitalized, esc, toHtml } from "./text.mjs";
+import { getPacksFor, findEntry, getDocument, toItemData, priceToGp, isIssuedCandidate, placeholderState, placeholderDocFor } from "./compendium.mjs";
+import { ABILITY_DAMAGE_TYPES, ABILITY_DC_SCALES, fillBlocker, fillPlaceholderAbility, fillableSlug, hasPlaceholderValues, isFillableEntry } from "./ability-fill.mjs";
+import { buildModuleTemplate, isModuleTemplate, normalizeAreaBlast, normalizeAura } from "./ability-templates.mjs";
+import { slugify, capitalized, esc, escAi, toHtml } from "./text.mjs";
 import { applyReskin, recallKnowledgeNote } from "./reskin.mjs";
 import { isPlaceholderArt } from "./art.mjs";
 import { parseRunes, applyRunes, dropUncitedRunePrefix, runeGp, hasRunes } from "./runes.mjs";
@@ -371,6 +373,25 @@ export function alignStrikesToWeapons(strikes, weapons, allowedTraits = null) {
  * Coerce whatever the AI returned into a well-formed concept. Guarantees every
  * field downstream code touches exists and has a legal value.
  */
+/**
+ * Template abilities (area blast, aura) are the module's own: two with the same name on one
+ * creature would share a slug on the actor, so a repeated name gets " 2", " 3", ... (only on collision).
+ */
+function uniqueTemplateNames(abilities) {
+  const used = new Set();
+  return abilities.map((ability) => {
+    if (!ability?.areaBlast && !ability?.aura) return ability;
+    let name = ability.name;
+    if (used.has(name)) {
+      let n = 2;
+      while (used.has(`${ability.name} ${n}`)) n += 1;
+      name = `${ability.name} ${n}`;
+    }
+    used.add(name);
+    return name === ability.name ? ability : { ...ability, name };
+  });
+}
+
 export function normalizeConcept(raw, { level, rarity }) {
   const c = typeof raw === "object" && raw !== null ? raw : {};
   const clampedLevel = Math.min(Math.max(Math.round(Number(level) || 0), T.MIN_LEVEL), T.MAX_LEVEL);
@@ -506,18 +527,31 @@ export function normalizeConcept(raw, { level, rarity }) {
       .slice(0, 8)
       .map((s) => ({ name: String(s.name), scale: scale4(s.scale, "high") })),
     strikes,
-    specialAbilities: (Array.isArray(c.specialAbilities) ? c.specialAbilities : [])
+    specialAbilities: uniqueTemplateNames((Array.isArray(c.specialAbilities) ? c.specialAbilities : [])
       .filter((a) => a?.name)
       .slice(0, 6)
-      .map((a) => ({
+      .map((a) => {
+        // A valid area-blast template is built from enums (ability-templates.mjs).
+        // Its flavor is dropped when it names dice, a DC or Hit Points.
+        const areaBlast = normalizeAreaBlast(a);
+        const aura = areaBlast ? null : normalizeAura(a);
+        const template = Boolean(areaBlast || aura);
+        const rawDescription = String(a.description ?? "");
+        return {
         name: String(a.name),
-        glossary: a.glossary ? String(a.glossary) : null,
+        // A valid template is built from enums: a glossary name would only route it past the template.
+        glossary: template ? null : (a.glossary ? String(a.glossary) : null),
         candidate: a.candidate?.packId && a.candidate?._id ? a.candidate : null,
         narrative: Boolean(a.narrative),
         actionType: ["action", "reaction", "free", "passive"].includes(a.actionType) ? a.actionType : "passive",
         actions: [1, 2, 3].includes(Number(a.actions)) ? Number(a.actions) : null,
-        description: String(a.description ?? ""),
+        areaBlast,
+        aura,
+        description: template && (narrativeHasMechanics(rawDescription) || /[@\[\]{}]/.test(rawDescription)) ? "" : rawDescription,
+        abilityDcScale: ABILITY_DC_SCALES.includes(a.abilityDcScale) ? a.abilityDcScale : null,
+        damageType: ABILITY_DAMAGE_TYPES.includes(a.damageType) ? a.damageType : null,
         traits: (Array.isArray(a.traits) ? a.traits : []).map(slugify).filter(Boolean)
+        };
       })),
     spellcasting,
     // Focus spells ride on the normal spellcasting DC (v1 scope: focus-only
@@ -889,12 +923,46 @@ export function customEquipmentItem(name, quantity, value) {
 }
 
 /**
+ * Why a fillable blank cannot be filled for this creature, or null (FIX-B5).
+ * A dry run of the build-time fill on the loaded document, so resolve and build
+ * share one decision. The concept's strikes have no damage formula yet (the
+ * build computes it), so a placeholder "1d4" stands in for the dry run only;
+ * the build fills with the built strikes' real damage.
+ */
+function fillDryRunBlocker(item, doc, ability, concept) {
+  const reason = fillBlocker(item, { level: concept.level, size: concept.size, strikes: concept.strikes ?? [] });
+  if (reason) return reason;
+  if (!doc) return "its published text could not be read";
+  const dryStrikes = (concept.strikes ?? []).filter((s) => s.type !== "ranged").map((s) => ({ name: s.name, type: "melee", damage: "1d4" }));
+  const filled = fillPlaceholderAbility(toItemData(doc), {
+    level: concept.level, size: concept.size, strikes: dryStrikes,
+    abilityDcScale: ability.abilityDcScale, damageType: ability.damageType
+  });
+  return filled ? null : "published text does not match the expected blanks";
+}
+
+/**
  * Resolve every compendium reference in a concept. Returns lookup results so
  * the preview can show what was found and what will become a custom ability.
  */
 export async function resolveConcept(concept, { exactContent = false } = {}) {
   const abilities = [];
   for (const ability of concept.specialAbilities) {
+    // An area blast is built by createActor from its enum spec: no compendium entry, not narrative.
+    if (isModuleTemplate(ability)) {
+      // Dry run of the build (same call as createActor), so early and late decisions match.
+      if (buildModuleTemplate(ability, { level: concept.level })) {
+        abilities.push({ ability, entry: null });
+        continue;
+      }
+      console.warn(`simplysf2e | "${ability.name}" could not be built as an area blast for this creature (level ${concept.level})`);
+      if (narrativeHasMechanics(ability.description)) {
+        console.warn(`simplysf2e | dropped "${ability.name}": it is not a valid template and its text names dice, a DC or Hit Points`);
+        continue;
+      }
+      abilities.push({ ability: { ...ability, areaBlast: null, aura: null, narrative: true }, entry: null });
+      continue;
+    }
     let entry = null;
     if (isIssuedCandidate(ability.candidate, getPacksFor("abilities"))) {
       entry = ability.candidate;
@@ -902,7 +970,33 @@ export async function resolveConcept(concept, { exactContent = false } = {}) {
       if (ability.glossary) entry = await findEntry(getPacksFor("abilities"), ability.glossary, (e) => e.type === "action");
       if (!entry) entry = await findEntry(getPacksFor("abilities"), ability.name, (e) => e.type === "action");
     }
-    abilities.push({ ability, entry });
+    let kept = ability;
+    // A published ability with blank values (I-ZERO) or one that cannot be read
+    // is never cloned. Its thematic text stays narrative-only when it names no numbers.
+    if (entry) {
+      const state = await placeholderState(entry);
+      // The loaded document carries the name and slug; a selector's candidate ref has neither.
+      const doc = placeholderDocFor(entry);
+      const item = doc ?? entry;
+      // A fillable blank is kept if this creature can take its fill (createActor fills it);
+      // otherwise it is treated like any other blank ability.
+      const unfillable = state === "blank" && isFillableEntry(item)
+        ? fillDryRunBlocker(item, doc, ability, concept)
+        : null;
+      if (unfillable) console.warn(`simplysf2e | "${ability.name}" cannot be filled for this creature: ${unfillable}`);
+      if (state !== "clean" && !(state === "blank" && isFillableEntry(item) && !unfillable)) {
+        entry = null;
+        if (state === "blank" && !unfillable) {
+          if (narrativeHasMechanics(ability.description)) {
+            console.warn(`simplysf2e | dropped "${ability.name}": its glossary ability has blank published values and its text names dice, a DC or Hit Points`);
+          } else {
+            console.warn(`simplysf2e | "${ability.name}" has blank published values in the glossary; kept as narrative only`);
+          }
+        }
+        if (!narrativeHasMechanics(ability.description)) kept = { ...ability, narrative: true };
+      }
+    }
+    abilities.push({ ability: kept, entry });
   }
 
   const spells = [];
@@ -1510,6 +1604,55 @@ function actionIcon(actionType) {
  */
 export const NPC_SLOTS_PER_RANK = 3;
 
+/** Item data with the module's build provenance (data only, no rules), for re-level. */
+function withBuildProvenance(item, built) {
+  return { ...item, flags: { ...(item.flags ?? {}), simplysf2e: { ...(item.flags?.simplysf2e ?? {}), built } } };
+}
+
+/**
+ * The module-built "Narrative: <name>" action for a narrative-only ability.
+ * The stored document name stays plain (no zero-width characters: names are
+ * copied, searched and compared); the description is AI prose and goes through escAi.
+ */
+export function narrativeAbilityItem(ability) {
+  const label = String(ability.name ?? "").trim() || "Ability";
+  const escaped = escAi(ability.description);
+  return {
+    name: `Narrative: ${label}`,
+    type: "action",
+    img: actionIcon("passive"),
+    system: {
+      actionType: { value: "passive" },
+      actions: { value: null },
+      category: "interaction",
+      description: {
+        value: `<p><em>Custom narrative only — no module-authored mechanics.</em></p><p>${escaped}</p>`
+      },
+      traits: { value: [] }
+    }
+  };
+}
+
+/**
+ * NPC public notes (read-aloud, description, Recall Knowledge): AI prose made inert
+ * for the enriched actor description.
+ */
+export function npcPublicNotes(concept) {
+  const notesParts = [];
+  if (concept.readAloud) {
+    notesParts.push(`<blockquote class="spf-read-aloud"><em>${escAi(concept.readAloud)}</em></blockquote>`);
+  }
+  if (concept.description) {
+    notesParts.push(toHtml(concept.description));
+  }
+  if (concept.recallKnowledge) {
+    // pf2e recall-knowledge.ts uses the prepared (Elite/Weak-adjusted) level.
+    const dc = T.identificationDC(adjustedLevel(concept.level, concept.adjustment ?? null), concept.rarity);
+    notesParts.push(recallKnowledgeNote(recallKnowledgeSkills(concept.traits), dc, concept.recallKnowledge));
+  }
+  return notesParts.join("\n");
+}
+
 /**
  * Build the full actor + embedded item data and create the NPC actor.
  * @param {object} [options]
@@ -1567,28 +1710,54 @@ export async function createActor(concept, resolved, { img = null, scaffold = nu
   }
 
   // Special abilities → exact glossary clones or explicitly narrative actions.
-  for (const { ability, entry } of resolved.abilities) {
+  // Melee strikes as built above, for a fillable ability's trample strike (R6).
+  const meleeStrikes = stats.strikes.filter((s) => s.type !== "ranged").map((s) => ({ name: capitalized(s.name), damage: s.damage, type: "melee" }));
+  for (const { ability: resolvedAbility, entry } of resolved.abilities) {
+    let ability = resolvedAbility;
+    if (isModuleTemplate(ability)) {
+      const blast = buildModuleTemplate(ability, { level: concept.level });
+      if (blast) {
+        // Provenance (data only): lets a later re-level rebuild this item (relevel.mjs).
+        items.push(withBuildProvenance(blast, {
+          kind: ability.aura ? "aura" : "area-blast",
+          spec: ability.aura ?? ability.areaBlast,
+          flavor: ability.description ?? "",
+          name: blast.name
+        }));
+        continue;
+      }
+      console.warn(`simplysf2e | "${ability.name}" could not be built as an area blast for this creature (level ${concept.level})`);
+      if (narrativeHasMechanics(ability.description)) {
+        console.warn(`simplysf2e | dropped "${ability.name}": it is not a valid template and its text names dice, a DC or Hit Points`);
+        continue;
+      }
+      ability = { ...ability, areaBlast: null, aura: null, narrative: true };
+    }
     const doc = await getSelectedDocument(entry);
     if (doc) {
-      items.push(toItemData(doc));
+      const data = toItemData(doc);
+      if (!hasPlaceholderValues(data)) {
+        items.push(data);
+        continue;
+      }
+      const filled = fillPlaceholderAbility(data, {
+        level: concept.level, size: concept.size, strikes: meleeStrikes,
+        abilityDcScale: ability.abilityDcScale, damageType: ability.damageType
+      });
+      if (!filled) {
+        console.warn(`simplysf2e | dropped "${ability.name}": its blank values cannot be filled for this creature (level ${concept.level}, size ${concept.size})`);
+        continue;
+      }
+      items.push(withBuildProvenance(filled, {
+        kind: "glossary-fill",
+        spec: { slug: fillableSlug(data), abilityDcScale: ability.abilityDcScale ?? null, damageType: ability.damageType ?? null },
+        name: filled.name,
+        source: data._stats?.compendiumSource ?? null
+      }));
       continue;
     }
     if (!ability.narrative) continue;
-    const escaped = esc(ability.description);
-    items.push({
-      name: `Narrative: ${ability.name}`,
-      type: "action",
-      img: actionIcon("passive"),
-      system: {
-        actionType: { value: "passive" },
-        actions: { value: null },
-        category: "interaction",
-        description: {
-          value: `<p><em>Custom narrative only — no module-authored mechanics.</em></p><p>${escaped}</p>`
-        },
-        traits: { value: [] }
-      }
-    });
+    items.push(narrativeAbilityItem(ability));
   }
 
   // Feats (class-like trained techniques) become NPC action items
@@ -1678,19 +1847,7 @@ export async function createActor(concept, resolved, { img = null, scaffold = nu
 
   const safeItems = filterItemTypes(items, NPC_ITEM_TYPES, "NPC");
 
-  const notesParts = [];
-  if (concept.readAloud) {
-    notesParts.push(`<blockquote class="spf-read-aloud"><em>${esc(concept.readAloud)}</em></blockquote>`);
-  }
-  if (concept.description) {
-    notesParts.push(toHtml(concept.description));
-  }
-  if (concept.recallKnowledge) {
-    // pf2e recall-knowledge.ts uses the prepared (Elite/Weak-adjusted) level.
-    const dc = T.identificationDC(adjustedLevel(concept.level, concept.adjustment ?? null), concept.rarity);
-    notesParts.push(recallKnowledgeNote(recallKnowledgeSkills(concept.traits), dc, concept.recallKnowledge));
-  }
-  const description = notesParts.join("\n");
+  const description = npcPublicNotes(concept);
 
   const actorData = {
     name: concept.name,

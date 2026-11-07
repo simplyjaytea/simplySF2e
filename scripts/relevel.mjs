@@ -19,8 +19,16 @@
  * - item/spellcasting-entry/data.ts: `spelldc.value` (attack), `spelldc.dc`.
  * - item/lore.ts: an NPC lore item's `system.mod.value` is its skill base.
  *
+ * Module-built abilities are rebuilt for the new level: area blasts and auras
+ * (ability-templates.mjs, from their build provenance flag), and glossary
+ * abilities the module filled (ability-fill.mjs, from the published source
+ * they were cloned from). Published abilities keep their text, and items
+ * without the provenance flag are never touched. A rebuild that cannot be made
+ * (level outside the tables, a tiny creature for Swallow Whole, a source that
+ * is not loaded) leaves the item as it was and is reported.
+ *
  * Left unchanged (and said so in the preview): spells and their ranks, DCs
- * and damage written into ability text, the ritual DC, items and gear,
+ * and damage written into published ability text, the ritual DC, items and gear,
  * Elite/Weak. An attribute or skill below the lowest printed scale (a
  * mindless creature's Int -5) also stays as it is: the tables print no scale
  * that low, so there is no step to keep.
@@ -28,6 +36,8 @@
  * Pure module (no Foundry globals), node-testable.
  */
 import * as T from "./tables.mjs";
+import { buildModuleTemplate } from "./ability-templates.mjs";
+import { fillBlocker, fillPlaceholderAbility } from "./ability-fill.mjs";
 
 export const RELEVEL_MIN = T.MIN_LEVEL;
 export const RELEVEL_MAX = T.MAX_LEVEL;
@@ -125,19 +135,75 @@ export function shiftDamage(formula, from, to) {
 }
 
 /**
+ * Rebuild the module-built abilities of a relevelled actor at its new level, in place.
+ * Only items with flags.simplysf2e.built are touched; the name is kept, so a reskin
+ * rename survives. `sources` maps a published compendium uuid to its item data, for
+ * glossary fills (the caller loads them; a missing source is reported, not guessed).
+ * @returns {{id: string, name: string, kind: string, status: "rebuilt"|"kept", reason?: string}[]}
+ */
+export function rebuildModuleAbilities(data, to, { sources = {} } = {}) {
+  const size = data.system?.traits?.size?.value;
+  const melee = (data.items ?? [])
+    .filter((item) => item?.type === "melee")
+    .map((item) => ({ name: item.name, type: "melee", damage: Object.values(item.system?.damageRolls ?? {})[0]?.damage ?? "" }))
+    .filter((strike) => strike.damage);
+  const report = [];
+  for (const item of data.items ?? []) {
+    const built = item?.flags?.simplysf2e?.built;
+    if (!built || !item.system) continue; // unflagged items are never touched (published or older)
+    const base = { id: item._id, name: item.name, kind: built.kind };
+    if (built.kind === "area-blast" || built.kind === "aura") {
+      const ability = {
+        name: item.name,
+        description: built.flavor ?? "",
+        ...(built.kind === "aura" ? { aura: built.spec } : { areaBlast: built.spec })
+      };
+      const fresh = buildModuleTemplate(ability, { level: to });
+      if (!fresh) {
+        const outside = to < RELEVEL_MIN || to > RELEVEL_MAX;
+        const reason = outside ? `level ${to} is outside the GM Core tables (${RELEVEL_MIN} to ${RELEVEL_MAX})` : "its saved template spec is no longer valid";
+        report.push({ ...base, status: "kept", reason });
+        continue;
+      }
+      item.system.description = { ...(item.system.description ?? {}), value: fresh.system.description.value };
+      if (built.kind === "aura") item.system.rules = fresh.system.rules;
+      report.push({ ...base, status: "rebuilt" });
+    } else if (built.kind === "glossary-fill") {
+      // Flag first (survives any copy), then the compendium stamp on the item.
+      const source = sources[built.source] ?? sources[item._stats?.compendiumSource];
+      if (!source) {
+        report.push({ ...base, status: "kept", reason: "the glossary source is not loaded" });
+        continue;
+      }
+      const spec = built.spec ?? {};
+      const options = { level: to, size, strikes: melee, abilityDcScale: spec.abilityDcScale ?? null, damageType: spec.damageType ?? null };
+      const fresh = fillPlaceholderAbility(source, options);
+      if (!fresh) {
+        report.push({ ...base, status: "kept", reason: fillBlocker(source, options) ?? "published text does not match the expected blanks" });
+        continue;
+      }
+      item.system.description = { ...(item.system.description ?? {}), value: fresh.system.description.value };
+      if ((fresh.system.rules ?? []).some((rule) => rule?.key === "Aura")) item.system.rules = fresh.system.rules;
+      report.push({ ...base, status: "rebuilt" });
+    }
+  }
+  return report;
+}
+
+/**
  * Re-level a plain NPC source object (toObject / fromCompendium). Returns a
  * new object; the input is not mutated. `rows` lists every changed number for
  * the preview: {key, label, name?, scale, from, to}. `label` is an i18n key.
  * @param {object} actorData
  * @param {number} level  the new level
  */
-export function relevelActorData(actorData, level) {
+export function relevelActorData(actorData, level, { sources = {} } = {}) {
   const data = structuredClone(actorData ?? {});
   const system = data.system ??= {};
   const from = Number(system.details?.level?.value ?? 0);
   const to = clampRelevel(level, from);
   const rows = [];
-  if (!Number.isFinite(from) || from === to) return { data, rows, from, to };
+  if (!Number.isFinite(from) || from === to) return { data, rows, from, to, abilities: [] };
 
   const note = (key, label, result, before, extra = {}) => {
     if (result && result.value !== before) rows.push({ key, label, scale: result.scale, from: before, to: result.value, ...extra });
@@ -226,5 +292,64 @@ export function relevelActorData(actorData, level) {
     }
   }
 
-  return { data, rows, from, to };
+  const abilities = rebuildModuleAbilities(data, to, { sources });
+  return { data, rows, from, to, abilities };
+}
+
+/** Compendium uuids of the glossary sources behind the module's filled abilities (flagged glossary-fill items). */
+export function relevelSourceUuids(actorData) {
+  const uuids = new Set();
+  for (const item of actorData?.items ?? []) {
+    const built = item?.flags?.simplysf2e?.built;
+    if (built?.kind !== "glossary-fill") continue;
+    for (const uuid of [built.source, item._stats?.compendiumSource]) {
+      if (typeof uuid === "string" && uuid) uuids.add(uuid);
+    }
+  }
+  return [...uuids];
+}
+
+/**
+ * Load those glossary sources through `fetchDoc(uuid)` (Foundry's fromUuid in the app).
+ * A source that is missing or throws is left out; the rebuild then reports the ability kept.
+ * @returns {Promise<Record<string, object>>} uuid -> item data
+ */
+export async function loadRelevelSources(actorData, fetchDoc) {
+  const sources = {};
+  for (const uuid of relevelSourceUuids(actorData)) {
+    try {
+      const doc = await fetchDoc(uuid);
+      if (doc) sources[uuid] = typeof doc.toObject === "function" ? doc.toObject() : structuredClone(doc);
+    } catch (err) {
+      console.warn(`simplysf2e | glossary source ${uuid} could not be loaded for re-level`, err);
+    }
+  }
+  return sources;
+}
+
+/** Preview lines for the rebuild report: {name, rebuilt, reason?} (the app turns them into labels). */
+export function relevelAbilityLines(report) {
+  return (report ?? []).map((ability) => ability.status === "rebuilt"
+    ? { name: ability.name, rebuilt: true }
+    : { name: ability.name, rebuilt: false, reason: ability.reason ?? "" });
+}
+
+/**
+ * The re-level preview for a copy at `level`, from glossary sources the caller already loaded.
+ * Sync, so the app can call it on every level change.
+ * @returns {{level: number, rows: object[], abilities: object[]}}
+ */
+export function relevelPreview(actorData, level, sources) {
+  const { rows, abilities, to } = relevelActorData(actorData, level, { sources });
+  return { level: to, rows, abilities: relevelAbilityLines(abilities) };
+}
+
+/**
+ * Load the copy's glossary sources, then re-level it. The app uses this for the create path;
+ * the preview uses relevelPreview with the sources it loaded when the reskin source was picked.
+ * @returns {Promise<{data: object, rows: object[], abilities: object[], from: number, to: number, sources: object}>}
+ */
+export async function relevelReskin(actorData, level, fetchDoc) {
+  const sources = await loadRelevelSources(actorData, fetchDoc);
+  return { ...relevelActorData(actorData, level, { sources }), sources };
 }

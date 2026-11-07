@@ -58,6 +58,13 @@ export function welcomeState({
   };
 }
 
+/** One readiness warning at most: provider setup has its own form and errors. */
+export function welcomeReadinessIssue(state) {
+  if (!state?.system?.ready) return "system";
+  if (!state?.sources?.ready) return "sources";
+  return null;
+}
+
 /**
  * Whether the welcome window opens by itself at login (JT's "Until ready"
  * default): only for a GM on sf2e, and only until the AI connection works or

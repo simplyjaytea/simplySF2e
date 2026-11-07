@@ -46,6 +46,16 @@
     }
   ],
   "url": "https://github.com/simplyjaytea/simplySF2e",
+  "bugs": "https://github.com/simplyjaytea/simplySF2e/issues",
+  "changelog": "https://github.com/simplyjaytea/simplySF2e/blob/main/CHANGELOG.md",
+  "readme": "https://github.com/simplyjaytea/simplySF2e/blob/main/README.md",
+  "license": "https://github.com/simplyjaytea/simplySF2e/blob/main/LICENSE",
+  "media": [
+    {
+      "type": "cover",
+      "url": "https://raw.githubusercontent.com/simplyjaytea/simplySF2e/main/assets/brand/social-preview.png"
+    }
+  ],
   "manifest": "https://github.com/simplyjaytea/simplySF2e/releases/latest/download/module.json",
   "download": "https://github.com/simplyjaytea/simplySF2e/releases/latest/download/module.zip"
 }

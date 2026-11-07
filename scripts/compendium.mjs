@@ -6,6 +6,8 @@
  */
 
 import { SETTINGS, getSetting } from "./settings.mjs";
+import { hasPlaceholderValues, isFillableEntry } from "./ability-fill.mjs";
+export { hasPlaceholderValues, isFillableEntry };
 import { featPrerequisitesMet } from "./pc-prerequisites.mjs";
 import { slugify } from "./text.mjs";
 import { withinShopRarity, hasPositivePrice } from "./shop.mjs";
@@ -851,23 +853,89 @@ async function getFullCandidates(category, type, maxRarity) {
   return candidates;
 }
 
-/** Bounded exact bestiary-action candidates for creature ability selection. */
-export async function getAbilityCandidates(keywords = []) {
-  const candidates = [];
-  const seen = new Set();
+// Successful reads only: "clean" or "blank". Failed reads are never cached.
+const placeholderCache = new Map();
+// The document behind each classified entry, kept so resolveConcept can dry-run
+// the build-time fill without a second pack read (FIX-B5).
+const placeholderDocs = new Map();
+
+/**
+ * Load the full document and classify it. "unreadable" (missing or thrown)
+ * fails closed and warns; it is not cached, so a transient error does not hide
+ * the ability for the session. Callers choose the warning for "blank".
+ * @returns {Promise<"clean"|"blank"|"unreadable">}
+ */
+export async function placeholderState(entry) {
+  const key = `${entry?.packId}:${entry?._id}`;
+  if (placeholderCache.has(key)) return placeholderCache.get(key);
+  let doc = null;
+  try {
+    doc = await getDocument(entry);
+  } catch (err) {
+    console.warn(`simplysf2e | could not read ability "${entry?.name ?? key}", skipped`, err);
+    return "unreadable";
+  }
+  if (!doc) {
+    console.warn(`simplysf2e | could not read ability "${entry?.name ?? key}", skipped`);
+    return "unreadable";
+  }
+  const state = hasPlaceholderValues(doc) ? "blank" : "clean";
+  placeholderCache.set(key, state);
+  placeholderDocs.set(key, doc);
+  return state;
+}
+
+/** The document loaded by placeholderState for this entry, or null. */
+export function placeholderDocFor(entry) {
+  return placeholderDocs.get(`${entry?.packId}:${entry?._id}`) ?? null;
+}
+
+/** True unless the ability is clean: blank and unreadable are both left out. */
+export async function isPlaceholderEntry(entry) {
+  return (await placeholderState(entry)) !== "clean";
+}
+
+/** Test seam: forget classified documents (packs are not edited during a session). */
+export function clearPlaceholderCache() {
+  placeholderCache.clear();
+  placeholderDocs.clear();
+}
+
+/**
+ * Bounded exact bestiary-action candidates for creature ability selection.
+ * @param {string[]} [keywords]
+ * @param {{signal?: AbortSignal}} [options] a cancelled run stops after loading
+ */
+export async function getAbilityCandidates(keywords = [], { signal } = {}) {
+  const pending = [];
   for (const packId of getPacksFor("abilities")) {
     const entries = await getIndex(packId);
     if (!entries) continue;
     for (const entry of entries) {
-      if (entry.type !== "action" || seen.has(entry.normalized)) continue;
-      seen.add(entry.normalized);
-      candidates.push(candidateRecord(entry, {
-        name: entry.name,
-        traits: entry.system?.traits?.value ?? [],
-        actionType: entry.system?.actionType?.value ?? "passive"
-      }));
+      if (entry.type === "action") pending.push(entry);
     }
   }
+  // The placeholder check applies to every configured abilities pack, by
+  // design: fail closed for any pack, not only the bundled glossary. Documents
+  // load in parallel; the cache keeps later calls cheap.
+  const states = await Promise.all(pending.map((entry) => placeholderState(entry)));
+  if (signal?.aborted) {
+    const err = new Error("Cancelled");
+    err.cancelled = true;
+    throw err;
+  }
+  const candidates = [];
+  const seen = new Set();
+  pending.forEach((entry, i) => {
+    const offered = states[i] === "clean" || (states[i] === "blank" && isFillableEntry(entry));
+    if (!offered || seen.has(entry.normalized)) return;
+    seen.add(entry.normalized);
+    candidates.push(candidateRecord(entry, {
+      name: entry.name,
+      traits: entry.system?.traits?.value ?? [],
+      actionType: entry.system?.actionType?.value ?? "passive"
+    }));
+  });
   const words = normalizedKeywords(keywords);
   const ranked = candidates.slice().sort((a, b) => relevanceScore(b, words) - relevanceScore(a, words)
     || a.name.localeCompare(b.name));

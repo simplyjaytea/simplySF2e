@@ -9,6 +9,41 @@
 /** Newest first. title/body are i18n keys in lang/en.json. */
 export const RELEASE_NOTES = [
   {
+    id: "2026-11-07-run-cost",
+    title: "SIMPLYSF2E.WhatsNew.Note.RunCost.Title",
+    body: "SIMPLYSF2E.WhatsNew.Note.RunCost.Body"
+  },
+  {
+    id: "2026-11-07-relevel-abilities",
+    title: "SIMPLYSF2E.WhatsNew.Note.RelevelAbilities.Title",
+    body: "SIMPLYSF2E.WhatsNew.Note.RelevelAbilities.Body"
+  },
+  {
+    id: "2026-11-07-aura",
+    title: "SIMPLYSF2E.WhatsNew.Note.Aura.Title",
+    body: "SIMPLYSF2E.WhatsNew.Note.Aura.Body"
+  },
+  {
+    id: "2026-11-06-one-screen-welcome",
+    title: "SIMPLYSF2E.WhatsNew.Note.OneScreenWelcome.Title",
+    body: "SIMPLYSF2E.WhatsNew.Note.OneScreenWelcome.Body"
+  },
+  {
+    id: "2026-11-05-area-blast",
+    title: "SIMPLYSF2E.WhatsNew.Note.AreaBlast.Title",
+    body: "SIMPLYSF2E.WhatsNew.Note.AreaBlast.Body"
+  },
+  {
+    id: "2026-11-05-blank-abilities",
+    title: "SIMPLYSF2E.WhatsNew.Note.BlankAbilities.Title",
+    body: "SIMPLYSF2E.WhatsNew.Note.BlankAbilities.Body"
+  },
+  {
+    id: "2026-11-05-clearer-errors",
+    title: "SIMPLYSF2E.WhatsNew.Note.ClearerErrors.Title",
+    body: "SIMPLYSF2E.WhatsNew.Note.ClearerErrors.Body"
+  },
+  {
     id: "2026-10-31-run-budget",
     title: "SIMPLYSF2E.WhatsNew.Note.RunBudget.Title",
     body: "SIMPLYSF2E.WhatsNew.Note.RunBudget.Body"

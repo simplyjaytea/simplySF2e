@@ -15,8 +15,10 @@ import {
 import { MODULE_ID } from "./settings.mjs";
 import {
   getSpellCandidates, getFocusSpellCandidates, getAbilityCandidates, getFeatCandidates,
-  getEquipmentCandidates, getLootCandidates, getScrollSpellCandidates
+  getEquipmentCandidates, getLootCandidates, getScrollSpellCandidates,
+  findEntry, getPacksFor, placeholderState, isFillableEntry
 } from "./compendium.mjs";
+import { isModuleTemplate } from "./ability-templates.mjs";
 import {
   normalizeConcept, normalizeLoot, resolveConcept, applyTreasureBudget, lootValueGp, parseCoins, parseScroll,
   narrativeHasMechanics
@@ -159,30 +161,76 @@ export async function refineCreatureAbilities(concept, ctxIn) {
   const ctx = makeContext(ctxIn);
   if (!concept?.specialAbilities?.length) return;
   const draft = concept.specialAbilities;
-  const narratives = draft.filter((ability) => !ability.glossary)
+  // Area blasts are module-built (createActor). They never reach the selector or
+  // the keywords, and they keep their slots: glossary picks get the remaining budget.
+  const templates = draft.filter((ability) => isModuleTemplate(ability));
+  const plain = draft.filter((ability) => !isModuleTemplate(ability));
+  const budget = Math.max(0, 6 - templates.length);
+  const narratives = plain.filter((ability) => !ability.glossary)
     .filter((ability) => {
       if (!narrativeHasMechanics(ability.description)) return true;
       console.warn(`${MODULE_ID} | dropped narrative ability "${ability.name}": its text names dice, a DC or Hit Points`);
       return false;
     })
     .map((ability) => ({ ...ability, narrative: true }));
+  const glossaryDraft = plain.filter((ability) => ability.glossary);
+  // Templates first (their slots are reserved), then the picks within budget, then narratives.
+  // A selector pick is only {name, candidate}. Merge it onto its draft ability (by glossary,
+  // then name, case-insensitive) so the draft's DC scale, damage type, description and
+  // action data survive; the pick's own candidate and name win.
+  const withDraft = (pick, drafts) => {
+    const key = String(pick?.name ?? "").toLowerCase();
+    // A draft with a glossary name matches only by that name; a name match is allowed only
+    // for a draft with no glossary name, so one ability never inherits another's draft.
+    const draft = drafts.find((d) => String(d.glossary ?? "").toLowerCase() === key)
+      ?? drafts.find((d) => !d.glossary && String(d.name ?? "").toLowerCase() === key);
+    const glossary = draft && String(draft.glossary ?? "").toLowerCase() === key ? draft.glossary : null;
+    return {
+      ...pick,
+      glossary: pick.glossary ?? glossary,
+      candidate: pick.candidate ?? draft?.candidate ?? null,
+      narrative: false,
+      actionType: pick.actionType ?? draft?.actionType ?? "passive",
+      actions: pick.actions ?? draft?.actions ?? null,
+      description: pick.description || draft?.description || "",
+      abilityDcScale: pick.abilityDcScale ?? draft?.abilityDcScale ?? null,
+      damageType: pick.damageType ?? draft?.damageType ?? null,
+      traits: pick.traits?.length ? pick.traits : (draft?.traits ?? [])
+    };
+  };
+  const finish = (picks) => [
+    ...templates,
+    ...picks.map((pick) => withDraft(pick, plain)).slice(0, budget),
+    ...narratives
+  ].slice(0, 6);
   try {
-    const keywords = draft.flatMap((ability) => [ability.glossary, ability.name])
+    const keywords = plain.flatMap((ability) => [ability.glossary, ability.name])
       .map((name) => String(name ?? "").toLowerCase()).filter(Boolean);
-    const candidates = await getAbilityCandidates(keywords);
+    const candidates = await getAbilityCandidates(keywords, { signal: ctx.signal });
+    // A glossary name the draft asked for that is held back for blank published
+    // values never reaches the model; say so instead of dropping it silently.
+    const offered = new Set(candidates.map((candidate) => String(candidate.name).toLowerCase()));
+    for (const ability of glossaryDraft) {
+      const name = ability.glossary;
+      if (offered.has(String(name).toLowerCase())) continue;
+      const entry = await findEntry(getPacksFor("abilities"), name, (e) => e.type === "action");
+      if (entry && !isFillableEntry(entry) && await placeholderState(entry) === "blank") {
+        console.warn(`${MODULE_ID} | "${name}" is a glossary ability with blank published values; not offered to the model`);
+      }
+    }
     if (!candidates.length) {
-      concept.specialAbilities = [...draft.filter((ability) => ability.glossary), ...narratives].slice(0, 6);
+      concept.specialAbilities = finish(glossaryDraft);
       return;
     }
     const { abilities, usage, timing } = await ctx.ai.selectCreatureAbilities({
-      concept, candidates, onProgress: progressFor(ctx), signal: ctx.signal
+      concept: { ...concept, specialAbilities: plain }, candidates, onProgress: progressFor(ctx), signal: ctx.signal
     });
     recordUsage(ctx, ctx.labels.abilities, usage, timing);
-    concept.specialAbilities = [...abilities, ...narratives].slice(0, 6);
+    concept.specialAbilities = finish(abilities);
   } catch (err) {
     if (err?.cancelled || err?.runLimit) throw err;
     console.warn(`${MODULE_ID} | grounded creature ability selection failed; unresolved glossary abilities will block creation`, err);
-    concept.specialAbilities = [...draft.filter((ability) => ability.glossary), ...narratives].slice(0, 6);
+    concept.specialAbilities = finish(glossaryDraft);
   }
 }
 

@@ -14,7 +14,7 @@ import {
   getPacksFor, EQUIPMENT_TYPES, findEntry, getDocument, toItemData, getEquipmentIndex,
   priceToGp, RARITY_RANK
 } from "./compendium.mjs";
-import { slugify, capitalized, esc } from "./text.mjs";
+import { slugify, capitalized, esc, escAi } from "./text.mjs";
 import {
   RUNED_ITEM_KINDS, SECONDARY_ADJECTIVE, SECONDARY_RUNE_FIELD, propertyRuneKey, propertyRuneFitsBase,
   findFundamentalRune, getBaseItemCandidates, getPropertyRuneCandidates, getFundamentalRuneTiers,
@@ -389,7 +389,7 @@ export async function buildRunedItem(concept) {
   data.system.traits = { ...(data.system.traits ?? {}), value: [...traits], rarity };
 
   const paragraphs = String(concept.description ?? "")
-    .split(/\n{2,}/).map((p) => `<p>${esc(p.trim())}</p>`).filter((p) => p !== "<p></p>");
+    .split(/\n{2,}/).map((p) => `<p>${escAi(p.trim())}</p>`).filter((p) => p !== "<p></p>");
   const specList = [`Grade: ${gradeLabel}`];
   if (upgradeDocs.length) {
     specList.push(`Installed Upgrades: ${upgradeDocs.map((d) => d.name).join(", ")}`);
@@ -609,7 +609,7 @@ function normalizeActivation(raw, { level, rarity, usage, available, effectCatal
       // description is concatenated into macro HTML, so it is escaped here.
       params = {
         effectName: String(p.effectName || "Magic Effect").slice(0, 80),
-        description: esc(String(p.description ?? "").slice(0, 600)),
+        description: escAi(String(p.description ?? "").slice(0, 600)),
         durationRounds: duration.rounds ?? null,
         durationMinutes: duration.minutes ?? null,
         ruleEffectKinds
@@ -795,7 +795,7 @@ export async function buildMagicItemData(concept) {
   const { rules, applied } = await cloneRulesForEffects(concept.effects);
 
   const paragraphs = String(concept.description ?? "")
-    .split(/\n{2,}/).map((p) => esc(p.trim())).filter(Boolean);
+    .split(/\n{2,}/).map((p) => escAi(p.trim())).filter(Boolean);
   const descriptionParts = paragraphs.map((p) => `<p>${p}</p>`);
   if (applied.length) {
     // Plain-English mechanical summary so the GM can read what the item
@@ -844,7 +844,7 @@ export async function buildMagicItemData(concept) {
   // after the macro is created (see macro-templates.createActivationMacro).
   if (concept.activation) {
     descriptionParts.push(
-      `<hr /><p><strong>${game.i18n.localize("SIMPLYSF2E.ItemForge.ActivationHeading")}</strong> ${esc(describeActivation(concept.activation))}.</p>`
+      `<hr /><p><strong>${game.i18n.localize("SIMPLYSF2E.ItemForge.ActivationHeading")}</strong> ${escAi(describeActivation(concept.activation))}.</p>`
     );
     system.description.value = descriptionParts.join("\n");
     // Best-effort native frequency (for the sheet's own display); the

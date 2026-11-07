@@ -1,3 +1,5 @@
+import { normalizePrices, parsePrice } from "./cost.mjs";
+
 export const MODULE_ID = "simplysf2e";
 
 export const SETTINGS = {
@@ -20,8 +22,44 @@ export const SETTINGS = {
   welcomeDismissed: "welcomeDismissed",
   whatsNewSeen: "whatsNewSeen",
   whatsNewDisabled: "whatsNewDisabled",
-  generatorInput: "generatorInput"
+  generatorInput: "generatorInput",
+  settingsSchema: "settingsSchema"
 };
+
+/** Version of the stored world settings layout. Bump with a new SETTINGS_MIGRATIONS step. */
+export const SETTINGS_SCHEMA = 1;
+
+/**
+ * Ordered upgrades: { version, run }, where `run` upgrades stored settings to
+ * `version`. Empty today: schema 1 is the first versioned layout.
+ * Each step must be safe to run more than once: a failed run is retried on the next GM load.
+ */
+export const SETTINGS_MIGRATIONS = [];
+
+/**
+ * Steps still to run for a world stored at `stored`, up to `current`, in
+ * ascending version order. Pure, so it can be tested without Foundry.
+ */
+export function pendingSettingsMigrations(stored, current, steps = SETTINGS_MIGRATIONS) {
+  const from = Number.isFinite(stored) ? stored : 0;
+  return steps
+    .filter((step) => step.version > from && step.version <= current)
+    .sort((a, b) => a.version - b.version);
+}
+
+/**
+ * GM only, on ready: run pending steps, then record the current schema.
+ * A world already newer than this code is left alone (never downgraded).
+ */
+export async function migrateSettings(steps = SETTINGS_MIGRATIONS) {
+  if (!game.user?.isGM) return;
+  const stored = Number(game.settings.get(MODULE_ID, SETTINGS.settingsSchema)) || 0;
+  if (stored >= SETTINGS_SCHEMA) return;
+  for (const step of pendingSettingsMigrations(stored, SETTINGS_SCHEMA, steps)) {
+    await step.run();
+  }
+  await game.settings.set(MODULE_ID, SETTINGS.settingsSchema, SETTINGS_SCHEMA);
+}
 
 export function registerSettings(SourcesConfigApp, ProviderSetupApp, WelcomeApp, WhatsNewApp) {
   if (WelcomeApp) {
@@ -104,6 +142,14 @@ export function registerSettings(SourcesConfigApp, ProviderSetupApp, WelcomeApp,
     config: false,
     type: Boolean,
     default: false
+  });
+
+  // Layout version of the world settings; migrateSettings() (ready) keeps it current.
+  game.settings.register(MODULE_ID, SETTINGS.settingsSchema, {
+    scope: "world",
+    config: false,
+    type: Number,
+    default: 0
   });
 
   // Last Generator settings (never the prompt), restored on the next open.
@@ -496,7 +542,8 @@ function normalizeProviderConnection(raw) {
     apiBaseUrl,
     model,
     apiKey: String(raw.apiKey ?? "").trim(),
-    apiKeyBaseUrl: normalizeApiBaseUrl(raw.apiKeyBaseUrl)
+    apiKeyBaseUrl: normalizeApiBaseUrl(raw.apiKeyBaseUrl),
+    ...normalizePrices(raw)
   };
 }
 
@@ -523,23 +570,32 @@ async function persistProviderBank(bank) {
       apiBaseUrl: connection.apiBaseUrl,
       model: connection.model,
       apiKey: connection.apiKey,
-      apiKeyBaseUrl: connection.apiKeyBaseUrl
+      apiKeyBaseUrl: connection.apiKeyBaseUrl,
+      inputPerM: connection.inputPerM ?? null,
+      outputPerM: connection.outputPerM ?? null
     }))
   });
 }
 
-let applyingProviderConnection = false;
+let providerConnectionDepth = 0;
+
+/** True while any withProviderConnectionGuard call is still running. */
+export const isApplyingProviderConnection = () => providerConnectionDepth > 0;
+
+// Re-entrant: nested calls share one guard; it lifts only when the outermost call ends.
+export async function withProviderConnectionGuard(callback) {
+  providerConnectionDepth += 1;
+  try { return await callback(); }
+  finally { providerConnectionDepth -= 1; }
+}
 
 async function applyConnectionToSettings(connection) {
-  applyingProviderConnection = true;
-  try {
+  return withProviderConnectionGuard(async () => {
     await game.settings.set(MODULE_ID, SETTINGS.apiBaseUrl, connection.apiBaseUrl);
     await game.settings.set(MODULE_ID, SETTINGS.model, connection.model);
     await game.settings.set(MODULE_ID, SETTINGS.apiKey, connection.apiKey);
     await game.settings.set(MODULE_ID, SETTINGS.apiKeyBaseUrl, connection.apiKeyBaseUrl);
-  } finally {
-    applyingProviderConnection = false;
-  }
+  });
 }
 
 /**
@@ -569,6 +625,35 @@ export function listProviderConnections() {
     name: connection.name,
     active: connection.id === bank.activeId
   }));
+}
+
+/** Manual USD prices per 1M tokens of the active connection: `{ inputPerM, outputPerM }`, each a number or null. */
+export function getActiveProviderPrices() {
+  const bank = readProviderBank();
+  const active = bank.connections.find((connection) => connection.id === bank.activeId);
+  return normalizePrices(active);
+}
+
+/**
+ * Store manual prices on the active connection (empty = unset). Throws an Error
+ * whose `field` is "inputPerM" or "outputPerM" on a negative or non-numeric value,
+ * before anything is written.
+ */
+export async function setActiveProviderPrices({ inputPerM, outputPerM } = {}) {
+  const parsed = { inputPerM: parsePrice(inputPerM), outputPerM: parsePrice(outputPerM) };
+  for (const field of ["inputPerM", "outputPerM"]) {
+    if (!parsed[field].error) continue;
+    const err = new Error(game.i18n.localize(`SIMPLYSF2E.ProviderSetup.${field === "inputPerM" ? "PriceInput" : "PriceOutput"}Invalid`));
+    err.field = field;
+    throw err;
+  }
+  const bank = await ensureProviderBank();
+  const active = bank.connections.find((connection) => connection.id === bank.activeId);
+  if (!active) return null;
+  active.inputPerM = parsed.inputPerM.value;
+  active.outputPerM = parsed.outputPerM.value;
+  await persistProviderBank(bank);
+  return { inputPerM: active.inputPerM, outputPerM: active.outputPerM };
 }
 
 /** Write the live endpoint/key/model into the active named profile. */
@@ -693,6 +778,7 @@ export function getProviderRequestConfig() {
     provider,
     connectionId: active?.id ?? "",
     connectionName: active?.name || provider.name,
+    prices: normalizePrices(active),
     connections: bank.connections.map((connection) => ({
       id: connection.id,
       name: connection.name,
@@ -759,14 +845,14 @@ export async function authorizeApiKeyForCurrentBaseUrl(expectedBaseUrl) {
 }
 
 async function clearApiKeyBindingForChangedKey() {
-  if (applyingProviderConnection) return;
+  if (isApplyingProviderConnection()) return;
   if (getSetting(SETTINGS.apiKeyBaseUrl)) {
     await game.settings.set(MODULE_ID, SETTINGS.apiKeyBaseUrl, "");
   }
 }
 
 async function clearApiKeyBindingForChangedBaseUrl(value) {
-  if (applyingProviderConnection) return;
+  if (isApplyingProviderConnection()) return;
   const nextBaseUrl = normalizeApiBaseUrl(value);
   const boundBaseUrl = normalizeApiBaseUrl(getSetting(SETTINGS.apiKeyBaseUrl));
   if (boundBaseUrl && boundBaseUrl !== nextBaseUrl) {

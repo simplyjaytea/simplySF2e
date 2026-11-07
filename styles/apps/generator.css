@@ -290,12 +290,14 @@
 .simplysf2e .spf-party-fill {
   display: flex;
   align-items: center;
+  flex: 1 1 12rem;
   flex-wrap: wrap;
   gap: var(--spf-space-sm);
   min-width: 0;
 }
 
 .simplysf2e .spf-party-note {
+  flex: 1 1 12rem;
   color: var(--spf-text-muted);
   font-size: var(--spf-text-sm);
   overflow-wrap: anywhere;
@@ -307,13 +309,10 @@
 .simplysf2e .spf-level-primary .form-group:has(.spf-party-fill) {
   flex-wrap: wrap;
   row-gap: var(--spf-space-xs);
+  min-width: 0;
 }
 
 @container spf-window (max-width: 520px) {
-  .simplysf2e .spf-level-primary .form-group:has(.spf-party-fill) {
-    min-width: 0;
-  }
-
   .simplysf2e .spf-party-fill {
     flex: 1 1 100%;
   }
@@ -742,4 +741,16 @@
 .simplysf2e .spf-relevel-new {
   color: var(--spf-mode-reskin);
   font-weight: 600;
+}
+.simplysf2e .spf-relevel-abilities {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--spf-space-xs);
+  font-size: var(--spf-text-sm);
+}
+.simplysf2e .spf-relevel-kept {
+  color: var(--spf-text-muted);
+  font-style: italic;
 }

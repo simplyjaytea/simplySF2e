@@ -5,6 +5,7 @@ import {
 import { AI_TASK, completionOptionsFor } from "./ai-task-profiles.mjs";
 import { fetchWithBackoff } from "./ai-transport.mjs";
 import { estimateTokens, normalizeUsage } from "./tokens.mjs";
+import { combineUsage } from "./cost.mjs";
 import { runBudgetProblem, spendRunTokens, remainingDeadlineMs, getRunBudget } from "./run-budget.mjs";
 import { encodeFeatCandidateSlots, resolveEncodedFeatPicks } from "./ai-candidate-format.mjs";
 import { normalizeMulticlassPick, taskResponseProblem } from "./ai-response-validation.mjs";
@@ -12,7 +13,18 @@ import { validateChoicePicks } from "./choice-set.mjs";
 import { CORE_SKILLS } from "./pc-skills.mjs";
 import { COMPLETE_PC_CLASS_SLUGS } from "./pc-support.mjs";
 import { resolveJevConfig } from "./jev.mjs";
-import { jevPickEquipment, jevPickLoot, jevPickCreatureFeats, jevPickCreatureAbilities, jevPickFeats, jevPickCharacterChoices, jevPickSpells, mergeUsage } from "./jev-picks.mjs";
+import { jevPickEquipment, jevPickLoot, jevPickCreatureFeats, jevPickCreatureAbilities, jevPickFeats, jevPickCharacterChoices, jevPickSpells, mergeChatJev } from "./jev-picks.mjs";
+import { ABILITY_DAMAGE_TYPES } from "./ability-fill.mjs";
+import { AREA_BLAST_DAMAGE_TYPES } from "./ability-templates.mjs";
+
+// One source of truth for ability damage types: the validators' lists build the prompt text.
+// Glossary fills use ABILITY_DAMAGE_TYPES; area blasts use AREA_BLAST_DAMAGE_TYPES.
+const ALL_ABILITY_DAMAGE_TYPES = [...new Set([...ABILITY_DAMAGE_TYPES, ...AREA_BLAST_DAMAGE_TYPES])];
+const AREA_ONLY_DAMAGE_TYPES = AREA_BLAST_DAMAGE_TYPES.filter((type) => !ABILITY_DAMAGE_TYPES.includes(type));
+/** Schema enum for specialAbilities.damageType (null allowed). */
+export const ABILITY_DAMAGE_TYPE_SCHEMA = `${ALL_ABILITY_DAMAGE_TYPES.map((type) => `"${type}"`).join("|")}|null`;
+/** Which types apply to which ability kind, stated next to the schema enum. */
+export const ABILITY_DAMAGE_TYPE_NOTE = `glossary fills use ${ABILITY_DAMAGE_TYPES.join(", ")}; area-blast and aura use these and also ${AREA_ONLY_DAMAGE_TYPES.join(", ")} (area-blast and aura only, ignored for glossary abilities); required for area-blast and for aura damage`;
 
 /**
  * Client for any OpenAI-compatible chat completions API (DeepSeek, OpenAI,
@@ -159,7 +171,16 @@ JSON schema (all keys required unless marked optional):
     {
       "name": string,
       "glossary": string|null, // EXACT published Starfinder 2e bestiary glossary ability name if this is one, else null
-      "description": string // for glossary abilities, a brief thematic hint only; otherwise a short narrative-only description with NO rules, damage, DCs, actions, traits, conditions, or numeric mechanics
+      "description": string, // short flavor only, with no rules or numeric mechanics; area-blast or aura flavor accompanies the module-built mechanics
+      "abilityDcScale": "moderate"|"high"|null, // glossary, area-blast or aura DC scale; null = default (high for area-blast, moderate for aura)
+      "damageType": ${ABILITY_DAMAGE_TYPE_SCHEMA}, // ${ABILITY_DAMAGE_TYPE_NOTE}
+      "template": "area-blast"|"aura"|null, // ONLY for a bespoke breath, blast or aura: "area-blast" or "aura" builds a working ability from these enum words; otherwise null
+      "kind": "condition"|"damage"|null, // aura only: "condition" (save and a condition) or "damage" (damage each turn)
+      "condition": "frightened"|"sickened"|"clumsy"|"stupefied"|"enfeebled"|null, // aura with kind condition only
+      "shape": "cone"|"line"|null, // area-blast only
+      "size": "small"|"medium"|"large"|null, // area-blast and aura; null = medium
+      "save": "reflex"|"fortitude"|"will"|null, // area-blast (default reflex) or aura damage (default fortitude); not used for aura conditions
+      "use": "at-will"|"limited"|null // area-blast only; null = at-will; "limited" when the creature must recharge it
     }
   ],
   "spellcasting": null | {
@@ -187,8 +208,8 @@ Design guidance (scale road maps):
 - Spellcaster: casting tradition matching key ability at high or extreme; low-or-moderate AC, HP and attack; DC one scale above attacks.
 - Include spellcasting only when it truly fits the concept and the user allows it.
 - "focusSpells": only when the concept has spellcasting AND genuinely uses focus magic; leave [] otherwise. Uncommon, not the default.
-- Use published bestiary glossary abilities wherever they fit, copying exact names. They are selected from the compendium afterward and retain their real working automation.
-- A bespoke signature ability is allowed only as a short, clearly narrative description (a scent, texture, visual aura, or mannerism). Do not give it rules text or mechanical effects; the module will label it narrative-only rather than create custom mechanics.
+- Use published bestiary glossary abilities wherever they fit, copying exact names. The module selects them from the compendium afterward and keeps their real working automation; where a glossary ability is published without numbers, the module fills its DC, damage, size and distance from the creature's level, so never write numbers for glossary abilities.
+- For a bespoke cone or line breath or blast, set template to area-blast and choose its enum fields; never write its numbers or mechanics. For a bespoke aura that affects creatures around the creature, set template to aura, kind to condition or damage, and choose its enum fields; never write its numbers or mechanics. Other bespoke signature abilities remain short narrative-only descriptions. Use a published glossary aura instead when one fits.
 - Traits, languages, senses and speeds must follow Starfinder 2e conventions.`;
 }
 
@@ -225,13 +246,12 @@ async function requestJSON(args) {
   const retryBudget = { remaining: 1 };
   // Tokens spent by failed attempts are still spent — sum usage across every
   // attempt that returned one, so the report reflects the real total.
-  const total = { prompt: 0, completion: 0, total: 0, estimated: false };
+  let total = { prompt: 0, completion: 0, total: 0, estimated: false };
+  // Provider-reported cost (OpenRouter usage.cost) is summed across attempts; tokens of an
+  // attempt with no reported cost are kept apart for manual pricing (see combineUsage).
   const addUsage = (usage) => {
     if (!usage) return;
-    total.prompt += usage.prompt || 0;
-    total.completion += usage.completion || 0;
-    total.total += usage.total || 0;
-    if (usage.estimated) total.estimated = true;
+    total = combineUsage(total, usage);
   };
   for (let attempt = 0; attempt < 2; attempt++) {
     throwIfGenerationCancelled(args.signal);
@@ -686,7 +706,7 @@ ${focusCandidates.length ? "Choose up to three focusSpellIds only from the provi
       else console.warn(`simplysf2e | conflicting signature choices at rank ${rank}; keeping those spells regular`);
     }
     return {
-      spells, focusSpells, usage: mergeUsage(usage, jev?.usage),
+      spells, focusSpells, usage: mergeChatJev(usage, jev?.usage),
       ...(jev?.attempted ? { timing: { source: "llm", ms: Date.now() - started, jevMs: jev.ms } } : {})
     };
   }
@@ -772,7 +792,7 @@ Pick the logical items the creature would carry: the weapons it wields (match it
       value: 0
     }));
   return {
-    equipment, omitted: parsed.equipment.length === 0, usage: mergeUsage(usage, jev.usage),
+    equipment, omitted: parsed.equipment.length === 0, usage: mergeChatJev(usage, jev.usage),
     timing: { source: "llm", ms: Date.now() - started, ...(jev.attempted ? { jevMs: jev.ms } : {}) }
   };
 }
@@ -850,7 +870,7 @@ Recreate the first-draft haul: replace each non-coin entry with the closest vali
     });
   }
   return {
-    loot, omitted: parsed.loot.length === 0, usage: mergeUsage(usage, jev.usage),
+    loot, omitted: parsed.loot.length === 0, usage: mergeChatJev(usage, jev.usage),
     timing: { source: "llm", ms: Date.now() - started, ...(jev.attempted ? { jevMs: jev.ms } : {}) }
   };
 }
@@ -958,7 +978,7 @@ Include exactly one entry per slot number (1 to ${slots.length}). Never use an I
   });
   const picks = resolveEncodedFeatPicks(encoded, parsed.picks);
   return {
-    picks, usage: mergeUsage(usage, jev.usage),
+    picks, usage: mergeChatJev(usage, jev.usage),
     timing: { source: "llm", ms: Date.now() - started, ...(jev.attempted ? { jevMs: jev.ms } : {}) }
   };
 }
@@ -1005,7 +1025,7 @@ Choose feats that fit the creature's role and tactics. Do not choose a feat more
   // Only an explicitly empty, schema-validated reply declines the wishlist.
   // Nonempty replies that decode to no issued candidates remain failures.
   return {
-    feats, omitted: parsed.featIds.length === 0, usage: mergeUsage(usage, jev.usage),
+    feats, omitted: parsed.featIds.length === 0, usage: mergeChatJev(usage, jev.usage),
     timing: { source: "llm", ms: Date.now() - started, ...(jev.attempted ? { jevMs: jev.ms } : {}) }
   };
 }
@@ -1047,7 +1067,7 @@ Choose the actions that fit the creature's role and tactics. Omit a proposed abi
     .slice(0, maximum)
     .map((candidate) => ({ name: candidate.name, ...(candidate.ref ? { candidate: candidate.ref } : {}) }));
   return {
-    abilities, usage: mergeUsage(usage, jev.usage),
+    abilities, usage: mergeChatJev(usage, jev.usage),
     timing: { source: "llm", ms: Date.now() - started, ...(jev.attempted ? { jevMs: jev.ms } : {}) }
   };
 }
@@ -1137,7 +1157,7 @@ Use exact string IDs from the catalog. Each option must belong to that choice. R
     task: AI_TASK.CHARACTER_CHOICES, system, user, onProgress, signal
   });
   return {
-    picks: validateChoicePicks(groups, data.picks), usage: mergeUsage(usage, jev.usage),
+    picks: validateChoicePicks(groups, data.picks), usage: mergeChatJev(usage, jev.usage),
     timing: { source: "llm", ms: Date.now() - started, ...(jev.attempted ? { jevMs: jev.ms } : {}) }
   };
 }

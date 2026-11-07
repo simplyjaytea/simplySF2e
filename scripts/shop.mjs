@@ -3,7 +3,7 @@
  * everything sold is a real `sf2e.equipment` document, and its price is that
  * document's own price. No Foundry globals, so this file is node-testable.
  */
-import { esc, toHtml } from "./text.mjs";
+import { esc, escAi, toHtml } from "./text.mjs";
 
 /** Shop level range: a PC level, like the Item Forge and Character mode. */
 export const SHOP_MIN_LEVEL = 0;
@@ -142,8 +142,8 @@ export function shopStockValue(rows) {
 /** The merchant's sheet description: escaped AI prose plus the keeper line. */
 export function shopDescriptionHtml(concept, { shopkeeperLabel = "Shopkeeper" } = {}) {
   const parts = [];
-  if (concept?.blurb) parts.push(`<p><em>${esc(concept.blurb)}</em></p>`);
-  if (concept?.shopkeeper) parts.push(`<p><strong>${esc(shopkeeperLabel)}:</strong> ${esc(concept.shopkeeper)}</p>`);
+  if (concept?.blurb) parts.push(`<p><em>${escAi(concept.blurb)}</em></p>`);
+  if (concept?.shopkeeper) parts.push(`<p><strong>${esc(shopkeeperLabel)}:</strong> ${escAi(concept.shopkeeper)}</p>`);
   const body = toHtml(concept?.description ?? "");
   if (body) parts.push(body);
   return parts.join("\n");

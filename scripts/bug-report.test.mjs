@@ -2,6 +2,7 @@
 // Run: node scripts/bug-report.test.mjs
 import assert from "node:assert/strict";
 import {
+  BUG_REPORT_ISSUE_URL,
   captureFailure,
   endpointHost,
   formatBugReport,
@@ -143,5 +144,9 @@ const spanReport = formatBugReport({
 });
 assert.ok(!spanReport.includes(spanKey.slice(0, 8)), "no fragment of a key spanning the prompt cut");
 assert.ok(!spanReport.includes(spanKey), "exact key in the error is masked");
+
+// Issue link: the bug-report template only, never report text in the URL.
+assert.equal(BUG_REPORT_ISSUE_URL, "https://github.com/simplyjaytea/simplySF2e/issues/new?template=bug_report.md");
+assert.ok(!BUG_REPORT_ISSUE_URL.includes("body="), "no report body in the issue URL");
 
 console.log("bug-report.test.mjs: ok");

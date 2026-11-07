@@ -3,6 +3,7 @@
  * is transient UI/build data: it is never written to actors or item flags.
  */
 import { parseCoins } from "./currency.mjs";
+import { isModuleTemplate } from "./ability-templates.mjs";
 
 function line(category, name, status, required = true) {
   return { category, name: String(name ?? "Unnamed"), status, required };
@@ -12,7 +13,7 @@ function resolvedLines(category, entries, { allowNarrative = false } = {}) {
   return (Array.isArray(entries) ? entries : []).map((item) => {
     const name = item?.spell?.name ?? item?.ability?.name ?? item?.name;
     if (item?.entry) return line(category, name, "compendium");
-    if (allowNarrative && item?.ability?.narrative) return line(category, name, "custom-narrative", false);
+    if (allowNarrative && (item?.ability?.narrative || isModuleTemplate(item?.ability))) return line(category, name, "custom-narrative", false);
     return line(category, name, "unresolved");
   });
 }
