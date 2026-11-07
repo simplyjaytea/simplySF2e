@@ -143,27 +143,42 @@
         <p id="spf-reskin-level-hint" class="spf-hint">{{localize "SIMPLYSF2E.Relevel.Hint"}}</p>
       </div>
       {{#if reskinRelevel.changed}}
-        {{#if reskinRelevel.rows.length}}
+        {{#if reskinRelevel.hasRows}}
+        {{! One table so old and new values line up: plain stats first, then each
+            Strike as a group (its short name) with Attack and Damage rows. }}
         <div class="spf-relevel-scroll">
           <table class="spf-relevel-table">
             <thead><tr>
               <th scope="col">{{localize "SIMPLYSF2E.Relevel.Stat"}}</th>
               <th scope="col">{{localize "SIMPLYSF2E.Relevel.Scale"}}</th>
-              <th scope="col">{{localize "SIMPLYSF2E.Relevel.AtLevel" level=reskinRelevel.from}}</th>
-              <th scope="col">{{localize "SIMPLYSF2E.Relevel.AtLevel" level=reskinRelevel.level}}</th>
+              <th scope="col" class="spf-num">{{localize "SIMPLYSF2E.Relevel.AtLevel" level=reskinRelevel.from}}</th>
+              <th scope="col" class="spf-num">{{localize "SIMPLYSF2E.Relevel.AtLevel" level=reskinRelevel.level}}</th>
             </tr></thead>
+            {{#if reskinRelevel.rows.length}}
             <tbody>
-              {{#each reskinRelevel.rows}}<tr><td>{{this.label}}</td><td>{{this.scale}}</td><td>{{this.from}}</td><td class="spf-relevel-new">{{this.to}}</td></tr>{{/each}}
+              {{#each reskinRelevel.rows}}<tr><th scope="row">{{this.label}}</th><td>{{this.scale}}</td><td class="spf-num">{{this.from}}</td><td class="spf-num spf-relevel-new">{{this.to}}</td></tr>{{/each}}
             </tbody>
+            {{/if}}
+            {{#each reskinRelevel.strikes}}
+            <tbody class="spf-relevel-strike">
+              <tr class="spf-relevel-group"><th scope="colgroup" colspan="4"><i aria-hidden="true" class="fa-solid fa-hand-fist"></i> {{this.name}}</th></tr>
+              {{#if this.attack}}<tr><th scope="row" class="spf-relevel-sub">{{localize "SIMPLYSF2E.Relevel.AttackRow"}}</th><td>{{this.attack.scale}}</td><td class="spf-num">{{this.attack.from}}</td><td class="spf-num spf-relevel-new">{{this.attack.to}}</td></tr>{{/if}}
+              {{#if this.damage}}<tr><th scope="row" class="spf-relevel-sub">{{localize "SIMPLYSF2E.Relevel.DamageRow"}}</th><td>{{this.damage.scale}}</td><td class="spf-num">{{this.damage.from}}</td><td class="spf-num spf-relevel-new">{{this.damage.to}}</td></tr>{{/if}}
+            </tbody>
+            {{/each}}
           </table>
         </div>
         {{/if}}
+        {{! Rebuilt and kept-at-old-level abilities always stay visible. }}
         {{#if reskinRelevel.abilities.length}}
         <ul class="spf-relevel-abilities">
-          {{#each reskinRelevel.abilities}}<li{{#if this.kept}} class="spf-relevel-kept"{{/if}}>{{this.label}}</li>{{/each}}
+          {{#each reskinRelevel.abilities}}<li{{#if this.kept}} class="spf-relevel-kept"{{/if}}><i aria-hidden="true" class="fa-solid {{#if this.kept}}fa-triangle-exclamation{{else}}fa-rotate{{/if}}"></i> <span>{{this.label}}</span></li>{{/each}}
         </ul>
         {{/if}}
-        <p class="spf-hint">{{localize "SIMPLYSF2E.Relevel.Unchanged"}}</p>
+        <details class="spf-disclosure spf-relevel-unchanged">
+          <summary><span class="spf-disclosure-label">{{localize "SIMPLYSF2E.Relevel.UnchangedSummary"}}</span></summary>
+          <p class="spf-hint">{{localize "SIMPLYSF2E.Relevel.Unchanged"}}</p>
+        </details>
       {{/if}}
     </div>
     {{/if}}
@@ -425,7 +440,7 @@
   {{/if}}
 
   {{#if showEmptyState}}
-    <p class="spf-empty">{{#if reskinMode}}{{localize "SIMPLYSF2E.Generator.EmptyHintReskin"}}{{else}}{{localize "SIMPLYSF2E.Generator.EmptyHint"}}{{/if}}</p>
+    <p class="spf-empty">{{#if reskinMode}}{{#if reskinSource}}{{localize "SIMPLYSF2E.Generator.EmptyHintReskinReady"}}{{else}}{{localize "SIMPLYSF2E.Generator.EmptyHintReskin"}}{{/if}}{{else}}{{localize "SIMPLYSF2E.Generator.EmptyHint"}}{{/if}}</p>
   {{/if}}
 
   {{#if preview}}

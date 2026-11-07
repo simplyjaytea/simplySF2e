@@ -807,14 +807,50 @@
   padding: var(--spf-space-xs) var(--spf-space-md);
   border-bottom: 1px solid var(--spf-border);
   text-align: start;
+  vertical-align: baseline;
 }
-.simplysf2e .spf-relevel-table th {
+.simplysf2e .spf-relevel-table thead th {
   color: var(--spf-text-muted);
-  font-weight: 500;
+  font-weight: 600;
+  font-size: 0.92em;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+.simplysf2e .spf-relevel-table tbody th {
+  font-weight: 600;
+  color: var(--spf-text);
+}
+.simplysf2e .spf-relevel-table td:nth-child(2) {
+  color: var(--spf-text-muted);
+}
+/* Old and new values: right-aligned monospace, never wrapped, so formulas
+   such as 3d10+14 stay whole and line up. */
+.simplysf2e .spf-relevel-table .spf-num {
+  text-align: end;
+  font-family: var(--spf-font-mono);
+  white-space: nowrap;
 }
 .simplysf2e .spf-relevel-new {
   color: var(--spf-mode-reskin);
   font-weight: 600;
+}
+/* Strike groups: the Strike's name as a group heading, Attack and Damage
+   indented beneath it. */
+.simplysf2e .spf-relevel-group th {
+  padding-top: var(--spf-space-sm);
+  border-bottom: 0;
+  color: var(--spf-mode-reskin);
+  overflow-wrap: anywhere;
+}
+.simplysf2e .spf-relevel-group i {
+  margin-inline-end: 0.2em;
+  font-size: 0.9em;
+}
+.simplysf2e .spf-relevel-table .spf-relevel-sub {
+  padding-inline-start: calc(var(--spf-space-md) + 1.1em);
+  font-weight: 400;
+  color: var(--spf-text-muted);
 }
 .simplysf2e .spf-relevel-abilities {
   margin: 0;
@@ -824,9 +860,37 @@
   gap: var(--spf-space-xs);
   font-size: var(--spf-text-sm);
 }
+.simplysf2e .spf-relevel-abilities li {
+  display: flex;
+  align-items: baseline;
+  gap: var(--spf-space-sm);
+}
+.simplysf2e .spf-relevel-abilities i {
+  flex: none;
+  color: var(--spf-mode-reskin);
+}
+/* Kept at the old level: an icon and wording, not only a colour. */
 .simplysf2e .spf-relevel-kept {
+  color: var(--spf-text);
+}
+.simplysf2e .spf-relevel-kept i {
+  color: var(--spf-amber);
+}
+.simplysf2e .spf-relevel-unchanged > summary {
+  font-size: var(--spf-text-sm);
   color: var(--spf-text-muted);
-  font-style: italic;
+}
+.simplysf2e .spf-relevel-unchanged > p {
+  margin: 0 0 var(--spf-space-xs) 1.05rem;
+}
+@container spf-window (max-width: 520px) {
+  .simplysf2e .spf-relevel-table th,
+  .simplysf2e .spf-relevel-table td {
+    padding-inline: var(--spf-space-sm);
+  }
+  .simplysf2e .spf-relevel-table .spf-relevel-sub {
+    padding-inline-start: calc(var(--spf-space-sm) + 0.9em);
+  }
 }
 
 /* --------------------------------------------------------------------------

@@ -81,3 +81,21 @@ Behaviour:
 Keys: new `SIMPLYSF2E.Generator.ReviewActionsHeading`, `.ReviewChoiceTitle`, `.ReviewChoiceDetail`, `.ReviewIncompleteTitle`, `SIMPLYSF2E.Skills.*Title` (9), `SIMPLYSF2E.Loadout.*Title` (7). Deleted: `SIMPLYSF2E.Generator.ReviewHint` (its snapshot sentence duplicated `Skills.Snapshot`; the rest is `ReviewChoiceDetail`) and `SIMPLYSF2E.Loadout.Result` (the "Equipment readiness" heading; loadout warnings are now rows of the To review list).
 
 Harness note: `tools/ui-preview/render.mjs` resolves the one system key a fixture uses, `PF2E.UI.RuleElements.ChoiceSet.Prompt`, from a small stub, since the harness does not load the system's language file.
+
+## Item 7 — Re-level preview grouped by Strike (+ polish nit 1)
+
+Template: `templates/generator.hbs` (`reskinRelevel`). Supply in: `GeneratorApp.#buildRelevelContext()`.
+
+| Field | Type | Meaning | Example (fixture `generator-reskin-relevel`) |
+| --- | --- | --- | --- |
+| `reskinRelevel.rows` (changed) | `{label, scale, from, to}[]` | Same shape, but **without** the Strike attack and damage rows (keys `strike-<id>` / `damage-<id>` from `relevelActorData`). | AC, Max HP, Perception, Fortitude, spell DC… |
+| `reskinRelevel.strikes` (new) | `{name, attack, damage}[]` | One entry per Strike item, in the order its first row appears. `name` = the row's `name` (the item name). `attack` / `damage` = `{scale, from, to}` (scale localized like `rows[].scale`) from the `strike-<id>` / `damage-<id>` row, or `null` when that row is absent (unchanged value). | `{ name: "Rail Pistol", attack: { scale: "Moderate", from: 17, to: 22 }, damage: { scale: "Moderate", from: "2d8+5", to: "2d12+12" } }` |
+| `reskinRelevel.hasRows` (new) | boolean | `rows.length > 0 \|\| strikes.length > 0` (Handlebars has no "or"). | `true` |
+
+Behaviour:
+- Group by the item id in the row `key` (`strike-<id>`, `damage-<id>`), not by name: two Strikes can share a name.
+- `abilities` is unchanged and stays visible (rebuilt and kept-at-old-level lines); only the `Relevel.Unchanged` paragraph moved into a collapsed `<details>` (no state to keep).
+- When `changed` is false, still return `hasRows: false, strikes: []` so the shape is stable.
+- Nit 1: the Reskin empty hint now reads `Generator.EmptyHintReskinReady` when `reskinSource` is set (template-only; `reskinSource` already exists).
+
+Keys: new `SIMPLYSF2E.Relevel.AttackRow`, `.DamageRow`, `.UnchangedSummary`, `SIMPLYSF2E.Generator.EmptyHintReskinReady`. `Relevel.Damage` and `StatCheck.Strike` stay (still the row labels `relevel.mjs` emits; the app simply stops showing them as labels).

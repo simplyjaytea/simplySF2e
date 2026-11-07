@@ -491,7 +491,7 @@ export default [
       app: "generator",
       context: generatorContext("reskin", {
         input: { prompt: "Make it a smuggler captain of a derelict freighter" }, reskinSource: source,
-        reskinRelevel: { from: 8, level: 8, min: -1, max: 24, changed: false, rows: [] }
+        reskinRelevel: { from: 8, level: 8, min: -1, max: 24, changed: false, hasRows: false, rows: [], strikes: [], abilities: [] }
       })
     };
   })(),
@@ -505,13 +505,53 @@ export default [
         input: { prompt: "Make it a smuggler captain of a derelict freighter" }, reskinSource: source,
         reskinRelevel: {
           from: 8, level: 12, min: -1, max: 24, changed: true,
+          // Contract (docs/ui-contract.md, item 7): strike attack/damage rows
+          // leave `rows` and are grouped per Strike in `strikes`.
+          hasRows: true,
           rows: [
-            { label: "AC", scale: "high", from: 27, to: 33 },
-            { label: "Max HP", scale: "moderate", from: 135, to: 215 },
-            { label: "Perception", scale: "moderate", from: 16, to: 22 },
-            { label: "Fortitude", scale: "high", from: 19, to: 25 },
-            { label: "Strike: Halberd of the Seventh Lattice Remnant", scale: "high", from: 20, to: 26 },
-            { label: "Damage: Halberd of the Seventh Lattice Remnant", scale: "high", from: "2d10+11", to: "3d10+14" }
+            { label: "AC", scale: "High", from: 27, to: 33 },
+            { label: "Max HP", scale: "Moderate", from: 135, to: 215 },
+            { label: "Perception", scale: "Moderate", from: 16, to: 22 },
+            { label: "Fortitude", scale: "High", from: 19, to: 25 }
+          ],
+          strikes: [
+            { name: "Halberd of the Seventh Lattice Remnant", attack: { scale: "High", from: 20, to: 26 }, damage: { scale: "High", from: "2d10+11", to: "3d10+14" } },
+            { name: "Rail Pistol", attack: { scale: "Moderate", from: 17, to: 22 }, damage: { scale: "Moderate", from: "2d8+5", to: "2d12+12" } },
+            { name: "Tail", attack: null, damage: { scale: "Low", from: "1d6+4", to: "2d6+6" } }
+          ],
+          abilities: [
+            { kept: false, label: "Frost Breath rebuilt for level 12" },
+            { kept: false, label: "Constrict rebuilt for level 12" },
+            { kept: true, label: "Swallow Whole kept at the old level: size tiny has no smaller size" }
+          ]
+        }
+      })
+    };
+  })(),
+  (() => {
+    // Real GM Core values for these scales at levels 8 and 12 (tables.mjs).
+    const source = { uuid: "Actor.abc", name: "Kasatha Warlord", img: "", level: 8 };
+    return {
+      id: "generator-reskin-relevel-open",
+      open: [".spf-relevel-unchanged"],
+      app: "generator",
+      context: generatorContext("reskin", {
+        input: { prompt: "Make it a smuggler captain of a derelict freighter" }, reskinSource: source,
+        reskinRelevel: {
+          from: 8, level: 12, min: -1, max: 24, changed: true,
+          // Contract (docs/ui-contract.md, item 7): strike attack/damage rows
+          // leave `rows` and are grouped per Strike in `strikes`.
+          hasRows: true,
+          rows: [
+            { label: "AC", scale: "High", from: 27, to: 33 },
+            { label: "Max HP", scale: "Moderate", from: 135, to: 215 },
+            { label: "Perception", scale: "Moderate", from: 16, to: 22 },
+            { label: "Fortitude", scale: "High", from: 19, to: 25 }
+          ],
+          strikes: [
+            { name: "Halberd of the Seventh Lattice Remnant", attack: { scale: "High", from: 20, to: 26 }, damage: { scale: "High", from: "2d10+11", to: "3d10+14" } },
+            { name: "Rail Pistol", attack: { scale: "Moderate", from: 17, to: 22 }, damage: { scale: "Moderate", from: "2d8+5", to: "2d12+12" } },
+            { name: "Tail", attack: null, damage: { scale: "Low", from: "1d6+4", to: "2d6+6" } }
           ],
           abilities: [
             { kept: false, label: "Frost Breath rebuilt for level 12" },
@@ -529,7 +569,7 @@ export default [
       app: "generator",
       context: generatorContext("reskin", {
         reskinSource: source, showEmptyState: false, tokenReport: TOKEN_REPORT,
-        reskinRelevel: { from: 8, level: 8, min: -1, max: 24, changed: false, rows: [] },
+        reskinRelevel: { from: 8, level: 8, min: -1, max: 24, changed: false, hasRows: false, rows: [], strikes: [], abilities: [] },
         reskinPreview: {
           name: "Captain Voss of the Derelict", level: 8, releveled: false, sourceName: "Kasatha Warlord",
           blurb: "A smuggler captain who holds a dead freighter together by reputation.",
