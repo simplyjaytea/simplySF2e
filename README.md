@@ -36,7 +36,7 @@ To roll back to an earlier version, see [Rolling back](#rolling-back).
 
 When a GM logs in and no AI connection works yet, the **Welcome to SimplySF2e** window opens. Choose a provider, connect it and pick a model if asked, then generate a sample monster preview. System or compendium problems appear as one warning only when they need attention. Welcome stops opening by itself once the connection works, or when you tick **Don't show this again at login**. Reopen it any time with **Open Welcome** in the module settings or `/sf2e welcome` in chat.
 
-After an update that changes something you can see, a **What's new in SimplySF2e** window opens once for the GM, listing only the new changes. **Got it** closes it; **Don't show for updates** stops it opening by itself. A fresh install does not show it. Reopen it any time with `/sf2e whatsnew` or the **What's New** button in the module settings.
+After an update that changes something you can see, a **What's new in SimplySF2e** window opens once for the GM, listing only the new changes. **Got it** closes it; **Don't show for updates** stops it opening by itself. Opened by hand, it shows the newest notes and folds older ones under **Earlier changes**. A fresh install does not show it. Reopen it any time with `/sf2e whatsnew` or the **What's New** button in the module settings.
 
 ### 2. Connect an AI provider
 
@@ -79,14 +79,14 @@ For named connections, custom endpoints, manual model IDs or saving without a te
 - **Delete connection** (the trash button) removes the active connection. You cannot delete the last one.
 - When you have more than one saved connection, the generator and Item Forge headers show a drop-down so you can switch without opening setup. The headers also have **Test provider connection** and **Configure AI provider** buttons.
 
-**Tokens and run cost.** After each run, the token report lists each step and the total. Estimated token counts are marked with ≈. The report shows cost when the provider reports it (OpenRouter does). For other providers, enter optional **Input price** and **Output price** (USD per 1M tokens) on the connection in AI Provider Setup. Manual estimates are marked with ≈. If only some requests can be priced, the report says **at least** instead. Prices are saved with the connection and used only when the provider reports no cost. Leaving them empty shows no cost for an unpriced request. Your chat connection's manual prices never apply to Jev.
+**Tokens and run cost.** After each run, a folded **Token usage** line under the preview shows the run total and cost; open it to list each step. Estimated token counts are marked with ≈. The report shows cost when the provider reports it (OpenRouter does). For other providers, enter optional **Input price** and **Output price** (USD per 1M tokens) under **Cost estimate** on the connection in AI Provider Setup (the section opens by itself if a price is invalid). Manual estimates are marked with ≈. If only some requests can be priced, the report says **at least** instead. Prices are saved with the connection and used only when the provider reports no cost. Leaving them empty shows no cost for an unpriced request. Your chat connection's manual prices never apply to Jev.
 
 ### Fast picks (Jev)
 
 Jev is TypeSafe's fast decision model. It never writes text: it only picks from lists, which is the "choose the right compendium entry" part of a generation. SimplySF2e uses it for equipment and loot, creature feats and abilities, Player Character feats, class and ancestry choices, and Player Character spells. Concepts, descriptions and everything the AI writes still come from your chat model.
 
 - **It is always on when it can run.** No toggle. The generator header has a **Fast picks: Jev** line that reads "on" or "off" and why.
-- **What it needs.** Either your active connection is **OpenRouter** (its key is reused), or you save a separate Jev key in **AI Provider Setup → Fast picks (Jev)**. Pick its **Jev source** first: **OpenRouter** (an OpenRouter key) or **TypeSafe AI** (a key from TypeSafe). Any other connection works as before, without Jev.
+- **What it needs.** Either your active connection is **OpenRouter** (its key is reused), or you save a separate Jev key in the **Fast picks** section of **AI Provider Setup** (it opens by itself when TypeSafe is the route). Pick its **Jev source** first: **OpenRouter** (an OpenRouter key) or **TypeSafe AI** (a key from TypeSafe). Any other connection works as before, without Jev.
 - **TypeSafe AI from Foundry.** As of October 2026, TypeSafe's API refuses calls made from a browser (CORS), and Foundry modules run in your browser, so a TypeSafe key sent straight to api.typesafe.ai will not work yet. Use OpenRouter, or run your own CORS proxy that forwards to `https://api.typesafe.ai/v1/systemone` and enter its address as the **TypeSafe endpoint** (shown when TypeSafe AI is the source; blank means api.typesafe.ai). The endpoint must be https, or plain http only on your own computer (`localhost`). Switching the source or the TypeSafe endpoint clears the saved Jev key, because a key is only sent to the address it was saved for.
 - **Test Jev.** The **Test Jev** button saves the Jev source and key, sends Jev one tiny question over the route generation would use, and tells you whether it answered (and how fast) or why not: Jev off, key rejected, TypeSafe blocking the browser, no network, or a timeout.
 - **Fallback.** If a Jev request fails, times out (4 s per request), or Jev is unsure or finds no fitting entry, that step runs on your chat model instead. Nothing is guessed and the result looks the same either way. The token report marks such a step "chat model after Jev fell back"; a failed request also logs "using the chat model" in the browser console.
@@ -106,7 +106,7 @@ These appear directly in **Configure Settings → SimplySF2e**:
 | **Run deadline (minutes)** | 5 | Stop the whole run after this many minutes, even if data is still arriving. Set 0 to disable. |
 | **Free Archetype variant rule** | Off | Gives generated player characters the variant's extra archetype feat slot at each even level. Picks that cannot be proven legal are left empty, not guessed. |
 
-The **Compendium Sources** menu (button **Configure Sources**) chooses which compendium packs each category draws from: Bestiary Abilities, Spells, Feats, Equipment, Ancestries, Backgrounds, Classes, Class Features, Heritages and Bestiary Actors. Homebrew and module packs work too. A category left empty uses the SF2e system defaults (`sf2e.classes`, `class-features`, `feats`, `spells`, `equipment`, `ancestries`, `heritages`, `backgrounds`, `bestiary-ability-glossary-srd`). Bestiary Actors defaults to all seven creature packs: `alien-core-bestiary`, `guilt-of-the-grave-world-bestiary`, `secrets-of-the-swarm-bestiary`, `standalone-adventure-bestiary`, `starfinder-society-bestiary`, `rulebook-bestiaries`, `tales-from-the-vast-bestiary`. **Reset to defaults** restores them.
+The **Compendium Sources** menu (button **Configure Sources**) chooses which compendium packs each category draws from: Bestiary Abilities, Spells, Feats, Equipment, Ancestries, Backgrounds, Classes, Class Features, Heritages and Bestiary Actors. Homebrew and module packs work too. A category left empty uses the SF2e system defaults (`sf2e.classes`, `class-features`, `feats`, `spells`, `equipment`, `ancestries`, `heritages`, `backgrounds`, `bestiary-ability-glossary-srd`). Bestiary Actors defaults to all seven creature packs: `alien-core-bestiary`, `guilt-of-the-grave-world-bestiary`, `secrets-of-the-swarm-bestiary`, `standalone-adventure-bestiary`, `starfinder-society-bestiary`, `rulebook-bestiaries`, `tales-from-the-vast-bestiary`. **Reset to defaults** restores them. Type in the filter box to find a pack by name or id, or tick **Selected only**; filtering only hides rows, so ticks you have not saved yet are kept.
 
 ### 4. Open the tools
 
@@ -132,7 +132,7 @@ The chat command is not case-sensitive. A description starts a preview right awa
 
 ## Using the generator
 
-The window header shows the active connection and model, a **Compendium Content** line, and a **Fast picks: Jev** line. The Compendium line reads "Ready — N enabled packs", or tells you which categories are missing. The Jev line says whether fast picks are on (see [Fast picks (Jev)](#fast-picks-jev)).
+The window header shows the active connection and model, and one compact readiness row for **Compendium** and **Fast picks: Jev** (open it for details). When a compendium category is missing, the row opens by itself and says which categories. The Jev line says whether fast picks are on (see [Fast picks (Jev)](#fast-picks-jev)).
 
 Choose a mode with the buttons at the top: **Monster**, **NPC**, **Encounters**, **Player Character**, **Reskin**.
 
@@ -144,7 +144,7 @@ Every mode except Reskin has three ways to start:
 
 **Recent previews** keeps the last five previews you moved away from, so a paid AI run is not lost when you generate again. **Open** brings one back in its own mode so you can review or create it, and the **x** removes it. Creating an actor takes its preview off the list. The list lasts until Foundry reloads.
 
-While a generation runs, a progress bar names each step and has a **Cancel generation** button. After each run the window shows token usage per step. Steps Jev can answer also show how long they took and which model answered.
+While a generation runs, a progress bar names each step and has a **Cancel generation** button. After each run the window shows a folded token usage line; open it for each step. Steps Jev can answer also show how long they took and which model answered.
 
 AI-written prose is shown as text, not as Foundry commands. It cannot add links, inline rolls, checks or templates. Working links and rolls are supplied by the module or published content.
 
@@ -171,7 +171,7 @@ A module-built **Area Blast** gives a bespoke breath or blast a cone or line, da
 
 The glossary abilities **Constrict**, **Greater Constrict**, **Swallow Whole**, **Engulf**, **Trample**, **Frightful Presence** and **Stench** also get level-appropriate values. SimplySF2e fills their damage, DCs, sizes and aura radii. Trample uses the creature's own melee Strike. If a glossary ability cannot be filled safely, its working version is left out. Safe flavor text may remain as **Narrative only**. The browser console names the ability.
 
-If the creature carries loot, **Reroll Loot** generates different loot without changing anything else. The dice next to a spell, feat or published ability swaps just that pick for a different compendium entry of the same kind (a spell keeps its rank and tradition); it costs one small AI call and never repeats a pick the creature already has. **Create Actor** makes the NPC actor, using art from the closest-matching creature in your Bestiary Actors packs. The finished panel reports how much came from the compendium. **Open Sheet** jumps to the new actor.
+If the creature carries loot, **Reroll Loot** generates different loot without changing anything else. The dice next to a spell, feat or published ability swaps just that pick for a different compendium entry of the same kind (a spell keeps its rank and tradition); it costs one small AI call and never repeats a pick the creature already has. A rerolled glossary ability such as Constrict is filled for this creature like any other; if the new pick cannot work for this creature (for example Swallow Whole on a Tiny creature), the reroll is refused, the old pick stays and a warning says why. The AI cannot give a creature the same glossary ability twice. **Create Actor** makes the NPC actor, using art from the closest-matching creature in your Bestiary Actors packs. The finished panel reports how much came from the compendium. **Open Sheet** jumps to the new actor.
 
 After **Create Actor** (and **Create All Actors** for an encounter), a **Stat check** reads the new sheet and compares its AC, max HP, Perception, saves, strike attack bonuses and spell DC with the preview and with the *Starfinder GM Core* range for the creature's level. Each number shows its GM Core scale (for example "AC 21 (moderate)"). A number that differs from the preview, sits outside the GM Core range, or cannot be read is marked, and the GM also gets a chat whisper listing it so it is still there after the window closes. The check only reports; it never changes the actor. Player Characters are not checked, because the system computes their numbers.
 
@@ -179,7 +179,7 @@ After **Create Actor** (and **Create All Actors** for an encounter), a **Stat ch
 
 Set **Party level**, **Party size** and **Threat**, and optionally fill **Describe the encounter theme (optional)**. The AI designs a theme and a set of roles, and SimplySF2e then builds each member through the full creature pipeline. That means one AI round per creature, so encounters cost more tokens than a single monster. Up to three creatures are built at the same time, which cuts the wait for bigger encounters. A local provider (Ollama, LM Studio, or another address on your home network) still builds them one at a time, because most local servers answer one request at a time. If one creature fails, the others stop and nothing is kept.
 
-The preview shows each member's level and role (**Boss**, **Minion**) with **Add one** / **Remove one (0 skips this creature)** counters. It also shows total treasure against the encounter's treasure budget, in credits. **Create All Actors** creates every member inside a new Actors folder named after the encounter. If any member fails, the whole batch and its folder are rolled back.
+The preview shows each member's level, role (**Boss**, **Minion**) and key statistics in a small grid, with **Add one** / **Remove one (0 skips this creature)** counters. The header chips show **XP** and **Credits** spent against the encounter's budgets. **Create All Actors** creates every member inside a new Actors folder named after the encounter. If any member fails, the whole batch and its folder are rolled back.
 
 ### Player Character
 
@@ -193,7 +193,7 @@ SimplySF2e picks a real ancestry, heritage, background and class, plus feats, sk
 - **Living Hologram and SRO** characters get their size choice answered for you.
 - **Mechanic** characters who pick the Drone exocortex get a whisper reminding you to set up the drone companion by hand; SimplySF2e does not create companion actors.
 
-During creation, the system may open its own **choice dialogs** for options the module could not answer safely. Complete them to continue. Afterwards the generator shows **Character created — review**. It lists:
+During creation, the system may open its own **choice dialogs** for options the module could not answer safely. Complete them to continue. Afterwards the generator shows **Character created — review**: the snapshot note once, then a **To review** list of short actions (open one for the full explanation). It covers:
 
 - the resulting skill proficiencies;
 - equipment readiness (for example, an untrained weapon left stowed, or a ranged weapon whose ammunition you still need to load);
@@ -220,7 +220,7 @@ Spells and their ranks, DCs or damage written into published ability text, the r
 
 ## Using the Item Forge
 
-Pick an **Item type**, fill **Describe the item**, and set **Item level** (1–24) and **Rarity**. Press **Generate** (press it again for a new version). Then press **Create Item**. The item lands in the Items directory, and you drag it onto a character sheet from there. The gear in the Compendium Content row at the top opens Compendium Sources.
+Pick an **Item type** from the compact row of kinds (its description shows below), fill **Describe the item**, and set **Item level** (1–24) and **Rarity**. Press **Generate** (press it again for a new version). Then press **Create Item**. The item lands in the Items directory, and you drag it onto a character sheet from there. The gear in the Compendium Content row at the top opens Compendium Sources.
 
 | Item type | What you get |
 | --- | --- |
