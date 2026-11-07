@@ -659,7 +659,6 @@ export class GeneratorApp extends SpfApp {
       members: this.#encounter.members.map((member, index) => {
         const stats = adjustedStats(computeStats(member.concept), member.concept);
         const strike = stats.strikes[0];
-        const t = (key) => game.i18n.localize(`SIMPLYSF2E.Preview.${key}`);
         return {
           index,
           count: member.count,
@@ -668,9 +667,16 @@ export class GeneratorApp extends SpfApp {
           name: member.concept.name,
           level: stats.level,
           blurb: member.concept.blurb,
-          statline: `${t("AC")} ${stats.ac}, ${t("Fort")} ${signed(stats.saves.fortitude)}, ${t("Ref")} ${signed(stats.saves.reflex)}, ${t("Will")} ${signed(stats.saves.will)}, ${t("HP")} ${stats.hp}, ${t("PerceptionShort")} ${signed(stats.perception)}`
-            + (strike ? `, ${strike.name} ${signed(strike.bonus)} (${strike.damage})` : "")
-            + (stats.spellDC ? `, ${t("Spells")} ${t("DC")} ${stats.spellDC}` : "")
+          stats: {
+            ac: stats.ac,
+            hp: stats.hp,
+            perception: signed(stats.perception),
+            fort: signed(stats.saves.fortitude),
+            ref: signed(stats.saves.reflex),
+            will: signed(stats.saves.will),
+            strike: strike ? { name: strike.name, bonus: signed(strike.bonus), damage: strike.damage } : null,
+            spellDC: stats.spellDC ?? null
+          }
         };
       })
     };
