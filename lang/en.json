@@ -189,6 +189,7 @@
       "BrokeBody": "Use Copy bug report in the Generator's error box and send it, with a line on what you were doing, to whoever gave you the module.",
       "GotIt": "Got it",
       "Disable": "Don't show for updates",
+      "Earlier": "Earlier changes ({count})",
       "Note": {
         "OneScreenWelcome": {
           "Title": "Set up in one screen",
