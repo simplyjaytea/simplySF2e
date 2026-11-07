@@ -33,10 +33,8 @@ Keep the browser console open. Log each result under its QA id in `docs/live-log
    Check that the preview has no `(0)` damage, blank DC or zero aura distance. The token report should end in a provider-reported dollar cost with no ≈, and the header should repeat the last-run tokens and cost.
    **Log:** 2.8, 13m.1.
 
-8. **Reroll one published ability before creating.** Use the dice beside a published ability. Only that pick should change, to another real compendium ability. If the model returned no published ability with a reroll button, note that and use the next preview.
-   **Log:** 12w.4.
-
-   reroll rows: see 2.x
+8. **Check both reroll fixes before creating.** Use the dice beside a published ability. Only that pick should change, to another real compendium ability. If the model returned no published ability with a reroll button, note that and use the next preview. Then generate a Large level-7 creature with a narrative signature ability and reroll it until the pick is Constrict. Create it and check for 4d6 bludgeoning damage and a DC from that slot's scale, with no blanks. An unusable pick should leave the preview unchanged and name the reason in the console.
+   **Log:** 12w.4, 12w.7.
 
 9. **Create and inspect the level-7 actor.** Check every glossary ability against 2.9: level-7 Constrict/Trample DC 25, moderate aura/Engulf DC 22, 4d6 area damage, Swallow Whole/Engulf Rupture 15, and 90-foot Frightful Presence / 30-foot Stench. Trample must name one of the actor's own melee Strikes. Any unfillable working ability should be absent and named in the console. Also compare saves and all speed entries with the preview; sf2e 1.7.0 should prepare them without errors.
    **Log:** 2.8, 2.9, I-170.5.1.
@@ -101,6 +99,7 @@ Copy these rows into the session in `docs/live-log.md`, then replace the result 
 | 2.12 |  |  |
 | 2.13 |  |  |
 | 12w.4 |  |  |
+| 12w.7 |  |  |
 | 12ab.1 |  |  |
 | 12ab.2 |  |  |
 | 12ab.3 |  |  |
