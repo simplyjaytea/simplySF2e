@@ -812,6 +812,47 @@
 
 /* Per-step token usage shown under the finished preview */
 /* --------------------------------------------------------------------------
+   Data tables (Shop stock, Treasure items): short narrow-window headings.
+   .spf-col-full is the real label; in a narrow window it becomes visually
+   hidden (still read) and the aria-hidden .spf-col-short shows instead.
+   .spf-item-sub is a secondary line under an item name that replaces a
+   column hidden in narrow windows.
+   -------------------------------------------------------------------------- */
+.simplysf2e .spf-col-short,
+.simplysf2e .spf-item-sub {
+  display: none;
+}
+
+.simplysf2e .spf-item-name {
+  overflow-wrap: break-word;
+  hyphens: manual;
+}
+
+@container spf-window (max-width: 520px) {
+  .simplysf2e .spf-col-short {
+    display: inline;
+  }
+
+  .simplysf2e .spf-col-full {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+
+  .simplysf2e .spf-item-sub {
+    display: block;
+    margin-top: 0.1rem;
+    font-weight: 400;
+    font-size: 0.92em;
+    color: var(--spf-text-muted);
+  }
+}
+
+/* --------------------------------------------------------------------------
    Disclosure — native <details>/<summary> with one chevron style, shared by
    every collapsible section (token report, readiness detail, provider
    setup sections, re-level notes, earlier release notes, review details).

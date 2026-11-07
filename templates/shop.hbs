@@ -129,18 +129,21 @@
         <thead>
           <tr>
             <th scope="col">{{localize "SIMPLYSF2E.Shop.ColItem"}}</th>
-            <th scope="col">{{localize "SIMPLYSF2E.Shop.ColType"}}</th>
-            <th scope="col" class="spf-num">{{localize "SIMPLYSF2E.Shop.ColLevel"}}</th>
+            <th scope="col" class="spf-col-type">{{localize "SIMPLYSF2E.Shop.ColType"}}</th>
+            {{! Narrow windows show "Lvl"; the full label stays for assistive tech. }}
+            <th scope="col" class="spf-num"><span class="spf-col-full">{{localize "SIMPLYSF2E.Shop.ColLevel"}}</span><span class="spf-col-short" aria-hidden="true">{{localize "SIMPLYSF2E.Shop.ColLevelShort"}}</span></th>
             <th scope="col" class="spf-num">{{localize "SIMPLYSF2E.Shop.ColPrice"}}</th>
-            <th scope="col" class="spf-num">{{localize "SIMPLYSF2E.Shop.ColQty"}}</th>
+            <th scope="col" class="spf-num"><span class="spf-sr-only">{{localize "SIMPLYSF2E.Shop.ColQtyFull"}}</span><span aria-hidden="true">{{localize "SIMPLYSF2E.Shop.ColQty"}}</span></th>
             <th scope="col"><span class="spf-sr-only">{{localize "SIMPLYSF2E.Shop.ColRemove"}}</span></th>
           </tr>
         </thead>
         <tbody>
           {{#each preview.rows}}
           <tr>
-            <th scope="row">{{this.name}}{{#if this.rarity}} <span class="spf-trait spf-shop-rarity">{{this.rarity}}</span>{{/if}}</th>
-            <td>{{localize this.typeLabel}}</td>
+            {{! Narrow windows hide the Type column and show the type as a secondary
+                line under the item name instead (one or the other is rendered visible). }}
+            <th scope="row"><span class="spf-item-name">{{this.name}}</span>{{#if this.rarity}} <span class="spf-trait spf-shop-rarity">{{this.rarity}}</span>{{/if}}<span class="spf-item-sub">{{localize this.typeLabel}}</span></th>
+            <td class="spf-col-type">{{localize this.typeLabel}}</td>
             <td class="spf-num">{{this.level}}</td>
             <td class="spf-num">{{this.price}}</td>
             <td class="spf-num">{{this.quantity}}</td>
