@@ -54,7 +54,7 @@ Use the **Welcome** window for first-run setup:
    | **Anthropic via OpenRouter** (Advanced) | `https://openrouter.ai/api/v1` | Choose an `anthropic/*` model |
    | **LM Studio** (Advanced) | `http://localhost:1234/v1` | Choose from the list |
 
-   **Advanced** also holds Jev, TypeSafe and the full Provider Setup window.
+   **Advanced** mentions Jev and TypeSafe. Their setup is in the full **AI Provider Setup** window, opened with **Set Up AI Connection**.
 2. Paste the provider's API key. Ollama and other local keyless servers show their **API Base URL** instead.
 3. Click **Connect** (or press Enter in the key/URL field). Connect loads the provider's models through `/models`. It uses the preset's default only when that exact ID is listed. Otherwise, pick a returned model and click **Test & Connect**. The chosen model gets a small connection test. If Connect fails, it restores your previous connection when possible.
 4. Click **Generate a sample monster** to open a level-1 Monster preview with a fixed sample prompt. Nothing is created until you click **Create Actor**.
@@ -115,7 +115,7 @@ All launchers are GM-only and only appear in an `sf2e` world.
 | Where | What opens |
 | --- | --- |
 | **SimplySF2e** button in the **Actors** sidebar header | The generator (Monster, NPC, Encounters, Player Character, Reskin) |
-| Right-click an NPC in the **Actors** sidebar, then **Reskin** | The generator's Reskin mode with that NPC loaded |
+| Right-click an NPC in the **Actors** sidebar, then **Reskin with SimplySF2e** | The generator's Reskin mode with that NPC loaded |
 | **Item Forge** button on its own row just below the **Items** sidebar header | The Item Forge |
 | **Shop** button in the **Actors** sidebar header | The shop generator |
 | Chat: `/sf2e` or `/simplysf2e` | The generator |
@@ -309,7 +309,7 @@ Before you roll back, back up your world.
 
 ## Privacy
 
-- **What is sent.** Each generation sends your description, the generator's own instructions, and lists of candidate compendium entries (spells, feats, equipment, abilities and so on, mostly by name with the details the AI needs to choose between them) to the provider of the active connection. A Reskin also sends the dropped creature's name, level, rarity, traits, blurb and the names of its strikes and abilities. Nothing else in the world is sent. A hosted provider's own data policy applies to what it receives. A local Ollama or LM Studio server keeps everything on your machine.
+- **What is sent.** Each generation sends your description, the generator's own instructions, and lists of candidate compendium entries (spells, feats, equipment, abilities and so on, mostly by name with the details the AI needs to choose between them) to the provider of the active connection. [Fast picks (Jev)](#fast-picks-jev) go to openrouter.ai or TypeSafe instead, using Jev's chosen source. A Reskin also sends the dropped creature's name, level, rarity, traits, blurb and the names of its strikes and abilities. Nothing else in the world is sent. A hosted provider's own data policy applies to what it receives. A local Ollama or LM Studio server keeps everything on your machine.
 - **Where keys live.** API keys, the saved-connections list and manual prices are stored in **client** scope, meaning in your own browser only. They are not synced to the world or to other users, and the normal settings screen never displays them. Each key is sent, as a bearer token, only to the exact endpoint it was authorized for. Because keys are per browser, a second GM, or you on another computer, must enter the key again.
 - **What is shared with the world.** The active **API Base URL** and **Model** are **world** settings, so every client in the world can read them. Switching connections updates them for the world. Temperature, max tokens, request timeout, run token budget, run deadline, Free Archetype, compendium sources and custom presets are also world settings.
 - **Bug reports.** Copying a report does not send it anywhere. **Open GitHub issue** opens the issue form without the report. GitHub receives the report only if you paste it and submit the issue.
