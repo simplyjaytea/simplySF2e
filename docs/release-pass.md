@@ -2,6 +2,8 @@
 
 This pass **supersedes [docs/live-pass.md](live-pass.md) for the 1.0 release candidate.** Every row is an id from [docs/qa-checklist.md](qa-checklist.md). The Do and Expect columns are short summaries; when a step is unclear, run the full steps under the same id. Rows are grouped by the P1–P9 capabilities in [docs/roadmap-1.0.md](roadmap-1.0.md) §1. Inside each group they run riskiest first, except that a row which uses an item or character made by an earlier row comes after that row. The pass has 90 rows.
 
+For the upcoming **v0.1.15 beta**, use [docs/beta-pass.md](beta-pass.md) instead: one ordered pass over the new rows and sf2e 1.7.0.
+
 Test record: Foundry version `____` · sf2e version `____` · module version `____` · provider/model `____` · browser `____` · tester `____` · date `____`
 
 ## Gate before the pass
