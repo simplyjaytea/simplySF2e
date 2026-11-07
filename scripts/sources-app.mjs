@@ -1,6 +1,6 @@
 import { MODULE_ID, SETTINGS, getSetting } from "./settings.mjs";
 import { CATEGORIES, CATEGORY_LABELS, DEFAULT_PACKS, detectAvailablePacks } from "./compendium.mjs";
-import { packMatches, applyFilter } from "./sources-filter.mjs";
+import { packMatches } from "./sources-filter.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
