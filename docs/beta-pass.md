@@ -71,6 +71,9 @@ Keep the browser console open. Log each result under its QA id in `docs/live-log
 18. **Finish the per-browser Welcome checks.** Clear the key or use a second browser, tick **Don't show this again at login**, and reload; Welcome should stay closed. Then log in as a player in the same world: no Welcome window should open, and `/sf2e welcome` should show the GM-only warning.
     **Log:** 12t.14, 12t.15.
 
+19. **Walk the UI polish.** Open the Generator encounter preview and expand a member card; stats are shown as a grid (AC, HP, Perception, saves, strike, spell DC). Create a character with unresolved choices and read the review card; the "To review" list shows short action titles with details. Open the reskin preview; strikes are grouped with attack and damage scales. Toggle the Generator status bar readiness row; Jev off is not a warning and the open state persists. Render Generator, Shop and Treasure; the token report block is collapsed. Open AI Provider Setup; the Cost estimate section opens on a price error and Fast picks opens for typesafe. Open Item Forge; kind buttons show short labels. Open Compendium Sources; type in the filter and tick Selected only; rows hide without a re-render. Open What's new manually; the newest release day's notes are open and earlier ones are collapsed. View Shop and Treasure in a narrow window; tables read better. Check the API-key warning order, Welcome note size and Manage Presets divider.
+    **Log:** 12ac.1-12ac.11.
+
 ## Results
 
 Copy these rows into the session in `docs/live-log.md`, then replace the result and note cells. The three I-170 entries are the live checks requested by report I-170 §5.
@@ -122,9 +125,6 @@ Copy these rows into the session in `docs/live-log.md`, then replace the result 
 | I-170.5.1 |  | NPC speeds and saves |
 | I-170.5.2 |  | RollOption item and affected roll |
 | I-170.5.3 |  | Foundry 14.370 loads without a version warning |
-
-## UI polish pass
-Walk through windows and log 12ac.1-12ac.11.
 | 12ac.1 |  |  |
 | 12ac.2 |  |  |
 | 12ac.3 |  |  |
