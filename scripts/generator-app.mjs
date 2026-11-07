@@ -130,6 +130,7 @@ export class GeneratorApp extends SpfApp {
   #busy = false;
   #busyMessage = null;
   #error = null;
+  #readinessOpen = false;
   #concept = null;
   #resolved = null;
   /** Encounter mode result: {name, budget, spent, members: [...]}. */
@@ -254,7 +255,7 @@ export class GeneratorApp extends SpfApp {
       jevSource: jevKeySource(),
       sourcePackCount: sources?.packCount ?? 0,
       sourceMissing: describeMissingSources(sources?.missing),
-      canAuthorizeApiKey: Boolean(
+      readinessOpen: this.#readinessOpen,      canAuthorizeApiKey: Boolean(
         authState.baseUrl && authState.hasConfiguredApiKey && !authState.apiKeyIsBound && !authState.apiKeyInsecure
       ),
       model: authState.model,
@@ -839,7 +840,9 @@ export class GeneratorApp extends SpfApp {
   _onRender(context, options) {
     super._onRender?.(context, options);
     this.element?.classList?.toggle("spf-busy", Boolean(context?.busy));
-    this.element.querySelector('select[name="preset"]')?.addEventListener("change", () => {
+    this.element.querySelector("details[data-readiness]")?.addEventListener("toggle", (event) => {
+      this.#readinessOpen = event.currentTarget.open;
+    });    this.element.querySelector('select[name="preset"]')?.addEventListener("change", () => {
       this.#readForm();
       // Restore the preset's saved generator defaults into the live form —
       // only the fields the preset actually defines (built-ins and older
