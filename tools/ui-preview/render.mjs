@@ -23,8 +23,14 @@ function flatten(obj, prefix = "", out = {}) {
 export const LANG = flatten(JSON.parse(readFileSync(join(REPO, "lang", "en.json"), "utf8")));
 export const MODULE_STYLES = JSON.parse(readFileSync(join(REPO, "module.json"), "utf8")).styles;
 
+// The few sf2e/pf2e system strings a fixture passes through `localize` (a
+// ChoiceSet prompt in the character review). Foundry resolves them from the
+// system's own language file, which the harness does not load.
+const SYSTEM_LANG = { "PF2E.UI.RuleElements.ChoiceSet.Prompt": "Make a selection." };
+
 /** Foundry-style `{name}` interpolation; a missing key renders visibly. */
 export function localize(key, data = {}) {
+  if (typeof key === "string" && key in SYSTEM_LANG) return SYSTEM_LANG[key];
   if (typeof key !== "string" || !(key in LANG)) return `⟦${key}⟧`;
   return LANG[key].replace(/\{(\w+)\}/g, (match, name) => (name in data ? String(data[name]) : match));
 }

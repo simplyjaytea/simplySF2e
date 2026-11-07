@@ -70,6 +70,9 @@ export function generatorContext(mode, patch = {}) {
     progress: null,
     ...providerContext(),
     sourcesReady: true,
+    // Contract (docs/ui-contract.md, item 6): per-window open state of the
+    // readiness row, like Welcome's advancedOpen.
+    readinessOpen: false,
     jevSource: "connection",
     sourcePackCount: 10,
     sourceMissing: "",
@@ -215,6 +218,8 @@ export default [
     context: generatorContext("monster", { ...PROVIDER_ATTENTION, sourcesReady: false, sourceMissing: "Spells, Feats" })
   },
   { id: "generator-jev-off", app: "generator", context: generatorContext("monster", { jevSource: null }) },
+  { id: "generator-readiness-open", app: "generator", context: generatorContext("monster", { readinessOpen: true }) },
+  { id: "generator-readiness-open-jev-off", app: "generator", context: generatorContext("monster", { readinessOpen: true, jevSource: null }) },
   { id: "generator-jev-key", app: "generator", context: generatorContext("monster", { jevSource: "key" }) },
   { id: "generator-jev-typesafe", app: "generator", context: generatorContext("monster", { jevSource: "typesafe" }) },
   {
@@ -252,12 +257,14 @@ export default [
   ...[
     ["generator-monster-preview", TOKEN_REPORT, "Last run: 2,716 tokens"],
     ["generator-monster-preview-cost", TOKEN_REPORT_COST, "Last run: 2,716 tokens · $0.0042"],
-    ["generator-monster-preview-cost-partial", TOKEN_REPORT_PARTIAL, "Last run: 2,716 tokens · ≥ $0.0042"]
-  ].map(([id, tokenReport, lastRunCost]) => {
+    ["generator-monster-preview-cost-partial", TOKEN_REPORT_PARTIAL, "Last run: 2,716 tokens · ≥ $0.0042"],
+    ["generator-monster-preview-tokens-open", TOKEN_REPORT_PARTIAL, "Last run: 2,716 tokens · ≥ $0.0042", [".spf-token-report"]]
+  ].map(([id, tokenReport, lastRunCost, open]) => {
     const c = concept({ rarity: "uncommon", specialAbilities: [], resistances: ["fire"], weaknesses: ["cold-iron"] });
     return {
       id,
       app: "generator",
+      ...(open ? { open } : {}),
       context: generatorContext("monster", {
         input: { level: 4 }, showEmptyState: false, tokenReport,
         lastRunCost,
@@ -290,22 +297,25 @@ export default [
   (() => {
     const mk = (over, level) => concept(over, { level });
     const members = [
-      { count: 1, role: "boss", concept: mk({ name: "Warden Ixtl", level: 6, strikes: [{ name: "Gravity Maul", type: "melee", attackScale: "high", damageScale: "high", damageType: "bludgeoning", traits: [] }] }, 6), blurb: "A rift warden." },
+      { count: 1, role: "boss", concept: mk({ name: "Warden Ixtl, Keeper of the Seventh Lattice", level: 6, spellcasting: { tradition: "arcane", dcScale: "high", attackScale: "high" }, strikes: [{ name: "Gravity Maul", type: "melee", attackScale: "high", damageScale: "high", damageType: "bludgeoning", traits: [] }] }, 6), blurb: "A rift warden." },
       { count: 3, role: "minion", concept: mk({ name: "Weak Scrap Drone", level: -1, adjustment: "weak", perceptionScale: "terrible", saveScales: { fortitude: "terrible", reflex: "terrible", will: "terrible" }, strikes: [{ name: "Claw", type: "melee", attackScale: "low", damageScale: "low", damageType: "slashing", traits: [] }] }, -1), blurb: "Scrap with opinions." },
       { count: 0, role: "minion", concept: mk({ name: "Skipped Medic", level: 3 }, 3), blurb: "" }
     ];
     const rows = members.map((member, index) => {
       const stats = adjustedStats(computeStats(member.concept), member.concept);
       const strike = stats.strikes[0];
-      const t = (key) => localize(`SIMPLYSF2E.Preview.${key}`);
       return {
         index, count: member.count, skipped: member.count === 0,
         role: `SIMPLYSF2E.Role.${cap(member.role)}`,
         name: member.concept.name, level: stats.level, blurb: member.blurb,
-        // Same string the real #buildEncounterPreviewContext() assembles.
-        statline: `${t("AC")} ${stats.ac}, ${t("Fort")} ${signed(stats.saves.fortitude)}, ${t("Ref")} ${signed(stats.saves.reflex)}, ${t("Will")} ${signed(stats.saves.will)}, ${t("HP")} ${stats.hp}, ${t("PerceptionShort")} ${signed(stats.perception)}`
-          + (strike ? `, ${strike.name} ${signed(strike.bonus)} (${strike.damage})` : "")
-          + (stats.spellDC ? `, ${t("Spells")} ${t("DC")} ${stats.spellDC}` : "")
+        // Contract (docs/ui-contract.md, item 9): #buildEncounterPreviewContext()
+        // returns raw display values; the template adds the labels.
+        stats: {
+          ac: stats.ac, hp: stats.hp, perception: signed(stats.perception),
+          fort: signed(stats.saves.fortitude), ref: signed(stats.saves.reflex), will: signed(stats.saves.will),
+          strike: strike ? { name: strike.name, bonus: signed(strike.bonus), damage: strike.damage } : null,
+          spellDC: stats.spellDC ?? null
+        }
       };
     });
     return {
@@ -351,14 +361,58 @@ export default [
     app: "generator",
     context: generatorContext("character", {
       input: { level: 3 }, showEmptyState: false,
+      // Contract (docs/ui-contract.md, item 1): skills.warnings and
+      // skills.loadoutWarnings are {title, detail} pairs; actionCount totals
+      // every row of the "To review" list.
       characterReview: {
-        actorId: "a1", actorName: "Kess Vandrel", incomplete: true,
-        choices: [{ itemName: "Skilled Heritage", prompt: "SIMPLYSF2E.Generator.ReviewHint" }],
+        actorId: "a1", actorName: "Kess Vandrel", incomplete: true, actionCount: 5,
+        choices: [
+          { itemName: "Skilled Heritage", prompt: "PF2E.UI.RuleElements.ChoiceSet.Prompt" },
+          { itemName: "Operative's Specialization", prompt: "PF2E.UI.RuleElements.ChoiceSet.Prompt" }
+        ],
+        skills: {
+          rows: [{ name: "Diplomacy", rank: "Expert" }, { name: "Society", rank: "Trained" }, { name: "Stealth", rank: "Trained" }, { name: "Computers", rank: "Trained" }],
+          automatic: false, budget: localize("SIMPLYSF2E.Skills.Budget", { spent: 5, total: 6 }),
+          warnings: [{ title: localize("SIMPLYSF2E.Skills.UnspentTrainingTitle", { count: 1 }), detail: localize("SIMPLYSF2E.Skills.UnspentTraining", { count: 1 }) }],
+          loadoutWarnings: [{ title: localize("SIMPLYSF2E.Loadout.UntrainedWeaponTitle"), detail: localize("SIMPLYSF2E.Loadout.UntrainedWeapon") }]
+        }
+      }
+    })
+  },
+  {
+    id: "generator-character-review-open",
+    open: [".spf-review-action"],
+    app: "generator",
+    context: generatorContext("character", {
+      input: { level: 3 }, showEmptyState: false,
+      // Contract (docs/ui-contract.md, item 1): skills.warnings and
+      // skills.loadoutWarnings are {title, detail} pairs; actionCount totals
+      // every row of the "To review" list.
+      characterReview: {
+        actorId: "a1", actorName: "Kess Vandrel", incomplete: true, actionCount: 5,
+        choices: [
+          { itemName: "Skilled Heritage", prompt: "PF2E.UI.RuleElements.ChoiceSet.Prompt" },
+          { itemName: "Operative's Specialization", prompt: "PF2E.UI.RuleElements.ChoiceSet.Prompt" }
+        ],
+        skills: {
+          rows: [{ name: "Diplomacy", rank: "Expert" }, { name: "Society", rank: "Trained" }, { name: "Stealth", rank: "Trained" }, { name: "Computers", rank: "Trained" }],
+          automatic: false, budget: localize("SIMPLYSF2E.Skills.Budget", { spent: 5, total: 6 }),
+          warnings: [{ title: localize("SIMPLYSF2E.Skills.UnspentTrainingTitle", { count: 1 }), detail: localize("SIMPLYSF2E.Skills.UnspentTraining", { count: 1 }) }],
+          loadoutWarnings: [{ title: localize("SIMPLYSF2E.Loadout.UntrainedWeaponTitle"), detail: localize("SIMPLYSF2E.Loadout.UntrainedWeapon") }]
+        }
+      }
+    })
+  },
+  {
+    id: "generator-character-review-clean",
+    app: "generator",
+    context: generatorContext("character", {
+      input: { level: 3 }, showEmptyState: false,
+      characterReview: {
+        actorId: "a1", actorName: "Kess Vandrel", incomplete: false, actionCount: 0, choices: [],
         skills: {
           rows: [{ name: "Diplomacy", rank: "Expert" }, { name: "Society", rank: "Trained" }],
-          automatic: false, budget: "Training: 5 of 6 spent",
-          warnings: ["1 unspent skill training remains."],
-          loadoutWarnings: ["Tactical Pistol: untrained in this weapon."]
+          automatic: true, budget: null, warnings: [], loadoutWarnings: []
         }
       }
     })
@@ -437,7 +491,7 @@ export default [
       app: "generator",
       context: generatorContext("reskin", {
         input: { prompt: "Make it a smuggler captain of a derelict freighter" }, reskinSource: source,
-        reskinRelevel: { from: 8, level: 8, min: -1, max: 24, changed: false, rows: [] }
+        reskinRelevel: { from: 8, level: 8, min: -1, max: 24, changed: false, hasRows: false, rows: [], strikes: [], abilities: [] }
       })
     };
   })(),
@@ -451,13 +505,53 @@ export default [
         input: { prompt: "Make it a smuggler captain of a derelict freighter" }, reskinSource: source,
         reskinRelevel: {
           from: 8, level: 12, min: -1, max: 24, changed: true,
+          // Contract (docs/ui-contract.md, item 7): strike attack/damage rows
+          // leave `rows` and are grouped per Strike in `strikes`.
+          hasRows: true,
           rows: [
-            { label: "AC", scale: "high", from: 27, to: 33 },
-            { label: "Max HP", scale: "moderate", from: 135, to: 215 },
-            { label: "Perception", scale: "moderate", from: 16, to: 22 },
-            { label: "Fortitude", scale: "high", from: 19, to: 25 },
-            { label: "Strike: Halberd of the Seventh Lattice Remnant", scale: "high", from: 20, to: 26 },
-            { label: "Damage: Halberd of the Seventh Lattice Remnant", scale: "high", from: "2d10+11", to: "3d10+14" }
+            { label: "AC", scale: "High", from: 27, to: 33 },
+            { label: "Max HP", scale: "Moderate", from: 135, to: 215 },
+            { label: "Perception", scale: "Moderate", from: 16, to: 22 },
+            { label: "Fortitude", scale: "High", from: 19, to: 25 }
+          ],
+          strikes: [
+            { name: "Halberd of the Seventh Lattice Remnant", attack: { scale: "High", from: 20, to: 26 }, damage: { scale: "High", from: "2d10+11", to: "3d10+14" } },
+            { name: "Rail Pistol", attack: { scale: "Moderate", from: 17, to: 22 }, damage: { scale: "Moderate", from: "2d8+5", to: "2d12+12" } },
+            { name: "Tail", attack: null, damage: { scale: "Low", from: "1d6+4", to: "2d6+6" } }
+          ],
+          abilities: [
+            { kept: false, label: "Frost Breath rebuilt for level 12" },
+            { kept: false, label: "Constrict rebuilt for level 12" },
+            { kept: true, label: "Swallow Whole kept at the old level: size tiny has no smaller size" }
+          ]
+        }
+      })
+    };
+  })(),
+  (() => {
+    // Real GM Core values for these scales at levels 8 and 12 (tables.mjs).
+    const source = { uuid: "Actor.abc", name: "Kasatha Warlord", img: "", level: 8 };
+    return {
+      id: "generator-reskin-relevel-open",
+      open: [".spf-relevel-unchanged"],
+      app: "generator",
+      context: generatorContext("reskin", {
+        input: { prompt: "Make it a smuggler captain of a derelict freighter" }, reskinSource: source,
+        reskinRelevel: {
+          from: 8, level: 12, min: -1, max: 24, changed: true,
+          // Contract (docs/ui-contract.md, item 7): strike attack/damage rows
+          // leave `rows` and are grouped per Strike in `strikes`.
+          hasRows: true,
+          rows: [
+            { label: "AC", scale: "High", from: 27, to: 33 },
+            { label: "Max HP", scale: "Moderate", from: 135, to: 215 },
+            { label: "Perception", scale: "Moderate", from: 16, to: 22 },
+            { label: "Fortitude", scale: "High", from: 19, to: 25 }
+          ],
+          strikes: [
+            { name: "Halberd of the Seventh Lattice Remnant", attack: { scale: "High", from: 20, to: 26 }, damage: { scale: "High", from: "2d10+11", to: "3d10+14" } },
+            { name: "Rail Pistol", attack: { scale: "Moderate", from: 17, to: 22 }, damage: { scale: "Moderate", from: "2d8+5", to: "2d12+12" } },
+            { name: "Tail", attack: null, damage: { scale: "Low", from: "1d6+4", to: "2d6+6" } }
           ],
           abilities: [
             { kept: false, label: "Frost Breath rebuilt for level 12" },
@@ -475,7 +569,7 @@ export default [
       app: "generator",
       context: generatorContext("reskin", {
         reskinSource: source, showEmptyState: false, tokenReport: TOKEN_REPORT,
-        reskinRelevel: { from: 8, level: 8, min: -1, max: 24, changed: false, rows: [] },
+        reskinRelevel: { from: 8, level: 8, min: -1, max: 24, changed: false, hasRows: false, rows: [], strikes: [], abilities: [] },
         reskinPreview: {
           name: "Captain Voss of the Derelict", level: 8, releveled: false, sourceName: "Kasatha Warlord",
           blurb: "A smuggler captain who holds a dead freighter together by reputation.",

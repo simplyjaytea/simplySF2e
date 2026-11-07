@@ -77,6 +77,90 @@
   color: var(--spf-text-muted);
 }
 
+/* Filter bar: search field plus "Selected only", above the list. */
+.simplysf2e .spf-source-filter {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spf-space-xs);
+}
+
+.simplysf2e .spf-source-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spf-space-sm) var(--spf-space-md);
+}
+
+.simplysf2e .spf-source-filter-label {
+  display: contents;
+}
+
+.simplysf2e .spf-source-filter-label > i {
+  color: var(--spf-brand-accent);
+}
+
+.simplysf2e .spf-source-filter input[type="search"] {
+  flex: 1 1 14rem;
+  min-width: 0;
+  padding: 3px 6px;
+}
+
+.simplysf2e .spf-source-selected-only {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spf-space-xs);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.simplysf2e .spf-source-filter-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--spf-space-md);
+  margin: 0;
+  font-size: var(--spf-text-sm);
+  color: var(--spf-text-muted);
+}
+
+/* A text-style button (Clear filter): underlined accent text, full hit area. */
+.simplysf2e .spf-link-btn {
+  width: auto;
+  min-height: 0;
+  padding: 0 0.15rem;
+  border: 0;
+  background: transparent;
+  color: var(--spf-brand-accent);
+  font-size: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.simplysf2e .spf-link-btn:not(:disabled):hover {
+  color: var(--spf-text);
+  border: 0;
+}
+
+.simplysf2e .spf-source-count {
+  margin-left: 0.35rem;
+  font-family: var(--spf-font-mono);
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--spf-text-muted);
+}
+
+.simplysf2e .spf-source-no-match {
+  margin: 0;
+  padding: var(--spf-space-sm);
+  border: 1px dashed var(--spf-border);
+  border-radius: var(--spf-radius-sm);
+}
+
+.simplysf2e .simplysf2e-sources [hidden] {
+  display: none !important;
+}
+
 /* HUD hooks: must follow the shared .spf-hint / .spf-card rules they refine. */
 .simplysf2e .spf-hud-accent {
   color: var(--spf-brand-accent);

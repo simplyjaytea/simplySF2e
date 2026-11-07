@@ -97,11 +97,11 @@ export class ItemForgeApp extends SpfApp {
       minLevel: MIN_ITEM_LEVEL,
       maxLevel: MAX_ITEM_LEVEL,
       kinds: [
-        { value: "wondrous", label: "SIMPLYSF2E.ItemForge.KindWondrous", hint: "SIMPLYSF2E.ItemForge.KindWondrousHint", icon: "fa-ring" },
-        { value: "weapon", label: "SIMPLYSF2E.ItemForge.KindWeapon", hint: "SIMPLYSF2E.ItemForge.KindWeaponHint", icon: "fa-sword" },
-        { value: "armor", label: "SIMPLYSF2E.ItemForge.KindArmor", hint: "SIMPLYSF2E.ItemForge.KindArmorHint", icon: "fa-shield-halved" },
-        { value: "augmentation", label: "SIMPLYSF2E.ItemForge.KindAugmentation", hint: "SIMPLYSF2E.ItemForge.KindAugmentationHint", icon: "fa-microchip" },
-        { value: "crystal", label: "SIMPLYSF2E.ItemForge.KindCrystal", hint: "SIMPLYSF2E.ItemForge.KindCrystalHint", icon: "fa-gem" }
+        { value: "wondrous", label: "SIMPLYSF2E.ItemForge.KindWondrous", short: "SIMPLYSF2E.ItemForge.KindWondrousShort", hint: "SIMPLYSF2E.ItemForge.KindWondrousHint", icon: "fa-ring" },
+        { value: "weapon", label: "SIMPLYSF2E.ItemForge.KindWeapon", short: "SIMPLYSF2E.ItemForge.KindWeaponShort", hint: "SIMPLYSF2E.ItemForge.KindWeaponHint", icon: "fa-sword" },
+        { value: "armor", label: "SIMPLYSF2E.ItemForge.KindArmor", short: "SIMPLYSF2E.ItemForge.KindArmorShort", hint: "SIMPLYSF2E.ItemForge.KindArmorHint", icon: "fa-shield-halved" },
+        { value: "augmentation", label: "SIMPLYSF2E.ItemForge.KindAugmentation", short: "SIMPLYSF2E.ItemForge.KindAugmentationShort", hint: "SIMPLYSF2E.ItemForge.KindAugmentationHint", icon: "fa-microchip" },
+        { value: "crystal", label: "SIMPLYSF2E.ItemForge.KindCrystal", short: "SIMPLYSF2E.ItemForge.KindCrystalShort", hint: "SIMPLYSF2E.ItemForge.KindCrystalHint", icon: "fa-gem" }
       ].map((kind) => ({ ...kind, selected: kind.value === this.#input.kind })),
       rarities: [
         { value: "common", label: "SIMPLYSF2E.Rarity.Common" },

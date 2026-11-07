@@ -1,0 +1,10 @@
+import assert from "node:assert/strict";
+import { packMatches } from "./sources-filter.mjs";
+const p = (o) => ({ title: "Spell Pack", package: "pf2e.spells", id: "pf2e.spells", checked: false, ...o });
+assert.equal(packMatches(p({}), { query: "", selectedOnly: false }), true);
+assert.equal(packMatches(p({ title: "Foo", package: "bar", id: "baz" }), { query: "spell", selectedOnly: false }), false);
+assert.equal(packMatches(p({}), { query: "SPELL", selectedOnly: false }), true);
+assert.equal(packMatches(p({ package: "x" }), { query: "pf2e.spells", selectedOnly: false }), true);
+assert.equal(packMatches(p({ checked: false }), { query: "", selectedOnly: true }), false);
+assert.equal(packMatches(p({ checked: true }), { query: "spell", selectedOnly: true }), true);
+console.log("sources-filter.test.mjs: passed");

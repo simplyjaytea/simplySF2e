@@ -303,7 +303,7 @@
 /* --------------------------------------------------------------------------
    Form controls: sleek dark console inputs across every app.
    -------------------------------------------------------------------------- */
-.simplysf2e input:is([type="text"], [type="number"], [type="url"], [type="password"]),
+.simplysf2e input:is([type="text"], [type="number"], [type="url"], [type="password"], [type="search"]),
 .simplysf2e select,
 .simplysf2e textarea {
   background-color: var(--spf-console);
@@ -502,9 +502,18 @@
   gap: var(--spf-space-md);
 }
 
+.simplysf2e .spf-provider-warning > span:first-child {
+  flex: 1 1 100%;
+}
+
+/* The endpoint is supporting detail under the action: smaller, muted, on
+   its own line. */
 .simplysf2e .spf-provider-endpoint {
+  flex: 1 1 100%;
   min-width: 0;
   overflow-wrap: anywhere;
+  font-size: var(--spf-text-sm);
+  color: var(--spf-text-muted);
 }
 
 .simplysf2e .spf-provider-warning button {
@@ -549,6 +558,69 @@
 /* Jev "off" is a normal state (no OpenRouter route), not a warning. */
 .simplysf2e .spf-statusbar .spf-provider-summary.spf-provider-off {
   border-left: 3px solid var(--spf-border);
+}
+
+/* Generator readiness row: Compendium + Jev folded into one compact line
+   inside the status bar; the full rows (with their gear buttons) expand
+   below it. Same left-edge state signal as the provider row. */
+.simplysf2e .spf-statusbar .spf-readiness {
+  border-top: 1px solid var(--spf-border);
+  border-left: 3px solid var(--spf-success);
+  padding: 0 var(--spf-space-md);
+  font-size: var(--spf-text-sm);
+  color: var(--spf-text-muted);
+}
+
+.simplysf2e .spf-statusbar .spf-readiness.spf-provider-off {
+  border-left-color: var(--spf-border);
+}
+
+.simplysf2e .spf-readiness > summary {
+  padding: var(--spf-space-xs) 0;
+}
+
+.simplysf2e .spf-readiness-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.1rem var(--spf-space-lg);
+}
+
+.simplysf2e .spf-readiness-item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--spf-space-xs);
+  white-space: nowrap;
+}
+
+.simplysf2e .spf-readiness-ok,
+.simplysf2e .spf-readiness-off {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.2em;
+  font-weight: 700;
+}
+
+.simplysf2e .spf-readiness-ok {
+  color: var(--spf-success-fg);
+}
+
+.simplysf2e .spf-readiness-off {
+  color: var(--spf-text-muted);
+}
+
+.simplysf2e .spf-readiness-detail {
+  margin: 0 0 var(--spf-space-xs) 0.2rem;
+  border-left: 1px solid var(--spf-border);
+}
+
+.simplysf2e .spf-statusbar .spf-readiness-detail .spf-provider-summary {
+  border-left: 0;
+  padding-block: 0.15rem;
+}
+
+.simplysf2e .spf-statusbar .spf-readiness-detail .spf-provider-summary + .spf-provider-summary {
+  border-top: 1px dashed color-mix(in srgb, var(--spf-border) 70%, transparent);
 }
 
 /* --------------------------------------------------------------------------
@@ -811,32 +883,138 @@
 }
 
 /* Per-step token usage shown under the finished preview */
+/* --------------------------------------------------------------------------
+   Data tables (Shop stock, Treasure items): short narrow-window headings.
+   .spf-col-full is the real label; in a narrow window it becomes visually
+   hidden (still read) and the aria-hidden .spf-col-short shows instead.
+   .spf-item-sub is a secondary line under an item name that replaces a
+   column hidden in narrow windows.
+   -------------------------------------------------------------------------- */
+.simplysf2e .spf-col-short,
+.simplysf2e .spf-item-sub {
+  display: none;
+}
+
+.simplysf2e .spf-item-name {
+  overflow-wrap: break-word;
+  hyphens: manual;
+}
+
+@container spf-window (max-width: 520px) {
+  .simplysf2e .spf-col-short {
+    display: inline;
+  }
+
+  .simplysf2e .spf-col-full {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+
+  .simplysf2e .spf-item-sub {
+    display: block;
+    margin-top: 0.1rem;
+    font-weight: 400;
+    font-size: 0.92em;
+    color: var(--spf-text-muted);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Disclosure — native <details>/<summary> with one chevron style, shared by
+   every collapsible section (token report, readiness detail, provider
+   setup sections, re-level notes, earlier release notes, review details).
+   The summary stays a single keyboard target; its label wraps beside the
+   chevron instead of under it.
+   -------------------------------------------------------------------------- */
+.simplysf2e .spf-disclosure > summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: baseline;
+  gap: var(--spf-space-sm);
+  padding: var(--spf-space-xs) 0;
+  min-width: 0;
+}
+
+.simplysf2e .spf-disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+
+.simplysf2e .spf-disclosure > summary::before {
+  content: "";
+  flex: none;
+  width: 0.42em;
+  height: 0.42em;
+  margin: 0 0.1em 0.12em;
+  border-right: 2px solid var(--spf-brand-accent);
+  border-bottom: 2px solid var(--spf-brand-accent);
+  transform: rotate(-45deg);
+  transition: transform 120ms ease;
+}
+
+.simplysf2e .spf-disclosure[open] > summary::before {
+  transform: rotate(45deg);
+}
+
+.simplysf2e .spf-disclosure > summary:hover {
+  color: var(--spf-text);
+}
+
+.simplysf2e .spf-disclosure-label {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Token usage: collapsed run summary (total + cost) above the actions. */
 .simplysf2e .spf-token-report {
   margin-top: var(--spf-space-md);
-  padding-top: var(--spf-space-sm);
+  padding-top: var(--spf-space-xs);
   border-top: 1px solid var(--spf-border);
   font-size: var(--spf-text-sm);
   color: var(--spf-text-muted);
 }
 
-.simplysf2e .spf-token-report h3 {
-  font-size: 1em;
+.simplysf2e .spf-token-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.1rem var(--spf-space-md);
 }
 
-.simplysf2e .spf-token-report ul {
-  list-style: none;
-  margin: 0.2rem 0;
-  padding: 0;
+.simplysf2e .spf-token-heading {
+  font-weight: 700;
+  font-size: 0.92em;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--spf-brand-accent);
 }
 
 .simplysf2e .spf-token-total {
-  margin: 0.2rem 0 0;
-  font-weight: bold;
+  font-weight: 700;
+  color: var(--spf-text);
 }
 
 .simplysf2e .spf-token-cost {
-  margin: 0.1rem 0 0;
+  min-width: 0;
   overflow-wrap: anywhere;
+  color: var(--spf-text);
+}
+
+.simplysf2e .spf-token-steps {
+  list-style: none;
+  margin: 0 0 var(--spf-space-xs);
+  padding: var(--spf-space-xs) 0 0 1.05rem;
+  border-left: 1px solid var(--spf-border);
+  margin-left: 0.2rem;
+}
+
+.simplysf2e .spf-token-steps li + li {
+  margin-top: 0.15rem;
 }
 
 /* --------------------------------------------------------------------------

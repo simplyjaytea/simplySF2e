@@ -75,6 +75,16 @@ try {
       page.on("requestfailed", (r) => problems.push(`${name}: request failed ${r.url()}`));
       page.on("response", (r) => { if (r.status() >= 400) problems.push(`${name}: HTTP ${r.status()} ${r.url()}`); });
       await page.goto(`${origin}/out/${name}.html`, { waitUntil: "networkidle" });
+      // `open`: CSS selectors of <details> to expand, standing in for a click,
+      // so a fixture can show a collapsed section's expanded look.
+      if (fixture.open?.length) {
+        const opened = await page.evaluate((selectors) => selectors.map((sel) => {
+          const found = [...document.querySelectorAll(sel)];
+          found.forEach((el) => { el.open = true; });
+          return found.length ? null : sel;
+        }).filter(Boolean), fixture.open);
+        for (const sel of opened) problems.push(`${name}: open selector "${sel}" matches nothing`);
+      }
       await page.locator(".application").screenshot({ path: join(OUT, `${name}.png`) });
       const overflow = await page.evaluate(() => {
         const content = document.querySelector(".window-content");

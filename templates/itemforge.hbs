@@ -38,25 +38,28 @@
     <p class="notification warning spf-provider-warning" role="status">
       <span>{{apiKeyWarning}}</span>
       {{#if canAuthorizeApiKey}}
-        <span class="spf-provider-endpoint"><strong>{{localize "SIMPLYSF2E.Generator.ApiKeyEndpoint"}}</strong> <code>{{providerBaseUrl}}</code></span>
+        {{! Action first, endpoint detail second: the next step reads first in a narrow window. }}
         <button type="button" data-action="authorizeApiKey" data-base-url="{{providerBaseUrl}}" {{#if busy}}disabled{{/if}}>{{localize "SIMPLYSF2E.Generator.AuthorizeApiKey"}}</button>
+        <span class="spf-provider-endpoint"><strong>{{localize "SIMPLYSF2E.Generator.ApiKeyEndpoint"}}</strong> <code>{{providerBaseUrl}}</code></span>
       {{/if}}
     </p>
   {{/if}}
 
   <fieldset class="spf-inputs spf-card" {{#if busy}}disabled{{/if}}>
     <legend>{{localize "SIMPLYSF2E.ItemForge.ConceptLegend"}}</legend>
+    {{! Compact kind switch: all five kinds equally visible as one segmented
+        row; the selected kind's description shows once below. The selected
+        button carries aria-pressed, a frame and a thick underline bar, not
+        colour alone; each button's tooltip holds its own description. }}
     <div class="spf-kind-choices" role="group" aria-label="{{localize 'SIMPLYSF2E.ItemForge.Kind'}}">
       {{#each kinds}}
-        <button type="button" class="spf-kind-choice {{#if this.selected}}spf-kind-selected{{/if}}" data-action="selectKind" data-kind="{{this.value}}" aria-pressed="{{this.selected}}" {{#if @root.busy}}disabled{{/if}}>
+        <button type="button" class="spf-kind-choice {{#if this.selected}}spf-kind-selected{{/if}}" data-action="selectKind" data-kind="{{this.value}}" aria-pressed="{{this.selected}}" data-tooltip="{{localize this.hint}}" {{#if this.selected}}aria-describedby="spf-kind-hint"{{/if}} {{#if @root.busy}}disabled{{/if}}>
           <i class="fa-solid {{this.icon}}" aria-hidden="true"></i>
-          <span class="spf-kind-choice-copy">
-            <strong>{{localize this.label}}</strong>
-            <small>{{localize this.hint}}</small>
-          </span>
+          <span class="spf-kind-label">{{localize this.short}}</span>
         </button>
       {{/each}}
     </div>
+    <p id="spf-kind-hint" class="spf-kind-hint">{{#each kinds}}{{#if this.selected}}<strong>{{localize this.label}}:</strong> {{localize this.hint}}{{/if}}{{/each}}</p>
     <div class="form-group stacked">
       <label for="spf-itemforge-prompt">{{localize "SIMPLYSF2E.ItemForge.Prompt"}}</label>
       <textarea id="spf-itemforge-prompt" name="prompt" rows="3" placeholder="{{localize 'SIMPLYSF2E.ItemForge.PromptPlaceholder'}}">{{input.prompt}}</textarea>
@@ -177,16 +180,20 @@
     {{/if}}
 
     {{#if tokenReport}}
-      <div class="spf-token-report">
-        <h3>{{localize "SIMPLYSF2E.Tokens.Heading"}}</h3>
-        <ul>
-          {{#each tokenReport.steps}}
-            <li><strong>{{this.label}}</strong> — {{this.text}}</li>
-          {{/each}}
+      {{! Collapsed by default: the summary always carries the run total and the
+          cost line (incl. its "at least" / ≈ wording); the per-step report is one click away. }}
+      <details class="spf-token-report spf-disclosure">
+        <summary>
+          <span class="spf-disclosure-label spf-token-line">
+            <span class="spf-token-heading">{{localize "SIMPLYSF2E.Tokens.Heading"}}</span>
+            <span class="spf-token-total">{{tokenReport.totalText}}</span>
+            {{#if tokenReport.costText}}<span class="spf-token-cost">{{tokenReport.costText}}</span>{{/if}}
+          </span>
+        </summary>
+        <ul class="spf-token-steps">
+          {{#each tokenReport.steps}}<li><strong>{{this.label}}</strong> — {{this.text}}</li>{{/each}}
         </ul>
-        <p class="spf-token-total">{{tokenReport.totalText}}</p>
-        {{#if tokenReport.costText}}<p class="spf-token-cost">{{tokenReport.costText}}</p>{{/if}}
-      </div>
+      </details>
     {{/if}}
 
     <footer class="spf-actions">

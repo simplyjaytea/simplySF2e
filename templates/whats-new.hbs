@@ -10,6 +10,22 @@
     {{/each}}
   </ul>
 
+  {{! Manual "all notes" view only: older releases fold under one collapsed group.
+      The automatic unseen-notes view passes an empty list and looks as before. }}
+  {{#if earlierNotes.length}}
+    <details class="spf-disclosure spf-whats-new-earlier">
+      <summary><span class="spf-disclosure-label">{{localize "SIMPLYSF2E.WhatsNew.Earlier" count=earlierNotes.length}}</span></summary>
+      <ul class="spf-whats-new-list">
+        {{#each earlierNotes}}
+          <li class="spf-whats-new-note">
+            <strong class="spf-whats-new-title">{{title}}</strong>
+            <span class="spf-whats-new-body">{{body}}</span>
+          </li>
+        {{/each}}
+      </ul>
+    </details>
+  {{/if}}
+
   <div class="spf-whats-new-broke">
     <strong><i class="fa-solid fa-bug" aria-hidden="true"></i> {{localize "SIMPLYSF2E.WhatsNew.BrokeTitle"}}</strong>
     <span>{{localize "SIMPLYSF2E.WhatsNew.BrokeBody"}}</span>

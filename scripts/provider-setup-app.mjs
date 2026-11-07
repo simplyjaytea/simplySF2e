@@ -58,6 +58,9 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
   #availableModels = [];
   #modelsBaseUrl = "";
   #busy = false;
+  #pricesOpen = false;
+  #priceError = null;
+  #jevOpen = false;
 
   constructor(options = {}, onSaved = null) {
     if (typeof options === "function") {
@@ -111,6 +114,10 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
       : "custom";
     const selected = this.#selectedPreset ?? inferred;
     const prices = getActiveProviderPrices();
+    const jev = ProviderSetupApp.#jevContext();
+    const pricesSummary = (prices.inputPerM == null && prices.outputPerM == null)
+      ? null
+      : { input: prices.inputPerM == null ? "—" : `$${prices.inputPerM}`, output: prices.outputPerM == null ? "—" : `$${prices.outputPerM}` };
     return {
       providers: PROVIDER_PRESETS.map((provider) => ({
         ...provider,
@@ -125,7 +132,11 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
       inputPerM: prices.inputPerM ?? "",
       outputPerM: prices.outputPerM ?? "",
       hasApiKey: state.hasConfiguredApiKey,
-      ...ProviderSetupApp.#jevContext(),
+      ...jev,
+      pricesOpen: this.#priceError != null || this.#pricesOpen,
+      priceError: this.#priceError,
+      pricesSummary,
+      jevOpen: jev.jevOnTypeSafe || jev.hasJevKey || this.#jevOpen,
       showLocalHint: LOCAL_PRESET_IDS.has(selected),
       localServerHint: game.i18n.format("SIMPLYSF2E.ProviderSetup.LocalServerHint", {
         origin: globalThis.location?.origin ?? "Foundry"
@@ -173,6 +184,15 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
     };
     this.element.querySelector("[name='jevSource']")?.addEventListener("change", syncJevRoute);
     this.element.querySelector("[name='jevEndpoint']")?.addEventListener("input", syncJevRoute);
+    // open jev section on typesafe
+    const jevDetails = this.element.querySelector("details[data-section='jev']");
+    if (jevDetails && (normalizeJevSource(this.element.querySelector("[name='jevSource']")?.value) === "typesafe")) jevDetails.open = true;
+    for (const details of this.element.querySelectorAll("details[data-section]")) {
+      details.addEventListener("toggle", () => {
+        if (details.dataset.section === "prices") this.#pricesOpen = details.open;
+        if (details.dataset.section === "jev") this.#jevOpen = details.open;
+      });
+    }
     this.element.querySelector("[name='apiBaseUrl']")?.addEventListener("input", (event) => {
       if (normalizeApiBaseUrl(event.currentTarget.value) !== this.#modelsBaseUrl) {
         this.#clearModelSuggestions();
@@ -308,11 +328,16 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
       outputPerM: this.element.querySelector("[name='outputPerM']")
     };
     for (const input of Object.values(priceInputs)) input?.setCustomValidity?.("");
+    this.#priceError = null;
     const prices = { inputPerM: priceInputs.inputPerM?.value, outputPerM: priceInputs.outputPerM?.value };
     for (const field of ["inputPerM", "outputPerM"]) {
       // A number field blanks non-numeric text; validity.badInput still sees it.
       if (!parsePrice(prices[field]).error && !priceInputs[field]?.validity?.badInput) continue;
       const message = game.i18n.localize(`SIMPLYSF2E.ProviderSetup.Price${field === "inputPerM" ? "Input" : "Output"}Invalid`);
+      this.#priceError = message;
+      priceInputs[field]?.closest?.("details")?.setAttribute?.("open", "");
+      const errEl = priceInputs[field]?.closest?.("details")?.querySelector?.("[data-price-error]");
+      if (errEl) { errEl.hidden = false; const span = errEl.querySelector("span"); if (span) span.textContent = message; }
       priceInputs[field]?.setCustomValidity?.(message);
       priceInputs[field]?.reportValidity?.();
       throw new Error(message);

@@ -150,6 +150,82 @@
   margin: 0;
 }
 
+/* Optional sections (Cost estimate, Fast picks): the same card as the
+   fieldsets, with the summary styled like their legend chips and the
+   current state beside it. */
+.simplysf2e .spf-provider-fold {
+  margin: 0;
+  padding: var(--spf-space-sm) var(--spf-space-lg);
+}
+
+.simplysf2e .spf-provider-fold > summary {
+  align-items: center;
+}
+
+.simplysf2e .spf-fold-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spf-space-xs) var(--spf-space-md);
+}
+
+.simplysf2e .spf-fold-title {
+  font-family: var(--spf-font-display);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-size: var(--spf-text-sm);
+  color: var(--spf-brand-accent);
+}
+
+.simplysf2e .spf-fold-state {
+  font-size: var(--spf-text-sm);
+  color: var(--spf-text-muted);
+}
+
+.simplysf2e .spf-provider-fold[open] > summary {
+  margin-bottom: var(--spf-space-sm);
+  padding-bottom: var(--spf-space-sm);
+  border-bottom: 1px solid var(--spf-border);
+}
+
+.simplysf2e .spf-fold-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spf-space-md);
+  padding-bottom: var(--spf-space-sm);
+}
+
+.simplysf2e .spf-prices-label {
+  font-weight: 600;
+}
+
+/* A section holding a validation error: warning edge, state and message
+   in text plus icon, never colour alone. */
+.simplysf2e .spf-provider-fold:has(.spf-field-error:not([hidden])) {
+  border-color: var(--spf-danger-fg);
+  border-left: 3px solid var(--spf-danger-fg);
+}
+
+.simplysf2e .spf-provider-fold:has(.spf-field-error:not([hidden])) .spf-fold-state {
+  color: var(--spf-danger-fg);
+  font-weight: 700;
+}
+
+.simplysf2e .spf-field-error {
+  display: flex;
+  align-items: baseline;
+  gap: var(--spf-space-sm);
+  margin: 0;
+  font-size: var(--spf-text-sm);
+  font-weight: 600;
+  color: var(--spf-danger-fg);
+}
+
+.simplysf2e .spf-field-error[hidden] {
+  display: none;
+}
+
 /* --------------------------------------------------------------------------
    Narrow windows (down to 360px)
    -------------------------------------------------------------------------- */

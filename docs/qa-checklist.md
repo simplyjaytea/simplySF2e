@@ -747,3 +747,19 @@ Generate a level 7 NPC with a limited cone breath (name "Frost Breath", cold), a
 | 12ab.5 | Re-level to 12 and read a published ability (no provenance flag). | Its text is unchanged. | Actor sheet | | |
 | 12ab.6 | Re-level a copy whose Swallow Whole has become tiny (set size tiny first). | The Swallow Whole text is unchanged, and the re-level preview lists "Swallow Whole kept at the old level: …" with the reason. | Actor sheet | | |
 | 12ab.7 | Reskin a generated level 7 creature with a filled Constrict; then **Create** the copy at 12 and open the created actor's Constrict item (Item sheet, flags). | Constrict keeps its source: `flags.simplysf2e.built.source` and `_stats.compendiumSource` both name the sf2e glossary Constrict uuid. The created text is `@Damage[(5d8)[bludgeoning]]`, `dc:32`. | Actor sheet, Item sheet | | |
+
+## 12ac. UI polish (docs/ui-plan.md)
+
+| # | Step | Expected | Where to look | Result | Evidence |
+|---|------|----------|---------------|--------|----------|
+| 12ac.1 | Open Generator encounter preview; expand member card. | Stats shown as grid (AC, HP, Perception, saves, strike, spell DC). | Generator window | | |
+| 12ac.2 | Create a character with unresolved choices; review card appears. | "To review" list with short action titles and details. | Generator window | | |
+| 12ac.3 | Reskin preview grouped by strike. | Strikes grouped with attack/damage scales. | Generator window | | |
+| 12ac.4 | Generator status bar readiness row collapsed/expanded. | Jev off not a warning; toggle persists. | Generator window | | |
+| 12ac.5 | Token report block collapsed on render. | <details> collapsed. | Generator/Shop/Treasure | | |
+| 12ac.6 | AI Provider Setup cost estimate fold. | Opens on price error; Fast picks opens for typesafe. | Provider Setup | | |
+| 12ac.7 | Item Forge kind picker compact. | Short labels on buttons. | Item Forge | | |
+| 12ac.8 | Compendium Sources filter and Selected only. | Filter hides rows; no re-render. | Sources | | |
+| 12ac.9 | What's new manual view. | Newest release day open, earlier collapsed. | What's new | | |
+| 12ac.10 | Shop/Treasure narrow windows. | Tables readable. | Shop/Treasure | | |
+| 12ac.11 | Polish nits. | API-key warning order, Welcome note, divider. | Various | | |

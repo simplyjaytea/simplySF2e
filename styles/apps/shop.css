@@ -76,38 +76,36 @@
   font-size: var(--spf-text-xs);
 }
 
+/* Narrow: the Type column folds into the item's secondary line, numeric
+   headings shorten (Lvl / Qty), item names wrap by word, and the remove
+   buttons keep one aligned column. */
 @container spf-window (max-width: 520px) {
   .simplysf2e .spf-shop-stock {
     table-layout: fixed;
   }
 
+  .simplysf2e .spf-shop-stock .spf-col-type {
+    display: none;
+  }
+
   .simplysf2e .spf-shop-stock th,
   .simplysf2e .spf-shop-stock td {
     box-sizing: border-box;
-    padding-inline: 2px;
-  }
-
-  .simplysf2e .spf-shop-stock thead th,
-  .simplysf2e .spf-shop-stock .spf-num {
-    white-space: normal;
-  }
-
-  .simplysf2e .spf-shop-stock thead .spf-num {
     padding-inline: var(--spf-space-xs);
-    font-size: 0.65rem;
-    letter-spacing: 0;
-    text-align: center;
   }
-
-  .simplysf2e .spf-shop-stock thead th:first-child { width: 160px; }
-  .simplysf2e .spf-shop-stock thead th:nth-child(2) { width: 80px; }
-  .simplysf2e .spf-shop-stock thead th:nth-child(3) { width: 43px; }
-  .simplysf2e .spf-shop-stock thead th:nth-child(4) { width: 55px; }
-  .simplysf2e .spf-shop-stock thead th:nth-child(5) { width: 32px; }
-  .simplysf2e .spf-shop-stock thead th:last-child { width: 44px; }
 
   .simplysf2e .spf-shop-stock tbody th {
-    overflow-wrap: break-word;
-    hyphens: auto;
+    padding-left: var(--spf-space-sm);
+  }
+
+  .simplysf2e .spf-shop-stock thead th:first-child { width: auto; padding-left: var(--spf-space-sm); }
+  .simplysf2e .spf-shop-stock thead th:nth-child(3) { width: 2.6rem; }
+  .simplysf2e .spf-shop-stock thead th:nth-child(4) { width: 4.6rem; }
+  .simplysf2e .spf-shop-stock thead th:nth-child(5) { width: 2.6rem; }
+  .simplysf2e .spf-shop-stock thead th:last-child { width: calc(var(--spf-icon-btn) + var(--spf-space-xs) * 2); }
+
+  .simplysf2e .spf-shop-stock td:last-child {
+    width: auto;
+    text-align: center;
   }
 }
