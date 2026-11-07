@@ -70,6 +70,9 @@ export function generatorContext(mode, patch = {}) {
     progress: null,
     ...providerContext(),
     sourcesReady: true,
+    // Contract (docs/ui-contract.md, item 6): per-window open state of the
+    // readiness row, like Welcome's advancedOpen.
+    readinessOpen: false,
     jevSource: "connection",
     sourcePackCount: 10,
     sourceMissing: "",
@@ -215,6 +218,8 @@ export default [
     context: generatorContext("monster", { ...PROVIDER_ATTENTION, sourcesReady: false, sourceMissing: "Spells, Feats" })
   },
   { id: "generator-jev-off", app: "generator", context: generatorContext("monster", { jevSource: null }) },
+  { id: "generator-readiness-open", app: "generator", context: generatorContext("monster", { readinessOpen: true }) },
+  { id: "generator-readiness-open-jev-off", app: "generator", context: generatorContext("monster", { readinessOpen: true, jevSource: null }) },
   { id: "generator-jev-key", app: "generator", context: generatorContext("monster", { jevSource: "key" }) },
   { id: "generator-jev-typesafe", app: "generator", context: generatorContext("monster", { jevSource: "typesafe" }) },
   {

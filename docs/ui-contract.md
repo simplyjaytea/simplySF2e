@@ -44,3 +44,19 @@ Keys: new `SIMPLYSF2E.Generator.CreditsLabel`, `SIMPLYSF2E.Preview.ACFull`, `.HP
 ## Item 10 — Shop and Treasure tables in narrow windows
 
 No new context. The Shop row's existing `typeLabel` is rendered twice (Type cell and a secondary line under the name); CSS shows one or the other by container width. New keys used by the templates only: `SIMPLYSF2E.Shop.ColLevelShort`, `SIMPLYSF2E.Shop.ColQtyFull`, `SIMPLYSF2E.Treasure.ColLevelShort`. Nothing to implement.
+
+## Item 6 — Generator readiness row (Compendium + Jev merged)
+
+Template: `templates/generator.hbs` (status bar). Supply in: `GeneratorApp._prepareContext()`; behaviour in `GeneratorApp._onRender()`.
+
+| Field | Type | Meaning | Example |
+| --- | --- | --- | --- |
+| `readinessOpen` (new) | boolean | Whether the GM expanded the readiness row in this window. Default `false`. | `false` (`generator-empty-monster`), `true` (`generator-readiness-open`) |
+
+Behaviour:
+- Copy Welcome's `#advancedOpen` pattern (`welcome-app.mjs` ~l.169): a private `#readinessOpen = false`; in `_onRender` add a `toggle` listener on `details[data-readiness]` that stores `event.currentTarget.open` (no re-render). Not persisted beyond the window instance.
+- Healthy state (`sourcesReady` true): one row `Compendium ✓ Ready · Jev ✓ On / − Off`, detail rows with the gear buttons inside. Jev off is not a warning (as today).
+- Warning state (`sourcesReady` false): the template ignores `readinessOpen` and renders both full rows outside any `<details>`; the missing-content text is now `role="status"` and has a warning icon. No JS needed for that.
+- Existing fields `sourcesReady`, `sourcePackCount`, `sourceMissing`, `jevSource` are unchanged. The `configureSources` / `configureProvider` actions keep their names.
+
+Keys: new `SIMPLYSF2E.Generator.CompendiumShort`, `.ReadyShort`, `.JevShort`, `.JevShortOn`, `.JevShortOff`.
