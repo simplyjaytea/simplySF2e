@@ -303,7 +303,7 @@
 /* --------------------------------------------------------------------------
    Form controls: sleek dark console inputs across every app.
    -------------------------------------------------------------------------- */
-.simplysf2e input:is([type="text"], [type="number"], [type="url"], [type="password"]),
+.simplysf2e input:is([type="text"], [type="number"], [type="url"], [type="password"], [type="search"]),
 .simplysf2e select,
 .simplysf2e textarea {
   background-color: var(--spf-console);

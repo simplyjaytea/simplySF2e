@@ -654,7 +654,14 @@
       "Saved": "Compendium sources saved.",
       "ResetTitle": "Reset compendium sources",
       "ResetConfirm": "Reset every category to the SF2e system pack defaults? Unsaved changes in this window are lost.",
-      "ResetDone": "Compendium sources reset to the SF2e system pack defaults."
+      "ResetDone": "Compendium sources reset to the SF2e system pack defaults.",
+      "FilterLabel": "Filter packs",
+      "FilterPlaceholder": "Filter by pack or module name",
+      "SelectedOnly": "Selected only",
+      "FilterStatus": "Showing {shown} of {total} packs",
+      "ClearFilter": "Clear filter",
+      "NoMatches": "No pack matches this filter. Ticked packs stay ticked; clear the filter to see every pack.",
+      "CategoryCount": "{selected} of {total} selected"
     },
     "Rarity": {
       "Common": "Common",

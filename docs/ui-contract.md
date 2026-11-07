@@ -134,3 +134,34 @@ Template: `templates/itemforge.hbs`. Supply in: `ItemForgeApp._prepareContext()`
 Unchanged: `value`, `label` (now shown once in the description line under the buttons, and still the source of the selected kind's name), `hint`, `selected`; action `selectKind` with `data-kind`. The selected button keeps `aria-pressed="true"` and gets `aria-describedby="spf-kind-hint"`; every button's tooltip carries its own hint. No JS behaviour change.
 
 Keys: new `SIMPLYSF2E.ItemForge.KindWondrousShort`, `KindWeaponShort`, `KindArmorShort`, `KindAugmentationShort`, `KindCrystalShort` (read through `kinds[].short`, so `i18n-keys.test.mjs` lists them as unused until the app supplies the field).
+
+## Item 4 — Compendium Sources: filter and "Selected only"
+
+Template: `templates/sources.hbs`. Supply in: `SourcesConfigApp._prepareContext()`; behaviour in a new `_onRender()` (`scripts/sources-app.mjs`); pure helper in a new or existing pure module (e.g. `scripts/compendium.mjs` or `scripts/sources-filter.mjs`) with a node test.
+
+| Field | Type | Meaning | Example (fixture) |
+| --- | --- | --- | --- |
+| `filter` (new) | object | Current filter state of this window (`#filter`, default `{ query: "", selectedOnly: false }`). | — |
+| `filter.query` | string | Text in the filter field. | `"spell"` (`sources-filtered`) |
+| `filter.selectedOnly` | boolean | "Selected only" ticked. | `true` (`sources-selected-only`) |
+| `filter.active` | boolean | `query.trim() !== "" \|\| selectedOnly`; shows the status line. | `true` |
+| `filter.shown` / `filter.total` | number | Visible packs / all packs over every category. | `2` / `20` |
+| `filter.noMatches` | boolean | `active && shown === 0`; shows the no-match notice. | `true` (`sources-no-match`) |
+| `categories[].selectedCount` (new) | number | Checked packs in the category (legend shows "{selected} of {total} selected"). | `1` |
+| `categories[].hidden` (new) | boolean | `filter.active` and every pack of the category is hidden. | `false` |
+| `categories[].packs[].hidden` (new) | boolean | `filter.active && !packMatches(pack, filter)`. | `true` |
+
+Pure helper (node-tested): `packMatches(pack, { query, selectedOnly })` → `false` when `selectedOnly && !pack.checked`; otherwise `true` when the trimmed, lower-cased query is empty or is a substring of `pack.title`, `pack.package` or `pack.id` (lower-cased). The fixture (`tools/ui-preview/fixtures/dialogs.mjs`) contains the same logic; test at least: empty query, title match, package match, case-insensitivity, selectedOnly with an unchecked pack, selectedOnly plus query.
+
+Behaviour (`_onRender`):
+- Filtering is **client side**: on `input` of `[data-source-filter]` and `change` of `[data-source-selected-only]`, store `#filter`, then for every `label.spf-pack` set `hidden` from `packMatches` using the checkbox's **current** `checked` state (DOM, not the saved setting), set each `fieldset[data-source-category]`'s `hidden` when all its rows are hidden, update `[data-source-filter-count]` with `game.i18n.format("SIMPLYSF2E.Sources.FilterStatus", { shown, total })`, toggle `[data-source-filter-status]` and `[data-source-no-match]`. **Never re-render** for a filter change: unsaved ticks stay, focus stays in the field, scroll position stays.
+- Hidden rows keep their checkboxes in the form; `#onSubmit` already reads `input[data-category=…]:checked` across hidden rows, so a filtered save keeps unchecked/checked edits outside the filter. Do not change that query.
+- "Selected only" re-evaluates only when the filter changes, not on each checkbox click (a row the GM just unticked must not vanish under the pointer).
+- On `change` of any pack checkbox, update that category's `[data-source-count]` text (`SIMPLYSF2E.Sources.CategoryCount`, `{selected, total}`).
+- `[data-source-filter-clear]` clears both controls, re-applies (all rows visible) and returns focus to the filter field.
+- A re-render (Reset) re-applies `#filter` through the context fields above, so the view does not jump back to unfiltered.
+- Save/Reset stay in the pinned footer; nothing about them changes.
+
+Keys: new `SIMPLYSF2E.Sources.FilterLabel`, `.FilterPlaceholder`, `.SelectedOnly`, `.FilterStatus`, `.ClearFilter`, `.NoMatches`, `.CategoryCount`.
+
+Shared CSS: `input[type="search"]` now gets the module's console input styling (`styles/simplysf2e.css`).

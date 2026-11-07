@@ -64,17 +64,38 @@ function providerSetup(selected, patch = {}) {
 
 const pack = (id, title, pkg, checked, isDefault) => ({ id, title, package: pkg, checked, isDefault });
 
+// Contract (docs/ui-contract.md, item 4): `filter` state, per-pack and
+// per-category `hidden`, per-category `selectedCount`. Mirrors the pure
+// helper the app must add (a case-insensitive match on title, package or id;
+// "Selected only" keeps checked packs).
+const packMatches = (pack, { query, selectedOnly }) => {
+  const q = query.trim().toLowerCase();
+  if (selectedOnly && !pack.checked) return false;
+  return !q || [pack.title, pack.package, pack.id].some((text) => text.toLowerCase().includes(q));
+};
+
 function sources(patch = {}) {
-  const categories = Object.entries(CATEGORY_LABELS).map(([key, label]) => ({
-    key,
-    label,
-    packs: [
+  const filter = { query: "", selectedOnly: false, ...(patch.filter ?? {}) };
+  const active = Boolean(filter.query.trim()) || filter.selectedOnly;
+  const categories = Object.entries(CATEGORY_LABELS).map(([key, label]) => {
+    const packs = [
       pack(`sf2e.${key}`, key === "bestiaryActors" ? "Alien Core Bestiary" : `${key[0].toUpperCase()}${key.slice(1)} (SF2e)`, "sf2e", true, true),
-      pack(`homebrew.${key}`, `Homebrew ${key} with a deliberately long compendium title for wrapping`, "starfinder-homebrew-collection", false, false)
-    ]
-  }));
-  const emptied = patch.noPacks ? categories.map((c) => ({ ...c, packs: [] })) : categories;
-  return { categories: emptied, noPacks: emptied.every((c) => !c.packs.length) };
+      pack(`homebrew.${key}`, `Homebrew ${key} with a deliberately long compendium title for wrapping`, "starfinder-homebrew-collection", key === "spells", false)
+    ].map((p) => ({ ...p, hidden: active && !packMatches(p, filter) }));
+    return {
+      key, label, packs,
+      selectedCount: packs.filter((p) => p.checked).length,
+      hidden: active && packs.every((p) => p.hidden)
+    };
+  });
+  const emptied = patch.noPacks ? categories.map((c) => ({ ...c, packs: [], selectedCount: 0, hidden: false })) : categories;
+  const all = emptied.flatMap((c) => c.packs);
+  const shown = all.filter((p) => !p.hidden).length;
+  return {
+    categories: emptied,
+    noPacks: emptied.every((c) => !c.packs.length),
+    filter: { ...filter, active, shown, total: all.length, noMatches: active && shown === 0 }
+  };
 }
 
 const preset = (id, name) => ({ id, name });
@@ -141,6 +162,9 @@ export default [
   },
   { id: "sources-default", app: "sources", height: 640, context: sources() },
   { id: "sources-no-packs", app: "sources", context: sources({ noPacks: true }) },
+  { id: "sources-filtered", app: "sources", height: 640, context: sources({ filter: { query: "spell" } }) },
+  { id: "sources-selected-only", app: "sources", height: 640, context: sources({ filter: { query: "homebrew", selectedOnly: true } }) },
+  { id: "sources-no-match", app: "sources", height: 640, context: sources({ filter: { query: "pathfinder" } }) },
   {
     id: "manage-presets-list",
     app: "manage-presets",
