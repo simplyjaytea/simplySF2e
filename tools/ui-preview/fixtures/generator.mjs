@@ -292,22 +292,25 @@ export default [
   (() => {
     const mk = (over, level) => concept(over, { level });
     const members = [
-      { count: 1, role: "boss", concept: mk({ name: "Warden Ixtl", level: 6, strikes: [{ name: "Gravity Maul", type: "melee", attackScale: "high", damageScale: "high", damageType: "bludgeoning", traits: [] }] }, 6), blurb: "A rift warden." },
+      { count: 1, role: "boss", concept: mk({ name: "Warden Ixtl, Keeper of the Seventh Lattice", level: 6, spellcasting: { tradition: "arcane", dcScale: "high", attackScale: "high" }, strikes: [{ name: "Gravity Maul", type: "melee", attackScale: "high", damageScale: "high", damageType: "bludgeoning", traits: [] }] }, 6), blurb: "A rift warden." },
       { count: 3, role: "minion", concept: mk({ name: "Weak Scrap Drone", level: -1, adjustment: "weak", perceptionScale: "terrible", saveScales: { fortitude: "terrible", reflex: "terrible", will: "terrible" }, strikes: [{ name: "Claw", type: "melee", attackScale: "low", damageScale: "low", damageType: "slashing", traits: [] }] }, -1), blurb: "Scrap with opinions." },
       { count: 0, role: "minion", concept: mk({ name: "Skipped Medic", level: 3 }, 3), blurb: "" }
     ];
     const rows = members.map((member, index) => {
       const stats = adjustedStats(computeStats(member.concept), member.concept);
       const strike = stats.strikes[0];
-      const t = (key) => localize(`SIMPLYSF2E.Preview.${key}`);
       return {
         index, count: member.count, skipped: member.count === 0,
         role: `SIMPLYSF2E.Role.${cap(member.role)}`,
         name: member.concept.name, level: stats.level, blurb: member.blurb,
-        // Same string the real #buildEncounterPreviewContext() assembles.
-        statline: `${t("AC")} ${stats.ac}, ${t("Fort")} ${signed(stats.saves.fortitude)}, ${t("Ref")} ${signed(stats.saves.reflex)}, ${t("Will")} ${signed(stats.saves.will)}, ${t("HP")} ${stats.hp}, ${t("PerceptionShort")} ${signed(stats.perception)}`
-          + (strike ? `, ${strike.name} ${signed(strike.bonus)} (${strike.damage})` : "")
-          + (stats.spellDC ? `, ${t("Spells")} ${t("DC")} ${stats.spellDC}` : "")
+        // Contract (docs/ui-contract.md, item 9): #buildEncounterPreviewContext()
+        // returns raw display values; the template adds the labels.
+        stats: {
+          ac: stats.ac, hp: stats.hp, perception: signed(stats.perception),
+          fort: signed(stats.saves.fortitude), ref: signed(stats.saves.reflex), will: signed(stats.saves.will),
+          strike: strike ? { name: strike.name, bonus: signed(strike.bonus), damage: strike.damage } : null,
+          spellDC: stats.spellDC ?? null
+        }
       };
     });
     return {

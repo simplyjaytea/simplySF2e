@@ -569,14 +569,18 @@
   <section class="spf-preview spf-card spf-encounter">
     <header class="spf-statblock-header">
       <h2>{{encounterPreview.name}}</h2>
-      <span class="spf-level {{#if encounterPreview.overBudget}}spf-over-budget{{/if}}">{{encounterPreview.spent}} / {{encounterPreview.budget}} {{localize "SIMPLYSF2E.Generator.XPUnit"}}{{#if encounterPreview.overBudget}} <span class="spf-sr-only">{{localize "SIMPLYSF2E.Generator.OverBudget"}}</span>{{/if}}</span>
-      <span class="spf-level {{#if encounterPreview.treasureOverBudget}}spf-over-budget{{/if}}" data-tooltip="{{localize 'SIMPLYSF2E.Generator.TreasureReadoutTooltip'}}">{{encounterPreview.treasureSpent}} / {{encounterPreview.treasureBudget}} {{localize "SIMPLYSF2E.Generator.CreditsUnit"}}{{#if encounterPreview.treasureOverBudget}} <span class="spf-sr-only">{{localize "SIMPLYSF2E.Generator.OverBudget"}}</span>{{/if}}</span>
+      {{! Budget chips: a visible label (XP / Credits) before the numbers, and an
+          icon plus screen-reader text when over budget, so colour is never the only cue. }}
+      <span class="spf-level spf-budget-chip{{#if encounterPreview.overBudget}} spf-over-budget{{/if}}"><span class="spf-budget-label">{{localize "SIMPLYSF2E.Generator.XPUnit"}}</span> {{encounterPreview.spent}} / {{encounterPreview.budget}}{{#if encounterPreview.overBudget}} <i aria-hidden="true" class="fa-solid fa-triangle-exclamation"></i><span class="spf-sr-only">{{localize "SIMPLYSF2E.Generator.OverBudget"}}</span>{{/if}}</span>
+      <span class="spf-level spf-budget-chip{{#if encounterPreview.treasureOverBudget}} spf-over-budget{{/if}}" data-tooltip="{{localize 'SIMPLYSF2E.Generator.TreasureReadoutTooltip'}}"><span class="spf-budget-label">{{localize "SIMPLYSF2E.Generator.CreditsLabel"}}</span> {{encounterPreview.treasureSpent}} / {{encounterPreview.treasureBudget}}{{#if encounterPreview.treasureOverBudget}} <i aria-hidden="true" class="fa-solid fa-triangle-exclamation"></i><span class="spf-sr-only">{{localize "SIMPLYSF2E.Generator.OverBudget"}}</span>{{/if}}</span>
     </header>
     <ul class="spf-encounter-members">
       {{#each encounterPreview.members}}
         <li class="spf-encounter-member spf-card {{#if this.skipped}}spf-member-skipped{{/if}}">
+          {{! Fixed grid: name and tag on the left, the count stepper always in the
+              top-right cell, so it sits in the same place on every card. }}
           <div class="spf-member-head">
-            <strong>{{this.name}}</strong>
+            <strong class="spf-member-name">{{this.name}}</strong>
             <span class="spf-member-count">
               <button type="button" class="spf-icon-btn" data-action="memberDown" data-index="{{this.index}}" data-tooltip="{{localize 'SIMPLYSF2E.Generator.MemberDown'}}" aria-label="{{localize 'SIMPLYSF2E.Generator.MemberDown'}}" {{#if @root.busy}}disabled{{/if}}>
                 <i aria-hidden="true" class="fa-solid fa-minus"></i>
@@ -588,8 +592,19 @@
             </span>
             <span class="spf-member-tag">{{localize "SIMPLYSF2E.Generator.Creature"}} {{this.level}} · {{localize this.role}}{{#if this.skipped}} · <span class="spf-member-skipped-tag">{{localize "SIMPLYSF2E.Generator.MemberSkipped"}}</span>{{/if}}</span>
           </div>
-          {{#if this.blurb}}<em>{{this.blurb}}</em>{{/if}}
-          <div class="spf-member-stats">{{this.statline}}</div>
+          {{#if this.blurb}}<em class="spf-member-blurb">{{this.blurb}}</em>{{/if}}
+          {{! Label/value grid. Abbreviated labels keep their full name for
+              assistive tech (visually hidden) and on hover (title). }}
+          <dl class="spf-member-stats">
+            <div title="{{localize 'SIMPLYSF2E.Preview.ACFull'}}"><dt><span aria-hidden="true">{{localize "SIMPLYSF2E.Preview.AC"}}</span><span class="spf-sr-only">{{localize "SIMPLYSF2E.Preview.ACFull"}}</span></dt><dd>{{this.stats.ac}}</dd></div>
+            <div title="{{localize 'SIMPLYSF2E.Preview.HPFull'}}"><dt><span aria-hidden="true">{{localize "SIMPLYSF2E.Preview.HP"}}</span><span class="spf-sr-only">{{localize "SIMPLYSF2E.Preview.HPFull"}}</span></dt><dd>{{this.stats.hp}}</dd></div>
+            <div title="{{localize 'SIMPLYSF2E.Preview.Perception'}}"><dt><span aria-hidden="true">{{localize "SIMPLYSF2E.Preview.PerceptionShort"}}</span><span class="spf-sr-only">{{localize "SIMPLYSF2E.Preview.Perception"}}</span></dt><dd>{{this.stats.perception}}</dd></div>
+            <div title="{{localize 'SIMPLYSF2E.Preview.FortFull'}}"><dt><span aria-hidden="true">{{localize "SIMPLYSF2E.Preview.Fort"}}</span><span class="spf-sr-only">{{localize "SIMPLYSF2E.Preview.FortFull"}}</span></dt><dd>{{this.stats.fort}}</dd></div>
+            <div title="{{localize 'SIMPLYSF2E.Preview.RefFull'}}"><dt><span aria-hidden="true">{{localize "SIMPLYSF2E.Preview.Ref"}}</span><span class="spf-sr-only">{{localize "SIMPLYSF2E.Preview.RefFull"}}</span></dt><dd>{{this.stats.ref}}</dd></div>
+            <div><dt>{{localize "SIMPLYSF2E.Preview.Will"}}</dt><dd>{{this.stats.will}}</dd></div>
+            {{#if this.stats.strike}}<div class="spf-member-stat-wide"><dt>{{this.stats.strike.name}}</dt><dd>{{this.stats.strike.bonus}} <span class="spf-member-damage">({{this.stats.strike.damage}})</span></dd></div>{{/if}}
+            {{#if this.stats.spellDC}}<div class="spf-member-stat-wide"><dt>{{localize "SIMPLYSF2E.Preview.Spells"}} {{localize "SIMPLYSF2E.Preview.DC"}}</dt><dd>{{this.stats.spellDC}}</dd></div>{{/if}}
+          </dl>
         </li>
       {{/each}}
     </ul>

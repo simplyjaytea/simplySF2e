@@ -22,3 +22,21 @@ Behaviour:
 - The app must know which view it is in: today `constructor(options, notes)` gets `notes === null` for the manual open. Keep that flag (e.g. `#manual = !Array.isArray(notes)`).
 - `#markSeen()` must still mark **all** shown notes (newest and earlier), i.e. keep using `this.#notes`.
 - New key `SIMPLYSF2E.WhatsNew.Earlier` ("Earlier changes ({count})"), `count` = `earlierNotes.length`; the template formats it itself.
+
+## Item 9 — Encounter preview: member stat grid, labelled budget chips
+
+Template: `templates/generator.hbs` (`encounterPreview`). Supply in: `GeneratorApp.#buildEncounterPreviewContext()`.
+
+| Field | Type | Meaning | Example (fixture `generator-encounter-preview`) |
+| --- | --- | --- | --- |
+| `members[].stats` (new) | object | Raw display values; the template adds every label. | see below |
+| `members[].stats.ac` | number | `stats.ac` | `24` |
+| `members[].stats.hp` | number | `stats.hp` | `119` |
+| `members[].stats.perception` | string | `signed(stats.perception)` | `"+14"` |
+| `members[].stats.fort` / `.ref` / `.will` | string | `signed(stats.saves.fortitude / reflex / will)` | `"+17"`, `"+14"`, `"+11"` |
+| `members[].stats.strike` | `{name, bonus, damage}` or `null` | first strike: `strike.name`, `signed(strike.bonus)`, `strike.damage` | `{ name: "Gravity Maul", bonus: "+17", damage: "2d8+9" }` |
+| `members[].stats.spellDC` | number or `null` | `stats.spellDC ?? null` | `24` |
+
+Removed: `members[].statline` (the template no longer reads it; delete the string build and the `t()` helper if nothing else uses it). All other `encounterPreview` fields (`spent`, `budget`, `overBudget`, `treasure*`, `count`, `skipped`, `role`, `level`, `blurb`, `index`) are unchanged.
+
+Keys: new `SIMPLYSF2E.Generator.CreditsLabel`, `SIMPLYSF2E.Preview.ACFull`, `.HPFull`, `.FortFull`, `.RefFull` (template only). Deleted `SIMPLYSF2E.Generator.CreditsUnit` (no longer used anywhere).
