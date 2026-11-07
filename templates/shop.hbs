@@ -38,8 +38,9 @@
     <p class="notification warning spf-provider-warning" role="status">
       <span>{{apiKeyWarning}}</span>
       {{#if canAuthorizeApiKey}}
-        <span class="spf-provider-endpoint"><strong>{{localize "SIMPLYSF2E.Generator.ApiKeyEndpoint"}}</strong> <code>{{providerBaseUrl}}</code></span>
+        {{! Action first, endpoint detail second: the next step reads first in a narrow window. }}
         <button type="button" data-action="authorizeApiKey" data-base-url="{{providerBaseUrl}}" {{#if busy}}disabled{{/if}}>{{localize "SIMPLYSF2E.Generator.AuthorizeApiKey"}}</button>
+        <span class="spf-provider-endpoint"><strong>{{localize "SIMPLYSF2E.Generator.ApiKeyEndpoint"}}</strong> <code>{{providerBaseUrl}}</code></span>
       {{/if}}
     </p>
   {{/if}}
@@ -129,18 +130,21 @@
         <thead>
           <tr>
             <th scope="col">{{localize "SIMPLYSF2E.Shop.ColItem"}}</th>
-            <th scope="col">{{localize "SIMPLYSF2E.Shop.ColType"}}</th>
-            <th scope="col" class="spf-num">{{localize "SIMPLYSF2E.Shop.ColLevel"}}</th>
+            <th scope="col" class="spf-col-type">{{localize "SIMPLYSF2E.Shop.ColType"}}</th>
+            {{! Narrow windows show "Lvl"; the full label stays for assistive tech. }}
+            <th scope="col" class="spf-num"><span class="spf-col-full">{{localize "SIMPLYSF2E.Shop.ColLevel"}}</span><span class="spf-col-short" aria-hidden="true">{{localize "SIMPLYSF2E.Shop.ColLevelShort"}}</span></th>
             <th scope="col" class="spf-num">{{localize "SIMPLYSF2E.Shop.ColPrice"}}</th>
-            <th scope="col" class="spf-num">{{localize "SIMPLYSF2E.Shop.ColQty"}}</th>
+            <th scope="col" class="spf-num"><span class="spf-sr-only">{{localize "SIMPLYSF2E.Shop.ColQtyFull"}}</span><span aria-hidden="true">{{localize "SIMPLYSF2E.Shop.ColQty"}}</span></th>
             <th scope="col"><span class="spf-sr-only">{{localize "SIMPLYSF2E.Shop.ColRemove"}}</span></th>
           </tr>
         </thead>
         <tbody>
           {{#each preview.rows}}
           <tr>
-            <th scope="row">{{this.name}}{{#if this.rarity}} <span class="spf-trait spf-shop-rarity">{{this.rarity}}</span>{{/if}}</th>
-            <td>{{localize this.typeLabel}}</td>
+            {{! Narrow windows hide the Type column and show the type as a secondary
+                line under the item name instead (one or the other is rendered visible). }}
+            <th scope="row"><span class="spf-item-name">{{this.name}}</span>{{#if this.rarity}} <span class="spf-trait spf-shop-rarity">{{this.rarity}}</span>{{/if}}<span class="spf-item-sub">{{localize this.typeLabel}}</span></th>
+            <td class="spf-col-type">{{localize this.typeLabel}}</td>
             <td class="spf-num">{{this.level}}</td>
             <td class="spf-num">{{this.price}}</td>
             <td class="spf-num">{{this.quantity}}</td>
@@ -168,16 +172,20 @@
     {{/if}}
 
     {{#if tokenReport}}
-      <div class="spf-token-report">
-        <h3>{{localize "SIMPLYSF2E.Tokens.Heading"}}</h3>
-        <ul>
-          {{#each tokenReport.steps}}
-            <li><strong>{{this.label}}</strong> — {{this.text}}</li>
-          {{/each}}
+      {{! Collapsed by default: the summary always carries the run total and the
+          cost line (incl. its "at least" / ≈ wording); the per-step report is one click away. }}
+      <details class="spf-token-report spf-disclosure">
+        <summary>
+          <span class="spf-disclosure-label spf-token-line">
+            <span class="spf-token-heading">{{localize "SIMPLYSF2E.Tokens.Heading"}}</span>
+            <span class="spf-token-total">{{tokenReport.totalText}}</span>
+            {{#if tokenReport.costText}}<span class="spf-token-cost">{{tokenReport.costText}}</span>{{/if}}
+          </span>
+        </summary>
+        <ul class="spf-token-steps">
+          {{#each tokenReport.steps}}<li><strong>{{this.label}}</strong> — {{this.text}}</li>{{/each}}
         </ul>
-        <p class="spf-token-total">{{tokenReport.totalText}}</p>
-        {{#if tokenReport.costText}}<p class="spf-token-cost">{{tokenReport.costText}}</p>{{/if}}
-      </div>
+      </details>
     {{/if}}
 
     <footer class="spf-actions">

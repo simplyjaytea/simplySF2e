@@ -34,21 +34,21 @@ It also prints a `note:` line when a window scrolls sideways.
 | `fixtures/itemforge.mjs` | Item Forge: each kind empty, attention, busy, error, wondrous / no-effects / augmentation / crystal / weapon / armor previews. |
 | `fixtures/shop.mjs` | Shop: empty, provider attention, busy, error, preview with real sf2e stock rows, every row removed. |
 | `fixtures/treasure.mjs` | Treasure: empty, provider attention, busy, error, preview (one encounter and whole level) with real sf2e item rows and a Credits row, every row removed. |
-| `fixtures/dialogs.mjs` | Provider setup (saved, fresh, models loaded), Sources (default, no packs), Manage presets (list, empty). |
+| `fixtures/dialogs.mjs` | Provider setup (saved, fresh, models loaded, Cost estimate collapsed and expanded, price error auto-opened, Jev TypeSafe auto-opened), Sources (default, no packs, filtered, selected only, no match), Manage presets (list, empty). |
 | `fixtures/welcome.mjs` | First-run welcome: a first run with no API key (Jev off), system, sources and provider problems, and everything ready. Shape follows `WelcomeApp._prepareContext()` (`welcome-app.mjs`) over `welcomeState()` in `welcome.mjs`. |
-| `fixtures/whats-new.mjs` | What's new: unseen notes (the first three of `RELEASE_NOTES`) and the full list. Shape follows `WhatsNewApp._prepareContext()` (`whats-new-app.mjs`). |
+| `fixtures/whats-new.mjs` | What's new: unseen notes (the first three of `RELEASE_NOTES`) and the manual list (newest day open, Earlier changes collapsed and expanded). Shape follows `WhatsNewApp._prepareContext()` (`whats-new-app.mjs`) plus `docs/ui-contract.md`. |
 | `fixtures/_shared.mjs` | Shared builders. Imports the module's pure functions (`normalizeConcept`, `computeStats`, `adjustedStats`, `createProgress`) so numbers are the real ones. |
 
 ## Adding or changing a fixture
 
-Fixture context shapes are copied from the real code: `GeneratorApp._prepareContext()` and its `#build*PreviewContext()` helpers, `ItemForgeApp._prepareContext()`, and the other apps' `_prepareContext()`. Read the code, do not guess. When one of those methods changes, update the matching fixture in the same PR. A fixture is `{ id, app, context, optionalKeys?, height? }`; `app` is a key of `APPS` in `render.mjs`.
+Fixture context shapes are copied from the real code: `GeneratorApp._prepareContext()` and its `#build*PreviewContext()` helpers, `ItemForgeApp._prepareContext()`, and the other apps' `_prepareContext()`. Read the code, do not guess. When one of those methods changes, update the matching fixture in the same PR. A fixture is `{ id, app, context, optionalKeys?, height?, open? }`; `app` is a key of `APPS` in `render.mjs`. `open` lists CSS selectors of `<details>` elements to expand before the screenshot (a stand-in for the GM's click), so a collapsed-by-default section can also be reviewed expanded; a selector that matches nothing fails the run.
 
 ## Caveats
 
 - **Foundry core CSS is not loaded.** Fonts (the real world uses Signika), base buttons, inputs and scrollbars differ from a live world. Judge layout, wrapping, overflow and colour tokens here, not typography.
 - **Full content is shown.** The module caps each window body (`.spf-window-body`) at `80vh` and scrolls inside it; the harness lifts that so nothing is hidden from review.
 - **Short-window check.** Each fixture is also rendered in a 360 px tall window with `.window-content` clipped the way Foundry clips it (`out/<id>@<width>-short.png`). The run fails if any visible control cannot be scrolled into view, so content that a short screen or a resized window would cut off shows up here.
-- **Font Awesome comes from npm** (`@fortawesome/fontawesome-free`, v6 like Foundry's). A CDN link does not load: the cloud sandbox's TLS proxy is not trusted by the headless browser, and `file://` pages cannot fetch it either.
+- **Font Awesome comes from npm** (`@fortawesome/fontawesome-free`, v6 like Foundry's). Foundry ships the Pro set, so a Pro-only icon (e.g. the Item Forge weapon's `fa-sword`) renders blank here but not in a world. A CDN link does not load: the cloud sandbox's TLS proxy is not trusted by the headless browser, and `file://` pages cannot fetch it either.
 - **No JavaScript from the module runs**: no hover tooltips (`data-tooltip`), no `_onRender` listeners, no focus management. Open the saved `.html` files in a browser for focus and hover checks.
 - **Strike traits** are set directly on the fixture concept, because `normalizeConcept` validates them against the live system's trait list, which does not exist under Node.
 - The Foundry-only app modules (`generator-app.mjs` and the others) cannot be imported under Node, which is why fixtures copy the context shapes instead of calling them.

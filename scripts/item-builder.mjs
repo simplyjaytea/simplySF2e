@@ -16,9 +16,9 @@ import {
 } from "./compendium.mjs";
 import { slugify, capitalized, esc, escAi } from "./text.mjs";
 import {
-  RUNED_ITEM_KINDS, SECONDARY_ADJECTIVE, SECONDARY_RUNE_FIELD, propertyRuneKey, propertyRuneFitsBase,
-  findFundamentalRune, getBaseItemCandidates, getPropertyRuneCandidates, getFundamentalRuneTiers,
-  EQUIPMENT_GRADES, GRADE_LEVELS, GRADE_CREDITS_DELTA, parseUpgradeCapacity, getGradeTiers, getUpgradeCandidates,
+  RUNED_ITEM_KINDS, SECONDARY_ADJECTIVE, SECONDARY_RUNE_FIELD, propertyRuneFitsBase,
+  getBaseItemCandidates, getPropertyRuneCandidates, getFundamentalRuneTiers,
+  EQUIPMENT_GRADES, GRADE_LEVELS, GRADE_CREDITS_DELTA, parseUpgradeCapacity, getGradeTiers,
   trailingGradeLabel, stripTrailingGradeLabel
 } from "./runes.mjs";
 
@@ -67,8 +67,6 @@ export const ACTIVATION_TEMPLATES = new Set(["damage", "heal", "condition", "sel
 const ACTION_COSTS = { single: 1, two: 2, three: 3, reaction: "reaction", free: "free" };
 const ACTIVATION_DURATIONS = { round: { rounds: 1, label: "1 round" }, minute: { minutes: 1, label: "1 minute" }, "ten-minutes": { minutes: 10, label: "10 minutes" } };
 const BULK_VALUES = { negligible: 0, light: 0.1, one: 1, two: 2 };
-const POTENCY_CHOICES = { single: 1, double: 2, triple: 3 };
-const SECONDARY_CHOICES = { none: 0, standard: 1, greater: 2, major: 3 };
 
 /* The three PF2e saving throws an activation may call for. */
 export const SAVE_TYPES = new Set(["fortitude", "reflex", "will"]);

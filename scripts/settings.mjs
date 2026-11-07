@@ -316,7 +316,7 @@ export function registerSettings(SourcesConfigApp, ProviderSetupApp, WelcomeApp,
     config: true,
     restricted: true,
     type: Number,
-    default: 0
+    default: 5
   });
 
   // Free Archetype is a GM campaign-rule choice, so it is world-scoped and

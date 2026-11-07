@@ -101,3 +101,31 @@
   border-top: 1px solid var(--spf-border);
   border-bottom: 0;
 }
+
+/* Narrow: shorter Level heading (Lvl), item names wrap by word, fixed
+   numeric and remove columns so the buttons stay aligned. */
+@container spf-window (max-width: 520px) {
+  .simplysf2e .spf-treasure-items {
+    table-layout: fixed;
+  }
+
+  .simplysf2e .spf-treasure-items th,
+  .simplysf2e .spf-treasure-items td {
+    box-sizing: border-box;
+    padding-inline: var(--spf-space-xs);
+  }
+
+  .simplysf2e .spf-treasure-items tbody th {
+    padding-left: var(--spf-space-sm);
+  }
+
+  .simplysf2e .spf-treasure-items thead th:first-child { width: auto; padding-left: var(--spf-space-sm); }
+  .simplysf2e .spf-treasure-items thead th:nth-child(2) { width: 2.6rem; }
+  .simplysf2e .spf-treasure-items thead th:nth-child(3) { width: 5.2rem; }
+  .simplysf2e .spf-treasure-items thead th:last-child { width: calc(var(--spf-icon-btn) + var(--spf-space-xs) * 2); }
+
+  .simplysf2e .spf-treasure-items td:last-child {
+    width: auto;
+    text-align: center;
+  }
+}

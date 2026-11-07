@@ -156,4 +156,13 @@ r = runCost([
 ], { inputPerM: 999 });
 close(r.amount, 11); assert.equal(r.partial, true, "an entry recorded without prices stays unpriced");
 
+// T-COSTGAP
+r = runCost([combineUsage({prompt:1e6,completion:0,total:1e6},{prompt:0,completion:0,total:5e6})], {inputPerM:1,outputPerM:1});
+assert.equal(r.partial, true); close(r.amount, 1);
+r = runCost([{prompt:100,completion:50,total:150}], {inputPerM:1,outputPerM:1});
+// no remainder -> unchanged (partial false if priced)
+assert.equal(r.partial, false);
+assert.deepEqual(runCost([{prompt:0,completion:0,total:5}], {}), none);
+r = runCost([{prompt:10,completion:5,total:20,cost:0.01}], {});
+assert.equal(r.partial, false); close(r.amount, 0.01);
 console.log("cost.test.mjs: run-cost assertions passed");

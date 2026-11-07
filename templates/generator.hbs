@@ -28,23 +28,52 @@
       <i class="fa-solid {{#if providerReady}}fa-circle-check{{else}}fa-triangle-exclamation{{/if}} spf-provider-state" role="img" aria-label="{{#if providerReady}}{{localize 'SIMPLYSF2E.Generator.ProviderReady'}}{{else}}{{apiKeyWarning}}{{/if}}" data-tooltip="{{#if providerReady}}{{localize 'SIMPLYSF2E.Generator.ProviderReady'}}{{else}}{{apiKeyWarning}}{{/if}}"></i>
     </span>
   </div>
-  <div class="spf-provider-summary {{#if sourcesReady}}spf-provider-ready{{else}}spf-provider-attention{{/if}}">
+  {{! Compendium + Jev readiness. Healthy: one compact row whose details
+      expand on click (open state kept per window, like Welcome's Advanced).
+      Missing compendium content is a warning: both rows render expanded and
+      prominent, never inside a collapsed block. }}
+  {{#if sourcesReady}}
+  <details class="spf-readiness spf-disclosure {{#if jevSource}}spf-provider-ready{{else}}spf-provider-off{{/if}}" data-readiness {{#if readinessOpen}}open{{/if}}>
+    <summary>
+      <span class="spf-disclosure-label spf-readiness-line">
+        <span class="spf-readiness-item"><i aria-hidden="true" class="fa-solid fa-book-atlas"></i> {{localize "SIMPLYSF2E.Generator.CompendiumShort"}} <strong class="spf-readiness-ok"><i aria-hidden="true" class="fa-solid fa-circle-check"></i> {{localize "SIMPLYSF2E.Generator.ReadyShort"}}</strong></span>
+        <span class="spf-readiness-item"><i aria-hidden="true" class="fa-solid fa-bolt"></i> {{localize "SIMPLYSF2E.Generator.JevShort"}} {{#if jevSource}}<strong class="spf-readiness-ok"><i aria-hidden="true" class="fa-solid fa-circle-check"></i> {{localize "SIMPLYSF2E.Generator.JevShortOn"}}</strong>{{else}}<strong class="spf-readiness-off"><i aria-hidden="true" class="fa-solid fa-circle-minus"></i> {{localize "SIMPLYSF2E.Generator.JevShortOff"}}</strong>{{/if}}</span>
+      </span>
+    </summary>
+    <div class="spf-readiness-detail">
+      <div class="spf-provider-summary spf-provider-ready">
+        <span class="spf-provider-name"><i aria-hidden="true" class="fa-solid fa-book-atlas"></i> <strong>{{localize "SIMPLYSF2E.Generator.CompendiumContent"}}</strong></span>
+        <span class="spf-provider-detail">{{localize "SIMPLYSF2E.Generator.SourcesReady" packCount=sourcePackCount}}</span>
+        <span class="spf-provider-actions"><button type="button" data-action="configureSources" data-tooltip="{{localize 'SIMPLYSF2E.Generator.ConfigureSources'}}" aria-label="{{localize 'SIMPLYSF2E.Generator.ConfigureSources'}}" {{#if busy}}disabled{{/if}}><i aria-hidden="true" class="fa-solid fa-gear"></i></button></span>
+      </div>
+      <div class="spf-provider-summary {{#if jevSource}}spf-provider-ready{{else}}spf-provider-off{{/if}}">
+        <span class="spf-provider-name"><i aria-hidden="true" class="fa-solid fa-bolt"></i> <strong>{{localize "SIMPLYSF2E.Generator.JevRow"}}</strong></span>
+        <span class="spf-provider-detail">{{#if (eq jevSource "key")}}{{localize "SIMPLYSF2E.Generator.JevOnKey"}}{{else if (eq jevSource "typesafe")}}{{localize "SIMPLYSF2E.Generator.JevOnTypeSafe"}}{{else if (eq jevSource "connection")}}{{localize "SIMPLYSF2E.Generator.JevOnConnection"}}{{else}}{{localize "SIMPLYSF2E.Generator.JevOff"}}{{/if}}</span>
+        <span class="spf-provider-actions"><button type="button" data-action="configureProvider" data-tooltip="{{localize 'SIMPLYSF2E.Generator.JevConfigure'}}" aria-label="{{localize 'SIMPLYSF2E.Generator.JevConfigure'}}" {{#if busy}}disabled{{/if}}><i aria-hidden="true" class="fa-solid fa-gear"></i></button></span>
+      </div>
+    </div>
+  </details>
+  {{else}}
+  <div class="spf-provider-summary spf-provider-attention">
     <span class="spf-provider-name"><i aria-hidden="true" class="fa-solid fa-book-atlas"></i> <strong>{{localize "SIMPLYSF2E.Generator.CompendiumContent"}}</strong></span>
-    <span class="spf-provider-detail">{{#if sourcesReady}}{{localize "SIMPLYSF2E.Generator.SourcesReady" packCount=sourcePackCount}}{{else}}{{localize "SIMPLYSF2E.Generator.SourcesMissing" categories=sourceMissing}}{{/if}}</span>
-    <span class="spf-provider-actions"><button type="button" data-action="configureSources" aria-label="{{localize 'SIMPLYSF2E.Generator.ConfigureSources'}}" {{#if busy}}disabled{{/if}}><i aria-hidden="true" class="fa-solid fa-gear"></i></button></span>
+    <i aria-hidden="true" class="fa-solid fa-triangle-exclamation spf-provider-state"></i>
+    <span class="spf-provider-detail" role="status">{{localize "SIMPLYSF2E.Generator.SourcesMissing" categories=sourceMissing}}</span>
+    <span class="spf-provider-actions"><button type="button" data-action="configureSources" data-tooltip="{{localize 'SIMPLYSF2E.Generator.ConfigureSources'}}" aria-label="{{localize 'SIMPLYSF2E.Generator.ConfigureSources'}}" {{#if busy}}disabled{{/if}}><i aria-hidden="true" class="fa-solid fa-gear"></i></button></span>
   </div>
   <div class="spf-provider-summary {{#if jevSource}}spf-provider-ready{{else}}spf-provider-off{{/if}}">
     <span class="spf-provider-name"><i aria-hidden="true" class="fa-solid fa-bolt"></i> <strong>{{localize "SIMPLYSF2E.Generator.JevRow"}}</strong></span>
     <span class="spf-provider-detail">{{#if (eq jevSource "key")}}{{localize "SIMPLYSF2E.Generator.JevOnKey"}}{{else if (eq jevSource "typesafe")}}{{localize "SIMPLYSF2E.Generator.JevOnTypeSafe"}}{{else if (eq jevSource "connection")}}{{localize "SIMPLYSF2E.Generator.JevOnConnection"}}{{else}}{{localize "SIMPLYSF2E.Generator.JevOff"}}{{/if}}</span>
     <span class="spf-provider-actions"><button type="button" data-action="configureProvider" data-tooltip="{{localize 'SIMPLYSF2E.Generator.JevConfigure'}}" aria-label="{{localize 'SIMPLYSF2E.Generator.JevConfigure'}}" {{#if busy}}disabled{{/if}}><i aria-hidden="true" class="fa-solid fa-gear"></i></button></span>
   </div>
+  {{/if}}
   </div>
   {{#if apiKeyWarning}}
     <p class="notification warning spf-provider-warning" role="status">
       <span>{{apiKeyWarning}}</span>
       {{#if canAuthorizeApiKey}}
-        <span class="spf-provider-endpoint"><strong>{{localize "SIMPLYSF2E.Generator.ApiKeyEndpoint"}}</strong> <code>{{providerBaseUrl}}</code></span>
+        {{! Action first, endpoint detail second: the next step reads first in a narrow window. }}
         <button type="button" data-action="authorizeApiKey" data-base-url="{{providerBaseUrl}}" {{#if busy}}disabled{{/if}}>{{localize "SIMPLYSF2E.Generator.AuthorizeApiKey"}}</button>
+        <span class="spf-provider-endpoint"><strong>{{localize "SIMPLYSF2E.Generator.ApiKeyEndpoint"}}</strong> <code>{{providerBaseUrl}}</code></span>
       {{/if}}
     </p>
   {{/if}}
@@ -115,27 +144,42 @@
         <p id="spf-reskin-level-hint" class="spf-hint">{{localize "SIMPLYSF2E.Relevel.Hint"}}</p>
       </div>
       {{#if reskinRelevel.changed}}
-        {{#if reskinRelevel.rows.length}}
+        {{#if reskinRelevel.hasRows}}
+        {{! One table so old and new values line up: plain stats first, then each
+            Strike as a group (its short name) with Attack and Damage rows. }}
         <div class="spf-relevel-scroll">
           <table class="spf-relevel-table">
             <thead><tr>
               <th scope="col">{{localize "SIMPLYSF2E.Relevel.Stat"}}</th>
               <th scope="col">{{localize "SIMPLYSF2E.Relevel.Scale"}}</th>
-              <th scope="col">{{localize "SIMPLYSF2E.Relevel.AtLevel" level=reskinRelevel.from}}</th>
-              <th scope="col">{{localize "SIMPLYSF2E.Relevel.AtLevel" level=reskinRelevel.level}}</th>
+              <th scope="col" class="spf-num">{{localize "SIMPLYSF2E.Relevel.AtLevel" level=reskinRelevel.from}}</th>
+              <th scope="col" class="spf-num">{{localize "SIMPLYSF2E.Relevel.AtLevel" level=reskinRelevel.level}}</th>
             </tr></thead>
+            {{#if reskinRelevel.rows.length}}
             <tbody>
-              {{#each reskinRelevel.rows}}<tr><td>{{this.label}}</td><td>{{this.scale}}</td><td>{{this.from}}</td><td class="spf-relevel-new">{{this.to}}</td></tr>{{/each}}
+              {{#each reskinRelevel.rows}}<tr><th scope="row">{{this.label}}</th><td>{{this.scale}}</td><td class="spf-num">{{this.from}}</td><td class="spf-num spf-relevel-new">{{this.to}}</td></tr>{{/each}}
             </tbody>
+            {{/if}}
+            {{#each reskinRelevel.strikes}}
+            <tbody class="spf-relevel-strike">
+              <tr class="spf-relevel-group"><th scope="colgroup" colspan="4"><i aria-hidden="true" class="fa-solid fa-hand-fist"></i> {{this.name}}</th></tr>
+              {{#if this.attack}}<tr><th scope="row" class="spf-relevel-sub">{{localize "SIMPLYSF2E.Relevel.AttackRow"}}</th><td>{{this.attack.scale}}</td><td class="spf-num">{{this.attack.from}}</td><td class="spf-num spf-relevel-new">{{this.attack.to}}</td></tr>{{/if}}
+              {{#if this.damage}}<tr><th scope="row" class="spf-relevel-sub">{{localize "SIMPLYSF2E.Relevel.DamageRow"}}</th><td>{{this.damage.scale}}</td><td class="spf-num">{{this.damage.from}}</td><td class="spf-num spf-relevel-new">{{this.damage.to}}</td></tr>{{/if}}
+            </tbody>
+            {{/each}}
           </table>
         </div>
         {{/if}}
+        {{! Rebuilt and kept-at-old-level abilities always stay visible. }}
         {{#if reskinRelevel.abilities.length}}
         <ul class="spf-relevel-abilities">
-          {{#each reskinRelevel.abilities}}<li{{#if this.kept}} class="spf-relevel-kept"{{/if}}>{{this.label}}</li>{{/each}}
+          {{#each reskinRelevel.abilities}}<li{{#if this.kept}} class="spf-relevel-kept"{{/if}}><i aria-hidden="true" class="fa-solid {{#if this.kept}}fa-triangle-exclamation{{else}}fa-rotate{{/if}}"></i> <span>{{this.label}}</span></li>{{/each}}
         </ul>
         {{/if}}
-        <p class="spf-hint">{{localize "SIMPLYSF2E.Relevel.Unchanged"}}</p>
+        <details class="spf-disclosure spf-relevel-unchanged">
+          <summary><span class="spf-disclosure-label">{{localize "SIMPLYSF2E.Relevel.UnchangedSummary"}}</span></summary>
+          <p class="spf-hint">{{localize "SIMPLYSF2E.Relevel.Unchanged"}}</p>
+        </details>
       {{/if}}
     </div>
     {{/if}}
@@ -374,14 +418,20 @@
       </div>
     {{/if}}
     {{#if tokenReport}}
-      <div class="spf-token-report">
-        <h3>{{localize "SIMPLYSF2E.Tokens.Heading"}}</h3>
-        <ul>
+      {{! Collapsed by default: the summary always carries the run total and the
+          cost line (incl. its "at least" / ≈ wording); the per-step report is one click away. }}
+      <details class="spf-token-report spf-disclosure">
+        <summary>
+          <span class="spf-disclosure-label spf-token-line">
+            <span class="spf-token-heading">{{localize "SIMPLYSF2E.Tokens.Heading"}}</span>
+            <span class="spf-token-total">{{tokenReport.totalText}}</span>
+            {{#if tokenReport.costText}}<span class="spf-token-cost">{{tokenReport.costText}}</span>{{/if}}
+          </span>
+        </summary>
+        <ul class="spf-token-steps">
           {{#each tokenReport.steps}}<li><strong>{{this.label}}</strong> — {{this.text}}</li>{{/each}}
         </ul>
-        <p class="spf-token-total">{{tokenReport.totalText}}</p>
-        {{#if tokenReport.costText}}<p class="spf-token-cost">{{tokenReport.costText}}</p>{{/if}}
-      </div>
+      </details>
     {{/if}}
     <footer class="spf-actions">
       {{#if created.actorId}}<button type="button" class="spf-primary" data-action="openCreatedActor"><i aria-hidden="true" class="fa-solid fa-arrow-up-right-from-square"></i> {{localize "SIMPLYSF2E.Generator.OpenSheet"}}</button>{{/if}}
@@ -391,7 +441,7 @@
   {{/if}}
 
   {{#if showEmptyState}}
-    <p class="spf-empty">{{#if reskinMode}}{{localize "SIMPLYSF2E.Generator.EmptyHintReskin"}}{{else}}{{localize "SIMPLYSF2E.Generator.EmptyHint"}}{{/if}}</p>
+    <p class="spf-empty">{{#if reskinMode}}{{#if reskinSource}}{{localize "SIMPLYSF2E.Generator.EmptyHintReskinReady"}}{{else}}{{localize "SIMPLYSF2E.Generator.EmptyHintReskin"}}{{/if}}{{else}}{{localize "SIMPLYSF2E.Generator.EmptyHint"}}{{/if}}</p>
   {{/if}}
 
   {{#if preview}}
@@ -527,16 +577,20 @@
     {{/if}}
 
     {{#if tokenReport}}
-      <div class="spf-token-report">
-        <h3>{{localize "SIMPLYSF2E.Tokens.Heading"}}</h3>
-        <ul>
-          {{#each tokenReport.steps}}
-            <li><strong>{{this.label}}</strong> — {{this.text}}</li>
-          {{/each}}
+      {{! Collapsed by default: the summary always carries the run total and the
+          cost line (incl. its "at least" / ≈ wording); the per-step report is one click away. }}
+      <details class="spf-token-report spf-disclosure">
+        <summary>
+          <span class="spf-disclosure-label spf-token-line">
+            <span class="spf-token-heading">{{localize "SIMPLYSF2E.Tokens.Heading"}}</span>
+            <span class="spf-token-total">{{tokenReport.totalText}}</span>
+            {{#if tokenReport.costText}}<span class="spf-token-cost">{{tokenReport.costText}}</span>{{/if}}
+          </span>
+        </summary>
+        <ul class="spf-token-steps">
+          {{#each tokenReport.steps}}<li><strong>{{this.label}}</strong> — {{this.text}}</li>{{/each}}
         </ul>
-        <p class="spf-token-total">{{tokenReport.totalText}}</p>
-        {{#if tokenReport.costText}}<p class="spf-token-cost">{{tokenReport.costText}}</p>{{/if}}
-      </div>
+      </details>
     {{/if}}
 
     <footer class="spf-actions">
@@ -559,14 +613,18 @@
   <section class="spf-preview spf-card spf-encounter">
     <header class="spf-statblock-header">
       <h2>{{encounterPreview.name}}</h2>
-      <span class="spf-level {{#if encounterPreview.overBudget}}spf-over-budget{{/if}}">{{encounterPreview.spent}} / {{encounterPreview.budget}} {{localize "SIMPLYSF2E.Generator.XPUnit"}}{{#if encounterPreview.overBudget}} <span class="spf-sr-only">{{localize "SIMPLYSF2E.Generator.OverBudget"}}</span>{{/if}}</span>
-      <span class="spf-level {{#if encounterPreview.treasureOverBudget}}spf-over-budget{{/if}}" data-tooltip="{{localize 'SIMPLYSF2E.Generator.TreasureReadoutTooltip'}}">{{encounterPreview.treasureSpent}} / {{encounterPreview.treasureBudget}} {{localize "SIMPLYSF2E.Generator.CreditsUnit"}}{{#if encounterPreview.treasureOverBudget}} <span class="spf-sr-only">{{localize "SIMPLYSF2E.Generator.OverBudget"}}</span>{{/if}}</span>
+      {{! Budget chips: a visible label (XP / Credits) before the numbers, and an
+          icon plus screen-reader text when over budget, so colour is never the only cue. }}
+      <span class="spf-level spf-budget-chip{{#if encounterPreview.overBudget}} spf-over-budget{{/if}}"><span class="spf-budget-label">{{localize "SIMPLYSF2E.Generator.XPUnit"}}</span> {{encounterPreview.spent}} / {{encounterPreview.budget}}{{#if encounterPreview.overBudget}} <i aria-hidden="true" class="fa-solid fa-triangle-exclamation"></i><span class="spf-sr-only">{{localize "SIMPLYSF2E.Generator.OverBudget"}}</span>{{/if}}</span>
+      <span class="spf-level spf-budget-chip{{#if encounterPreview.treasureOverBudget}} spf-over-budget{{/if}}" data-tooltip="{{localize 'SIMPLYSF2E.Generator.TreasureReadoutTooltip'}}"><span class="spf-budget-label">{{localize "SIMPLYSF2E.Generator.CreditsLabel"}}</span> {{encounterPreview.treasureSpent}} / {{encounterPreview.treasureBudget}}{{#if encounterPreview.treasureOverBudget}} <i aria-hidden="true" class="fa-solid fa-triangle-exclamation"></i><span class="spf-sr-only">{{localize "SIMPLYSF2E.Generator.OverBudget"}}</span>{{/if}}</span>
     </header>
     <ul class="spf-encounter-members">
       {{#each encounterPreview.members}}
         <li class="spf-encounter-member spf-card {{#if this.skipped}}spf-member-skipped{{/if}}">
+          {{! Fixed grid: name and tag on the left, the count stepper always in the
+              top-right cell, so it sits in the same place on every card. }}
           <div class="spf-member-head">
-            <strong>{{this.name}}</strong>
+            <strong class="spf-member-name">{{this.name}}</strong>
             <span class="spf-member-count">
               <button type="button" class="spf-icon-btn" data-action="memberDown" data-index="{{this.index}}" data-tooltip="{{localize 'SIMPLYSF2E.Generator.MemberDown'}}" aria-label="{{localize 'SIMPLYSF2E.Generator.MemberDown'}}" {{#if @root.busy}}disabled{{/if}}>
                 <i aria-hidden="true" class="fa-solid fa-minus"></i>
@@ -578,22 +636,37 @@
             </span>
             <span class="spf-member-tag">{{localize "SIMPLYSF2E.Generator.Creature"}} {{this.level}} · {{localize this.role}}{{#if this.skipped}} · <span class="spf-member-skipped-tag">{{localize "SIMPLYSF2E.Generator.MemberSkipped"}}</span>{{/if}}</span>
           </div>
-          {{#if this.blurb}}<em>{{this.blurb}}</em>{{/if}}
-          <div class="spf-member-stats">{{this.statline}}</div>
+          {{#if this.blurb}}<em class="spf-member-blurb">{{this.blurb}}</em>{{/if}}
+          {{! Label/value grid. Abbreviated labels keep their full name for
+              assistive tech (visually hidden) and on hover (title). }}
+          <dl class="spf-member-stats">
+            <div title="{{localize 'SIMPLYSF2E.Preview.ACFull'}}"><dt><span aria-hidden="true">{{localize "SIMPLYSF2E.Preview.AC"}}</span><span class="spf-sr-only">{{localize "SIMPLYSF2E.Preview.ACFull"}}</span></dt><dd>{{this.stats.ac}}</dd></div>
+            <div title="{{localize 'SIMPLYSF2E.Preview.HPFull'}}"><dt><span aria-hidden="true">{{localize "SIMPLYSF2E.Preview.HP"}}</span><span class="spf-sr-only">{{localize "SIMPLYSF2E.Preview.HPFull"}}</span></dt><dd>{{this.stats.hp}}</dd></div>
+            <div title="{{localize 'SIMPLYSF2E.Preview.Perception'}}"><dt><span aria-hidden="true">{{localize "SIMPLYSF2E.Preview.PerceptionShort"}}</span><span class="spf-sr-only">{{localize "SIMPLYSF2E.Preview.Perception"}}</span></dt><dd>{{this.stats.perception}}</dd></div>
+            <div title="{{localize 'SIMPLYSF2E.Preview.FortFull'}}"><dt><span aria-hidden="true">{{localize "SIMPLYSF2E.Preview.Fort"}}</span><span class="spf-sr-only">{{localize "SIMPLYSF2E.Preview.FortFull"}}</span></dt><dd>{{this.stats.fort}}</dd></div>
+            <div title="{{localize 'SIMPLYSF2E.Preview.RefFull'}}"><dt><span aria-hidden="true">{{localize "SIMPLYSF2E.Preview.Ref"}}</span><span class="spf-sr-only">{{localize "SIMPLYSF2E.Preview.RefFull"}}</span></dt><dd>{{this.stats.ref}}</dd></div>
+            <div><dt>{{localize "SIMPLYSF2E.Preview.Will"}}</dt><dd>{{this.stats.will}}</dd></div>
+            {{#if this.stats.strike}}<div class="spf-member-stat-wide"><dt>{{this.stats.strike.name}}</dt><dd>{{this.stats.strike.bonus}} <span class="spf-member-damage">({{this.stats.strike.damage}})</span></dd></div>{{/if}}
+            {{#if this.stats.spellDC}}<div class="spf-member-stat-wide"><dt>{{localize "SIMPLYSF2E.Preview.Spells"}} {{localize "SIMPLYSF2E.Preview.DC"}}</dt><dd>{{this.stats.spellDC}}</dd></div>{{/if}}
+          </dl>
         </li>
       {{/each}}
     </ul>
     {{#if tokenReport}}
-      <div class="spf-token-report">
-        <h3>{{localize "SIMPLYSF2E.Tokens.Heading"}}</h3>
-        <ul>
-          {{#each tokenReport.steps}}
-            <li><strong>{{this.label}}</strong> — {{this.text}}</li>
-          {{/each}}
+      {{! Collapsed by default: the summary always carries the run total and the
+          cost line (incl. its "at least" / ≈ wording); the per-step report is one click away. }}
+      <details class="spf-token-report spf-disclosure">
+        <summary>
+          <span class="spf-disclosure-label spf-token-line">
+            <span class="spf-token-heading">{{localize "SIMPLYSF2E.Tokens.Heading"}}</span>
+            <span class="spf-token-total">{{tokenReport.totalText}}</span>
+            {{#if tokenReport.costText}}<span class="spf-token-cost">{{tokenReport.costText}}</span>{{/if}}
+          </span>
+        </summary>
+        <ul class="spf-token-steps">
+          {{#each tokenReport.steps}}<li><strong>{{this.label}}</strong> — {{this.text}}</li>{{/each}}
         </ul>
-        <p class="spf-token-total">{{tokenReport.totalText}}</p>
-        {{#if tokenReport.costText}}<p class="spf-token-cost">{{tokenReport.costText}}</p>{{/if}}
-      </div>
+      </details>
     {{/if}}
     <footer class="spf-actions">
       <button type="button" class="spf-primary" data-action="createActor" {{#if busy}}disabled{{/if}}>
@@ -707,16 +780,20 @@
     {{/if}}
 
     {{#if tokenReport}}
-      <div class="spf-token-report">
-        <h3>{{localize "SIMPLYSF2E.Tokens.Heading"}}</h3>
-        <ul>
-          {{#each tokenReport.steps}}
-            <li><strong>{{this.label}}</strong> — {{this.text}}</li>
-          {{/each}}
+      {{! Collapsed by default: the summary always carries the run total and the
+          cost line (incl. its "at least" / ≈ wording); the per-step report is one click away. }}
+      <details class="spf-token-report spf-disclosure">
+        <summary>
+          <span class="spf-disclosure-label spf-token-line">
+            <span class="spf-token-heading">{{localize "SIMPLYSF2E.Tokens.Heading"}}</span>
+            <span class="spf-token-total">{{tokenReport.totalText}}</span>
+            {{#if tokenReport.costText}}<span class="spf-token-cost">{{tokenReport.costText}}</span>{{/if}}
+          </span>
+        </summary>
+        <ul class="spf-token-steps">
+          {{#each tokenReport.steps}}<li><strong>{{this.label}}</strong> — {{this.text}}</li>{{/each}}
         </ul>
-        <p class="spf-token-total">{{tokenReport.totalText}}</p>
-        {{#if tokenReport.costText}}<p class="spf-token-cost">{{tokenReport.costText}}</p>{{/if}}
-      </div>
+      </details>
     {{/if}}
 
     <footer class="spf-actions">
@@ -756,14 +833,20 @@
       <p class="spf-hint">{{localize "SIMPLYSF2E.Generator.ReskinNoRenames"}}</p>
     {{/if}}
     {{#if tokenReport}}
-      <div class="spf-token-report">
-        <h3>{{localize "SIMPLYSF2E.Tokens.Heading"}}</h3>
-        <ul>
+      {{! Collapsed by default: the summary always carries the run total and the
+          cost line (incl. its "at least" / ≈ wording); the per-step report is one click away. }}
+      <details class="spf-token-report spf-disclosure">
+        <summary>
+          <span class="spf-disclosure-label spf-token-line">
+            <span class="spf-token-heading">{{localize "SIMPLYSF2E.Tokens.Heading"}}</span>
+            <span class="spf-token-total">{{tokenReport.totalText}}</span>
+            {{#if tokenReport.costText}}<span class="spf-token-cost">{{tokenReport.costText}}</span>{{/if}}
+          </span>
+        </summary>
+        <ul class="spf-token-steps">
           {{#each tokenReport.steps}}<li><strong>{{this.label}}</strong> — {{this.text}}</li>{{/each}}
         </ul>
-        <p class="spf-token-total">{{tokenReport.totalText}}</p>
-        {{#if tokenReport.costText}}<p class="spf-token-cost">{{tokenReport.costText}}</p>{{/if}}
-      </div>
+      </details>
     {{/if}}
     <footer class="spf-actions">
       <button type="button" class="spf-primary" data-action="createActor" {{#if busy}}disabled{{/if}}>
@@ -781,31 +864,49 @@
       <h2>{{localize "SIMPLYSF2E.Generator.ReviewTitle"}}</h2>
     </header>
     <p class="spf-subtitle">{{characterReview.actorName}}</p>
-    <p>{{localize "SIMPLYSF2E.Skills.Snapshot"}}</p>
+    {{! The snapshot caveat appears once; each warning below is a short action
+        title with its full explanation one click away. Every warning stays in
+        the list (and in the status region); none is dropped or merged. }}
+    <p class="spf-review-caveat"><i aria-hidden="true" class="fa-solid fa-circle-info"></i> <span>{{localize "SIMPLYSF2E.Skills.Snapshot"}}</span></p>
+    {{#if characterReview.actionCount}}
+    <div class="spf-review-actions" role="status">
+      <h3><i aria-hidden="true" class="fa-solid fa-triangle-exclamation"></i> {{localize "SIMPLYSF2E.Generator.ReviewActionsHeading" count=characterReview.actionCount}}</h3>
+      <ul class="spf-review-list">
+        {{#each characterReview.choices}}
+          <li><details class="spf-disclosure spf-review-action">
+            <summary><span class="spf-disclosure-label">{{localize "SIMPLYSF2E.Generator.ReviewChoiceTitle" item=this.itemName}}</span></summary>
+            <p><em class="spf-review-prompt">{{localize this.prompt}}</em> {{localize "SIMPLYSF2E.Generator.ReviewChoiceDetail"}}</p>
+          </details></li>
+        {{/each}}
+        {{#each characterReview.skills.warnings}}
+          <li><details class="spf-disclosure spf-review-action">
+            <summary><span class="spf-disclosure-label">{{this.title}}</span></summary>
+            <p>{{this.detail}}</p>
+          </details></li>
+        {{/each}}
+        {{#each characterReview.skills.loadoutWarnings}}
+          <li><details class="spf-disclosure spf-review-action">
+            <summary><span class="spf-disclosure-label">{{this.title}}</span></summary>
+            <p>{{this.detail}}</p>
+          </details></li>
+        {{/each}}
+        {{#if characterReview.incomplete}}
+          <li><details class="spf-disclosure spf-review-action">
+            <summary><span class="spf-disclosure-label">{{localize "SIMPLYSF2E.Generator.ReviewIncompleteTitle"}}</span></summary>
+            <p>{{localize "SIMPLYSF2E.Generator.ReviewIncomplete"}}</p>
+          </details></li>
+        {{/if}}
+      </ul>
+    </div>
+    {{/if}}
     {{#if characterReview.skills}}
       <h3>{{localize "SIMPLYSF2E.Skills.Result"}}</h3>
-      {{#if characterReview.skills.automatic}}<p>{{localize "SIMPLYSF2E.Skills.Automatic"}}</p>{{/if}}
-      {{#if characterReview.skills.budget}}<p>{{characterReview.skills.budget}}</p>{{/if}}
+      {{#if characterReview.skills.automatic}}<p class="spf-hint">{{localize "SIMPLYSF2E.Skills.Automatic"}}</p>{{/if}}
+      {{#if characterReview.skills.budget}}<p class="spf-hint">{{characterReview.skills.budget}}</p>{{/if}}
       <ul class="spf-list spf-inline">
         {{#each characterReview.skills.rows}}<li>{{this.name}} — {{this.rank}}</li>{{/each}}
       </ul>
-      {{#each characterReview.skills.warnings}}<p class="notification warning" role="status">{{this}}</p>{{/each}}
-      {{#if characterReview.skills.loadoutWarnings}}
-        <h3>{{localize "SIMPLYSF2E.Loadout.Result"}}</h3>
-        {{#each characterReview.skills.loadoutWarnings}}<p class="notification warning" role="status">{{this}}</p>{{/each}}
-      {{/if}}
     {{/if}}
-    {{#if characterReview.choices.length}}
-      <p class="notification warning" role="status">{{localize "SIMPLYSF2E.Generator.ReviewHint"}}</p>
-    {{/if}}
-    {{#if characterReview.incomplete}}
-      <p class="notification warning" role="status">{{localize "SIMPLYSF2E.Generator.ReviewIncomplete"}}</p>
-    {{/if}}
-    <ul class="spf-list">
-      {{#each characterReview.choices}}
-        <li><strong>{{this.itemName}}</strong> — {{localize this.prompt}}</li>
-      {{/each}}
-    </ul>
     <footer class="spf-actions">
       <button type="button" class="spf-primary" data-action="openReviewedCharacter"><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i> {{localize "SIMPLYSF2E.Generator.OpenCharacter"}}</button>
       <button type="button" data-action="dismissCharacterReview"><i class="fa-solid fa-xmark" aria-hidden="true"></i> {{localize "SIMPLYSF2E.Generator.DismissReview"}}</button>

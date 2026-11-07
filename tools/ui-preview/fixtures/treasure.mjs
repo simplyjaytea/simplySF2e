@@ -3,7 +3,7 @@
 // sf2e 1.5.1 equipment (foundryvtt/pf2e v14-dev packs/sf2e/equipment) with the
 // credit prices used by the shop fixture. The budget is level 4, one
 // encounter: 680 credits (scripts/treasure.test.mjs).
-import { providerContext, PROVIDER_ATTENTION, TOKEN_REPORT, progressAt, localize } from "./_shared.mjs";
+import { providerContext, PROVIDER_ATTENTION, TOKEN_REPORT, TOKEN_REPORT_PARTIAL, progressAt, localize } from "./_shared.mjs";
 import { creditsEach, treasureBudgetCredits, hoardLeftover } from "../../../scripts/treasure.mjs";
 
 const AMOUNTS = ["encounter", "level"].map((value) => ({
@@ -112,7 +112,7 @@ export default [
     id: "treasure-preview",
     app: "treasure",
     context: treasureContext({
-      input: { prompt: PROMPT }, showEmptyState: false, tokenReport: TOKEN_REPORT,
+      input: { prompt: PROMPT }, showEmptyState: false, tokenReport: TOKEN_REPORT_PARTIAL,
       lastRunCost: "Last run: 1,870 tokens", preview: preview({ dropped: 2 })
     })
   },

@@ -2,7 +2,7 @@
 // Foundry's Application shell and settings storage are replaced here.
 // Run: node scripts/provider-setup.test.mjs
 import assert from "node:assert/strict";
-import { MODULE_ID, SETTINGS, registerSettings, getProviderRequestConfig } from "./settings.mjs";
+import { SETTINGS, registerSettings, getProviderRequestConfig } from "./settings.mjs";
 
 class FakeApplicationV2 {
   constructor() {}

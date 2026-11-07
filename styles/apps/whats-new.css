@@ -43,3 +43,26 @@
   color: var(--spf-text-muted);
   overflow-wrap: anywhere;
 }
+
+/* Manual view: older notes under one collapsed group, quieter than the newest. */
+.simplysf2e .spf-whats-new-earlier {
+  border-top: 1px solid var(--spf-border);
+  padding-top: var(--spf-space-xs);
+}
+
+.simplysf2e .spf-whats-new-earlier > summary {
+  font-size: var(--spf-text-sm);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--spf-brand-accent);
+}
+
+.simplysf2e .spf-whats-new-earlier[open] > summary {
+  margin-bottom: var(--spf-space-sm);
+}
+
+.simplysf2e .spf-whats-new-earlier .spf-whats-new-note {
+  border-left-color: var(--spf-border);
+  background: rgba(255, 255, 255, 0.025);
+}

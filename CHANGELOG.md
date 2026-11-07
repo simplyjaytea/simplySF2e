@@ -2,6 +2,14 @@
 
 Generated from merged pull requests by `tools/changelog.mjs`.
 
+## v0.1.14 (2026-11-07)
+
+- docs: PLAYBOOK for the herdr three-terminal setup (#79)
+
+## v0.1.13 (2026-11-07)
+
+- M6 onboarding, creature ability fills and templates, inert AI text, run cost, re-level rebuilds (#80)
+
 ## v0.1.12 (2026-10-31)
 
 - docs: PLAYBOOK records the v0.1.11 stable promotion (#78)

@@ -3,17 +3,21 @@
 // not run in CI, and is never included in the release zip.
 //
 //   node tools/model-matrix/matrix.mjs --config my-config.json [--task <id>] [--runs N] [--out out]
+//   node tools/model-matrix/matrix.mjs --config my-config.json --local [--local-url http://localhost:11434/v1]
+//     --local: every installed model of a local Ollama server, no API key, no key ever sent.
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { SETTINGS } from "../../scripts/settings.mjs";
-import { renderMatrix, requireApiKey, summarizeRuns, validateConfig } from "./report.mjs";
-import { runMatrix } from "./runner.mjs";
+import { renderMatrix, summarizeRuns, validateConfig } from "./report.mjs";
+import { discoverLocalModels, resolveKey, runMatrix } from "./runner.mjs";
 import { TASKS } from "./tasks.mjs";
 
 function parseArgs(argv) {
-  const out = { runs: null, task: null, out: "out", config: null };
+  const out = { runs: null, task: null, out: "out", config: null, local: false, localUrl: "http://localhost:11434/v1" };
   for (let i = 0; i < argv.length; i++) {
     const flag = argv[i];
-    if (flag === "--config") out.config = argv[++i];
+    if (flag === "--local") out.local = true;
+    else if (flag === "--local-url") out.localUrl = argv[++i];
+    else if (flag === "--config") out.config = argv[++i];
     else if (flag === "--task") out.task = argv[++i];
     else if (flag === "--runs") out.runs = Number(argv[++i]);
     else if (flag === "--out") out.out = argv[++i];
@@ -43,10 +47,24 @@ try {
 
 let apiKey;
 try {
-  apiKey = requireApiKey(process.env, cfg.apiKeyEnv);
+  apiKey = resolveKey({ local: args.local, env: process.env, apiKeyEnv: cfg.apiKeyEnv });
 } catch (err) {
   console.error(err.message);
   process.exit(1);
+}
+
+if (args.local) {
+  // Local models are free: no price is invented, so the cost column reads n/a.
+  try {
+    const ids = await discoverLocalModels({ url: args.localUrl });
+    console.log(`local models at ${args.localUrl}: ${ids.join(", ")}`);
+    cfg.models = ids.map((id) => ({ id }));
+    cfg.pricePerMTok = {};
+    cfg.baseUrl = args.localUrl;
+  } catch (err) {
+    console.error(err.message);
+    process.exit(1);
+  }
 }
 
 const tasks = args.task ? [args.task] : cfg.tasks;
@@ -83,6 +101,7 @@ const allRuns = await runMatrix({
   runs,
   ai,
   env: process.env,
+  local: args.local,
   setModel: (id) => {
     settings.set(SETTINGS.model, id);
     console.log(`model: ${id}`);

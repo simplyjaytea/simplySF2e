@@ -5,6 +5,42 @@ import { errorKeyFor, requireApiKey } from "./report.mjs";
 import { TASKS } from "./tasks.mjs";
 
 /**
+ * The API key for this run. Local mode (an Ollama server) takes no key and never
+ * reads one, so a local run cannot send a key to the local server.
+ * @returns {string} the key, or "" in local mode
+ */
+export function resolveKey({ local = false, env = process.env, apiKeyEnv } = {}) {
+  if (local) return "";
+  return requireApiKey(env, apiKeyEnv);
+}
+
+/**
+ * The installed model ids of a local OpenAI-compatible server (Ollama's /v1/models).
+ * Sends no Authorization header. Every failure is a clear message; nothing is guessed.
+ * @returns {Promise<string[]>}
+ */
+export async function discoverLocalModels({ url, fetchImpl = globalThis.fetch } = {}) {
+  const base = String(url ?? "").replace(/\/+$/, "");
+  if (!base) throw new Error("local mode needs a --local-url");
+  let response;
+  try {
+    response = await fetchImpl(`${base}/models`, { headers: { Accept: "application/json" } });
+  } catch (err) {
+    throw new Error(`no local server answered at ${base} (${err?.message ?? err}); start it with \`ollama serve\` or check --local-url`);
+  }
+  if (!response.ok) throw new Error(`local server at ${base} answered HTTP ${response.status}; check --local-url`);
+  let body;
+  try {
+    body = await response.json();
+  } catch {
+    throw new Error(`local server at ${base} did not return JSON from /models`);
+  }
+  const ids = (Array.isArray(body?.data) ? body.data : []).map((model) => String(model?.id ?? "").trim()).filter(Boolean);
+  if (!ids.length) throw new Error(`local server at ${base} lists no models; pull one first (for example \`ollama pull <name>\`)`);
+  return [...new Set(ids)];
+}
+
+/**
  * Run every task against every model once per requested run.
  *
  * Refuses before the first call when the configured key env var is empty, so a
@@ -14,8 +50,8 @@ import { TASKS } from "./tasks.mjs";
  * @returns {Promise<{model: string, task: string, run: number, ok: boolean,
  *   errorKey: string|null, crash: boolean, ms: number, usage: object|null}[]>}
  */
-export async function runMatrix({ cfg, tasks, runs = 1, ai, env = process.env, setModel, onRun } = {}) {
-  requireApiKey(env, cfg?.apiKeyEnv);
+export async function runMatrix({ cfg, tasks, runs = 1, ai, env = process.env, local = false, setModel, onRun } = {}) {
+  resolveKey({ local, env, apiKeyEnv: cfg?.apiKeyEnv });
   if (!ai) throw new Error("runMatrix: the ai module is required");
   const results = [];
   for (const model of cfg.models) {

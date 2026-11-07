@@ -488,7 +488,7 @@ for (const [name, source] of [
 const reviewCard = generator.slice(generator.indexOf("{{#if characterReview}}"));
 assert.match(reviewCard, /role="status"/);
 assert.match(reviewCard, /\{\{characterReview.actorName\}\}/);
-assert.match(reviewCard, /\{\{this.itemName\}\}/);
+assert.match(reviewCard, /item=this\.itemName/);
 assert.match(reviewCard, /\{\{localize this.prompt\}\}/);
 assert.doesNotMatch(reviewCard, /\{\{\{/);
 for (const action of ["openReviewedCharacter", "dismissCharacterReview"]) {
@@ -496,8 +496,7 @@ for (const action of ["openReviewedCharacter", "dismissCharacterReview"]) {
   assert.match(generatorApp, new RegExp(`${action}: GeneratorApp\\.#on`));
 }
 const reviewLanguage = JSON.parse(langJson).SIMPLYSF2E.Generator;
-assert.match(reviewLanguage.ReviewHint, /snapshot.*not a full character validation/);
-assert.match(reviewLanguage.ReviewHint, /conditional or intentionally disabled/);
+// ReviewHint key deleted in Item 1
 assert.match(reviewLanguage.ReviewIncomplete, /Not every item/);
 assert.match(generator, /pcPreview.skillPriorities/);
 assert.match(generator, /pcPreview.automaticSkills/);

@@ -9,6 +9,16 @@
 /** Newest first. title/body are i18n keys in lang/en.json. */
 export const RELEASE_NOTES = [
   {
+    id: "2026-11-08-ui-polish",
+    title: "SIMPLYSF2E.WhatsNew.Note.UiPolish.Title",
+    body: "SIMPLYSF2E.WhatsNew.Note.UiPolish.Body"
+  },
+  {
+    id: "2026-11-07-run-deadline",
+    title: "SIMPLYSF2E.WhatsNew.Note.RunDeadline.Title",
+    body: "SIMPLYSF2E.WhatsNew.Note.RunDeadline.Body"
+  },
+  {
     id: "2026-11-07-run-cost",
     title: "SIMPLYSF2E.WhatsNew.Note.RunCost.Title",
     body: "SIMPLYSF2E.WhatsNew.Note.RunCost.Body"
@@ -135,6 +145,20 @@ export function markSeen(seenIds, notes) {
 /** The newest notes for a manual open, capped. */
 export function manualNotes(notes, cap = MANUAL_NOTE_CAP) {
   return (Array.isArray(notes) ? notes : []).slice(0, cap);
+}
+
+/** Split manual notes into newest release day vs earlier. */
+export function splitManualNotes(notes) {
+  const arr = Array.isArray(notes) ? notes : [];
+  if (arr.length === 0) return { newest: [], earlier: [] };
+  const newestDay = String(arr[0].id).slice(0, 10);
+  const newest = [];
+  const earlier = [];
+  for (const n of arr) {
+    if (String(n.id).slice(0, 10) === newestDay) newest.push(n);
+    else earlier.push(n);
+  }
+  return { newest, earlier };
 }
 
 /**

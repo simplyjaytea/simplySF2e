@@ -1,6 +1,6 @@
 # SimplySF2e live QA checklist
 
-Run this in a real Foundry v14 world (14.367 or later) with the `sf2e` system 1.6.x and the module enabled. Nothing here is self-checkable by node tests. Labels are the UI text from `lang/en.json`.
+Run this in a real Foundry v14 world (14.361 or later; the module verifies 14.369) with the `sf2e` system 1.6.x and the module enabled. Nothing here is self-checkable by node tests. Labels are the UI text from `lang/en.json`.
 
 How to use: work the sections in order (Section 0 first). For every step fill **Result** with `PASS`, `FAIL` or `N/A`, and **Evidence** with a screenshot filename, a copied value, or a console line. Keep the browser console (F12) open throughout and paste any `simplysf2e |` warning or error into Evidence. Use a scratch world: the checks create actors, items, folders and macros. When something fails, note it in the Failure log at the end and continue.
 
@@ -510,7 +510,7 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 | 12t.8 | Open Advanced and choose **LM Studio**; then open full Provider Setup and Compendium Sources from Advanced. | LM Studio uses its local preset and model-choice flow. Both existing secondary windows still open normally. | Welcome window, Advanced | | |
 | 12t.9 | Reject a key (for example with a 401), then correct it and retry. | The error states the cause and next step, the draft key remains, focus returns to the key field, and a successful retry reaches connected or model choice. | Welcome window | | |
 | 12t.10 | From a connected state, press **Generate a sample monster**. | The Generator opens in Monster mode at level 1 with “A level 1 space-pirate scout with a laser pistol” and starts a preview. No actor is created until the GM clicks Create. | Welcome window, Generator | | |
-| 12t.11 | Run Welcome on sf2e older than 1.6.0, with compendium problems also present. | One top warning names the old system and the update fix; the old readiness checklist rows do not appear. | Welcome window | | |
+| 12t.11 | Run Welcome on sf2e older than 1.6.0, with compendium problems also present. | One top warning banner names the old version and the update fix ("Version X is older than 1.6.0. Update the Starfinder 2e system."). It takes the place of the compendium warning, so only one shows. | Welcome window | | |
 | 12t.12 | On a supported system, disable every Spells pack, then press **Check Again**. | One top warning names Spells and says to enable a pack in Compendium Sources. Restoring the pack and rechecking hides the warning. | Welcome window, Compendium Sources | | |
 | 12t.13 | Complete a working connection and reload; then reopen with `/sf2e welcome` and the module-settings button. | Welcome no longer auto-opens after reload, and both manual routes open it. | Chat, module settings | | |
 | 12t.14 | Clear the key again (or use a second browser), tick **Don't show this again at login**, reload. | Welcome stays closed even though the connection does not work. | Welcome window | | |
@@ -549,6 +549,7 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 | 12w.4 | Reroll a feat and a published ability (book icon). | Each changes to a different published feat or bestiary action; the ability shows the book icon with its compendium name. Narrative-only abilities have no dice. | Preview | | |
 | 12w.5 | Reroll a spell, then Create Actor. | The sheet has the new spell (not the old one) at the shown rank, and the feat or ability you rerolled is the new one. | Spellcasting and Actions tabs | | |
 | 12w.6 | Start a reroll and close the window or press Stop. | The preview keeps its old pick; only the usual "cancelled" notice appears. | Preview | | |
+| 12w.7 | Generate a level 7 large creature with a narrative signature ability. Click the dice next to that ability until the pick is Constrict, then Create Actor. | The created Constrict shows `@Damage[(4d6)[bludgeoning]]` and a DC from the slot's scale, with no blank values. If a pick cannot be used for this creature, the preview is unchanged and the console says why. | Generator, Actions tab, F12 console | | |
 
 ## 12x. Stat check after Create
 
@@ -585,9 +586,10 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 | # | Do | Expect | Where | Pass | Notes |
 | --- | --- | --- | --- | --- | --- |
 | 12aa.1 | Settings → SimplySF2e → set **Run token budget** to `5`, then generate a monster. | Setup → Concept → … runs; the run then stops with "This run reached its 5-token budget and stopped. Raise the Run token budget setting or start a new run." No actor is created and the preview is discarded. Restore the default (60000) afterwards. | Generator, Settings | | |
-| 12aa.2 | With **Run token budget** at 60000, set **Run deadline (minutes)** to `1`, start an encounter with 3+ members and leave it alone. | The run stops with "This run exceeded its time limit and stopped." before Request timeout (90 s of silence) would fire; no actors are created. Restore `0` afterwards. | Generator, Settings | | |
+| 12aa.2 | With **Run token budget** at 60000, set **Run deadline (minutes)** to `1`, start an encounter with 3+ members and leave it alone. | The run stops with "This run passed its time limit and stopped." before Request timeout (90 s of silence) would fire; no actors are created. Restore `5` afterwards (the default). | Generator, Settings | | |
 | 12aa.3 | Restore both defaults and generate one monster, one PC, one Forge item. | Runs behave exactly as before this feature: no budget/deadline message, token report unchanged, and the What's-new note "Per-run token budget" appears once per GM browser after the update. | Generator, Forge | | |
 | 12aa.4 | During a PC Create (after the preview, while choice rounds run), watch for a cancel affordance. | No Cancel button is offered during the non-cancellable apply step, and closing the window asks the usual "Stop generation?" question only for a cancellable run. | Generator | | |
+| 12aa.5 | Open Module Settings after the update. | **Run deadline (minutes)** shows 5 with the hint "Minutes before a run times out (default 5). Set 0 to turn the limit off."; the What's-new note "Runs stop after 5 minutes" appears once per GM browser. | Module settings, What's new | | |
 
 ## 13. Firefox (if available)
 
@@ -745,3 +747,19 @@ Generate a level 7 NPC with a limited cone breath (name "Frost Breath", cold), a
 | 12ab.5 | Re-level to 12 and read a published ability (no provenance flag). | Its text is unchanged. | Actor sheet | | |
 | 12ab.6 | Re-level a copy whose Swallow Whole has become tiny (set size tiny first). | The Swallow Whole text is unchanged, and the re-level preview lists "Swallow Whole kept at the old level: …" with the reason. | Actor sheet | | |
 | 12ab.7 | Reskin a generated level 7 creature with a filled Constrict; then **Create** the copy at 12 and open the created actor's Constrict item (Item sheet, flags). | Constrict keeps its source: `flags.simplysf2e.built.source` and `_stats.compendiumSource` both name the sf2e glossary Constrict uuid. The created text is `@Damage[(5d8)[bludgeoning]]`, `dc:32`. | Actor sheet, Item sheet | | |
+
+## 12ac. UI polish (docs/ui-plan.md)
+
+| # | Step | Expected | Where to look | Result | Evidence |
+|---|------|----------|---------------|--------|----------|
+| 12ac.1 | Open Generator encounter preview; expand member card. | Stats shown as grid (AC, HP, Perception, saves, strike, spell DC). | Generator window | | |
+| 12ac.2 | Create a character with unresolved choices; review card appears. | "To review" list with short action titles and details. | Generator window | | |
+| 12ac.3 | Reskin preview grouped by strike. | Strikes grouped with attack/damage scales. | Generator window | | |
+| 12ac.4 | Generator status bar readiness row collapsed/expanded. | Jev off not a warning; toggle persists. | Generator window | | |
+| 12ac.5 | Token report block collapsed on render. | <details> collapsed. | Generator/Shop/Treasure | | |
+| 12ac.6 | AI Provider Setup cost estimate fold. | Opens on price error; Fast picks opens for typesafe. | Provider Setup | | |
+| 12ac.7 | Item Forge kind picker compact. | Short labels on buttons. | Item Forge | | |
+| 12ac.8 | Compendium Sources filter and Selected only. | Filter hides rows; no re-render. | Sources | | |
+| 12ac.9 | What's new manual view. | Newest release day open, earlier collapsed. | What's new | | |
+| 12ac.10 | Shop/Treasure narrow windows. | Tables readable. | Shop/Treasure | | |
+| 12ac.11 | Polish nits. | API-key warning order, Welcome note, divider. | Various | | |

@@ -1,5 +1,5 @@
 import { MODULE_ID, SETTINGS, getSetting } from "./settings.mjs";
-import { RELEASE_NOTES, manualNotes, markSeen } from "./whats-new.mjs";
+import { RELEASE_NOTES, manualNotes, markSeen, splitManualNotes } from "./whats-new.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -10,9 +10,11 @@ const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
  */
 export class WhatsNewApp extends HandlebarsApplicationMixin(ApplicationV2) {
   #notes;
+  #manual = false;
 
   constructor(options = {}, notes = null) {
     super(options);
+    this.#manual = !Array.isArray(notes);
     this.#notes = Array.isArray(notes) ? notes : manualNotes(RELEASE_NOTES);
   }
 
@@ -37,9 +39,21 @@ export class WhatsNewApp extends HandlebarsApplicationMixin(ApplicationV2) {
   };
 
   async _prepareContext() {
+    let notesList = this.#notes;
+    let earlierList = [];
+    if (this.#manual) {
+      const split = splitManualNotes(this.#notes);
+      notesList = split.newest;
+      earlierList = split.earlier;
+    }
     return {
       version: game.modules.get(MODULE_ID)?.version ?? "",
-      notes: this.#notes.map((note) => ({
+      notes: notesList.map((note) => ({
+        id: note.id,
+        title: game.i18n.localize(note.title),
+        body: game.i18n.localize(note.body)
+      })),
+      earlierNotes: earlierList.map((note) => ({
         id: note.id,
         title: game.i18n.localize(note.title),
         body: game.i18n.localize(note.body)

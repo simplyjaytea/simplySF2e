@@ -8,7 +8,7 @@
 import assert from "node:assert/strict";
 import {
   ABILITY_MODIFIER, AC, SKILL, HP, STRIKE_ATTACK, STRIKE_DAMAGE,
-  RESISTANCE, LEVEL_DC, lookup, averageDamage, treasureBudget, identificationDC
+  RESISTANCE, lookup, averageDamage, treasureBudget, identificationDC
 } from "./tables.mjs";
 import { spontaneousSpellSlots, pcSpellSlots } from "./pc-tables.mjs";
 

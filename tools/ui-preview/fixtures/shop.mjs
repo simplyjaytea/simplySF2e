@@ -2,7 +2,7 @@
 // #buildPreviewContext() in scripts/shop-app.mjs. Stock rows are real
 // sf2e 1.5.1 equipment (foundryvtt/pf2e v14-dev packs/sf2e/equipment):
 // name, type, level and price (stored as `sp`, shown as credits).
-import { providerContext, PROVIDER_ATTENTION, TOKEN_REPORT, progressAt, localize } from "./_shared.mjs";
+import { providerContext, PROVIDER_ATTENTION, TOKEN_REPORT, TOKEN_REPORT_COST, progressAt, localize } from "./_shared.mjs";
 
 const SIZES = [
   { value: "small", count: 8, label: "SIMPLYSF2E.Shop.SizeSmall" },
@@ -109,7 +109,7 @@ export default [
     id: "shop-preview",
     app: "shop",
     context: shopContext({
-      input: { prompt: PROMPT }, showEmptyState: false, tokenReport: TOKEN_REPORT,
+      input: { prompt: PROMPT }, showEmptyState: false, tokenReport: TOKEN_REPORT_COST,
       lastRunCost: "Last run: 2,310 tokens", preview: preview({ dropped: 1 })
     })
   },

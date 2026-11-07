@@ -1,14 +1,16 @@
 // Item Forge window. Shapes follow ItemForgeApp._prepareContext(),
 // #buildPreviewContext() (wondrous / augmentation / crystal) and
 // #buildRunedPreviewContext() (weapon / armor) in scripts/itemforge-app.mjs.
-import { RARITIES, providerContext, PROVIDER_ATTENTION, TOKEN_REPORT, progressAt, localize } from "./_shared.mjs";
+import { RARITIES, providerContext, PROVIDER_ATTENTION, TOKEN_REPORT, TOKEN_REPORT_COST, progressAt, localize } from "./_shared.mjs";
 
+// Contract (docs/ui-contract.md, item 5): each kind adds `short`, the key of
+// its compact button label.
 const KINDS = [
-  { value: "wondrous", label: "SIMPLYSF2E.ItemForge.KindWondrous", hint: "SIMPLYSF2E.ItemForge.KindWondrousHint", icon: "fa-ring" },
-  { value: "weapon", label: "SIMPLYSF2E.ItemForge.KindWeapon", hint: "SIMPLYSF2E.ItemForge.KindWeaponHint", icon: "fa-sword" },
-  { value: "armor", label: "SIMPLYSF2E.ItemForge.KindArmor", hint: "SIMPLYSF2E.ItemForge.KindArmorHint", icon: "fa-shield-halved" },
-  { value: "augmentation", label: "SIMPLYSF2E.ItemForge.KindAugmentation", hint: "SIMPLYSF2E.ItemForge.KindAugmentationHint", icon: "fa-microchip" },
-  { value: "crystal", label: "SIMPLYSF2E.ItemForge.KindCrystal", hint: "SIMPLYSF2E.ItemForge.KindCrystalHint", icon: "fa-gem" }
+  { value: "wondrous", label: "SIMPLYSF2E.ItemForge.KindWondrous", hint: "SIMPLYSF2E.ItemForge.KindWondrousHint", short: "SIMPLYSF2E.ItemForge.KindWondrousShort", icon: "fa-ring" },
+  { value: "weapon", label: "SIMPLYSF2E.ItemForge.KindWeapon", hint: "SIMPLYSF2E.ItemForge.KindWeaponHint", short: "SIMPLYSF2E.ItemForge.KindWeaponShort", icon: "fa-sword" },
+  { value: "armor", label: "SIMPLYSF2E.ItemForge.KindArmor", hint: "SIMPLYSF2E.ItemForge.KindArmorHint", short: "SIMPLYSF2E.ItemForge.KindArmorShort", icon: "fa-shield-halved" },
+  { value: "augmentation", label: "SIMPLYSF2E.ItemForge.KindAugmentation", hint: "SIMPLYSF2E.ItemForge.KindAugmentationHint", short: "SIMPLYSF2E.ItemForge.KindAugmentationShort", icon: "fa-microchip" },
+  { value: "crystal", label: "SIMPLYSF2E.ItemForge.KindCrystal", hint: "SIMPLYSF2E.ItemForge.KindCrystalHint", short: "SIMPLYSF2E.ItemForge.KindCrystalShort", icon: "fa-gem" }
 ];
 
 const FORGE_STEPS = [
@@ -85,9 +87,10 @@ export default [
   },
   {
     id: "itemforge-wondrous-preview",
+    open: [".spf-token-report"],
     app: "itemforge",
     optionalKeys: ["preview.runed"],
-    context: itemforgeContext("wondrous", { showEmptyState: false, tokenReport: TOKEN_REPORT, lastRunCost: "Last run: 1,840 tokens", preview: wondrous() })
+    context: itemforgeContext("wondrous", { showEmptyState: false, tokenReport: TOKEN_REPORT_COST, lastRunCost: "Last run: 1,840 tokens", preview: wondrous() })
   },
   {
     id: "itemforge-wondrous-no-effects",

@@ -2,8 +2,15 @@
   "baseUrl": "https://openrouter.ai/api/v1",
   "apiKeyEnv": "MATRIX_API_KEY",
   "models": [
-    { "id": "deepseek/deepseek-chat" },
-    { "id": "openai/gpt-5-mini" }
+    {
+      "id": "deepseek/deepseek-v4.1-flash"
+    },
+    {
+      "id": "openai/gpt-5.4-mini"
+    },
+    {
+      "id": "anthropic/claude-haiku-5.5"
+    }
   ],
   "tasks": [
     "creatureConcept",
@@ -16,6 +23,17 @@
   ],
   "runs": 1,
   "pricePerMTok": {
-    "deepseek/deepseek-chat": { "input": 0.28, "output": 0.42 }
+    "deepseek/deepseek-v4.1-flash": {
+      "input": 0.05,
+      "output": 0.57
+    },
+    "openai/gpt-5.4-mini": {
+      "input": 0.75,
+      "output": 4.5
+    },
+    "anthropic/claude-haiku-5.5": {
+      "input": 0.1,
+      "output": 0.5
+    }
   }
 }
