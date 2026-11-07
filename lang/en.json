@@ -449,7 +449,6 @@
       "MonsterHint": "Xenobiology specimen",
       "Npc": "NPC",
       "NpcHint": "Personnel file",
-      "Single": "Single",
       "Encounter": "Encounters",
       "EncounterHint": "Tactical ops engagement",
       "Character": "Player Character",
@@ -903,7 +902,6 @@
       "BandAbove": "above the GM Core extreme benchmark",
       "BandBelow": "below the lowest GM Core benchmark",
       "ChatIntro": "SimplySF2e stat check found numbers to review. Nothing on the actor was changed.",
-      "Details": "Show all numbers",
       "Failed": "The stat check could not run; the actor was created normally."
     }
   }
