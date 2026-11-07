@@ -142,6 +142,20 @@ export function manualNotes(notes, cap = MANUAL_NOTE_CAP) {
   return (Array.isArray(notes) ? notes : []).slice(0, cap);
 }
 
+/** Split manual notes into newest release day vs earlier. */
+export function splitManualNotes(notes) {
+  const arr = Array.isArray(notes) ? notes : [];
+  if (arr.length === 0) return { newest: [], earlier: [] };
+  const newestDay = String(arr[0].id).slice(0, 10);
+  const newest = [];
+  const earlier = [];
+  for (const n of arr) {
+    if (String(n.id).slice(0, 10) === newestDay) newest.push(n);
+    else earlier.push(n);
+  }
+  return { newest, earlier };
+}
+
 /**
  * Whether the window opens by itself at login: a GM on sf2e, not disabled,
  * a previous run recorded (seenIds is an array; null means a fresh install,
