@@ -7,7 +7,7 @@ import { RARITIES, providerContext, PROVIDER_ATTENTION, TOKEN_REPORT, TOKEN_REPO
 // its compact button label.
 const KINDS = [
   { value: "wondrous", label: "SIMPLYSF2E.ItemForge.KindWondrous", hint: "SIMPLYSF2E.ItemForge.KindWondrousHint", short: "SIMPLYSF2E.ItemForge.KindWondrousShort", icon: "fa-ring" },
-  { value: "weapon", label: "SIMPLYSF2E.ItemForge.KindWeapon", hint: "SIMPLYSF2E.ItemForge.KindWeaponHint", short: "SIMPLYSF2E.ItemForge.KindWeaponShort", icon: "fa-gun" },
+  { value: "weapon", label: "SIMPLYSF2E.ItemForge.KindWeapon", hint: "SIMPLYSF2E.ItemForge.KindWeaponHint", short: "SIMPLYSF2E.ItemForge.KindWeaponShort", icon: "fa-sword" },
   { value: "armor", label: "SIMPLYSF2E.ItemForge.KindArmor", hint: "SIMPLYSF2E.ItemForge.KindArmorHint", short: "SIMPLYSF2E.ItemForge.KindArmorShort", icon: "fa-shield-halved" },
   { value: "augmentation", label: "SIMPLYSF2E.ItemForge.KindAugmentation", hint: "SIMPLYSF2E.ItemForge.KindAugmentationHint", short: "SIMPLYSF2E.ItemForge.KindAugmentationShort", icon: "fa-microchip" },
   { value: "crystal", label: "SIMPLYSF2E.ItemForge.KindCrystal", hint: "SIMPLYSF2E.ItemForge.KindCrystalHint", short: "SIMPLYSF2E.ItemForge.KindCrystalShort", icon: "fa-gem" }

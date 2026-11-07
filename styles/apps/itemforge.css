@@ -5,9 +5,11 @@
 
 /* Item Forge kind switch: a compact segmented row in the same style as
    the Generator's mode toggle, so the prompt stays near the top. */
+/* Intrinsic columns: five across in a normal window, three then two as the
+   window narrows (6.5rem keeps "Augment" whole), no breakpoints needed. */
 .simplysf2e .spf-kind-choices {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(6.5rem, 100%), 1fr));
   gap: 2px;
   margin-bottom: var(--spf-space-xs);
   padding: 2px;
@@ -87,19 +89,6 @@
 
 .simplysf2e .spf-kind-hint strong {
   color: var(--spf-text);
-}
-
-/* Narrow windows: three per row (then two), so labels stay whole. */
-@container spf-window (max-width: 600px) {
-  .simplysf2e .spf-kind-choices {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
-@container spf-window (max-width: 400px) {
-  .simplysf2e .spf-kind-choices {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
 }
 
 /* Level / Rarity: top-align so both labels share a baseline and keep the
