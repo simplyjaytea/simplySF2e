@@ -1389,14 +1389,6 @@ export function recallKnowledgeSkills(traits) {
   return [...new Set((traits ?? []).flatMap((trait) => RECALL_KNOWLEDGE_SKILLS[trait] ?? []))];
 }
 
-/** Bold statblock keywords ("Trigger", "Effect", ...) in escaped ability text. */
-function boldKeywords(text) {
-  return text.replace(
-    /(^|; ?)(Frequency|Trigger|Requirements?|Effect|Critical Success|Success|Failure|Critical Failure)\b\s*/g,
-    (_, lead, keyword) => `${lead}<strong>${keyword}</strong> `
-  );
-}
-
 /**
  * Turn resolved equipment into embeddable item data: real compendium clones
  * with quantities, fundamental runes and sensible carry states applied;

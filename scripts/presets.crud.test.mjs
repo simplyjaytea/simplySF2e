@@ -3,7 +3,6 @@
 
 import assert from "node:assert/strict";
 import {
-  PRESET_RARITIES,
   getCustomPresets,
   findPreset,
   addCustomPreset,

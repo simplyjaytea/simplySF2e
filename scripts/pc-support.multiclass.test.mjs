@@ -3,7 +3,6 @@
 
 import assert from "node:assert/strict";
 import {
-  SF2E_MULTICLASS_DEDICATIONS,
   getMulticlassDedicationSlug,
   COMPLETE_PC_CLASS_SLUGS
 } from "./pc-support.mjs";
