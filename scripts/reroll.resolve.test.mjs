@@ -58,29 +58,38 @@ async function candidateNamed(keyword, name) {
   assert.match(item.system.description.value, /dc:22/, "DC from the slot's moderate scale at level 7");
 }
 
-// 2. A reroll to Swallow Whole on a tiny creature is blocked with the reason and falls back as resolve does.
+// 2. A reroll to Swallow Whole on a tiny creature is blocked: null, the old pick stays, the reason is logged.
 {
   warnings.length = 0;
   const start = concept([{ name: "Shout", description: "A thunderous shout." }], "tiny");
   const resolved = await resolveConcept(start);
+  const before = resolved.abilities[0];
   const pick = await candidateNamed("swallow", "Swallow Whole");
-  const out = await rerollAbilityInto(start, resolved, { index: 0, candidate: pick });
-  assert.ok(out, "a narrative fallback is kept, not dropped");
-  assert.equal(out.resolved.abilities[0].entry, null, "no compendium entry is cloned");
-  assert.equal(out.resolved.abilities[0].ability.narrative, true, "falls back to narrative as resolve does");
+  assert.equal(await rerollAbilityInto(start, resolved, { index: 0, candidate: pick }), null, "a blocked reroll is refused");
+  assert.equal(resolved.abilities[0], before, "the old pick is unchanged");
+  assert.equal(resolved.abilities[0].ability.name, "Shout");
   assert.ok(warnings.some((w) => /cannot be filled for this creature: size tiny has no smaller size/.test(w)), "the reason is logged");
 }
 
-// 3. A replacement carries no AI text, so the mechanics drop cannot fire: a blocked fill
-// falls back to an empty narrative, and the slot is kept (never silently dropped).
+// 3. An earlier ability dropped at resolve: the reroll writes its own slot, not the list position.
 {
-  const start = concept([{ name: "Shout", description: "It deals 2d6 damage with a DC 15 save." }], "tiny");
-  const resolved = await resolveConcept(start);
-  const pick = await candidateNamed("swallow", "Swallow Whole");
-  const out = await rerollAbilityInto(start, resolved, { index: 0, candidate: pick });
-  assert.ok(out, "the slot is kept");
-  assert.equal(out.resolved.abilities[0].ability.narrative, true, "narrative fallback");
-  assert.equal(out.resolved.abilities[0].entry, null, "no clone");
+  const creature = concept([
+    { name: "Frost Breath", description: "", template: "area-blast", shape: "cone", use: "limited", damageType: "cold" },
+    { name: "Shout", description: "A thunderous shout." }
+  ]);
+  // Make the blast unbuildable and its text mechanical, so resolve drops it.
+  creature.specialAbilities[0].areaBlast.shape = "bogus";
+  creature.specialAbilities[0].description = "It deals 2d6 damage.";
+  const resolved = await resolveConcept(creature);
+  assert.equal(resolved.abilities.length, 1, "the blast is dropped at resolve");
+  assert.equal(resolved.abilities[0].slot, 1, "the surviving record keeps its concept slot");
+  const pick = await candidateNamed("constrict", "Constrict");
+  const out = await rerollAbilityInto(creature, resolved, { index: 1, candidate: pick });
+  assert.ok(out, "the reroll is applied to slot 1");
+  assert.equal(out.resolved.abilities.length, 1, "no record is appended at a list position");
+  assert.equal(out.resolved.abilities[0].ability.name, "Constrict");
+  assert.equal(out.resolved.abilities[0].entry, pick.ref);
+  assert.equal(out.resolved.abilities[0].slot, 1);
 }
 
 // 4. Two drafts of one glossary ability: one slot, a warning, and no slot lost to the duplicate.

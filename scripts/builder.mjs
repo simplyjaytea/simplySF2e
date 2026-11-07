@@ -1021,6 +1021,10 @@ export async function resolveAbilityPick(ability, concept, { exactContent = fals
  */
 export async function rerollAbilityInto(concept, resolved, { index, candidate }) {
   const target = concept.specialAbilities[index];
+  // resolved.abilities holds only the abilities that survived resolve, so the slot is looked up by its tag.
+  const hasSlots = resolved.abilities.some((record) => typeof record.slot === "number");
+  const at = hasSlots ? resolved.abilities.findIndex((record) => record.slot === index) : index;
+  if (at < 0) return null;
   const replaced = applyRerollPick(concept, { kind: "ability", index, candidate });
   // The slot's draft DC scale and damage type survive the reroll (refine's withDraft fields).
   const replacement = {
@@ -1030,9 +1034,10 @@ export async function rerollAbilityInto(concept, resolved, { index, candidate })
   };
   const next = { ...replaced, specialAbilities: replaced.specialAbilities.map((a, i) => (i === index ? replacement : a)) };
   const picked = await resolveAbilityPick(next.specialAbilities[index], next);
-  if (!picked) return null;
+  // A replacement that cannot be used (a blocked fill, unreadable text) keeps the old pick.
+  if (!picked?.entry) return null;
   const abilities = [...resolved.abilities];
-  abilities[index] = picked;
+  abilities[at] = { ...picked, slot: index };
   return { concept: next, resolved: { ...resolved, abilities } };
 }
 
@@ -1042,9 +1047,10 @@ export async function rerollAbilityInto(concept, resolved, { index, candidate })
  */
 export async function resolveConcept(concept, { exactContent = false } = {}) {
   const abilities = [];
-  for (const ability of concept.specialAbilities) {
+  for (const [slot, ability] of concept.specialAbilities.entries()) {
     const picked = await resolveAbilityPick(ability, concept, { exactContent });
-    if (picked) abilities.push(picked);
+    // The slot tags the record: a dropped ability leaves a gap, so position is not the slot.
+    if (picked) abilities.push({ ...picked, slot });
   }
 
   const spells = [];
