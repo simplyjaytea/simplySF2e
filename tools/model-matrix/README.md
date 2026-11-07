@@ -2,7 +2,7 @@
 
 Measures **pass rate per task per model** against a live endpoint. This is the instrument for the "model and provider drift" risk: rerun it before a stable release and compare the table.
 
-**Manual tool.** It needs a real API key, it is never run in CI, and `tools/` never ships in the release zip.
+**Manual tool.** Hosted runs need a real API key; local Ollama runs (`--local`) do not. It is never run in CI, and `tools/` never ships in the release zip.
 
 ## Run it (hosted)
 
