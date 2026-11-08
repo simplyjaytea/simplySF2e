@@ -3,7 +3,7 @@ import {
   ensureProviderBank, getActiveProviderPrices, getJevRequestConfig, getProviderAuthWarningKey, getProviderRequestConfig,
   normalizeApiBaseUrl, selectProviderConnection, setActiveProviderPrices
 } from "./settings.mjs";
-import { saveProviderConnection } from "./provider-connect.mjs";
+import { connectionFormDirty, saveProviderConnection, snapshotProviderConnection } from "./provider-connect.mjs";
 import { listProviderModels, testProviderConnection } from "./ai.mjs";
 import {
   JEV_SOURCES, TYPESAFE_JEV_ENDPOINT, normalizeJevSource, normalizeTypeSafeEndpoint, testJevConnection
@@ -21,6 +21,14 @@ export const PROVIDER_PRESETS = Object.freeze([
   { id: "lmstudio", label: "LM Studio", icon: "fa-server", baseUrl: "http://localhost:1234/v1", model: "" },
   { id: "custom", label: "Custom", icon: "fa-sliders", baseUrl: "", model: "", preserve: true }
 ]);
+
+/** Localized labels for the fields the Unsaved changes dialog can name. */
+const UNSAVED_FIELD_LABELS = Object.freeze({
+  connectionName: "SIMPLYSF2E.ProviderSetup.ConnectionName",
+  apiBaseUrl: "SIMPLYSF2E.Settings.ApiBaseUrl.Name",
+  model: "SIMPLYSF2E.Settings.Model.Name",
+  apiKey: "SIMPLYSF2E.Settings.ApiKey.Name"
+});
 
 /** Presets that talk to a server the GM runs, so the CORS / OLLAMA_ORIGINS hint applies. */
 const LOCAL_PRESET_IDS = new Set(["ollama", "lmstudio", "custom"]);
@@ -252,10 +260,52 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
     this.#busy = false;
   }
 
+  /** Fields the GM edited on the connection being left, as form field names. */
+  #dirtyFields() {
+    const state = getProviderRequestConfig();
+    const snapshot = snapshotProviderConnection();
+    const field = (name) => this.element?.querySelector(`[name='${name}']`)?.value;
+    return connectionFormDirty(
+      {
+        connectionName: state.connectionName,
+        apiBaseUrl: snapshot[SETTINGS.apiBaseUrl],
+        model: snapshot[SETTINGS.model],
+        apiKey: snapshot[SETTINGS.apiKey]
+      },
+      {
+        connectionName: field("connectionName"),
+        apiBaseUrl: field("apiBaseUrl"),
+        model: field("model"),
+        apiKey: field("apiKey")
+      }
+    );
+  }
+
   static async #switchConnection(id) {
     if (this.#busy) return;
     const current = getProviderRequestConfig().connectionId;
     if (!id || id === current) return;
+    const dirty = this.#dirtyFields();
+    if (dirty.length) {
+      const { DialogV2 } = foundry.applications.api;
+      const name = esc(getProviderRequestConfig().connectionName);
+      const labels = dirty.map((field) => game.i18n.localize(UNSAVED_FIELD_LABELS[field]));
+      const switchAnyway = await DialogV2.confirm({
+        window: { title: "SIMPLYSF2E.ProviderSetup.UnsavedTitle" },
+        content: `<p>${game.i18n.format("SIMPLYSF2E.ProviderSetup.UnsavedBody", {
+          fields: esc(labels.join(", ")), name
+        })}</p>`,
+        yes: { label: "SIMPLYSF2E.ProviderSetup.UnsavedSwitch" },
+        no: { label: "SIMPLYSF2E.ProviderSetup.UnsavedStay" },
+        rejectClose: false
+      });
+      if (!switchAnyway) {
+        // Stay: keep the edits and put the select back on the connection still loaded.
+        const select = this.element?.querySelector("[name='activeConnection']");
+        if (select) select.value = current;
+        return;
+      }
+    }
     await selectProviderConnection(id);
     this.#selectedPreset = null;
     this.#availableModels = [];

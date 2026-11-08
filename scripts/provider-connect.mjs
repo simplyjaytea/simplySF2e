@@ -51,6 +51,23 @@ export async function restoreProviderConnection(
   return restoredBinding;
 }
 
+const DIRTY_FIELDS = Object.freeze(["connectionName", "apiBaseUrl", "model", "apiKey"]);
+
+/**
+ * Form fields that differ from a saved connection, in DIRTY_FIELDS order.
+ * Values are trimmed and an undefined value counts as "". The API key field
+ * never shows the stored secret, so a blank key means "keep it" and is not a
+ * change; a typed key is compared only as changed or not. Other form keys are ignored.
+ */
+export function connectionFormDirty(saved = {}, form = {}) {
+  const text = (value) => String(value ?? "").trim();
+  return DIRTY_FIELDS.filter((field) => {
+    const next = text(form?.[field]);
+    if (field === "apiKey") return next !== "" && next !== text(saved?.apiKey);
+    return next !== text(saved?.[field]);
+  });
+}
+
 /** Save and authorize one exact provider route for Provider Setup and Welcome. */
 export async function saveProviderConnection({
   baseUrl, model = "", enteredApiKey = "", clearApiKey = false, connectionName = "",
