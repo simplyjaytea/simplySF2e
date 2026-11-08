@@ -137,6 +137,12 @@
   font-size: var(--spf-text-sm);
 }
 
+/* Pending steps: the same small solid dot the shared .spf-step-pending i rule gives the progress list (S4). */
+.simplysf2e .spf-welcome-step-pending i {
+  font-size: 0.55em;
+  opacity: 0.8;
+}
+
 .simplysf2e .spf-welcome-error p {
   margin: var(--spf-space-xs) 0 0;
   overflow-wrap: anywhere;
