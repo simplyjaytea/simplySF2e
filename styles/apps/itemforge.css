@@ -10,9 +10,9 @@
 .simplysf2e .spf-kind-choices {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(6.5rem, 100%), 1fr));
-  gap: 2px;
+  gap: var(--spf-space-2xs);
   margin-bottom: var(--spf-space-xs);
-  padding: 2px;
+  padding: var(--spf-space-2xs);
   border: 1px solid var(--spf-border);
   border-radius: var(--spf-radius);
   background: var(--spf-surface);
@@ -32,7 +32,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.35rem;
+  gap: var(--spf-space-xs);
   height: auto;
   min-width: 0;
   margin: 0;
@@ -68,7 +68,7 @@
 .simplysf2e .spf-kind-choice.spf-kind-selected {
   color: var(--spf-text);
   font-weight: 700;
-  background: color-mix(in srgb, var(--spf-brand-mid) 72%, #0c1620);
+  background: color-mix(in srgb, var(--spf-brand-mid) 72%, var(--spf-window-bg));
   border-color: var(--spf-brand-accent);
   box-shadow: inset 0 0 0 1px var(--spf-brand-accent), var(--spf-glow);
 }
@@ -76,7 +76,7 @@
 .simplysf2e .spf-kind-choice.spf-kind-selected::after {
   content: "";
   position: absolute;
-  inset: auto 0.4rem 2px;
+  inset: auto var(--spf-space-md) var(--spf-space-2xs);
   height: 3px;
   border-radius: 2px;
   background: var(--spf-brand-accent);

@@ -18,8 +18,8 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
   font-size: var(--spf-text-sm);
-  padding: 0 0.3rem;
-  background: color-mix(in srgb, var(--spf-brand-dark) 85%, #0c1620);
+  padding: 0 var(--spf-space-xs);
+  background: color-mix(in srgb, var(--spf-brand-dark) 85%, var(--spf-window-bg));
   border: 1px solid color-mix(in srgb, var(--spf-neon) 40%, var(--spf-border));
   border-radius: var(--spf-radius-sm);
   box-shadow: var(--spf-inset-glow);
@@ -29,9 +29,9 @@
 .simplysf2e .spf-pack {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: var(--spf-space-md);
   min-height: 1.9rem;
-  padding: 0.15rem var(--spf-space-sm);
+  padding: var(--spf-space-2xs) var(--spf-space-sm);
   border-left: 2px solid transparent;
   border-radius: var(--spf-radius-sm);
   cursor: pointer;
@@ -102,7 +102,7 @@
 .simplysf2e .spf-source-filter input[type="search"] {
   flex: 1 1 14rem;
   min-width: 0;
-  padding: 3px 6px;
+  padding: var(--spf-space-xs) var(--spf-space-md);
 }
 
 .simplysf2e .spf-source-selected-only {
@@ -127,7 +127,7 @@
 .simplysf2e .spf-link-btn {
   width: auto;
   min-height: 0;
-  padding: 0 0.15rem;
+  padding: 0 var(--spf-space-2xs);
   border: 0;
   background: transparent;
   color: var(--spf-brand-accent);
@@ -142,7 +142,7 @@
 }
 
 .simplysf2e .spf-source-count {
-  margin-left: 0.35rem;
+  margin-left: var(--spf-space-xs);
   font-family: var(--spf-font-mono);
   font-weight: 400;
   letter-spacing: 0;
@@ -193,7 +193,7 @@
   bottom: calc(var(--spf-space-xs) * -1);
   margin-top: 0;
   padding: var(--spf-space-sm) 0 var(--spf-space-xs);
-  background: color-mix(in srgb, var(--spf-brand-dark) 40%, #0a121b);
+  background: color-mix(in srgb, var(--spf-brand-dark) 40%, var(--spf-window-bg-deep));
   z-index: 1;
 }
 

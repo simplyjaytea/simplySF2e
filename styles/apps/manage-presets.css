@@ -57,7 +57,7 @@
 .simplysf2e .spf-manage-buttons button[data-action="deletePreset"] {
   position: relative;
   margin-left: var(--spf-space-lg);
-  color: #ff9d9a;
+  color: var(--spf-danger-fg);
   border-color: color-mix(in srgb, var(--spf-danger) 70%, var(--spf-border));
 }
 
@@ -74,7 +74,7 @@
 .simplysf2e .spf-manage-buttons button[data-action="deletePreset"]:hover:not(:disabled),
 .simplysf2e .spf-manage-buttons button[data-action="deletePreset"]:focus-visible {
   background: color-mix(in srgb, var(--spf-danger) 35%, transparent);
-  color: #ffd2d0;
+  color: var(--spf-text);
 }
 
 /* HUD hooks: must follow .spf-manage-list (same specificity, padding). */

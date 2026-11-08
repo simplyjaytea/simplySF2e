@@ -15,7 +15,7 @@
 }
 
 .simplysf2e .simplysf2e-provider-setup .spf-hint {
-  margin: 0.15rem 0 0;
+  margin: var(--spf-space-2xs) 0 0;
 }
 
 /* Endpoint and API-key groups: notched cards with console-chip legends. */
@@ -35,7 +35,7 @@
   font-size: var(--spf-text-sm);
   padding: 0 var(--spf-space-sm);
   color: var(--spf-brand-accent);
-  background: color-mix(in srgb, var(--spf-brand-dark) 85%, #0c1620);
+  background: color-mix(in srgb, var(--spf-brand-dark) 85%, var(--spf-window-bg));
   border: 1px solid var(--spf-border);
   border-radius: var(--spf-radius-sm);
   box-shadow: var(--spf-inset-glow);

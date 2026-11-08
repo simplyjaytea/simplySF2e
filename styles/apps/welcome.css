@@ -28,7 +28,7 @@
   padding: 0 var(--spf-space-sm);
   border: 1px solid var(--spf-border);
   border-radius: var(--spf-radius-sm);
-  background: color-mix(in srgb, var(--spf-brand-dark) 85%, #0c1620);
+  background: color-mix(in srgb, var(--spf-brand-dark) 85%, var(--spf-window-bg));
   box-shadow: var(--spf-inset-glow);
   color: var(--spf-brand-accent);
   font-family: var(--spf-font-display);
@@ -101,7 +101,7 @@
 }
 
 .simplysf2e .spf-welcome-connect .spf-hint {
-  margin: 0.15rem 0 0;
+  margin: var(--spf-space-2xs) 0 0;
 }
 
 .simplysf2e .spf-welcome-connect-button,
@@ -216,7 +216,7 @@
 .simplysf2e .spf-welcome-dismiss {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: var(--spf-space-md);
   align-self: flex-start;
   color: var(--spf-text-muted);
   cursor: pointer;

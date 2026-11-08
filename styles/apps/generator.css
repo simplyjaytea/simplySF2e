@@ -42,9 +42,9 @@
 .simplysf2e .spf-mode-toggle {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(7rem, 100%), 1fr));
-  gap: 2px;
+  gap: var(--spf-space-2xs);
   margin-bottom: var(--spf-space-md);
-  padding: 2px;
+  padding: var(--spf-space-2xs);
   border: 1px solid var(--spf-border);
   border-radius: var(--spf-radius);
   background: var(--spf-surface);
@@ -55,7 +55,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.4rem;
+  gap: var(--spf-space-md);
   min-width: 0;
   padding: var(--spf-space-sm);
   border: 1px solid transparent;
@@ -85,7 +85,7 @@
 /* Active selectors glow cyan with a violet undercurrent. */
 .simplysf2e .spf-mode-toggle label.spf-mode-active {
   color: var(--spf-text);
-  background: color-mix(in srgb, var(--spf-brand-mid) 72%, #0c1620);
+  background: color-mix(in srgb, var(--spf-brand-mid) 72%, var(--spf-window-bg));
   border-color: var(--spf-brand-accent);
   box-shadow: inset 0 0 0 1px var(--spf-brand-accent), var(--spf-glow), inset 0 0 14px color-mix(in srgb, var(--spf-brand-secondary) 38%, transparent);
   text-shadow: 0 0 8px color-mix(in srgb, var(--spf-brand-accent) 65%, transparent);
@@ -110,28 +110,28 @@
 /* Each active segment glows in its own per-mode accent. */
 .simplysf2e .spf-mode-toggle label.spf-mode-monster.spf-mode-active {
   border-color: var(--spf-mode-monster);
-  background: color-mix(in srgb, var(--spf-mode-monster) 26%, #0c1620);
+  background: color-mix(in srgb, var(--spf-mode-monster) 26%, var(--spf-window-bg));
   box-shadow: inset 0 0 0 1px var(--spf-mode-monster), 0 0 12px color-mix(in srgb, var(--spf-mode-monster) 45%, transparent);
   text-shadow: 0 0 8px color-mix(in srgb, var(--spf-mode-monster) 65%, transparent);
 }
 
 .simplysf2e .spf-mode-toggle label.spf-mode-npc.spf-mode-active {
   border-color: var(--spf-mode-npc);
-  background: color-mix(in srgb, var(--spf-mode-npc) 26%, #0c1620);
+  background: color-mix(in srgb, var(--spf-mode-npc) 26%, var(--spf-window-bg));
   box-shadow: inset 0 0 0 1px var(--spf-mode-npc), 0 0 12px color-mix(in srgb, var(--spf-mode-npc) 45%, transparent);
   text-shadow: 0 0 8px color-mix(in srgb, var(--spf-mode-npc) 65%, transparent);
 }
 
 .simplysf2e .spf-mode-toggle label.spf-mode-encounter.spf-mode-active {
   border-color: var(--spf-mode-encounter);
-  background: color-mix(in srgb, var(--spf-mode-encounter) 26%, #0c1620);
+  background: color-mix(in srgb, var(--spf-mode-encounter) 26%, var(--spf-window-bg));
   box-shadow: inset 0 0 0 1px var(--spf-mode-encounter), 0 0 12px color-mix(in srgb, var(--spf-mode-encounter) 45%, transparent);
   text-shadow: 0 0 8px color-mix(in srgb, var(--spf-mode-encounter) 65%, transparent);
 }
 
 .simplysf2e .spf-mode-toggle label.spf-mode-character.spf-mode-active {
   border-color: var(--spf-mode-character);
-  background: color-mix(in srgb, var(--spf-mode-character) 26%, #0c1620);
+  background: color-mix(in srgb, var(--spf-mode-character) 26%, var(--spf-window-bg));
   box-shadow: inset 0 0 0 1px var(--spf-mode-character), 0 0 12px color-mix(in srgb, var(--spf-mode-character) 45%, transparent);
   text-shadow: 0 0 8px color-mix(in srgb, var(--spf-mode-character) 65%, transparent);
 }
@@ -154,7 +154,7 @@
 
 .simplysf2e .spf-mode-toggle label.spf-mode-reskin.spf-mode-active {
   border-color: var(--spf-mode-reskin);
-  background: color-mix(in srgb, var(--spf-mode-reskin) 26%, #0c1620);
+  background: color-mix(in srgb, var(--spf-mode-reskin) 26%, var(--spf-window-bg));
   box-shadow: inset 0 0 0 1px var(--spf-mode-reskin), 0 0 12px color-mix(in srgb, var(--spf-mode-reskin) 45%, transparent);
   text-shadow: 0 0 8px color-mix(in srgb, var(--spf-mode-reskin) 65%, transparent);
 }
@@ -384,7 +384,7 @@
 }
 
 .simplysf2e .spf-strike {
-  padding: 0.1rem 0;
+  padding: var(--spf-space-2xs) 0;
 }
 
 .simplysf2e .spf-strike-traits {
@@ -401,7 +401,7 @@
 .simplysf2e .spf-list.spf-inline {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.15rem 1rem;
+  gap: var(--spf-space-2xs) var(--spf-space-xl);
   list-style: none;
   padding-left: 0;
 }
@@ -446,7 +446,7 @@
   color: var(--spf-text);
   border: 1px solid var(--spf-control-border);
   border-radius: var(--spf-radius-sm);
-  padding: 0 0.3rem;
+  padding: 0 var(--spf-space-xs);
 }
 
 /* Spells, feats and gear that failed to resolve are left off the actor —
@@ -515,7 +515,7 @@
   grid-template-areas: "name count" "tag count";
   align-items: center;
   column-gap: var(--spf-space-md);
-  row-gap: 0.1rem;
+  row-gap: var(--spf-space-2xs);
 }
 
 .simplysf2e .spf-member-name {
@@ -547,7 +547,7 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   max-width: 30rem;
-  gap: 0.15rem var(--spf-space-md);
+  gap: var(--spf-space-2xs) var(--spf-space-md);
   margin: var(--spf-space-sm) 0 0;
   padding-top: var(--spf-space-xs);
   border-top: 1px solid color-mix(in srgb, var(--spf-border) 60%, transparent);
@@ -609,7 +609,7 @@
   grid-area: count;
   display: inline-flex;
   align-items: center;
-  gap: 0.2rem;
+  gap: var(--spf-space-xs);
 }
 
 .simplysf2e .spf-member-count .spf-icon-btn {
@@ -705,7 +705,7 @@
   display: flex;
   align-items: center;
   gap: var(--spf-space-sm);
-  padding: 0.2rem 0 0.2rem var(--spf-space-sm);
+  padding: var(--spf-space-xs) 0 var(--spf-space-xs) var(--spf-space-sm);
   border-left: 2px solid var(--spf-recent-accent);
 }
 
@@ -750,7 +750,7 @@
 .simplysf2e .spf-reroll-pick {
   display: inline-grid;
   vertical-align: middle;
-  margin-inline-start: 0.25rem;
+  margin-inline-start: var(--spf-space-xs);
   font-size: 0.7em;
   text-decoration: none;
 }
@@ -805,7 +805,7 @@
   display: inline-block;
   width: 1.1rem;
   margin-left: -1.1rem;
-  color: color-mix(in srgb, var(--spf-warning) 55%, #ffd2b8);
+  color: var(--spf-warning-icon);
 }
 
 /* Re-level (Reskin mode): the copy's level and its before/after numbers. */
@@ -900,7 +900,7 @@
   color: var(--spf-text-muted);
 }
 .simplysf2e .spf-relevel-unchanged > p {
-  margin: 0 0 var(--spf-space-xs) 1.05rem;
+  margin: 0 0 var(--spf-space-xs) var(--spf-space-xl);
 }
 @container spf-window (max-width: 520px) {
   .simplysf2e .spf-relevel-table th,
@@ -961,7 +961,7 @@
 }
 
 .simplysf2e .spf-review-action > p {
-  margin: 0 0 var(--spf-space-sm) 1.05rem;
+  margin: 0 0 var(--spf-space-sm) var(--spf-space-xl);
   font-size: var(--spf-text-sm);
   color: var(--spf-text-muted);
 }

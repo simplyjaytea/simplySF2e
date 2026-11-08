@@ -574,7 +574,8 @@ assert.match(sources, /fa-satellite-dish/, "sources hint must use a sci-fi uplin
 assert.match(css, /\.simplysf2e\s*\{[^}]*--spf-neon:/s, "HUD glow tokens must be defined");
 const readingSurface = css.match(/\.application\.simplysf2e \.window-content\s*\{([^}]*)\}/s)?.[1];
 assert.ok(readingSurface, "window content must define its reading surface");
-assert.match(readingSurface, /background:\s*#0c1620\s*;/, "reading surfaces must stay plain dark navy");
+assert.match(readingSurface, /background:\s*var\(--spf-window-bg\)\s*;/, "reading surfaces must stay plain dark navy");
+assert.match(css, /--spf-window-bg:\s*#0c1620\s*;/, "the window reading surface token stays dark navy");
 assert.doesNotMatch(readingSurface, /gradient/, "window content must not carry texture");
 assert.match(
   css,
