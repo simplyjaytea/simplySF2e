@@ -479,8 +479,9 @@ for (const [name, source] of [
 // 5. Window titles and prompt labels follow one pattern.
 {
   const lang = JSON.parse(langJson).SIMPLYSF2E;
-  assert.match(lang.Generator.Title, /^SimplySF2e — /, "generator title must follow the shared pattern");
-  assert.match(lang.ItemForge.Title, /^SimplySF2e — /, "item forge title must follow the shared pattern");
+  // The shared title pattern is "SimplySF2e <window>" (no dash), as Shop and Treasure use.
+  assert.match(lang.Generator.Title, /^SimplySF2e /, "generator title must follow the shared pattern");
+  assert.match(lang.ItemForge.Title, /^SimplySF2e /, "item forge title must follow the shared pattern");
   for (const [key, value] of [
     ["Generator.Prompt", lang.Generator.Prompt],
     ["Generator.CharacterPrompt", lang.Generator.CharacterPrompt],
