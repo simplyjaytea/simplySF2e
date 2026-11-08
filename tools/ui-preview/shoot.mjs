@@ -73,6 +73,7 @@ const started = Date.now();
 try {
   const queue = [...selected];
   const doFixture = async (fixture) => {
+    let threw = false;
     for (const width of WIDTHS) {
       const name = `${fixture.id}@${width}`;
       let page = null;
@@ -134,10 +135,11 @@ try {
         page = null;
       } catch (err) {
         problems.push(`${name}: render failed: ${err?.message ?? String(err)}`);
+        threw = true;
         if (page) await page.close().catch(() => {});
       }
     }
-    console.log(`ok  ${fixture.id}`);
+    console.log(threw ? `FAIL  ${fixture.id}` : `ok  ${fixture.id}`);
   };
   // One worker per page slot; each takes the next fixture when it is free.
   await Promise.all(Array.from({ length: Math.min(CONC, queue.length) }, async () => {
