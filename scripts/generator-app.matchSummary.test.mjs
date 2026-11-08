@@ -1,7 +1,6 @@
 // Execute production preview mapping and aggregation, not a copied helper.
-// Test-only source instrumentation exposes four private seams so fixtures can
-// seed the draft without provider calls or Foundry writes; method bodies remain
-// unchanged. All other private members and production imports remain in place.
+// The preview builder is generator-context/creature-preview.mjs (moved out of
+// generator-app.mjs, T-P4); it runs unmodified with its stat helpers mocked.
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
@@ -14,13 +13,14 @@ if (!vm.SourceTextModule) {
   const run = spawnSync(process.execPath, ["--experimental-vm-modules", import.meta.filename], { stdio: "inherit" });
   process.exit(run.status ?? 1);
 }
-const source = (await readFile(new URL("./generator-app.mjs", import.meta.url), "utf8"))
-  .replace(/#(concept|resolved|buildPreviewContext)\b/g, "_test_$1");
+// The preview builder moved out of generator-app.mjs into generator-context/creature-preview.mjs
+// (T-P4). Its source is run unmodified, with the stat helpers mocked so the stats are controllable.
+const source = await readFile(new URL("./generator-context/creature-preview.mjs", import.meta.url), "utf8");
 const context = vm.createContext({ console, game: { i18n: { format: (_key, { matched, total }) => `${matched}/${total}` } } });
-let fakeStats = {};
-// matchSummary and the row mappers moved to generator-context/rows.mjs (T-P4); the real module runs outside the vm, so it reads the `game` global.
+// matchSummary and the row mappers (generator-context/rows.mjs) are real and run outside the vm, so they read the `game` global.
 globalThis.game = context.game;
-const mocks = { ...rows, signed, SpfApp: class {}, MODULE_ID: "simplysf2e", computeStats: () => fakeStats, adjustedStats: (stats) => stats, rerollTarget };
+let fakeStats = {};
+const mocks = { ...rows, signed, computeStats: () => fakeStats, adjustedStats: (stats) => stats, rerollTarget };
 const module = new vm.SourceTextModule(source, { context });
 await module.link((specifier) => {
   const imports = [...source.matchAll(/import\s*\{([^}]+)\}\s*from\s*"([^"]+)"/g)]
@@ -31,7 +31,12 @@ await module.link((specifier) => {
   }, { context });
 });
 await module.evaluate();
-const app = new module.namespace.GeneratorApp();
+const { buildCreaturePreviewContext } = module.namespace;
+// The same call the app delegates: concept and resolved picks in, template context out.
+const app = {
+  _test_concept: null, _test_resolved: null,
+  _test_buildPreviewContext() { return buildCreaturePreviewContext(this._test_concept, this._test_resolved); }
+};
 function matchSummary(...groups) {
   const result = rows.matchSummary(...groups);
   return result && { matched: result.matched, total: result.total };
