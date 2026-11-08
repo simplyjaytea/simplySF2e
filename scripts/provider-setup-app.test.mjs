@@ -80,17 +80,26 @@ function makeForm() {
   };
 }
 
+// A parent element with a slot for the "key is saved" hint: querySelector finds it, remove() clears it.
+function hintSlot() {
+  return {
+    hint: null,
+    querySelector(selector) { return selector === ".spf-key-saved" ? this.hint : null; }
+  };
+}
+
 function standardForm() {
   const form = makeForm();
   form.control("[name='activeConnection']", { value: "conn-1" });
   form.control("[name='jevSource']", { value: "openrouter" });
   form.control("[name='jevEndpoint']", { value: "" });
-  form.control("[name='jevApiKey']", { value: "" });
+  form.control("[name='jevApiKey']", { value: "", parentElement: hintSlot() });
   form.control("[name='clearJevApiKey']", { checked: false });
   form.control("[name='apiBaseUrl']", { value: providerState.baseUrl });
   form.control("[name='model']", { value: providerState.model });
   form.control("[name='connectionName']", { value: providerState.connectionName });
-  form.control("[name='apiKey']", { value: "" });
+  form.control("[name='apiKey']", { value: "", parentElement: hintSlot(), insertAdjacentHTML(position, html) { if (position === "afterend" && html.includes("spf-key-saved")) this.parentElement.hint = { remove() { this.owner.hint = null; }, owner: this.parentElement }; } });
+  form.control("[name='clearApiKey']", { checked: false });
   form.control("[name='inputPerM']", { value: "" });
   form.control("[name='outputPerM']", { value: "" });
   form.control("#spf-provider-model-list", { innerHTML: "" });
@@ -312,6 +321,13 @@ const newApp = (form) => {
   assert.match(privacy.inserted[0][1], /name="clearApiKey"/, "the box is the clear-key checkbox");
   assert.doesNotMatch(privacy.inserted[0][1], /checked/, "the box is unchecked");
   assert.equal(form.querySelector("[name='jevSource']").value, "typesafe", "the unsaved Jev source is intact");
+  const keyGroup = form.querySelector("[name='apiKey']").parentElement;
+  assert.ok(keyGroup.querySelector(".spf-key-saved"), "after storing a key the saved hint is present");
+  // Clear the stored key through the clear-key box and Load models again: hint gone, placeholder back.
+  form.querySelector("[name='clearApiKey']").checked = true;
+  await actions.loadModels.call(app, null, { querySelector: () => null });
+  assert.equal(keyGroup.querySelector(".spf-key-saved"), null, "after clearing the key the saved hint is removed");
+  assert.equal(form.querySelector("[name='apiKey']").placeholder, "SIMPLYSF2E.ProviderSetup.ApiKeyOptional", "and the placeholder is the no-key one");
 }
 
 // (g) Delete and switch with unsaved edits each ask with their own label.

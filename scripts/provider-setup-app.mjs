@@ -525,12 +525,24 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
     if (key) ui.notifications.info(game.i18n.localize(key));
   }
 
+  /**
+   * The visible "key is saved" hint sits right after its key input, as the
+   * template renders it when hasApiKey / hasJevKey is true. Keep it in step
+   * with the stored key after an in-place update.
+   */
+  #syncSavedHint(input, saved, messageKey) {
+    const hint = input?.parentElement?.querySelector(".spf-key-saved");
+    if (saved && !hint) input?.insertAdjacentHTML?.("afterend", `<p class="spf-hint spf-key-saved">${esc(game.i18n.localize(messageKey))}</p>`);
+    else if (!saved && hint) hint.remove();
+  }
+
   #syncJevControls(hasKey) {
     const input = this.element.querySelector("[name='jevApiKey']");
     if (input) {
       input.value = "";
       input.placeholder = ProviderSetupApp.#jevPlaceholder(hasKey, normalizeJevSource(getJevRequestConfig().source));
     }
+    this.#syncSavedHint(input, hasKey, "SIMPLYSF2E.ProviderSetup.JevKeySaved");
     const clear = this.element.querySelector("[name='clearJevApiKey']");
     if (clear) clear.checked = false;
     const label = this.element.querySelector(".spf-jev-clear");
@@ -617,7 +629,9 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
     if (keyInput) {
       keyInput.placeholder = state.hasConfiguredApiKey ? "" : game.i18n.localize("SIMPLYSF2E.ProviderSetup.ApiKeyOptional");
       keyInput.value = "";
+      this.#syncSavedHint(keyInput, state.hasConfiguredApiKey, "SIMPLYSF2E.ProviderSetup.ApiKeySaved");
     }
+    this.#syncSavedHint(this.element?.querySelector("[name='jevApiKey']"), Boolean(getJevRequestConfig().apiKey), "SIMPLYSF2E.ProviderSetup.JevKeySaved");
     const clearBox = this.element?.querySelector(".spf-provider-clear-key");
     const privacy = this.element?.querySelector(".spf-provider-privacy");
     if (state.hasConfiguredApiKey && !clearBox) {
