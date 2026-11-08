@@ -16,6 +16,7 @@ import { SourcesConfigApp } from "./sources-app.mjs";
 import { gpToCredits, assembleCurrency, splitCurrency } from "./currency.mjs";
 import { activeParty } from "./party.mjs";
 import { SpfApp } from "./app-base.mjs";
+import { progressView } from "./progress.mjs";
 import { jevKeySource } from "./jev.mjs";
 
 /**
@@ -93,7 +94,7 @@ export class TreasureApp extends SpfApp {
       lastRunCost: this._formatLastRunCost(),
       error: this.#error,
       canReportBug: this._canReportBug(this.#error),
-      progress: this._progress,
+      progress: progressView(this._progress),
       apiKeyWarning: authWarningKey ? game.i18n.localize(authWarningKey) : null,
       providerBaseUrl: authState.baseUrl,
       provider: authState.provider,

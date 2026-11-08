@@ -227,3 +227,16 @@ Templates: `templates/welcome.hbs`, `templates/provider-setup.hbs`. Supply in: `
 | `priceErrorField` (new) | `"input"` \| `"output"` \| `null` | The manual price the last validation rejected. Marks that input `aria-invalid="true"` and points its `aria-describedby` at `#spf-price-error`. Reset at the start of each save. | `provider-setup-price-error`: `"input"`; others: `null` |
 
 Not new fields: the saved-key hints (W12) use the existing `hasApiKey` and `hasJevKey` booleans. The footer hint (W11) is static text.
+
+## U4B progress telemetry and Welcome boot sequence
+
+Templates: `templates/_progress.hbs`, `templates/welcome.hbs`. Supply in: `progressView()` (`scripts/progress.mjs`), called by `GeneratorApp`, `ItemForgeApp`, `ShopApp` and `TreasureApp` `_prepareContext()` as `progress: progressView(this._progress)`; `WelcomeApp._prepareContext()` (`scripts/welcome-app.mjs`).
+
+| Field | Type | Meaning | Example (fixture) |
+| --- | --- | --- | --- |
+| `progress.steps[].startedAt` (new) | number (ms) or null | Clock reading when the step became active (`applyStep`, clock from `createProgress(defs, { now })`, default `Date.now`). Null while pending or when the step was skipped. Not rendered. | `generator-busy-progress`: `77800` on the active step |
+| `progress.steps[].elapsedMs` (new) | number (ms) or null | Time from active to done. Null on the active and pending steps and on a step that went straight from pending to done. Not rendered. | `800` |
+| `progress.steps[].elapsed` (new) | string | `formatElapsed(elapsedMs)` on a done step ("0.8 s", "12 s", "1 m 05 s"); `""` otherwise. Rendered as the step's `.spf-num.spf-step-elapsed` status value. | `generator-busy-progress`: `"0.8 s"`, `"12 s"`, `"1 m 05 s"`, then `""` |
+| `progress.totalElapsed` (new) | string | The done steps' `elapsedMs` summed and formatted; `""` before the first step finishes. Supplied for later use; not rendered on the card (the card's other lines are unchanged). | `generator-busy-progress`: `"1 m 18 s"` |
+
+The active step shows `SIMPLYSF2E.Progress.Running` ("running"), not a ticking time: a stream tick only patches the bar and the detail line (`_paintProgress`), and nothing re-renders the card on a timer. A step change also patches in place (`SpfApp._paintStepList` in `scripts/app-base.mjs`), so that method writes the same value (`stepElapsed(step)` or the running label) into `.spf-step-elapsed`. The Welcome connecting list has no timing data (WelcomeApp renders once when the check starts and once when it ends), so its first line shows the same "running" status value and the others stay dots.

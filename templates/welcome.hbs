@@ -71,7 +71,7 @@
       <p>{{localize "SIMPLYSF2E.Welcome.ConnectingDetail"}}</p>
       <progress aria-label="{{localize 'SIMPLYSF2E.Welcome.ConnectingTitle'}}"></progress>
       <ol class="spf-welcome-progress-steps">
-        <li><i aria-hidden="true" class="fa-solid fa-spinner fa-spin"></i> {{localize "SIMPLYSF2E.Welcome.StepValidate"}}</li>
+        <li class="spf-welcome-step-active"><i aria-hidden="true" class="fa-solid fa-spinner fa-spin"></i> {{localize "SIMPLYSF2E.Welcome.StepValidate"}} <span class="spf-num spf-step-elapsed">{{localize "SIMPLYSF2E.Progress.Running"}}</span></li>
         <li class="spf-welcome-step-pending"><i aria-hidden="true" class="fa-solid fa-circle"></i> {{localize "SIMPLYSF2E.Welcome.StepModel"}}</li>
         <li class="spf-welcome-step-pending"><i aria-hidden="true" class="fa-solid fa-circle"></i> {{localize "SIMPLYSF2E.Welcome.StepTest"}}</li>
       </ol>

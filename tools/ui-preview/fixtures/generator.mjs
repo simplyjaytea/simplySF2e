@@ -237,7 +237,7 @@ export default [
     context: generatorContext("monster", {
       input: { level: 4, prompt: "A mercenary half-fused with a failing warp lattice" },
       busy: true, canCancel: true, showEmptyState: false,
-      progress: progressAt(MONSTER_STEPS, 2, { phase: "writing", percent: 38, detail: "Writing… ≈ 640 tokens" })
+      progress: progressAt(MONSTER_STEPS, 3, { phase: "writing", percent: 46, detail: "Writing… ≈ 640 tokens" })
     })
   },
   {

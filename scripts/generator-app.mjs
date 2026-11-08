@@ -42,6 +42,7 @@ import {
 } from "./pc-support.mjs";
 import { validateArchetypeSlotPlacement, stagedActorContext } from "./pc-prerequisites.mjs";
 import { SpfApp } from "./app-base.mjs";
+import { progressView } from "./progress.mjs";
 import { jevKeySource } from "./jev.mjs";
 import { signed, esc, escAi, capitalized } from "./text.mjs";
 import { statCheckForActor, describeStatCheck, hasSpellEntry } from "./stat-check.mjs";
@@ -247,7 +248,7 @@ export class GeneratorApp extends SpfApp {
       lastRunCost: this._formatLastRunCost(),
       error: this.#error,
       canReportBug: this._canReportBug(this.#error),
-      progress: this._progress,
+      progress: progressView(this._progress),
       apiKeyWarning: authWarningKey ? game.i18n.localize(authWarningKey) : null,
       providerBaseUrl: authState.baseUrl,
       provider: authState.provider,

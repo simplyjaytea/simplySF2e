@@ -19,6 +19,7 @@ import {
   progressPercent,
   progressPhaseClass,
   resetStreamPhase,
+  stepElapsed,
   streamFraction
 } from "./progress.mjs";
 import { coarsenTokenEstimate, lastRunTokenTotal } from "./tokens.mjs";
@@ -90,6 +91,7 @@ const mocks = {
   progressPercent,
   progressPhaseClass,
   resetStreamPhase,
+  stepElapsed,
   streamFraction,
   coarsenTokenEstimate,
   lastRunTokenTotal,
@@ -242,9 +244,10 @@ assert.equal(
   "a continuation step reuses the run signal instead of opening a new budget window"
 );
 
+const domElapsed = [{ textContent: "" }, { textContent: "" }];
 const domSteps = [
-  { className: "", querySelector: () => ({ className: "" }) },
-  { className: "", querySelector: () => ({ className: "" }) }
+  { className: "", querySelector: (sel) => (sel === ".spf-step-elapsed" ? domElapsed[0] : { className: "" }) },
+  { className: "", querySelector: (sel) => (sel === ".spf-step-elapsed" ? domElapsed[1] : { className: "" }) }
 ];
 const domFill = { style: { width: "0%" } };
 const domBar = { setAttribute(k, v) { this[k] = v; } };
@@ -271,6 +274,8 @@ await app._setStep("concept");
 assert.equal(app._progress.steps[0].state, "active");
 assert.equal(domSteps[0].className, "spf-step-active");
 assert.ok(domFill.style.width.endsWith("%"));
+assert.equal(domElapsed[0].textContent, "SIMPLYSF2E.Progress.Running", "the active step paints the running label");
+assert.equal(domElapsed[1].textContent, "", "a pending step paints no status value");
 
 // AI progress streaming
 app._onAIProgress({ phase: "thinking", tokens: 50, exact: true, call: "Drafting" });
@@ -286,6 +291,8 @@ assert.equal(app._progress.steps[0].state, "done");
 assert.equal(app._progress.steps[1].state, "active");
 assert.equal(domSteps[0].className, "spf-step-done");
 assert.equal(domSteps[1].className, "spf-step-active");
+assert.match(domElapsed[0].textContent, /^\d+\.\d s$/, "a finished step paints its elapsed time in place");
+assert.equal(domElapsed[1].textContent, "SIMPLYSF2E.Progress.Running");
 
 // 4. Provider switching & testing
 app.rendered = false;

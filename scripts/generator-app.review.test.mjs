@@ -1,6 +1,7 @@
 // Execute the unmodified production app with mocked imports/platform services.
 // No provider calls, Foundry documents, or test-only production hooks.
 import assert from "node:assert/strict";
+import { progressView } from "./progress.mjs";
 import { readFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import vm from "node:vm";
@@ -58,6 +59,7 @@ const context = vm.createContext({
 const resolved = () => ({ ancestryDoc: { name: "Dwarf" }, classDoc: { name: "Fighter" },
   backgroundDoc: { name: "Warrior" }, featSlots: previewFeats.map(({ type, level, archetype }) => ({ type, level, archetype, candidates: [] })), feats: previewFeats, spells: [], equipment: [], loot: previewLoot });
 const mocks = {
+  progressView,
   ...recentGenerations,
   SpfApp: App, MODULE_ID: "simplysf2e", SETTINGS: { freeArchetype: "freeArchetype", generatorInput: "generatorInput" }, getSetting: () => undefined,
   restoreGeneratorInput: (_saved, defaults) => defaults, rememberedInput: (input) => input, reviewUnresolvedChoices, normalizeSkillPriorities, skillPriorityOrder,

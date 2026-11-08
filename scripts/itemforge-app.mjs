@@ -15,6 +15,7 @@ import { createActivationMacro } from "./macro-templates.mjs";
 import { SourcesConfigApp } from "./sources-app.mjs";
 import { gpToCredits } from "./currency.mjs";
 import { SpfApp } from "./app-base.mjs";
+import { progressView } from "./progress.mjs";
 import { getPacksFor, describeMissingSources } from "./compendium.mjs";
 import { jevKeySource } from "./jev.mjs";
 
@@ -115,7 +116,7 @@ export class ItemForgeApp extends SpfApp {
       lastRunCost: this._formatLastRunCost(),
       error: this.#error,
       canReportBug: this._canReportBug(this.#error),
-      progress: this._progress,
+      progress: progressView(this._progress),
       apiKeyWarning: authWarningKey ? game.i18n.localize(authWarningKey) : null,
       providerBaseUrl: authState.baseUrl,
       provider: authState.provider,

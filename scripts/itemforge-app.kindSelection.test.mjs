@@ -1,6 +1,7 @@
 // Exercise the production ItemForgeApp kind action and private input state
 // without provider requests, Foundry document writes, or copied selection logic.
 import assert from "node:assert/strict";
+import { progressView } from "./progress.mjs";
 import { readFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import vm from "node:vm";
@@ -37,6 +38,7 @@ const requestConfig = {
   apiKeyIsBound: false
 };
 const mocks = {
+  progressView,
   getPacksFor: () => ["sf2e.equipment"],
   describeMissingSources: () => "",
   jevKeySource: () => null,
