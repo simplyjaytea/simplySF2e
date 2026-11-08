@@ -787,7 +787,9 @@ export async function applyTreasureBudget(loot, targetGp) {
       const credits = loot.find((l) => parseCoins(l.name)?.name === "Credstick");
       if (credits) {
         const unit = coinUnitGp(credits) || CREDIT_UNIT_GP;
-        credits.quantity = Math.min(credits.quantity + Math.max(Math.round(gap / unit), 1), CURRENCY_ITEM_MAX);
+        const wanted = credits.quantity + Math.max(Math.round(gap / unit), 1);
+        if (wanted > CURRENCY_ITEM_MAX) console.warn("simplysf2e | treasure-budget credit padding clamped at", CURRENCY_ITEM_MAX, "credits (target", targetGp, "gp)");
+        credits.quantity = Math.min(wanted, CURRENCY_ITEM_MAX);
       } else {
         const resolved = resolveCurrencyTemplate("Credstick");
         if (!resolved) {
@@ -795,9 +797,11 @@ export async function applyTreasureBudget(loot, targetGp) {
           return loot;
         }
         const unit = resolved.resolvedValue || CREDIT_UNIT_GP;
+        const wanted = Math.max(Math.round(gap / unit), 1);
+        if (wanted > CURRENCY_ITEM_MAX) console.warn("simplysf2e | treasure-budget credit padding clamped at", CURRENCY_ITEM_MAX, "credits (target", targetGp, "gp)");
         loot.push({
           name: "Credstick",
-          quantity: Math.min(Math.max(Math.round(gap / unit), 1), CURRENCY_ITEM_MAX),
+          quantity: Math.min(wanted, CURRENCY_ITEM_MAX),
           value: unit,
           runes: parseRunes("Credstick"),
           entry: resolved.entry,
