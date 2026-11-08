@@ -28,6 +28,8 @@ const context = vm.createContext({
 });
 // Wall-clock formatting is locale and zone dependent; pin it.
 vm.runInContext("Date.prototype.toLocaleTimeString = function () { return 'T' + this.getTime(); };", context);
+// The recent-previews builder now runs outside the vm (generator-context/result-context.mjs), in this realm.
+Date.prototype.toLocaleTimeString = function () { return "T" + this.getTime(); };
 console.warn = () => {}; // the real modules warn about fixture traits; keep the output clean
 globalThis.game = context.game;
 globalThis.CONFIG = context.CONFIG;
@@ -59,6 +61,9 @@ await module.link((specifier) => {
 await module.evaluate();
 const App = module.namespace.GeneratorApp;
 const newApp = () => new App();
+// Builders that moved out of the app class are called on their modules (T-P4); the rest still go through the app seam.
+const { archetypePlacementContext, skillReportContext } = await import("./generator-context/pc-preview.mjs");
+const { completionContext } = await import("./generator-context/result-context.mjs");
 
 // ---- inputs: production shapes ---------------------------------------------------------------
 const { normalizeConcept } = await import("./builder.mjs");
@@ -203,7 +208,6 @@ const out = {};
   out.multiclassPicker = plain(app._test_multiclassPickerContext());
 }
 {
-  const app = newApp();
   const docs = {
     ancestryDoc: { name: "Vesk", system: { boosts: {}, flaws: {} } },
     heritageDoc: { name: "Armored" },
@@ -211,17 +215,17 @@ const out = {};
     classDoc: { name: "Soldier", system: { keyAbility: { value: ["str", "con"] }, trainedSkills: { value: ["athletics"], additional: 3 }, skillIncreaseLevels: { value: [3] } } },
     pathPlan: { "mechanic-exocortex": { name: "Drone", skills: { stealth: 1 } }, "technomancer-programming-language": { name: "Rust" }, empty: {} }
   };
-  out.archetypePlacement = plain(app._test_archetypePlacementContext(docs, { ...pcConcept, abilityPriorities: ["str"], skillPriorities: [] }));
-  out.archetypePlacementNoHeritage = plain(app._test_archetypePlacementContext({ ...docs, heritageDoc: null, pathPlan: {} }, { ...pcConcept, keyAbility: "dex" }));
+  out.archetypePlacement = plain(archetypePlacementContext(docs, { ...pcConcept, abilityPriorities: ["str"], skillPriorities: [] }));
+  out.archetypePlacementNoHeritage = plain(archetypePlacementContext({ ...docs, heritageDoc: null, pathPlan: {} }, { ...pcConcept, keyAbility: "dex" }));
 }
-out.skillReport = plain(App._test_skillReportContext(skillReport));
-out.skillReportNone = plain(App._test_skillReportContext(null));
-out.skillReportAuto = plain(App._test_skillReportContext({ rows: [], automatic: true, trainingBudget: null, unspentTraining: null, unspentIncreases: 0, warnings: [], loadoutWarnings: [] }));
+out.skillReport = plain(skillReportContext(skillReport));
+out.skillReportNone = plain(skillReportContext(null));
+out.skillReportAuto = plain(skillReportContext({ rows: [], automatic: true, trainingBudget: null, unspentTraining: null, unspentIncreases: 0, warnings: [], loadoutWarnings: [] }));
 {
   const { completionManifest } = await import("./completion.mjs");
   const manifest = completionManifest({ mode: "npc", concept: creatureConcept, resolved: creatureResolved });
-  out.completion = plain(App._test_completionContext([manifest]));
-  out.completionEmpty = plain(App._test_completionContext([]));
+  out.completion = plain(completionContext([manifest]));
+  out.completionEmpty = plain(completionContext([]));
 }
 // Reskin preview and re-level controls
 {
