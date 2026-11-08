@@ -33,7 +33,7 @@ const opaque = /\bc-[A-Za-z0-9+/]{8,}/;
 const bodyText = () => JSON.stringify(requests.at(-1));
 
 try {
-  const { selectShopStock, selectTreasureItems, selectLoot, selectAncestryBackgroundClass } = await import("./ai.mjs");
+  const { selectShopStock, selectTreasureItems, selectLoot, selectAncestryBackgroundClass, selectCreatureAbilities } = await import("./ai.mjs");
   const item = (name, type, level, id) => {
     const entry = { packId: "sf2e.equipment", _id: id };
     return { id: candidateId(entry), ref: entry, name, type, level };
@@ -76,8 +76,9 @@ try {
     id: candidateId({ packId: `sf2e.${kind}`, _id: `${kind}1` }), ref: { packId: `sf2e.${kind}`, _id: `${kind}1` }, name: `Chosen ${kind}`
   }]);
   const [ancestry, heritage, background, pcClass] = lists;
-  // The response validator also requires the name keys (pre-existing contract), so the reply carries both.
-  replies.push({ ancestryId: "C1", heritageId: "C2", backgroundId: "C3", classId: pcClass[0].id, keyAbility: "dex", ancestry: "a", heritage: "h", background: "b", class: "c" });
+  // An id-only reply (what the prompt asks for) is valid on its first try: no structural retry.
+  const requestsBeforeAbc = requests.length;
+  replies.push({ ancestryId: "C1", heritageId: "C2", backgroundId: "C3", classId: pcClass[0].id, keyAbility: "dex" });
   const abc = await selectAncestryBackgroundClass({
     concept: { name: "Pc", level: 1, ancestry: "x", background: "y", class: "z", keyAbility: "dex", blurb: "", backstory: "" },
     ancestryCandidates: ancestry, heritageCandidates: heritage, backgroundCandidates: background, classCandidates: pcClass
@@ -88,6 +89,19 @@ try {
   assert.equal(abc.heritageCandidate, heritage[0].ref);
   assert.equal(abc.backgroundCandidate, background[0].ref);
   assert.equal(abc.classCandidate, null, "the class id typed back as the opaque c- id resolves nothing");
+  assert.equal(requests.length, requestsBeforeAbc + 1, "an id-only ABC reply passes validation without a retry");
+  // Case and padding: the chat path matches short ids like decodeCandidatePick does; near misses stay null.
+  const abilityConcept = { name: "Guard", level: 3, blurb: "", description: "", traits: [], specialAbilities: [{ name: "Grab", glossary: "Grab" }, { name: "Trip" }] };
+  const abilities = ["Grab", "Trip"].map((name) => {
+    const ref = { packId: "sf2e.glossary", _id: name.toLowerCase() };
+    return { id: candidateId(ref), ref, name };
+  });
+  replies.push({ abilityIds: ["a1", " A2 ", "A1x", "a", "F1", "A3", "A"] });
+  const lower = await selectCreatureAbilities({ concept: abilityConcept, candidates: abilities, jevConfig: null });
+  assert.deepEqual(lower.abilities.map((row) => row.name), ["Grab", "Trip"], "lowercase and padded short ids resolve");
+  replies.push({ abilityIds: ["A1x", "a", "F1", "A3", "A", "e1"] });
+  const near = await selectCreatureAbilities({ concept: abilityConcept, candidates: abilities, jevConfig: null });
+  assert.deepEqual(near.abilities, [], "A1x, a, a cross-prefix id, an unissued number and a bare prefix still resolve nothing");
   assert.equal(replies.length, 0);
 } finally {
   globalThis.fetch = originalFetch;

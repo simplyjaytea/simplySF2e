@@ -545,6 +545,14 @@ const PC_SPELL_RANKS = ["cantrip", "rank-one", "rank-two", "rank-three", "rank-f
  * it identifies exactly one offered candidate. New prompts use opaque IDs. */
 function candidateForPick(candidates, pick) {
   const byId = new Map(candidates.map((candidate) => [candidate.id, candidate]));
+  // Short ids are matched ignoring case, like decodeCandidatePick and the feat ids; two ids that
+  // differ only in case are ambiguous and match nothing this way.
+  const byIdUpper = new Map();
+  for (const candidate of candidates) {
+    if (!candidate?.id) continue;
+    const key = String(candidate.id).toUpperCase();
+    byIdUpper.set(key, byIdUpper.has(key) ? null : candidate);
+  }
   const byName = new Map();
   for (const candidate of candidates) {
     const key = String(candidate.name ?? "").toLocaleLowerCase();
@@ -552,7 +560,7 @@ function candidateForPick(candidates, pick) {
   }
   const id = String(pick?.id ?? "").trim();
   if (id) {
-    const issued = byId.get(id);
+    const issued = byId.get(id) ?? byIdUpper.get(id.toUpperCase());
     if (issued) return issued;
     // Some structured-output providers put the displayed candidate name in
     // an `id` field despite the schema. Accept only an exact, unambiguous
