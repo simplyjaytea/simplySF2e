@@ -207,6 +207,10 @@
       "Disable": "Don't show for updates",
       "Earlier": "Earlier changes ({count})",
       "Note": {
+        "ProgressTelemetry": {
+          "Title": "Step times and a simpler Welcome",
+          "Body": "The progress card now shows how long each finished step took, and the current step says \"running\". Welcome no longer numbers its sections: the Connect section stays dimmed until you pick a provider, and the connection check lists its steps one per line."
+        },
         "ThemeSystem": {
           "Title": "One look in every window",
           "Body": "The neon effects now mean the same thing everywhere. Glow marks what is live: the main action, the active mode and a running progress card. The moving sheen means a run is working, a slow pulse marks a list that waits for your decision, and only the current step blinks. Mode colours stay on the mode tile and the line under a preview's name. Only labels, column headings and tags are in capitals; titles and buttons are not. Trait tags are square, and empty panels share one look."
