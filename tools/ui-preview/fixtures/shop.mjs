@@ -33,6 +33,7 @@ export function shopContext(patch = {}) {
     canReportBug: false,
     progress: null,
     ...providerContext(),
+    sourcesReady: true, sourcePackCount: 3, sourceMissing: "", jevSource: "key", readinessOpen: false,
     minLevel: 0,
     maxLevel: 20,
     sizes: SIZES,
@@ -86,6 +87,11 @@ const preview = (patch = {}) => ({
 });
 
 export default [
+  {
+    id: "shop-sources-missing",
+    app: "shop",
+    context: shopContext({ sourcesReady: false, sourcePackCount: 0, sourceMissing: "Equipment", showEmptyState: true })
+  },
   { id: "shop-empty", app: "shop", context: shopContext() },
   { id: "shop-empty-attention", app: "shop", context: shopContext({ ...PROVIDER_ATTENTION }) },
   {

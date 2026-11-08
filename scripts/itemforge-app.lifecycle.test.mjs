@@ -58,6 +58,9 @@ class MockSpfApp {
   _finishRun() { this.abort = null; }
 }
 const mocks = {
+  getPacksFor: () => ["sf2e.equipment"],
+  describeMissingSources: () => "",
+  jevKeySource: () => null,
   MODULE_ID: "simplysf2e", SpfApp: MockSpfApp,
   RUNED_ITEM_KINDS: new Set(["weapon", "armor"]), CONCEPT_ITEM_KINDS: new Set(["wondrous", "augmentation", "crystal"]), KIND_USAGE: { augmentation: "implanted", crystal: "other" }, MIN_ITEM_LEVEL: 0, MAX_ITEM_LEVEL: 20,
   getProviderRequestConfig: () => ({ provider: {}, connections: [] }),

@@ -439,7 +439,11 @@ assert.match(
   const labelAt = itemForge.indexOf("SIMPLYSF2E.Generator.CompendiumContent");
   const fieldsetAt = itemForge.indexOf("<fieldset");
   assert.ok(labelAt >= 0 && gearAt > labelAt && gearAt < fieldsetAt, "item forge sources gear must sit in the labeled Compendium Content row");
-  assert.ok(rowAt > fieldsetAt && itemForge.indexOf('data-action="configureSources"', gearAt + 1) < 0, "item forge generate row must not repeat the sources gear");
+  // Two gears are allowed in the status strip (healthy and missing branches render one each); the Generate row has none.
+  assert.ok(rowAt > fieldsetAt && itemForge.indexOf('data-action="configureSources"', rowAt) < 0, "item forge generate row must not repeat the sources gear");
+  // The status strip carries one gear per readiness branch (healthy and missing); exactly two, both before the fieldset.
+  const gearsBeforeFieldset = itemForge.slice(0, fieldsetAt).split('data-action="configureSources"').length - 1;
+  assert.equal(gearsBeforeFieldset, 2, "item forge status strip: one sources gear per readiness branch");
 }
 assert.match(generator, /SIMPLYSF2E\.Generator\.CompendiumContent/);
 assert.match(generator, /SIMPLYSF2E\.Generator\.SourcesReady/);

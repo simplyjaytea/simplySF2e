@@ -86,7 +86,14 @@
   align-items: baseline;
   gap: var(--spf-space-xs) var(--spf-space-md);
   margin: var(--spf-space-sm) 0;
-  font-family: var(--spf-font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Dense item rows: the remove button takes the small icon token and less padding. */
+.simplysf2e .spf-treasure-items .spf-icon-btn {
+  width: var(--spf-icon-btn-sm, var(--spf-icon-btn));
+  height: var(--spf-icon-btn-sm, var(--spf-icon-btn));
+  padding-block: var(--spf-space-xs);
 }
 
 .simplysf2e .spf-treasure-each {

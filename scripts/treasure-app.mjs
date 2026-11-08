@@ -3,7 +3,7 @@ import {
   authorizeApiKeyForCurrentBaseUrl
 } from "./settings.mjs";
 import { generateTreasureConcept, selectTreasureItems } from "./ai.mjs";
-import { getShopCandidates, getCandidateDocument, getPacksFor, toItemData, priceToGp } from "./compendium.mjs";
+import { getShopCandidates, getCandidateDocument, getPacksFor, toItemData, priceToGp, describeMissingSources } from "./compendium.mjs";
 import { SHOP_CATEGORIES, shopTypesFor } from "./shop.mjs";
 import {
   TREASURE_AMOUNTS, TREASURE_PICKS, TREASURE_RARITIES, TREASURE_MIN_LEVEL, TREASURE_MAX_LEVEL,
@@ -16,6 +16,7 @@ import { SourcesConfigApp } from "./sources-app.mjs";
 import { gpToCredits, assembleCurrency, splitCurrency } from "./currency.mjs";
 import { activeParty } from "./party.mjs";
 import { SpfApp } from "./app-base.mjs";
+import { jevKeySource } from "./jev.mjs";
 
 /**
  * Treasure hoard: describe a theme, the module sets the budget from the GM
@@ -60,6 +61,7 @@ export class TreasureApp extends SpfApp {
   #input = { prompt: "", level: 3, partySize: 4, amount: "encounter", rarity: "common" };
   #busy = false;
   #error = null;
+  #readinessOpen = false;
   /** Normalized treasure concept of the current preview. */
   #concept = null;
   /** Item rows: {key, name, type, level, rarity, credits, quantity, itemData}. */
@@ -73,7 +75,15 @@ export class TreasureApp extends SpfApp {
   /** Picks dropped: not offered, unpriced, or over budget. */
   #dropped = 0;
 
+  _onRender(context, options) {
+    super._onRender?.(context, options);
+    this.element?.querySelector("details[data-readiness]")?.addEventListener("toggle", (event) => {
+      this.#readinessOpen = event.currentTarget.open;
+    });
+  }
+
   async _prepareContext() {
+    const equipmentPacks = getPacksFor("equipment");
     const authState = getProviderRequestConfig();
     const authWarningKey = getProviderAuthWarningKey(authState);
     return {
@@ -91,6 +101,11 @@ export class TreasureApp extends SpfApp {
       connections: authState.connections ?? [],
       canSwitchConnection: (authState.connections?.length ?? 0) > 1,
       providerReady: !authWarningKey,
+      sourcesReady: equipmentPacks.length > 0,
+      sourcePackCount: equipmentPacks.length,
+      sourceMissing: equipmentPacks.length ? "" : describeMissingSources(["equipment"]),
+      jevSource: jevKeySource(),
+      readinessOpen: this.#readinessOpen,
       canAuthorizeApiKey: Boolean(
         authState.baseUrl && authState.hasConfiguredApiKey && !authState.apiKeyIsBound && !authState.apiKeyInsecure
       ),

@@ -79,6 +79,13 @@
 /* Narrow: the Type column folds into the item's secondary line, numeric
    headings shorten (Lvl / Qty), item names wrap by word, and the remove
    buttons keep one aligned column. */
+/* Dense stock rows: the remove button takes the small icon token and less padding. */
+.simplysf2e .spf-shop-stock .spf-icon-btn {
+  width: var(--spf-icon-btn-sm, var(--spf-icon-btn));
+  height: var(--spf-icon-btn-sm, var(--spf-icon-btn));
+  padding-block: var(--spf-space-xs);
+}
+
 @container spf-window (max-width: 520px) {
   .simplysf2e .spf-shop-stock {
     table-layout: fixed;

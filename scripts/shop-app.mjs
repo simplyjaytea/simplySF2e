@@ -3,7 +3,7 @@ import {
   authorizeApiKeyForCurrentBaseUrl
 } from "./settings.mjs";
 import { generateShopConcept, selectShopStock } from "./ai.mjs";
-import { getShopCandidates, getCandidateDocument, getPacksFor, toItemData, priceToGp } from "./compendium.mjs";
+import { getShopCandidates, getCandidateDocument, getPacksFor, toItemData, priceToGp, describeMissingSources } from "./compendium.mjs";
 import {
   SHOP_SIZES, SHOP_CATEGORIES, SHOP_RARITIES, SHOP_MIN_LEVEL, SHOP_MAX_LEVEL,
   clampShopLevel, normalizeShopConcept, shopTypesFor, pickShopStock, shopStockValue, shopActorData
@@ -13,6 +13,7 @@ import { moveToGeneratedFolder } from "./folders.mjs";
 import { SourcesConfigApp } from "./sources-app.mjs";
 import { gpToCredits } from "./currency.mjs";
 import { SpfApp } from "./app-base.mjs";
+import { jevKeySource } from "./jev.mjs";
 
 const TYPE_LABELS = {
   weapon: "SIMPLYSF2E.Shop.TypeWeapon",
@@ -63,6 +64,7 @@ export class ShopApp extends SpfApp {
   #input = { prompt: "", level: 3, size: "standard", rarity: "common" };
   #busy = false;
   #error = null;
+  #readinessOpen = false;
   /** Normalized shop concept of the current preview. */
   #concept = null;
   /** Stock rows: {key, name, type, level, rarity, credits, quantity, itemData}. */
@@ -72,7 +74,15 @@ export class ShopApp extends SpfApp {
   /** Picks dropped because the AI returned an ID that was not offered. */
   #dropped = 0;
 
+  _onRender(context, options) {
+    super._onRender?.(context, options);
+    this.element?.querySelector("details[data-readiness]")?.addEventListener("toggle", (event) => {
+      this.#readinessOpen = event.currentTarget.open;
+    });
+  }
+
   async _prepareContext() {
+    const equipmentPacks = getPacksFor("equipment");
     const authState = getProviderRequestConfig();
     const authWarningKey = getProviderAuthWarningKey(authState);
     return {
@@ -90,6 +100,11 @@ export class ShopApp extends SpfApp {
       connections: authState.connections ?? [],
       canSwitchConnection: (authState.connections?.length ?? 0) > 1,
       providerReady: !authWarningKey,
+      sourcesReady: equipmentPacks.length > 0,
+      sourcePackCount: equipmentPacks.length,
+      sourceMissing: equipmentPacks.length ? "" : describeMissingSources(["equipment"]),
+      jevSource: jevKeySource(),
+      readinessOpen: this.#readinessOpen,
       canAuthorizeApiKey: Boolean(
         authState.baseUrl && authState.hasConfiguredApiKey && !authState.apiKeyIsBound && !authState.apiKeyInsecure
       ),
