@@ -15,3 +15,4 @@ Appended by the coordinator when a batch lands on `next`; copied into the PR bod
 | BATCH-9 (2026-11-08) | none | none (P5 harness page pool) |
 | BATCH-10 (2026-11-08) | 14d.1-14d.7 | 2026-11-08-copy-sweep |
 | BATCH-11 (2026-11-08) | 14f.1-14f.5, 14g.1 | 2026-11-08-setup-wiring |
+| BATCH-12 (2026-11-08) | 14e.1-14e.14 | 2026-11-08-theme-system |
