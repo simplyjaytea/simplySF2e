@@ -502,7 +502,7 @@
 /* The cited warning orange is too dark for a lone glyph on the navy strip;
    lift it toward peach so the icon clears 3:1 non-text contrast. */
 .simplysf2e .spf-provider-attention .spf-provider-state {
-  color: color-mix(in srgb, var(--spf-warning) 55%, #ffd2b8);
+  color: color-mix(in srgb, var(--spf-warning) 55%, var(--spf-warning-fg));
 }
 
 .simplysf2e .spf-provider-warning {
