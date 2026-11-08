@@ -1,0 +1,6 @@
+# QA ids waiting on the next milestone PR
+
+Appended by the coordinator when a batch lands on `next`; copied into the PR body and cleared after the merge to `main` (PLAYBOOK §6 step 6).
+
+| Batch | QA ids | What is new id |
+| --- | --- | --- |

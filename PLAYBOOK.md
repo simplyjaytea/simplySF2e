@@ -10,7 +10,8 @@ The one file every agent (Claude, Codex, anything else) reads first. It holds wh
 2. `git log --oneline -10` and `git status`. Git is authoritative for branch state, not any file.
 3. Baseline: run the all-tests command in §4.
 4. If §1 lists a review in flight, check whether its PR merged mid-review. If it did, ship fixes as a **new** PR.
-5. End every session with the tree clean or committed on a named branch, never with uncommitted work on `main`.
+5. End every session with the tree clean or committed on a named branch, never with uncommitted work on `main` or `next`.
+6. **Release policy (JT, 2026-11-08):** nothing merges to `main` per batch. Reviewed batches land on the local integration branch **`next`**; `main` gets one PR when a build is worth live-testing, or when JT asks. See §3.6 and §6.
 
 ## 1. Where we are (rewrite each session)
 
@@ -18,7 +19,7 @@ The one file every agent (Claude, Codex, anything else) reads first. It holds wh
 
 **Shipped in v0.1.15 (#81):** UI polish (`docs/ui-plan.md` items 1-10 + nits; visuals by an Opus subagent, wiring by OpenCode, contract `docs/ui-contract.md`); run deadline default 5 min; reroll runs the resolve decision (refuses unusable picks, keeps the slot's DC scale/damage type, targets the right slot); duplicate glossary drafts dropped; manual-priced runs with an unpriced total-only remainder read "at least"; benches pinned to sf2e 1.7.0 (`52dfeee`); model matrix `--local`; repo cleanup; README, `docs/beta-pass.md` (one ordered live pass, steps 1-19). Earlier: v0.1.13 (#80, the big feature batch) and v0.1.14 (#79, herdr workflow).
 
-**Agents now (2026-11-08, JT):** Claude Code only, five herdr terminals: coordinator Fable 5.1 (`t1p`), lead engineer Sonnet 5.5 (`t1t`), three Haiku 5.5 workers (`t9`, `t1q`, `t1s`). UI/UX visuals go to an Opus subagent of the coordinator with the repo skill `.claude/skills/ui-ux/`. Kimi and OpenCode are retired; §6 holds the process.
+**Agents now (2026-11-08, JT):** Claude Code only, five herdr terminals: coordinator Fable 5.1 (`t1p`), lead engineer Sonnet 5.5 (`t1t`), three Haiku 5.5 workers (`t9`, `t1q`, `t1s`). UI/UX visuals go to an Opus subagent of the coordinator with the repo skill `.claude/skills/ui-ux/`. Kimi and OpenCode are retired; §6 holds the process. Integration branch `next` = `main` + this process change (unreleased; PR #82 closed unmerged in favour of `next`).
 
 - **Next:** JT live-tests v0.1.14 on the beta manifest, then promotes to stable (Actions > Release, version `0.1.14`, channel `stable`, ref tag `v0.1.14`) and checks `releases/latest/download/module.json`. Further ability templates (grab, on-hit riders, burst) only after Area Blast and Aura are live-tested. M8/M9 in `docs/consumer-plan.md`.
 - **Waiting on JT:** live pass of v0.1.15 with `docs/beta-pass.md` (steps 1-19: rows 2.8-2.13, 12w.4/12w.7, 12t.*, 12ab.*, 13m.*, 12aa.*, 12ac.*, sf2e 1.7.0 checks) logged to `docs/live-log.md`; then the stable promotion; a hosted model-matrix run (`MATRIX_API_KEY`, `tools/model-matrix/config.example.json`) and a local one on JT's machine (`--local`, see `tools/model-matrix/README.md`)
@@ -50,7 +51,7 @@ Foundry VTT module `simplysf2e`. An AI generates Starfinder 2e NPCs/monsters, en
 3. **The in-module AI never emits a number or writes code.** It picks scale words and enum slugs; the module supplies values from tables, real documents or pre-written macro bodies.
 4. **Escape AI text before HTML** with `text.mjs` `esc`/`toHtml` (descriptions, actor notes, macro chat).
 5. **Fail closed.** Drop an unresolved pick with `console.warn`; never guess. Exceptions: a PC feat slot or a PC caster's spell list, where empty is worse than approximate. Skill completion may use labeled key-ability defaults; budgets, schedules and unsupported mechanics are never guessed.
-6. **Never push or merge to `main` directly.** Branch + PR. A merge to `main` auto-publishes a public **beta** release (beta-manifest installs update). Promoting to **stable** (every install) is a separate, deliberate Release dispatch.
+6. **Never push or merge to `main` directly.** Branch + PR. A merge to `main` auto-publishes a public **beta** release (beta-manifest installs update), so batches do **not** go to `main` one by one: they merge into the integration branch **`next`** (local, mirrored to `origin/next` as a backup; pushing a branch triggers no workflow). One PR `next` → `main` only when the coordinator judges the accumulated work worth a live test, or JT asks. Promoting to **stable** (every install) is a separate, deliberate Release dispatch.
 7. **Design choices go to JT first:** UX, scope, balance numbers, and anything this file does not already decide.
 
 ## 4. Commands
@@ -112,9 +113,9 @@ JT's standing rules (2026-11-08). Claude Code only. Five long-lived terminals in
 
 | Role | Terminal | Does |
 | --- | --- | --- |
-| Coordinator | Claude Code, Fable 5.1 (`t1p`) | Plans every task; fetches and cites sf2e source; creates worktrees; writes prompts; dispatches to the Haiku workers; reviews last (tier 3); reads CI and merges the PR; owns this file, CLAUDE.md and AGENTS.md. Writes code only when no worker fits. Never hands off release/workflow `.yml` reasoning. |
+| Coordinator | Claude Code, Fable 5.1 (`t1p`) | Plans every task; fetches and cites sf2e source; creates worktrees; writes prompts; dispatches to the Haiku workers; reviews last (tier 3); merges reviewed batches into `next`; decides when `next` is worth a PR to `main`, then reads CI and merges it; owns this file, CLAUDE.md and AGENTS.md. Writes code only when no worker fits. Never hands off release/workflow `.yml` reasoning. |
 | Planner (optional) | Opus `Plan` subagent of the coordinator | Second opinion on a large or risky plan; the coordinator still owns it. |
-| Lead engineer | Claude Code, Sonnet 5.5 (`t1t`) | Receives every finished worktree: reviews it (tier 2), sends findings back through the coordinator, integrates passed branches with `--no-ff`, reads the merged files, runs `tools/release-check.sh`, pushes, opens the one PR for the batch. Builds the hard pieces (schema-dependent work from cited source, concurrency, transport) when no Haiku fits. Never merges to `main`. |
+| Lead engineer | Claude Code, Sonnet 5.5 (`t1t`) | Receives every finished worktree: reviews it (tier 2), sends findings back through the coordinator, integrates passed branches with `--no-ff`, reads the merged files, runs `tools/release-check.sh`, hands the batch branch to the coordinator. At a milestone, pushes `next` and opens the PR to `main`. Builds the hard pieces (schema-dependent work from cited source, concurrency, transport) when no Haiku fits. Never merges to `main` or `next`. |
 | Workers (3) | Claude Code, Haiku 5.5 (`t9`, `t1q`, `t1s`) | **Most tasks go here:** mechanical edits, tests, sweeps, docs, bench runs, harness runs, tier-1 review of another worker's diff. One task per worker, one worktree each. |
 | UI/UX designer | Opus subagent of the coordinator (Agent tool, `model: opus`) | Templates, CSS, fixtures and screenshots for a UI item, in its own worktree, following `.claude/skills/ui-ux/SKILL.md`. A Haiku or Sonnet wires the app context per `docs/ui-contract.md`. |
 
@@ -130,11 +131,12 @@ JT's standing rules (2026-11-08). Claude Code only. Five long-lived terminals in
 
 **Lifecycle.**
 1. **Plan:** goal, stop condition, and the files each task may touch. Do every sf2e lookup now and keep the quoted lines for the prompts.
-2. **Split:** one task per worktree, no file overlap between parallel tasks. The coordinator creates each one: `git -C /root/simplySF2e worktree add /root/sf2e-wt/<ID> -b work/<ID> main`, then sets the git identity in it (§1). First time: `mkdir -p /root/sf2e-wt/prompts /root/sf2e-wt/reports`.
+2. **Split:** one task per worktree, no file overlap between parallel tasks. The coordinator creates each one: `git -C /root/simplySF2e worktree add /root/sf2e-wt/<ID> -b work/<ID> next`, then sets the git identity in it (§1). Work branches from `next`, not `main`. First time: `mkdir -p /root/sf2e-wt/prompts /root/sf2e-wt/reports`.
 3. **Dispatch:** a Haiku terminal by default, up to three tasks in parallel; Sonnet for hard or schema-dependent pieces; the Opus subagent for UI/UX visuals. Send independent tasks before waiting on any.
 4. **Review:** tier 1 by an idle Haiku, then the worktree goes to Sonnet for tier 2 (steps 4 and 5 are one Sonnet prompt per batch: review each branch, then integrate the ones that pass). A finding goes back to the same worker as a **new** commit, never an amend, and the fix climbs again from the tier that found it. Minor findings in coordinator-owned docs are fixed by the coordinator.
-5. **Integrate (Sonnet):** one branch from `main`, `git merge --no-ff` each passed branch, read the merged files, then run `bash tools/release-check.sh` (`--no-ui` only if no template/CSS changed and no GM-visible string changed). A batch of more than one branch gets the ladder again on the combined diff (tier 1 Haiku + tier 2 Sonnet, + 3 if sensitive).
-6. **PR (Sonnet) and merge (coordinator):** Sonnet pushes, opens **one** PR for the batch (each merge is a public beta release) with the QA ids JT must run live in the body, and reports the PR number. The coordinator reads the full diff, waits for `verify` and `Benches` on the current head, then merges. JT's results go into `docs/live-log.md`; a feature is live-verified only when it has a logged PASS there.
+5. **Integrate (Sonnet):** one batch branch from `next`, `git merge --no-ff` each passed branch, read the merged files, then run `bash tools/release-check.sh` (`--no-ui` only if no template/CSS changed and no GM-visible string changed). A batch of more than one branch gets the ladder again on the combined diff (tier 1 Haiku + tier 2 Sonnet, + 3 if sensitive).
+6. **Land on `next` (coordinator):** the coordinator reads the full batch diff, then `git -C /root/simplySF2e merge --no-ff work/<BATCH>` into `next` and `git push origin next` (backup only; no workflow fires). The batch's QA ids are appended to `docs/next-qa.md` so the eventual PR body can list them.
+   **Milestone PR to `main`:** when the coordinator judges `next` worth a live test (a feature set JT wants to try, a fix JT is waiting on, or JT asks), Sonnet runs `bash tools/release-check.sh` on `next` with the UI step, pushes, and opens **one** PR `next` → `main` whose body lists every QA id from `docs/next-qa.md`. The coordinator waits for `verify` and `Benches` on the current head, merges (one beta release), then clears `docs/next-qa.md`. JT's results go into `docs/live-log.md`; a feature is live-verified only when it has a logged PASS there.
 7. **Tidy:** `git worktree remove` each worktree and delete its local `work/<ID>` branch. JT's standing authority covers push, PR and merge only; anything else that writes to GitHub (deleting a remote branch, editing a release, labels) needs JT's OK.
 8. **Hand off:** rewrite §1; add lessons to §8.
 
@@ -162,9 +164,9 @@ Output: one finding per line `path:line: severity: problem. fix.` (blocker/major
 ```
 You are the lead engineer on simplySF2e. Read /root/simplySF2e/PLAYBOOK.md §3, §4, §6 and §8 first. Batch <BATCH>: branches <work/ID1, work/ID2, ...> in /root/sf2e-wt/<ID>/. Tier-1 reports: /root/sf2e-wt/reports/<ID>-T1.md.
 1. Tier-2 review each branch (git -C /root/sf2e-wt/<ID> diff <main-sha> HEAD): indirect callers, lost side effects, lost test coverage, schema shapes against the cited lines in the prompt, GM-visible wording. Write /root/sf2e-wt/reports/<ID>-T2.md each. A FAIL stops here: report and wait.
-2. Integrate: git -C /root/simplySF2e worktree add /root/sf2e-wt/<BATCH> -b work/<BATCH> main; set identity; git merge --no-ff each PASS branch; read every merged file; bash tools/release-check.sh (with the UI step if any template, CSS or GM-visible string changed).
-3. Push work/<BATCH>; gh pr create with a body listing each task, the QA ids JT must run live, and the What's new id. Do NOT merge the PR.
-Report: /root/sf2e-wt/reports/<BATCH>.md with PR number, head SHA, release-check result, per-branch verdicts. Then reply only: DONE <BATCH>.
+2. Integrate: git -C /root/simplySF2e worktree add /root/sf2e-wt/<BATCH> -b work/<BATCH> next; set identity; git merge --no-ff each PASS branch; read every merged file; bash tools/release-check.sh (with the UI step if any template, CSS or GM-visible string changed).
+3. Do NOT push, open a PR, or touch next/main. The coordinator lands the batch on next.
+Report: /root/sf2e-wt/reports/<BATCH>.md with head SHA, release-check result, per-branch verdicts, the QA ids for docs/next-qa.md. Then reply only: DONE <BATCH>.
 ```
 Tier 2 and tier 3 prompts state what the lower tiers already checked. They then look deeper: indirect callers (namespace imports, `module.api`, macro bodies as strings, Hooks), lost side effects, lost coverage of live code, and wording a GM will read.
 
