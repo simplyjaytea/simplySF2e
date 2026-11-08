@@ -129,6 +129,7 @@
       "JevCleared": "Jev key cleared.",
       "JevSaveFailed": "Could not save or test the Jev connection: {message}. Check its endpoint and key, then try again.",
       "SaveAuthorize": "Save & Authorize",
+      "FooterHint": "Save & Test saves the connection and sends one test request. Save & Authorize saves the connection and authorizes its key for this endpoint.",
       "SaveTest": "Save & Test",
       "Cancel": "Close",
       "Configure": "Configure AI provider",
@@ -148,7 +149,6 @@
       "MenuHint": "Connect an AI provider and generate a sample monster.",
       "Intro": "Connect an AI provider, then generate your first Starfinder 2e monster.",
       "ChooseProvider": "1. Choose a provider",
-      "ProviderGroupLabel": "AI providers",
       "Recommended": "Recommended",
       "LiveCheckPending": "Not yet tested",
       "ConnectLegend": "2. Connect",
@@ -187,7 +187,7 @@
       "JevTypeSafe": "Jev · TypeSafe",
       "Sources": "Compendium sources",
       "SystemOld": "Version {version} is older than {minimum}. Update the Starfinder 2e system.",
-      "SourcesMissing": "Missing: {categories}. Open Compendium Sources and enable a pack for each.",
+      "SourcesMissing": "Required compendium content is missing: {categories}. Enable a pack for each in Compendium Sources.",
       "DontShow": "Don't show this again at login",
       "OpenProvider": "Set Up AI Connection",
       "Recheck": "Check Again",
@@ -206,6 +206,10 @@
       "Disable": "Don't show for updates",
       "Earlier": "Earlier changes ({count})",
       "Note": {
+        "SetupWiring": {
+          "Title": "Clearer setup windows",
+          "Body": "The Welcome warning for missing compendium content has a Configure compendium sources button. AI Provider Setup explains Save & Test and Save & Authorize, shows when an API key or a Jev key is saved, and marks a rejected price field. The Item Forge prompt hint follows the item kind."
+        },
         "CopySweep": {
           "Title": "Clearer wording",
           "Body": "Window titles, buttons and empty-state hints use the same names. Empty Shop, Treasure and Item Forge windows name the button to press next. Mode tooltips say what each mode builds. Provider notes read Not yet tested, and a failed Welcome connect reads Connection failed."
@@ -765,6 +769,13 @@
       "ConceptLegend": "Item concept",
       "Prompt": "Describe the item",
       "PromptPlaceholder": "e.g. A scorched visor that shields the wearer's mind and lets them see in the dark...",
+      "Placeholder": {
+        "Wondrous": "Describe the item's effect, how it looks, and who carries or wears it.",
+        "Weapon": "Describe the weapon's form, its wear, and any feature that sets it apart, such as a scorch mark or a cracked grip.",
+        "Armor": "Describe the armor's material, its wear, and any module fitted to it, such as a salvaged shield module.",
+        "Augmentation": "Describe the implant: the body part it replaces or extends, and what it does for the wearer, such as a built-in scanner.",
+        "Crystal": "Describe the crystal: its color, how it behaves, and what it powers or does, such as humming near hot metal."
+      },
       "Level": "Item level",
       "Item": "Item",
       "Usage": "Usage",

@@ -80,17 +80,26 @@ function makeForm() {
   };
 }
 
+// A parent element with a slot for the "key is saved" hint: querySelector finds it, remove() clears it.
+function hintSlot() {
+  return {
+    hint: null,
+    querySelector(selector) { return selector === ".spf-key-saved" ? this.hint : null; }
+  };
+}
+
 function standardForm() {
   const form = makeForm();
   form.control("[name='activeConnection']", { value: "conn-1" });
   form.control("[name='jevSource']", { value: "openrouter" });
   form.control("[name='jevEndpoint']", { value: "" });
-  form.control("[name='jevApiKey']", { value: "" });
+  form.control("[name='jevApiKey']", { value: "", parentElement: hintSlot() });
   form.control("[name='clearJevApiKey']", { checked: false });
   form.control("[name='apiBaseUrl']", { value: providerState.baseUrl });
   form.control("[name='model']", { value: providerState.model });
   form.control("[name='connectionName']", { value: providerState.connectionName });
-  form.control("[name='apiKey']", { value: "" });
+  form.control("[name='apiKey']", { value: "", parentElement: hintSlot(), insertAdjacentHTML(position, html) { if (position === "afterend" && html.includes("spf-key-saved")) this.parentElement.hint = { remove() { this.owner.hint = null; }, owner: this.parentElement }; } });
+  form.control("[name='clearApiKey']", { checked: false });
   form.control("[name='inputPerM']", { value: "" });
   form.control("[name='outputPerM']", { value: "" });
   form.control("#spf-provider-model-list", { innerHTML: "" });
@@ -306,12 +315,19 @@ const newApp = (form) => {
   const app = newApp(form);
   await actions.loadModels.call(app, null, { querySelector: () => null });
   assert.equal(form.querySelector("[name='apiKey']").value, "", "the typed key was stored and the field is cleared");
-  assert.equal(form.querySelector("[name='apiKey']").placeholder, "SIMPLYSF2E.ProviderSetup.ApiKeySaved", "the field reads as a saved key");
+  assert.equal(form.querySelector("[name='apiKey']").placeholder, "", "a saved key leaves the placeholder empty; the hint carries the message");
   assert.equal(privacy.inserted.length, 1, "the clear-key box is added once");
   assert.equal(privacy.inserted[0][0], "beforebegin", "the box goes before the privacy note, as in the template");
   assert.match(privacy.inserted[0][1], /name="clearApiKey"/, "the box is the clear-key checkbox");
   assert.doesNotMatch(privacy.inserted[0][1], /checked/, "the box is unchecked");
   assert.equal(form.querySelector("[name='jevSource']").value, "typesafe", "the unsaved Jev source is intact");
+  const keyGroup = form.querySelector("[name='apiKey']").parentElement;
+  assert.ok(keyGroup.querySelector(".spf-key-saved"), "after storing a key the saved hint is present");
+  // Clear the stored key through the clear-key box and Load models again: hint gone, placeholder back.
+  form.querySelector("[name='clearApiKey']").checked = true;
+  await actions.loadModels.call(app, null, { querySelector: () => null });
+  assert.equal(keyGroup.querySelector(".spf-key-saved"), null, "after clearing the key the saved hint is removed");
+  assert.equal(form.querySelector("[name='apiKey']").placeholder, "SIMPLYSF2E.ProviderSetup.ApiKeyOptional", "and the placeholder is the no-key one");
 }
 
 // (g) Delete and switch with unsaved edits each ask with their own label.
@@ -351,6 +367,23 @@ const newApp = (form) => {
   confirmAnswer = true;
   await actions.createConnection.call(app, null, {});
   assert.equal(createCalls, 1, "Switch anyway: the connection is created");
+}
+
+// (h) A rejected manual price names its field, so the template can mark that input invalid and link the message.
+{
+  resetState();
+  const form = standardForm();
+  form.querySelector("[name='inputPerM']").value = "-1";
+  const app = newApp(form);
+  await actions.saveAndTest.call(app, null, { querySelector: () => null });
+  const context = await app._prepareContext();
+  assert.equal(context.priceErrorField, "input", "the input price is the invalid field");
+  assert.equal(context.priceError, "SIMPLYSF2E.ProviderSetup.PriceInputInvalid", "its message is in the context");
+  form.querySelector("[name='inputPerM']").value = "0.5";
+  form.querySelector("[name='outputPerM']").value = "-2";
+  await actions.saveAndTest.call(app, null, { querySelector: () => null });
+  const outputContext = await app._prepareContext();
+  assert.equal(outputContext.priceErrorField, "output", "a rejected output price names the output field");
 }
 
 console.log("provider-setup-app.test.mjs: ok");

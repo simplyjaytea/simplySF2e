@@ -92,6 +92,8 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
   #busy = false;
   #pricesOpen = false;
   #priceError = null;
+  /** Which manual price the last validation rejected: "input", "output" or null. */
+  #priceErrorField = null;
   #jevOpen = false;
 
   constructor(options = {}, onSaved = null) {
@@ -167,6 +169,7 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
       ...jev,
       pricesOpen: this.#priceError != null || this.#pricesOpen,
       priceError: this.#priceError,
+      priceErrorField: this.#priceErrorField,
       pricesSummary,
       jevOpen: jev.jevOnTypeSafe || jev.hasJevKey || this.#jevOpen,
       showLocalHint: LOCAL_PRESET_IDS.has(selected),
@@ -189,10 +192,9 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
     };
   }
 
-  static #jevPlaceholder(hasKey, source) {
-    return hasKey
-      ? game.i18n.localize("SIMPLYSF2E.ProviderSetup.JevKeySaved")
-      : game.i18n.format("SIMPLYSF2E.ProviderSetup.JevKeyPlaceholder", { source: JEV_SOURCES[source].label });
+  /** The Jev key placeholder is the same whether or not a key is saved; the saved state shows as a hint (JevKeySaved). */
+  static #jevPlaceholder(_hasKey, source) {
+    return game.i18n.format("SIMPLYSF2E.ProviderSetup.JevKeyPlaceholder", { source: JEV_SOURCES[source].label });
   }
 
   _onRender(context, options) {
@@ -436,12 +438,14 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
     };
     for (const input of Object.values(priceInputs)) input?.setCustomValidity?.("");
     this.#priceError = null;
+    this.#priceErrorField = null;
     const prices = { inputPerM: priceInputs.inputPerM?.value, outputPerM: priceInputs.outputPerM?.value };
     for (const field of ["inputPerM", "outputPerM"]) {
       // A number field blanks non-numeric text; validity.badInput still sees it.
       if (!parsePrice(prices[field]).error && !priceInputs[field]?.validity?.badInput) continue;
       const message = game.i18n.localize(`SIMPLYSF2E.ProviderSetup.Price${field === "inputPerM" ? "Input" : "Output"}Invalid`);
       this.#priceError = message;
+      this.#priceErrorField = field === "inputPerM" ? "input" : "output";
       priceInputs[field]?.closest?.("details")?.setAttribute?.("open", "");
       const errEl = priceInputs[field]?.closest?.("details")?.querySelector?.("[data-price-error]");
       if (errEl) { errEl.hidden = false; const span = errEl.querySelector("span"); if (span) span.textContent = message; }
@@ -521,12 +525,24 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
     if (key) ui.notifications.info(game.i18n.localize(key));
   }
 
+  /**
+   * The visible "key is saved" hint sits right after its key input, as the
+   * template renders it when hasApiKey / hasJevKey is true. Keep it in step
+   * with the stored key after an in-place update.
+   */
+  #syncSavedHint(input, saved, messageKey) {
+    const hint = input?.parentElement?.querySelector(".spf-key-saved");
+    if (saved && !hint) input?.insertAdjacentHTML?.("afterend", `<p class="spf-hint spf-key-saved">${esc(game.i18n.localize(messageKey))}</p>`);
+    else if (!saved && hint) hint.remove();
+  }
+
   #syncJevControls(hasKey) {
     const input = this.element.querySelector("[name='jevApiKey']");
     if (input) {
       input.value = "";
       input.placeholder = ProviderSetupApp.#jevPlaceholder(hasKey, normalizeJevSource(getJevRequestConfig().source));
     }
+    this.#syncSavedHint(input, hasKey, "SIMPLYSF2E.ProviderSetup.JevKeySaved");
     const clear = this.element.querySelector("[name='clearJevApiKey']");
     if (clear) clear.checked = false;
     const label = this.element.querySelector(".spf-jev-clear");
@@ -611,10 +627,11 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
     // The key field and the clear-key box follow hasApiKey, as provider-setup.hbs renders them.
     const keyInput = this.element?.querySelector("[name='apiKey']");
     if (keyInput) {
-      keyInput.placeholder = game.i18n.localize(state.hasConfiguredApiKey
-        ? "SIMPLYSF2E.ProviderSetup.ApiKeySaved" : "SIMPLYSF2E.ProviderSetup.ApiKeyOptional");
+      keyInput.placeholder = state.hasConfiguredApiKey ? "" : game.i18n.localize("SIMPLYSF2E.ProviderSetup.ApiKeyOptional");
       keyInput.value = "";
+      this.#syncSavedHint(keyInput, state.hasConfiguredApiKey, "SIMPLYSF2E.ProviderSetup.ApiKeySaved");
     }
+    this.#syncSavedHint(this.element?.querySelector("[name='jevApiKey']"), Boolean(getJevRequestConfig().apiKey), "SIMPLYSF2E.ProviderSetup.JevKeySaved");
     const clearBox = this.element?.querySelector(".spf-provider-clear-key");
     const privacy = this.element?.querySelector(".spf-provider-privacy");
     if (state.hasConfiguredApiKey && !clearBox) {

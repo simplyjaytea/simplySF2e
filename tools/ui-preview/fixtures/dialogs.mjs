@@ -56,6 +56,7 @@ function providerSetup(selected, patch = {}) {
     // Contract (docs/ui-contract.md, item 2): fold state and summaries.
     pricesOpen: false,
     priceError: null,
+    priceErrorField: null,
     pricesSummary: null,
     jevOpen: false,
     showLocalHint: ["ollama", "lmstudio", "custom"].includes(selected),
@@ -145,7 +146,8 @@ export default [
     context: providerSetup("deepseek", {
       connectionName: "DeepSeek", apiBaseUrl: "https://api.deepseek.com/v1", model: "deepseek-v4-flash",
       inputPerM: -2, outputPerM: 1.1, pricesOpen: true,
-      priceError: localize("SIMPLYSF2E.ProviderSetup.PriceInputInvalid")
+      priceError: localize("SIMPLYSF2E.ProviderSetup.PriceInputInvalid"),
+      priceErrorField: "input"
     })
   },
   {
@@ -161,7 +163,7 @@ export default [
       jevOnTypeSafe: true,
       jevOpen: true,
       jevEndpoint: "https://jev-proxy.example.com/v1/systemone",
-      jevKeyPlaceholder: localize("SIMPLYSF2E.ProviderSetup.JevKeySaved")
+      jevKeyPlaceholder: localize("SIMPLYSF2E.ProviderSetup.JevKeyPlaceholder", { source: "TypeSafe AI" })
     })
   },
   { id: "sources-default", app: "sources", height: 640, context: sources() },

@@ -61,7 +61,8 @@
     <legend>{{localize "SIMPLYSF2E.ProviderSetup.CredentialsLegend"}}</legend>
     <div class="form-group stacked">
       <label for="spf-provider-api-key">{{localize "SIMPLYSF2E.ProviderSetup.ApiKeyLabel"}}</label>
-      <input id="spf-provider-api-key" type="password" name="apiKey" value="" spellcheck="false" autocomplete="new-password" placeholder="{{#if hasApiKey}}{{localize 'SIMPLYSF2E.ProviderSetup.ApiKeySaved'}}{{else}}{{localize 'SIMPLYSF2E.ProviderSetup.ApiKeyOptional'}}{{/if}}">
+      <input id="spf-provider-api-key" type="password" name="apiKey" value="" spellcheck="false" autocomplete="new-password" placeholder="{{#unless hasApiKey}}{{localize 'SIMPLYSF2E.ProviderSetup.ApiKeyOptional'}}{{/unless}}">
+      {{#if hasApiKey}}<p class="spf-hint spf-key-saved">{{localize "SIMPLYSF2E.ProviderSetup.ApiKeySaved"}}</p>{{/if}}
       <p class="spf-hint">{{localize "SIMPLYSF2E.ProviderSetup.ApiKeyHint"}}</p>
     </div>
 
@@ -92,14 +93,14 @@
         <div class="spf-price-row">
           <label class="spf-price-field" for="spf-price-input">
             <span>{{localize "SIMPLYSF2E.ProviderSetup.PriceInput"}}</span>
-            <input id="spf-price-input" type="number" name="inputPerM" value="{{inputPerM}}" min="0" step="any" inputmode="decimal" placeholder="{{localize 'SIMPLYSF2E.ProviderSetup.PricesPlaceholder'}}">
+            <input id="spf-price-input" type="number" name="inputPerM" value="{{inputPerM}}" min="0" step="any" inputmode="decimal" placeholder="{{localize 'SIMPLYSF2E.ProviderSetup.PricesPlaceholder'}}"{{#if (eq priceErrorField "input")}} aria-invalid="true" aria-describedby="spf-price-error"{{/if}}>
           </label>
           <label class="spf-price-field" for="spf-price-output">
             <span>{{localize "SIMPLYSF2E.ProviderSetup.PriceOutput"}}</span>
-            <input id="spf-price-output" type="number" name="outputPerM" value="{{outputPerM}}" min="0" step="any" inputmode="decimal" placeholder="{{localize 'SIMPLYSF2E.ProviderSetup.PricesPlaceholder'}}">
+            <input id="spf-price-output" type="number" name="outputPerM" value="{{outputPerM}}" min="0" step="any" inputmode="decimal" placeholder="{{localize 'SIMPLYSF2E.ProviderSetup.PricesPlaceholder'}}"{{#if (eq priceErrorField "output")}} aria-invalid="true" aria-describedby="spf-price-error"{{/if}}>
           </label>
         </div>
-        <p class="spf-field-error" data-price-error role="alert" {{#unless priceError}}hidden{{/unless}}><i aria-hidden="true" class="fa-solid fa-circle-exclamation"></i> <span>{{priceError}}</span></p>
+        <p id="spf-price-error" class="spf-field-error" data-price-error role="alert" {{#unless priceError}}hidden{{/unless}}><i aria-hidden="true" class="fa-solid fa-circle-exclamation"></i> <span>{{priceError}}</span></p>
         <p class="spf-hint">{{localize "SIMPLYSF2E.ProviderSetup.PricesHint"}}</p>
       </div>
     </div>
@@ -131,6 +132,7 @@
         <label for="spf-jev-api-key">{{localize "SIMPLYSF2E.ProviderSetup.JevKeyLabel"}}</label>
         <div class="spf-model-picker">
           <input id="spf-jev-api-key" type="password" name="jevApiKey" value="" spellcheck="false" autocomplete="new-password" placeholder="{{jevKeyPlaceholder}}">
+          {{#if hasJevKey}}<p class="spf-hint spf-key-saved">{{localize "SIMPLYSF2E.ProviderSetup.JevKeySaved"}}</p>{{/if}}
           <button type="button" data-action="saveJevKey"><i aria-hidden="true" class="fa-solid fa-bolt"></i> {{localize "SIMPLYSF2E.ProviderSetup.SaveJevKey"}}</button>
           <button type="button" data-action="testJev"><i aria-hidden="true" class="fa-solid fa-signal"></i> {{localize "SIMPLYSF2E.ProviderSetup.TestJev"}}</button>
         </div>
@@ -156,4 +158,5 @@
       <i aria-hidden="true" class="fa-solid fa-xmark"></i> {{localize "SIMPLYSF2E.ProviderSetup.Cancel"}}
     </button>
   </footer>
+  <p class="spf-hint spf-footer-hint">{{localize "SIMPLYSF2E.ProviderSetup.FooterHint"}}</p>
 </div>

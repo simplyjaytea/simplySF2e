@@ -12,6 +12,7 @@ const providers = [
 
 function welcome(patch = {}) {
   return {
+    sourcesMissing: false,
     readinessWarning: "",
     providers: providers.map((provider) => ({ ...provider })),
     selectedProvider: "OpenRouter",
@@ -102,6 +103,7 @@ export default [
     id: "welcome-readiness-warning",
     app: "welcome",
     context: welcome({
+      sourcesMissing: true,
       readinessWarning: localize("SIMPLYSF2E.Welcome.SourcesMissing", { categories: "Spells" })
     })
   }

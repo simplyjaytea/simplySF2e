@@ -240,3 +240,8 @@
 .simplysf2e .spf-jev-endpoint[hidden] {
   display: none;
 }
+
+/* A price the validation rejected: the field's border takes the danger colour. */
+.simplysf2e .simplysf2e-provider-setup [aria-invalid="true"] {
+  border-color: var(--spf-danger-fg);
+}

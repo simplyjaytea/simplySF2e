@@ -206,3 +206,24 @@ Templates: `templates/itemforge.hbs`, `shop.hbs`, `treasure.hbs` (the status bar
 | `readinessOpen` (new) | boolean | Open state of the one-line disclosure; kept per window through a `toggle` listener in `_onRender`. | `false` |
 
 Scope note: these windows draw only from equipment packs, so readiness checks the equipment category alone. The Generator checks its creature categories.
+
+## U5 Item Forge: per-kind placeholder
+
+Template: `templates/itemforge.hbs` (the prompt textarea `placeholder`). Supply in: `ItemForgeApp._prepareContext()` (`scripts/itemforge-app.mjs`, `PROMPT_PLACEHOLDER_KEYS`).
+
+| Field | Type | Meaning | Example |
+| --- | --- | --- | --- |
+| `promptPlaceholder` (new) | localized string | The prompt hint for the selected kind tile: `SIMPLYSF2E.ItemForge.Placeholder.{Wondrous,Weapon,Armor,Augmentation,Crystal}`. Falls back to the generic `SIMPLYSF2E.ItemForge.PromptPlaceholder` for a kind without its own key (not reachable through the kind tiles). | "Describe the weapon's form, its wear, and any feature that sets it apart, such as a scorch mark or a cracked grip." |
+
+The kind tile action re-renders the window (`#onSelectKind`), so the placeholder follows the tile at once. The generic key stays in `lang/en.json` as the fallback.
+
+## U5 setup wiring (W4, W12, W13)
+
+Templates: `templates/welcome.hbs`, `templates/provider-setup.hbs`. Supply in: `WelcomeApp._prepareContext()` (`scripts/welcome-app.mjs`) and `ProviderSetupApp._prepareContext()` (`scripts/provider-setup-app.mjs`).
+
+| Field | Type | Meaning | Example (fixture) |
+| --- | --- | --- | --- |
+| `sourcesMissing` (new) | boolean | True when the readiness warning is the missing-compendium case (`issue === "sources"`). Renders the "Configure compendium sources" button (`data-action="openSources"`) inside the warning. | `welcome-readiness-warning`: `true`; `welcome-fresh`: `false` |
+| `priceErrorField` (new) | `"input"` \| `"output"` \| `null` | The manual price the last validation rejected. Marks that input `aria-invalid="true"` and points its `aria-describedby` at `#spf-price-error`. Reset at the start of each save. | `provider-setup-price-error`: `"input"`; others: `null` |
+
+Not new fields: the saved-key hints (W12) use the existing `hasApiKey` and `hasJevKey` booleans. The footer hint (W11) is static text.

@@ -2,12 +2,15 @@
   <p class="spf-hint spf-welcome-intro"><i class="fa-solid fa-satellite-dish" aria-hidden="true"></i> {{localize "SIMPLYSF2E.Welcome.Intro"}}</p>
 
   {{#if readinessWarning}}
-    <div class="notification warning spf-welcome-readiness" role="alert"><i aria-hidden="true" class="fa-solid fa-triangle-exclamation"></i> {{readinessWarning}}</div>
+    <div class="notification warning spf-welcome-readiness" role="alert">
+      <i aria-hidden="true" class="fa-solid fa-triangle-exclamation"></i> {{readinessWarning}}
+      {{#if sourcesMissing}}<p><button type="button" class="spf-secondary" data-action="openSources"><i aria-hidden="true" class="fa-solid fa-book-atlas"></i> {{localize "SIMPLYSF2E.Generator.ConfigureSources"}}</button></p>{{/if}}
+    </div>
   {{/if}}
 
   <fieldset class="spf-card spf-welcome-section">
-    <legend>{{localize "SIMPLYSF2E.Welcome.ChooseProvider"}}</legend>
-    <div class="spf-welcome-providers" role="group" aria-label="{{localize 'SIMPLYSF2E.Welcome.ProviderGroupLabel'}}">
+    <legend id="spf-welcome-choose-provider">{{localize "SIMPLYSF2E.Welcome.ChooseProvider"}}</legend>
+    <div class="spf-welcome-providers" role="group" aria-labelledby="spf-welcome-choose-provider">
       {{#each providers}}
         <button type="button" data-action="chooseProvider" data-provider="{{this.id}}" class="spf-welcome-provider {{#if this.selected}}spf-welcome-provider-active{{/if}}" aria-pressed="{{#if this.selected}}true{{else}}false{{/if}}" {{#if ../connecting}}disabled{{/if}}>
           <i aria-hidden="true" class="fa-solid {{this.icon}}"></i>
