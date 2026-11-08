@@ -20,11 +20,11 @@ const FORGE_STEPS = [
 ];
 
 const PROMPT_PLACEHOLDERS = {
-  wondrous: "Describe the item's effect, how it looks, and who carries or wears it.",
-  weapon: "Describe the weapon's form, its wear, and any feature that sets it apart, such as a scorch mark or a cracked grip.",
-  armor: "Describe the armor's material, its wear, and any module fitted to it, such as a salvaged shield module.",
-  augmentation: "Describe the implant: the body part it replaces or extends, and what it does for the wearer, such as a built-in scanner.",
-  crystal: "Describe the crystal: its color, how it behaves, and what it powers or does, such as humming near hot metal."
+  wondrous: localize("SIMPLYSF2E.ItemForge.Placeholder.Wondrous"),
+  weapon: localize("SIMPLYSF2E.ItemForge.Placeholder.Weapon"),
+  armor: localize("SIMPLYSF2E.ItemForge.Placeholder.Armor"),
+  augmentation: localize("SIMPLYSF2E.ItemForge.Placeholder.Augmentation"),
+  crystal: localize("SIMPLYSF2E.ItemForge.Placeholder.Crystal")
 };
 
 export function itemforgeContext(kind, patch = {}) {
