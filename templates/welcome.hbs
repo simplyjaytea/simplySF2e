@@ -82,8 +82,8 @@
     </div>
   {{/if}}
 
-  <details class="spf-card spf-welcome-advanced" {{#if advancedOpen}}open{{/if}}>
-    <summary><span>{{localize "SIMPLYSF2E.Welcome.Advanced"}}</span> <small>{{localize "SIMPLYSF2E.Welcome.AdvancedSummary"}}</small></summary>
+  <details class="spf-card spf-disclosure spf-welcome-advanced" {{#if advancedOpen}}open{{/if}}>
+    <summary><span class="spf-disclosure-label">{{localize "SIMPLYSF2E.Welcome.Advanced"}}</span> <small>{{localize "SIMPLYSF2E.Welcome.AdvancedSummary"}}</small></summary>
     <div class="spf-welcome-advanced-body">
       <h3>{{localize "SIMPLYSF2E.Welcome.OtherConnections"}}</h3>
       <div class="spf-welcome-advanced-buttons" role="group" aria-label="{{localize 'SIMPLYSF2E.Welcome.OtherConnections'}}">

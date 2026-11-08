@@ -806,3 +806,14 @@ Generate a level 7 NPC with a limited cone breath (name "Frost Breath", cold), a
 | 14b.5 | Create a shop with ten or more stock rows. | Rows are compact; the remove buttons are small. Needs the U2-SHELL tokens. | Shop, Treasure | | |
 | 14b.6 | Create a hoard. | The budget line is in the body font. The per-character line reads about N credits per character (count). | Treasure | | |
 | 14b.7 | Open Item Forge at narrow width. | The five kinds fill two rows: three on top, two below, both spanning the width, with no empty cell. | Item Forge | | |
+
+## 14c. U2 setup windows (audit setup-windows #8, #18, #20, #21, #23)
+
+| # | Step | Expected | Where to look | Result | Evidence |
+|---|------|----------|---------------|--------|----------|
+| 14c.1 | Open AI Provider Setup. Read the connection block at the top. | "Saved connections" is a framed group with a legend. Its select is labelled "Active connection". The privacy line under the API key is a hint line with a shield icon, not a boxed notice. | Provider Setup | | |
+| 14c.2 | Open AI Provider Setup with two or more saved connections. Look at the trash (Delete connection) button. | The trash button is red (the shared destructive style) and sits after the + button. With one connection it is disabled. | Provider Setup | | |
+| 14c.3 | Open Compendium Sources. Look at the button row under the list. | "Reset to defaults" is red and sits at the far right of the row, after Save. | Compendium Sources | | |
+| 14c.4 | Open Compendium Sources in a window narrower than 520 px. Read a pack row. | The package id (monospace) sits on its own line under the pack title, left-aligned. | Compendium Sources | | |
+| 14c.5 | Open Compendium Sources and What's new. Read the intro sentence under the title. | The sentence is body colour. Only its icon is cyan. | Compendium Sources, What's new | | |
+| 14c.6 | Open Welcome. Look at the "Advanced" row. | It shows a chevron, opens and closes on click, and its right-hand summary stays on the same line. | Welcome | | |
