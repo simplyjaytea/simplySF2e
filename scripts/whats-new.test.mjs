@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { RELEASE_NOTES, unseenNotes, firstRunSeenIds, initialSeenIds, markSeen, manualNotes, shouldAutoOpenWhatsNew } from "./whats-new.mjs";
+import { RELEASE_NOTES, unseenNotes, firstRunSeenIds, initialSeenIds, markSeen, manualNotes, shouldAutoOpenWhatsNew, whatsNewView } from "./whats-new.mjs";
 
 const notes = [{ id: "c" }, { id: "b" }, { id: "a" }];
 
@@ -45,5 +45,20 @@ for (const n of RELEASE_NOTES) {
 assert.deepEqual(initialSeenIds(notes, { welcomeOpening: true }), firstRunSeenIds(notes));
 assert.deepEqual(initialSeenIds(notes, { welcomeOpening: false }), []);
 assert.equal(unseenNotes(notes, initialSeenIds(notes)).length, notes.length);
+
+// The window's view (WhatsNewApp itself needs Foundry globals, so its constructor and
+// showManual() both call this pure helper, and the helper is what is tested here).
+{
+  const auto = whatsNewView([{ id: "x" }]);
+  assert.deepEqual(auto, { manual: false, notes: [{ id: "x" }] }, "an array is the automatic view");
+  assert.deepEqual(whatsNewView([]), { manual: false, notes: [] }, "an empty unseen list stays automatic");
+  const manual = whatsNewView(null);
+  assert.equal(manual.manual, true, "no array is the manual view");
+  assert.deepEqual(manual.notes, manualNotes(RELEASE_NOTES), "the manual view holds the capped newest notes");
+  assert.deepEqual(whatsNewView(undefined), manual, "omitted notes are a manual open");
+  // showManual() after an automatic open yields the same view as a fresh manual open.
+  assert.deepEqual(whatsNewView(null), whatsNewView(undefined));
+  assert.notDeepEqual(auto.notes, manual.notes, "the two views differ, so a reused window must switch");
+}
 
 console.log("whats-new tests passed");

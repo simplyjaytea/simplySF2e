@@ -71,6 +71,8 @@ function openWelcome() {
 function openWhatsNew(notes = null) {
   if (!canOpenApps()) return null;
   const live = foundry.applications.instances?.get?.(WhatsNewApp.DEFAULT_OPTIONS.id);
+  // A manual open on a window already on screen switches it to the manual view.
+  if (live && notes === null) live.showManual();
   whatsNewApp = live ?? new WhatsNewApp({}, notes);
   whatsNewApp.render(true);
   return whatsNewApp;
