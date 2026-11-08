@@ -206,6 +206,10 @@
       "Disable": "Don't show for updates",
       "Earlier": "Earlier changes ({count})",
       "Note": {
+        "CopySweep": {
+          "Title": "Clearer wording",
+          "Body": "Window titles, buttons and empty-state hints use the same names. Empty Shop, Treasure and Item Forge windows and their warnings name the Generate button to press next. Mode tooltips say what each mode builds. Provider notes read Not yet tested, and a failed Welcome connect reads Connection failed."
+        },
         "ShellConsistency": {
           "Title": "Tidier windows",
           "Body": "Discard, Delete and Reset are red and sit apart from the main action. Numbers line up in tables and the token report. Empty panels are more compact, and long model and connection names wrap instead of being cut off. Encounter members, review lists and the Forge, Shop and Treasure readiness row match the Generator's layout."

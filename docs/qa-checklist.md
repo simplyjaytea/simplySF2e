@@ -817,3 +817,15 @@ Generate a level 7 NPC with a limited cone breath (name "Frost Breath", cold), a
 | 14c.4 | Open Compendium Sources in a window narrower than 520 px. Read a pack row. | The package id (monospace) sits on its own line under the pack title, left-aligned. | Compendium Sources | | |
 | 14c.5 | Open Compendium Sources and What's new. Read the intro sentence under the title. | The sentence is body colour. Only its icon is cyan. | Compendium Sources, What's new | | |
 | 14c.6 | Open Welcome. Look at the "Advanced" row. | It shows a chevron, opens and closes on click, and its right-hand summary stays on the same line. | Welcome | | |
+
+## 14d. U3 copy sweep (docs/archive/ui-audit-2026-11-08/u3-copy-worksheet.md)
+
+| # | Step | Expected | Where to look | Result | Evidence |
+|---|------|----------|---------------|--------|----------|
+| 14d.1 | Open Generator. Read the mode tiles and hover each one. | Tile names read Monster, NPC, Encounter, Character, Reskin. Each tooltip says what that mode builds: one creature, one NPC, a group sized to the party, one playable character, or a copy with new fiction. Random button reads "Random creature: ignores the description and invents one at this level." | Generator | | |
+| 14d.2 | Open Generator and press Generate. Read the progress card while the AI is busy with no step message. | The fallback line reads "Waiting for the AI provider…". Expand the readiness row: its label reads "Compendium content". | Generator | | |
+| 14d.3 | Open Item Forge with no preview. Read the empty hint. Generate an item with no usable passive effects. | Empty hint: "Describe an item and press Generate…". The warning says "Press Generate another version for a mechanical one." The window title reads "SimplySF2e Item Forge". The button reads "Create item". | Item Forge | | |
+| 14d.4 | Open Shop with no preview. Read the empty hint. Remove every stock row, then read the warning. | Empty hint names Generate shop. The warning reads "Press Generate another shop to restock." Title reads "SimplySF2e Shop". | Shop | | |
+| 14d.5 | Open Treasure with no preview. Read the empty hint. Set a rarity no compendium item meets, then press Generate hoard. | Empty hint names Generate hoard. The error names Rarest item and Compendium Sources. Title reads "SimplySF2e Treasure". | Treasure | | |
+| 14d.6 | Open Manage Presets with no custom presets. Read the empty state and the footer. | Empty state: "Press New preset to create one, or Import to paste exported preset JSON." Buttons read "New preset" and "Export all". Title reads "Manage custom presets". | Manage Presets | | |
+| 14d.7 | Open Welcome. Read the Google note, the Advanced block, then press Connect with a key that is not authorized. | The Google note reads "Not yet tested". The Advanced block has a "Fast picks" heading and the labels "LM Studio" and "Jev · TypeSafe". A failed connect shows the title "Connection failed". | Welcome | | |
