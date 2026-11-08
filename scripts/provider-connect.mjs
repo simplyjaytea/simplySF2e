@@ -51,21 +51,58 @@ export async function restoreProviderConnection(
   return restoredBinding;
 }
 
-const DIRTY_FIELDS = Object.freeze(["connectionName", "apiBaseUrl", "model", "apiKey"]);
+// Every unsaved edit Provider Setup holds for the connection being left. The
+// clear-key checkbox and the two manual prices persist only on Save, so they
+// count as edits too.
+const DIRTY_FIELDS = Object.freeze([
+  "connectionName", "apiBaseUrl", "model", "apiKey", "clearApiKey", "inputPerM", "outputPerM"
+]);
+
+/** A manual price as a comparable value: a number, or null when unset. "0.27" equals 0.27. */
+export function priceKey(value) {
+  const text = String(value ?? "").trim();
+  if (!text) return null;
+  const n = Number(text);
+  return Number.isFinite(n) ? n : text;
+}
 
 /**
  * Form fields that differ from a saved connection, in DIRTY_FIELDS order.
- * Values are trimmed and an undefined value counts as "". The API key field
+ * Text values are trimmed and an undefined value counts as "". The API key field
  * never shows the stored secret, so a blank key means "keep it" and is not a
- * change; a typed key is compared only as changed or not. Other form keys are ignored.
+ * change; a typed key is compared only as changed or not. clearApiKey is dirty
+ * when checked (a boolean). Prices compare as numbers (priceKey). Other form keys are ignored.
  */
 export function connectionFormDirty(saved = {}, form = {}) {
   const text = (value) => String(value ?? "").trim();
   return DIRTY_FIELDS.filter((field) => {
+    if (field === "clearApiKey") return form?.clearApiKey === true;
+    if (field === "inputPerM" || field === "outputPerM") return priceKey(form?.[field]) !== priceKey(saved?.[field]);
     const next = text(form?.[field]);
     if (field === "apiKey") return next !== "" && next !== text(saved?.apiKey);
     return next !== text(saved?.[field]);
   });
+}
+
+/** The form side of connectionFormDirty: each DIRTY_FIELDS entry read through `read(name)`. */
+export function connectionFormValues(read) {
+  return Object.fromEntries(DIRTY_FIELDS.map((field) => [field, read(field)]));
+}
+
+/**
+ * The saved side of connectionFormDirty, from a snapshotProviderConnection()
+ * record (SETTINGS keys) and the connection's name and manual prices. The URL
+ * is normalised the way the form shows it, so a stored trailing slash is not an edit.
+ */
+export function savedConnectionForDirty(snapshot = {}, { connectionName = "", prices = {} } = {}) {
+  return {
+    connectionName,
+    apiBaseUrl: normalizeApiBaseUrl(snapshot?.[SETTINGS.apiBaseUrl]),
+    model: snapshot?.[SETTINGS.model],
+    apiKey: snapshot?.[SETTINGS.apiKey],
+    inputPerM: prices?.inputPerM,
+    outputPerM: prices?.outputPerM
+  };
 }
 
 /** Save and authorize one exact provider route for Provider Setup and Welcome. */

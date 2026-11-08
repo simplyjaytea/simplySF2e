@@ -3,7 +3,9 @@ import {
   ensureProviderBank, getActiveProviderPrices, getJevRequestConfig, getProviderAuthWarningKey, getProviderRequestConfig,
   normalizeApiBaseUrl, selectProviderConnection, setActiveProviderPrices
 } from "./settings.mjs";
-import { connectionFormDirty, saveProviderConnection, snapshotProviderConnection } from "./provider-connect.mjs";
+import {
+  connectionFormDirty, connectionFormValues, saveProviderConnection, savedConnectionForDirty, snapshotProviderConnection
+} from "./provider-connect.mjs";
 import { listProviderModels, testProviderConnection } from "./ai.mjs";
 import {
   JEV_SOURCES, TYPESAFE_JEV_ENDPOINT, normalizeJevSource, normalizeTypeSafeEndpoint, testJevConnection
@@ -27,7 +29,10 @@ const UNSAVED_FIELD_LABELS = Object.freeze({
   connectionName: "SIMPLYSF2E.ProviderSetup.ConnectionName",
   apiBaseUrl: "SIMPLYSF2E.Settings.ApiBaseUrl.Name",
   model: "SIMPLYSF2E.Settings.Model.Name",
-  apiKey: "SIMPLYSF2E.Settings.ApiKey.Name"
+  apiKey: "SIMPLYSF2E.Settings.ApiKey.Name",
+  clearApiKey: "SIMPLYSF2E.ProviderSetup.ClearApiKey",
+  inputPerM: "SIMPLYSF2E.ProviderSetup.PriceInput",
+  outputPerM: "SIMPLYSF2E.ProviderSetup.PriceOutput"
 });
 
 /** Presets that talk to a server the GM runs, so the CORS / OLLAMA_ORIGINS hint applies. */
@@ -264,20 +269,13 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
   #dirtyFields() {
     const state = getProviderRequestConfig();
     const snapshot = snapshotProviderConnection();
-    const field = (name) => this.element?.querySelector(`[name='${name}']`)?.value;
+    const control = (name) => this.element?.querySelector(`[name='${name}']`);
+    const form = connectionFormValues((name) => (
+      name === "clearApiKey" ? Boolean(control(name)?.checked) : control(name)?.value
+    ));
     return connectionFormDirty(
-      {
-        connectionName: state.connectionName,
-        apiBaseUrl: snapshot[SETTINGS.apiBaseUrl],
-        model: snapshot[SETTINGS.model],
-        apiKey: snapshot[SETTINGS.apiKey]
-      },
-      {
-        connectionName: field("connectionName"),
-        apiBaseUrl: field("apiBaseUrl"),
-        model: field("model"),
-        apiKey: field("apiKey")
-      }
+      savedConnectionForDirty(snapshot, { connectionName: state.connectionName, prices: getActiveProviderPrices() }),
+      form
     );
   }
 
@@ -305,6 +303,8 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
         if (select) select.value = current;
         return;
       }
+      // The dialog was open: a save or test may have started meanwhile.
+      if (this.#busy) return;
     }
     await selectProviderConnection(id);
     this.#selectedPreset = null;
