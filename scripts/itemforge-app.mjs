@@ -16,6 +16,18 @@ import { SourcesConfigApp } from "./sources-app.mjs";
 import { gpToCredits } from "./currency.mjs";
 import { SpfApp } from "./app-base.mjs";
 
+/* Localized label per equipment grade slug (EQUIPMENT_GRADES, runes.mjs). Literal
+ * keys so i18n-keys.test.mjs sees them as used. An unknown slug shows no grade. */
+const GRADE_LABEL_KEYS = {
+  commercial: "SIMPLYSF2E.ItemForge.GradeCommercial",
+  tactical: "SIMPLYSF2E.ItemForge.GradeTactical",
+  advanced: "SIMPLYSF2E.ItemForge.GradeAdvanced",
+  superior: "SIMPLYSF2E.ItemForge.GradeSuperior",
+  elite: "SIMPLYSF2E.ItemForge.GradeElite",
+  ultimate: "SIMPLYSF2E.ItemForge.GradeUltimate",
+  paragon: "SIMPLYSF2E.ItemForge.GradeParagon"
+};
+
 /**
  * The item forge: describe a wondrous magic item → AI concept constrained to
  * effect kinds this world has real rule exemplars for → preview → create a
@@ -164,13 +176,14 @@ export class ItemForgeApp extends SpfApp {
     const priceCredits = preview.priceCredits ?? gpToCredits(preview.priceGp);
     const priceText = `${priceCredits.toLocaleString()} credits`;
     const skipped = preview.skippedUpgrades ?? [];
+    const gradeKey = GRADE_LABEL_KEYS[preview.grade ?? data.system.grade ?? "commercial"];
     return {
       skippedNote: skipped.length ? game.i18n.format("SIMPLYSF2E.ItemForge.UpgradesSkipped", { upgrades: skipped.join(", ") }) : null,
       concept: { name: data.name, level: preview.level, description: this.#concept?.description ?? "" },
       traits: [data.system.traits?.rarity !== "common" ? data.system.traits?.rarity : null, ...(data.system.traits?.value ?? [])].filter(Boolean),
       price: priceText,
       runed: true,
-      grade: preview.grade ?? data.system.grade ?? "commercial",
+      gradeLabel: gradeKey ? game.i18n.localize(gradeKey) : null,
       upgrades: preview.upgrades ?? this.#concept?.upgrades ?? [],
       propertyRunes: this.#concept?.propertyRunes ?? []
     };

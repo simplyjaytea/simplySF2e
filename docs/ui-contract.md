@@ -169,8 +169,23 @@ Shared CSS: `input[type="search"]` now gets the module's console input styling (
 
 No new context. Nit 2 (Welcome provider note: shared `--spf-text-xs`, up to two balanced lines) and nit 4 (Manage Presets: hairline divider and `--spf-space-lg` gap before Delete) are CSS only. Nit 3 reorders the API-key warning in Generator, Item Forge, Shop and Treasure: message, then the **Authorize for this endpoint** button, then the endpoint as a muted detail line; the box keeps `notification warning spf-provider-warning" role="status"`.
 
+## UI bugs B — Item Forge grade label (T-UIBUG-B)
+
+Template: `templates/itemforge.hbs`. Supply in: `ItemForgeApp.#buildRunedPreviewContext()` (`scripts/itemforge-app.mjs`, `GRADE_LABEL_KEYS`).
+
+| Field | Type | Meaning | Example |
+| --- | --- | --- | --- |
+| `preview.gradeLabel` (new) | localized string or null | The item's equipment grade. Shown in the statline beside Price as "Grade {label}"; hidden when null (a grade slug with no label). | `"Advanced"` (from `SIMPLYSF2E.ItemForge.GradeAdvanced`) |
+
+Grade labels: `SIMPLYSF2E.ItemForge.Grade{Commercial,Tactical,Advanced,Superior,Elite,Ultimate,Paragon}`, keyed by the `EQUIPMENT_GRADES` slugs in `scripts/runes.mjs`. The label casing follows the published names (`Lock (Commercial)`, runes.mjs:57).
+`ItemForge.Grade` is now "Grade"; `ItemForge.RunesHeading` is now "Upgrades" (forge preview heading only). The Upgrades list holds upgrades, or property runes when there are no upgrades.
+`ItemForge.ItemGradeUpgradesHeading` is "Grade and upgrades": the bold heading of the created item's description (`scripts/item-builder.mjs`, the "Grade: {label}; Installed Upgrades: …" paragraph). It keeps the old item text, apart from the sentence case.
+
+Treasure (no new context): the footer Reroll and its `reroll` action are removed (`Treasure.Reroll` deleted); the party hint sits inside the Party size field.
+
 ## Removed context fields (all items)
 
+- `preview.grade` (Item Forge runed preview; the slug, replaced by `gradeLabel`, UI bugs B).
 - `encounterPreview.members[].statline` (item 9).
 - Strike attack/damage rows inside `reskinRelevel.rows` (item 7; they move to `reskinRelevel.strikes`).
 - `characterReview.skills.warnings` / `.loadoutWarnings` as plain strings (item 1; now `{title, detail}`).

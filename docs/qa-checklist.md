@@ -156,19 +156,19 @@ Open the Forge from the Items tab **Item Forge** button. Pick the **Item type**,
 
 | # | Step | Expected | Where to look | Result | Evidence |
 |---|------|----------|---------------|--------|----------|
-| 6d.1 | Item type **Weapon (upgrades)**, level 8. Prompt: "a rifle that sears with flame". **Generate**. | "Grade & Upgrades" section shows **Equipment Grade:** (commercial, tactical, advanced, superior, elite, ultimate or paragon) and an upgrade if one fits; price in credits; the base is a real `sf2e.equipment` weapon. | Forge preview | | |
+| 6d.1 | Item type **Weapon (upgrades)**, level 8. Prompt: "a rifle that sears with flame". **Generate**. | The statline reads "Price … credits" then "Grade" with one label (commercial, tactical or advanced at level 8). The **Upgrades** section lists an upgrade if one fits. The base is a real `sf2e.equipment` weapon. | Forge preview | | |
 | 6d.2 | **Create Item**; open the sheet. | `system.grade` equals the previewed grade. Name has no invented "+1 striking" prefix. | Item sheet | | |
 | 6d.3 | Check upgrades. | Legacy potency/striking/property runes are zero or empty. A previewed upgrade appears **installed** on the weapon as an embedded upgrade module (`system.subitems`). | Item sheet upgrades area | | |
 | 6d.4 | Price. | In credits; compare to the preview estimate (the sheet's prepared value is authoritative; record both). | Item sheet | | |
 | 6d.5 | Embed on a character and make a Strike. | Strike appears with native attack/damage; no console errors. | Strikes, chat | | |
 | 6d.6 | Repeat at levels 3, 13 and 18. | Grade rises with level; still priced in credits. If nothing fits, a clear message appears (e.g. "No … items were found in this world's compendiums…"). | Forge | | |
-| 6d.7 | Item type **Weapon (upgrades)**, level 8. **Generate** a projectile weapon (prompt: "a heavy projectile rifle"), then a laser weapon (prompt: "a laser rifle") at the same level. **Create Item** on the projectile one. | Projectile preview's "Grade & Upgrades" lists an **Impact Enhancer** or **Arcane Adapter** upgrade when one fits. The laser preview lists neither. On the created projectile weapon the upgrade is installed (`system.subitems`). | Forge preview, item sheet | | |
+| 6d.7 | Item type **Weapon (upgrades)**, level 8. **Generate** a projectile weapon (prompt: "a heavy projectile rifle"), then a laser weapon (prompt: "a laser rifle") at the same level. **Create Item** on the projectile one. | Projectile preview's **Upgrades** section lists an **Impact Enhancer** or **Arcane Adapter** upgrade when one fits. The laser preview lists neither. On the created projectile weapon the upgrade is installed (`system.subitems`). | Forge preview, item sheet | | |
 
 ### 6e. Armor with grade (no upgrade)
 
 | # | Step | Expected | Where to look | Result | Evidence |
 |---|------|----------|---------------|--------|----------|
-| 6e.1 | Item type **Armor (upgrades)**, level 8. Prompt: "light armor that shrugs off kinetic hits". **Generate**. | **Equipment Grade:** shown; **no upgrade listed** (armor upgrade slot counts are uncited and on hiatus); price in credits. | Forge preview | | |
+| 6e.1 | Item type **Armor (upgrades)**, level 8. Prompt: "light armor that shrugs off kinetic hits". **Generate**. | Statline shows "Price … credits" then **Grade** with one label (commercial, tactical, advanced, superior, elite, ultimate or paragon); **no upgrade listed** under Upgrades (armor upgrade slot counts are uncited and on hiatus). | Forge preview | | |
 | 6e.2 | **Create Item**; open the sheet. | `system.grade` set; no installed subitems; legacy runes zeroed; the base's analog/tech classification preserved. | Item sheet | | |
 | 6e.3 | Embed on a character and equip. | AC reflects the armor; no errors. | Character sheet | | |
 
@@ -427,6 +427,7 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 | 12l.1 | Forge a wondrous item, then a weapon. | Both previews show price in credits (no gp). | Forge preview | | |
 | 12l.2 | Open the Item Forge. | A "Compendium Content" row sits under the provider row with a gear that opens Compendium Sources; Generate stands alone in its row. | Item Forge | | |
 | 12l.3 | Generate an item, then look at the primary button. | It still reads **Generate**, not Regenerate; pressing it again makes a new version. | Item Forge | | |
+| 12l.4 | Forge a weapon or armor at item level 8, then Generate until the preview grade is Advanced (the AI picks among the offered grades: at level 8 a weapon offers commercial, tactical, advanced; armor the same). Look at the statline and the Upgrades list. | The statline reads "Price … credits" then "Grade Advanced". The Upgrades list has no grade bullet. Grade source: `GRADE_LEVELS` (runes.mjs:70 weapon `advanced: 4`, runes.mjs:74 armor `advanced: 8`); `getGradeTiers` (runes.mjs:300) offers each grade whose level is at most the item level. | Forge preview | | |
 
 ## 12m. U6 Narrow windows
 

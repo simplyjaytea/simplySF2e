@@ -116,7 +116,7 @@
   {{/if}}
 
   {{#if preview}}
-  <section class="spf-preview spf-card">
+  <section class="spf-preview spf-card" aria-label="{{preview.concept.name}}">
     <header class="spf-statblock-header">
       <h2>{{preview.concept.name}}</h2>
       <span class="spf-level">{{localize "SIMPLYSF2E.ItemForge.Item"}} {{preview.concept.level}}</span>
@@ -128,20 +128,24 @@
     {{#if preview.runed}}
       <div class="spf-statline">
         <span><strong>{{localize "SIMPLYSF2E.ItemForge.Price"}}</strong> {{preview.price}}</span>
+        {{#if preview.gradeLabel}}<span><strong>{{localize "SIMPLYSF2E.ItemForge.Grade"}}</strong> {{preview.gradeLabel}}</span>{{/if}}
       </div>
 
-      <h3>{{localize "SIMPLYSF2E.ItemForge.RunesHeading"}}</h3>
-      <ul class="spf-list">
-        {{#if preview.grade}}<li><strong>{{localize "SIMPLYSF2E.ItemForge.Grade"}}</strong> {{preview.grade}}</li>{{/if}}
-        {{#each preview.upgrades}}
-          <li>{{this}}</li>
-        {{/each}}
-        {{#unless preview.upgrades}}
+      {{#if preview.upgrades}}
+        <h3>{{localize "SIMPLYSF2E.ItemForge.RunesHeading"}}</h3>
+        <ul class="spf-list">
+          {{#each preview.upgrades}}
+            <li>{{this}}</li>
+          {{/each}}
+        </ul>
+      {{else}}{{#if preview.propertyRunes}}
+        <h3>{{localize "SIMPLYSF2E.ItemForge.RunesHeading"}}</h3>
+        <ul class="spf-list">
           {{#each preview.propertyRunes}}
             <li>{{this}}</li>
           {{/each}}
-        {{/unless}}
-      </ul>
+        </ul>
+      {{/if}}{{/if}}
       {{#if preview.skippedNote}}
         <p class="notification warning" role="status">{{preview.skippedNote}}</p>
       {{/if}}
