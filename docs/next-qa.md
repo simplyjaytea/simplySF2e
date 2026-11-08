@@ -17,3 +17,4 @@ Appended by the coordinator when a batch lands on `next`; copied into the PR bod
 | BATCH-11 (2026-11-08) | 14f.1-14f.5, 14g.1 | 2026-11-08-setup-wiring |
 | BATCH-12 (2026-11-08) | 14e.1-14e.14 | 2026-11-08-theme-system |
 | BATCH-13 (2026-11-08) | 14h.1-14h.7 | 2026-11-08-progress-telemetry |
+| BATCH-14 (2026-11-08) | none | none (P4 stage 1: generator context builders in scripts/generator-context/) |
