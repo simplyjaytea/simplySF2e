@@ -779,3 +779,18 @@ Generate a level 7 NPC with a limited cone breath (name "Frost Breath", cold), a
 | --- | --- | --- | --- | --- | --- |
 | 12ae.1 | Provider Setup: change the Jev source or type a Jev endpoint, then press Load models. | The Jev field keeps the value you set; the model list fills in; nothing was reset. | Provider Setup | | |
 | 12ae.2 | Start a Generator run, then in Provider Setup pick another Saved connection. | The switch is refused with "A run is in progress. Wait for it to finish before switching connections."; the select shows the connection still in use. | Provider Setup, Generator | | |
+
+## 14a. Shell consistency, Generator (U2-GEN)
+
+| # | Step | Expected | Where to look | Result | Evidence |
+| --- | --- | --- | --- | --- | --- |
+| 14a.1 | Generator: a monster preview, then look at the footer. | Discard is red and sits at the far end of the row, apart from the primary action. | Generator | | |
+| 14a.2 | Generator: Encounter mode, preview an encounter. | Members are plain rows with a rule between them, not boxes inside the preview card. | Generator | | |
+| 14a.3 | Generator: Encounter mode at a wide window (720 px), Party level 5, with a party. | The party note sits beside the level stepper, in a wider column, not three narrow lines. | Generator | | |
+| 14a.4 | Generator: preview a monster with Module-built, Narrative-only and custom abilities. | The three tags share a neutral outline; each tag sits before the reroll button, as spell and feat rows do. | Generator | | |
+| 14a.5 | Generator: preview a monster with immunities, resistances and weaknesses. | Immunities, resistances and weaknesses each take the full width of the stat grid. | Generator | | |
+| 14a.6 | Generator: Reskin mode with a source creature; preview the reskin. | The source name reads "Based on <name>"; a read-aloud text is set off with a left rule. | Generator | | |
+| 14a.7 | Generator: Reskin mode with a dropped source; check the generate row and the re-level control. | The generate row sits clear of the text area; the re-level label sits inline with its stepper, as Level does in other modes. | Generator | | |
+| 14a.8 | Generator with no API key for a remote provider; then with a stored key that is not authorized for the current endpoint. | Both messages name AI Provider Setup and say "endpoint". | Generator | | |
+| 14a.9 | Welcome: press Connect with an empty key for a remote provider. | The same no-key message as the Generator, naming AI Provider Setup and no gear. | Welcome | | |
+| 14a.10 | Provider Setup: press Save with a stored key that is not authorized for the endpoint. | The same not-authorized message as the Generator, naming AI Provider Setup and no gear. | Provider Setup | | |

@@ -204,6 +204,10 @@
       "Disable": "Don't show for updates",
       "Earlier": "Earlier changes ({count})",
       "Note": {
+        "ShellConsistency": {
+          "Title": "Tidier windows",
+          "Body": "Discard, Delete and Reset are red and sit apart from the main action. Numbers line up in tables and the token report. Empty panels and status rows are shorter at narrow widths. Encounter members, review lists and the Forge, Shop and Treasure readiness row match the Generator's layout."
+        },
         "RunGuards": {
           "Title": "Fewer ways to lose work",
           "Body": "Create All is disabled when every encounter member is set to 0. If a created merchant or hoard cannot be verified and cannot be removed, the message names it and the draft is discarded so a retry does not make a duplicate. AI Provider Setup asks before switching, creating or deleting a connection with unsaved edits, keeps edits when loading models, and refuses to switch connections while a run is in progress."
@@ -399,8 +403,8 @@
       "CreatedPresentationFailed": "The character was created, but its sheet or review could not be displayed. Open it from the Actors directory; do not create it again.",
       "OpenCharacter": "Open character",
       "DismissReview": "Dismiss report",
-      "NoApiKey": "No API key is configured for this remote provider. Set one in Module Settings → SimplySF2e, or use a keyless local Ollama/LM Studio endpoint.",
-      "ApiKeyNotAuthorized": "Stored API key is not authorized for the current API Base URL and will not be sent. Use AI Provider Setup to authorize the stored key for this API Base URL.",
+      "NoApiKey": "No API key is saved for this remote provider. Add one in AI Provider Setup, or use a keyless local Ollama or LM Studio endpoint.",
+      "ApiKeyNotAuthorized": "The stored API key is not authorized for the current endpoint, so it will not be sent. Authorize it for this endpoint in AI Provider Setup.",
       "ApiKeyEndpoint": "Endpoint:",
       "AuthorizeApiKey": "Authorize for this endpoint",
       "ApiKeyAuthorized": "API key authorized for the current endpoint.",
@@ -430,6 +434,7 @@
       "ReskinDropHint": "Drag an NPC here from the Actors sidebar or a bestiary compendium.",
       "ReskinDropReplace": "Drop another NPC to replace it.",
       "ReskinSourceLevel": "Creature {level}",
+      "ReskinBasedOn": "Based on {name}",
       "ReskinNoSource": "Drop an NPC onto the Reskin panel first.",
       "ReskinNotNpc": "Only NPC creatures can be reskinned. Drop an NPC onto the Reskin panel instead.",
       "ReskinSourceGone": "The creature you dropped can no longer be found. Drop it again.",
