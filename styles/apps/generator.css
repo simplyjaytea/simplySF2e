@@ -307,6 +307,9 @@
 /* The level group keeps max-content width so its controls never squeeze;
    with the party fill it may wrap, so the fill drops to its own line. */
 .simplysf2e .spf-level-primary .form-group:has(.spf-party-fill) {
+  flex: 1 1 auto;
+  flex-direction: row;
+  align-items: center;
   flex-wrap: wrap;
   row-gap: var(--spf-space-xs);
   min-width: 0;
@@ -439,8 +442,9 @@
   font-size: var(--spf-text-xs);
   font-weight: bold;
   text-transform: uppercase;
-  background: var(--spf-success);
-  color: #fff;
+  background: none;
+  color: var(--spf-text);
+  border: 1px solid var(--spf-control-border);
   border-radius: var(--spf-radius-sm);
   padding: 0 0.3rem;
 }
@@ -476,6 +480,11 @@
   gap: var(--spf-space-xs) var(--spf-space-md);
 }
 
+/* Immunities, resistances and weaknesses span the grid, so they do not strand one line in a column. */
+.simplysf2e .spf-statgrid > .spf-statline:not(.spf-defenses) {
+  grid-column: 1 / -1;
+}
+
 /* --------------------------------------------------------------------------
    Encounter preview
    -------------------------------------------------------------------------- */
@@ -486,6 +495,16 @@
   display: flex;
   flex-direction: column;
   gap: var(--spf-space-md);
+}
+
+/* Members are plain rows separated by a rule, not cards inside the preview card. */
+.simplysf2e .spf-encounter-member {
+  padding: var(--spf-space-xs) 0;
+}
+
+.simplysf2e .spf-encounter-member + .spf-encounter-member {
+  border-top: 1px solid var(--spf-border);
+  padding-top: var(--spf-space-sm);
 }
 
 /* Member head: name + tag on the left, the count stepper pinned top-right
@@ -745,8 +764,9 @@
    differ from the preview or leave the GM Core range are marked. */
 .simplysf2e .spf-stat-check {
   margin-top: var(--spf-space-md);
-  padding: var(--spf-space-sm) var(--spf-space-md);
-  border: 1px solid var(--spf-border);
+  padding: var(--spf-space-sm) 0 var(--spf-space-sm) var(--spf-space-md);
+  border: 0;
+  border-top: 1px solid var(--spf-border);
   border-left: 3px solid var(--spf-success);
   border-radius: var(--spf-radius);
   font-size: var(--spf-text-sm);
@@ -908,11 +928,10 @@
 
 .simplysf2e .spf-review-actions {
   margin: 0 0 var(--spf-space-md);
-  padding: var(--spf-space-sm) var(--spf-space-md);
-  border: 1px solid color-mix(in srgb, var(--spf-amber) 45%, var(--spf-border));
+  padding: var(--spf-space-sm) 0 var(--spf-space-sm) var(--spf-space-md);
+  border: 0;
+  border-top: 1px solid var(--spf-border);
   border-left: 3px solid var(--spf-amber);
-  border-radius: var(--spf-radius);
-  background: color-mix(in srgb, var(--spf-amber) 7%, var(--spf-surface));
 }
 
 .simplysf2e .spf-review-actions h3 {
@@ -950,4 +969,15 @@
 
 .simplysf2e .spf-review-prompt {
   color: var(--spf-text);
+}
+
+/* Reskin: the read-aloud text is set off like a quotation; the mode's generate row keeps the field's spacing. */
+.simplysf2e .spf-read-aloud {
+  margin: var(--spf-space-xs) 0;
+  padding-left: var(--spf-space-md);
+  border-left: 3px solid var(--spf-border);
+}
+
+.simplysf2e .spf-mode-reskin .spf-generate-row {
+  margin-top: var(--spf-space-md);
 }
