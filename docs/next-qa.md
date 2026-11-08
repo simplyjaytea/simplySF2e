@@ -4,3 +4,4 @@ Appended by the coordinator when a batch lands on `next`; copied into the PR bod
 
 | Batch | QA ids | What is new id |
 | --- | --- | --- |
+| BATCH-1 (2026-11-08) | 5.12 | 2026-11-08-reskin-trample |

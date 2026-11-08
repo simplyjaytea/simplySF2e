@@ -32,7 +32,7 @@ test("a: prompt + total, no completion -> estimated, provider total kept", () =>
   assert.equal(u.prompt, 1_000_000, "the provider prompt is kept");
 });
 
-test("b: total only -> manual prices price nothing, partial", () => {
+test("b: total only -> nothing priced, none shape (partial false by design)", () => {
   const u = norm({ total_tokens: 1_500_000 });
   assert.equal(u.prompt, 0); assert.equal(u.completion, 0); assert.equal(u.total, 1_500_000);
   assert.equal(u.estimated, false, "total-only is exact, not estimated");
