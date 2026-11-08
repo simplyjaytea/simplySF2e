@@ -454,9 +454,7 @@
 
 .simplysf2e .spf-provider-name strong {
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
   color: var(--spf-text);
 }
 
@@ -473,12 +471,19 @@
   width: auto;
 }
 
+/* Names (model ids, connection, actor and item names) wrap, never an
+   ellipsis: .spf-wrap-name is the shared utility for window templates; the
+   status-bar model id gets it here (S11). Content width first, so a model
+   id that does not fit moves to its own line before it breaks. */
+.simplysf2e .spf-wrap-name,
 .simplysf2e .spf-provider-model {
-  flex: 1 1 6rem;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.simplysf2e .spf-provider-model {
+  flex: 1 1 auto;
   color: var(--spf-text-muted);
   font-family: var(--spf-font-mono);
 }
@@ -1254,6 +1259,17 @@
 
   .simplysf2e .spf-provider-name select {
     max-width: 9rem;
+  }
+
+  /* Last run takes its own line under the provider row, so the model id
+     keeps the width (S11). Not hidden: the run cost stays visible even
+     when the token report is collapsed. order only moves it below the
+     actions; it is not focusable, so tab order is unchanged. */
+  .simplysf2e .spf-last-run {
+    order: 1;
+    flex: 1 1 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
 
   .simplysf2e .spf-generate-row .spf-secondary {
