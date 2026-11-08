@@ -116,4 +116,20 @@ for (const kind of ["augmentation", "crystal"]) {
   assert.equal(prepared.showEmptyState, true, `${kind} uses the concept preview path`);
 }
 
+// The prompt placeholder follows the selected kind. Only the five tiles reach the
+// context (invalid kinds fail closed above), so the generic key is never used in play.
+const placeholderKeys = {
+  wondrous: "SIMPLYSF2E.ItemForge.Placeholder.Wondrous",
+  weapon: "SIMPLYSF2E.ItemForge.Placeholder.Weapon",
+  armor: "SIMPLYSF2E.ItemForge.Placeholder.Armor",
+  augmentation: "SIMPLYSF2E.ItemForge.Placeholder.Augmentation",
+  crystal: "SIMPLYSF2E.ItemForge.Placeholder.Crystal"
+};
+for (const [kind, key] of Object.entries(placeholderKeys)) {
+  await selectKind.call(app, null, { dataset: { kind } });
+  const context = await app._prepareContext();
+  assert.equal(context.promptPlaceholder, key, `the prompt placeholder follows ${kind}`);
+  assert.notEqual(context.promptPlaceholder, "SIMPLYSF2E.ItemForge.PromptPlaceholder", `${kind} has its own placeholder, not the generic one`);
+}
+
 console.log("itemforge-app.kindSelection.test.mjs: production kind selection and preservation passed");

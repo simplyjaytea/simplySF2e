@@ -765,6 +765,13 @@
       "ConceptLegend": "Item concept",
       "Prompt": "Describe the item",
       "PromptPlaceholder": "e.g. A scorched visor that shields the wearer's mind and lets them see in the dark...",
+      "Placeholder": {
+        "Wondrous": "Describe the item's effect, how it looks, and who carries or wears it.",
+        "Weapon": "Describe the weapon's form, its wear, and any feature that sets it apart, such as a scorch mark or a cracked grip.",
+        "Armor": "Describe the armor's material, its wear, and any module fitted to it, such as a salvaged shield module.",
+        "Augmentation": "Describe the implant: the body part it replaces or extends, and what it does for the wearer, such as a built-in scanner.",
+        "Crystal": "Describe the crystal: its color, how it behaves, and what it powers or does, such as humming near hot metal."
+      },
       "Level": "Item level",
       "Item": "Item",
       "Usage": "Usage",

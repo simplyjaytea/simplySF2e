@@ -19,6 +19,14 @@ const FORGE_STEPS = [
   ["assemble", localize("SIMPLYSF2E.ItemForge.ProgressAssemble")]
 ];
 
+const PROMPT_PLACEHOLDERS = {
+  wondrous: localize("SIMPLYSF2E.ItemForge.Placeholder.Wondrous"),
+  weapon: localize("SIMPLYSF2E.ItemForge.Placeholder.Weapon"),
+  armor: localize("SIMPLYSF2E.ItemForge.Placeholder.Armor"),
+  augmentation: localize("SIMPLYSF2E.ItemForge.Placeholder.Augmentation"),
+  crystal: localize("SIMPLYSF2E.ItemForge.Placeholder.Crystal")
+};
+
 export function itemforgeContext(kind, patch = {}) {
   const input = { prompt: "", level: 4, rarity: "common", kind, ...(patch.input ?? {}) };
   const { input: _ignored, ...rest } = patch;
@@ -33,6 +41,7 @@ export function itemforgeContext(kind, patch = {}) {
     minLevel: 1,
     maxLevel: 20,
     kinds: KINDS.map((k) => ({ ...k, selected: k.value === kind })),
+    promptPlaceholder: PROMPT_PLACEHOLDERS[kind] ?? "e.g. A scorched visor that shields the wearer's mind and lets them see in the dark...",
     rarities: RARITIES,
     unavailableNote: null,
     preview: null,

@@ -95,7 +95,7 @@
     <p id="spf-kind-hint" class="spf-kind-hint">{{#each kinds}}{{#if this.selected}}<strong>{{localize this.label}}:</strong> {{localize this.hint}}{{/if}}{{/each}}</p>
     <div class="form-group stacked">
       <label for="spf-itemforge-prompt">{{localize "SIMPLYSF2E.ItemForge.Prompt"}}</label>
-      <textarea id="spf-itemforge-prompt" name="prompt" rows="3" placeholder="{{localize 'SIMPLYSF2E.ItemForge.PromptPlaceholder'}}">{{input.prompt}}</textarea>
+      <textarea id="spf-itemforge-prompt" name="prompt" rows="3" placeholder="{{promptPlaceholder}}">{{input.prompt}}</textarea>
     </div>
     <div class="spf-row spf-itemforge-levelrow">
       <div class="form-group">

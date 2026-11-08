@@ -18,6 +18,16 @@ import { SpfApp } from "./app-base.mjs";
 import { getPacksFor, describeMissingSources } from "./compendium.mjs";
 import { jevKeySource } from "./jev.mjs";
 
+/* Prompt placeholder per kind tile. Literal keys so i18n-keys.test.mjs sees them as used;
+ * an unknown kind falls back to the generic ItemForge.PromptPlaceholder. */
+const PROMPT_PLACEHOLDER_KEYS = {
+  wondrous: "SIMPLYSF2E.ItemForge.Placeholder.Wondrous",
+  weapon: "SIMPLYSF2E.ItemForge.Placeholder.Weapon",
+  armor: "SIMPLYSF2E.ItemForge.Placeholder.Armor",
+  augmentation: "SIMPLYSF2E.ItemForge.Placeholder.Augmentation",
+  crystal: "SIMPLYSF2E.ItemForge.Placeholder.Crystal"
+};
+
 /* Localized label per equipment grade slug (EQUIPMENT_GRADES, runes.mjs). Literal
  * keys so i18n-keys.test.mjs sees them as used. An unknown slug shows no grade. */
 const GRADE_LABEL_KEYS = {
@@ -122,6 +132,7 @@ export class ItemForgeApp extends SpfApp {
         authState.baseUrl && authState.hasConfiguredApiKey && !authState.apiKeyIsBound && !authState.apiKeyInsecure
       ),
       model: authState.model,
+      promptPlaceholder: game.i18n.localize(PROMPT_PLACEHOLDER_KEYS[this.#input.kind] ?? "SIMPLYSF2E.ItemForge.PromptPlaceholder"),
       minLevel: MIN_ITEM_LEVEL,
       maxLevel: MAX_ITEM_LEVEL,
       kinds: [
