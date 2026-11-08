@@ -791,4 +791,6 @@ Generate a level 7 NPC with a limited cone breath (name "Frost Breath", cold), a
 | 14a.5 | Generator: preview a monster with immunities, resistances and weaknesses. | Immunities, resistances and weaknesses each take the full width of the stat grid. | Generator | | |
 | 14a.6 | Generator: Reskin mode with a source creature; preview the reskin. | The source name reads "Based on <name>"; a read-aloud text is set off with a left rule. | Generator | | |
 | 14a.7 | Generator: Reskin mode with a dropped source; check the generate row and the re-level control. | The generate row sits clear of the text area; the re-level label sits inline with its stepper, as Level does in other modes. | Generator | | |
-| 14a.8 | Generator with no API key for a remote provider; then with a stored key that is not authorized for the current endpoint. | Both messages name the gear button and AI Provider Setup, and say "endpoint". | Generator | | |
+| 14a.8 | Generator with no API key for a remote provider; then with a stored key that is not authorized for the current endpoint. | Both messages name AI Provider Setup and say "endpoint". | Generator | | |
+| 14a.9 | Welcome: press Connect with an empty key for a remote provider. | The same no-key message as the Generator, naming AI Provider Setup and no gear. | Welcome | | |
+| 14a.10 | Provider Setup: press Save with a stored key that is not authorized for the endpoint. | The same not-authorized message as the Generator, naming AI Provider Setup and no gear. | Provider Setup | | |
