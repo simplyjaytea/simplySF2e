@@ -1,8 +1,9 @@
 <div class="spf-window-body simplysf2e-provider-setup spf-hud">
   <p class="spf-hint">{{localize "SIMPLYSF2E.ProviderSetup.Intro"}}</p>
 
-  <div class="spf-connection-bank">
-    <label for="spf-active-connection">{{localize "SIMPLYSF2E.ProviderSetup.Connections"}}</label>
+  <fieldset class="spf-card spf-provider-section spf-connection-bank">
+    <legend>{{localize "SIMPLYSF2E.ProviderSetup.Connections"}}</legend>
+    <label for="spf-active-connection">{{localize "SIMPLYSF2E.ProviderSetup.ActiveConnection"}}</label>
     <div class="spf-connection-row">
       <select id="spf-active-connection" name="activeConnection">
         {{#each connections}}
@@ -12,12 +13,12 @@
       <button type="button" data-action="createConnection" data-tooltip="{{localize 'SIMPLYSF2E.ProviderSetup.NewConnection'}}" aria-label="{{localize 'SIMPLYSF2E.ProviderSetup.NewConnection'}}">
         <i aria-hidden="true" class="fa-solid fa-plus"></i>
       </button>
-      <button type="button" data-action="deleteConnection" data-tooltip="{{localize 'SIMPLYSF2E.ProviderSetup.DeleteConnection'}}" aria-label="{{localize 'SIMPLYSF2E.ProviderSetup.DeleteConnection'}}" {{#unless canDeleteConnection}}disabled{{/unless}}>
+      <button type="button" class="spf-danger" data-action="deleteConnection" data-tooltip="{{localize 'SIMPLYSF2E.ProviderSetup.DeleteConnection'}}" aria-label="{{localize 'SIMPLYSF2E.ProviderSetup.DeleteConnection'}}" {{#unless canDeleteConnection}}disabled{{/unless}}>
         <i aria-hidden="true" class="fa-solid fa-trash"></i>
       </button>
     </div>
     <p class="spf-hint">{{localize "SIMPLYSF2E.ProviderSetup.ConnectionsHint"}}</p>
-  </div>
+  </fieldset>
 
   <fieldset class="spf-card spf-provider-section">
     <legend>{{localize "SIMPLYSF2E.ProviderSetup.EndpointLegend"}}</legend>
@@ -71,7 +72,7 @@
       </label>
     {{/if}}
 
-    <p class="notification info spf-provider-privacy"><i aria-hidden="true" class="fa-solid fa-shield-halved"></i> {{localize "SIMPLYSF2E.ProviderSetup.Privacy"}}</p>
+    <p class="spf-hint spf-provider-privacy"><i aria-hidden="true" class="fa-solid fa-shield-halved"></i> {{localize "SIMPLYSF2E.ProviderSetup.Privacy"}}</p>
   </fieldset>
 
   {{! Optional sections fold away. Each opens by itself when it holds a
