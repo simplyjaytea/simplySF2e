@@ -11,8 +11,9 @@
 }
 
 /* --------------------------------------------------------------------------
-   Mode accents: the generator root carries exactly one spf-mode-* class,
-   which tints the unified status frame and preview headers.
+   Mode accents (D2): the generator root carries exactly one spf-mode-*
+   class. Its tint reaches only the active mode tile and the statblock rule;
+   the status bar, level chip, recent rows and Reskin panels stay cyan.
    -------------------------------------------------------------------------- */
 .simplysf2e .simplysf2e-generator.spf-mode-monster {
   --spf-mode-accent: var(--spf-mode-monster);
@@ -182,12 +183,12 @@
 .simplysf2e .spf-reskin-drop.spf-drag-over,
 .simplysf2e .spf-reskin-drop.spf-reskin-has-source {
   border-style: solid;
-  border-color: var(--spf-mode-reskin);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--spf-mode-reskin) 40%, transparent);
+  border-color: var(--spf-brand-accent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--spf-brand-accent) 40%, transparent);
 }
 
 .simplysf2e .spf-reskin-drop.spf-drag-over {
-  background: color-mix(in srgb, var(--spf-mode-reskin) 12%, var(--spf-surface));
+  background: color-mix(in srgb, var(--spf-brand-accent) 12%, var(--spf-surface));
 }
 
 .simplysf2e .spf-reskin-drop img {
@@ -202,7 +203,7 @@
 .simplysf2e .spf-reskin-drop > i {
   flex: none;
   font-size: 1.6rem;
-  color: var(--spf-mode-reskin);
+  color: var(--spf-brand-accent);
 }
 
 .simplysf2e .spf-reskin-source {
@@ -674,7 +675,7 @@
 }
 
 /* Recent previews: earlier paid previews from this session, one compact row
-   each, tinted with the accent of the mode that made it. */
+   each, on the cyan rail (the row icon names its mode). */
 .simplysf2e .spf-recent {
   padding: var(--spf-space-sm) var(--spf-space-md);
 }
@@ -699,7 +700,7 @@
 }
 
 .simplysf2e .spf-recent-row {
-  --spf-recent-accent: var(--spf-mode-monster);
+  --spf-recent-accent: var(--spf-brand-accent);
   min-width: 0;
   display: flex;
   align-items: center;
@@ -707,11 +708,6 @@
   padding: var(--spf-space-xs) 0 var(--spf-space-xs) var(--spf-space-sm);
   border-left: 2px solid var(--spf-recent-accent);
 }
-
-.simplysf2e .spf-recent-npc { --spf-recent-accent: var(--spf-mode-npc); }
-.simplysf2e .spf-recent-encounter { --spf-recent-accent: var(--spf-mode-encounter); }
-.simplysf2e .spf-recent-character { --spf-recent-accent: var(--spf-mode-character); }
-.simplysf2e .spf-recent-reskin { --spf-recent-accent: var(--spf-mode-reskin); }
 
 .simplysf2e .spf-recent-icon {
   flex: 0 0 1.2rem;
@@ -853,7 +849,7 @@
   white-space: nowrap;
 }
 .simplysf2e .spf-relevel-new {
-  color: var(--spf-mode-reskin);
+  color: var(--spf-brand-accent);
   font-weight: 600;
 }
 /* Strike groups: the Strike's name as a group heading, Attack and Damage
@@ -861,7 +857,7 @@
 .simplysf2e .spf-relevel-group th {
   padding-top: var(--spf-space-sm);
   border-bottom: 0;
-  color: var(--spf-mode-reskin);
+  color: var(--spf-brand-accent);
   overflow-wrap: anywhere;
 }
 .simplysf2e .spf-relevel-group i {
@@ -888,7 +884,7 @@
 }
 .simplysf2e .spf-relevel-abilities i {
   flex: none;
-  color: var(--spf-mode-reskin);
+  color: var(--spf-brand-accent);
 }
 /* Kept at the old level: an icon and wording, not only a colour. */
 .simplysf2e .spf-relevel-kept {

@@ -220,6 +220,19 @@
   clip-path: polygon(100% 0, 100% 100%, 0 100%);
 }
 
+/* The HUD frame (notch and corner ticks) belongs to outer cards only. A
+   panel inside a card (encounter members, stat check, review list,
+   provenance tags) is plain; should a card ever nest, it drops the frame. */
+.simplysf2e .spf-card .spf-card {
+  clip-path: none;
+  box-shadow: none;
+}
+
+.simplysf2e .spf-card .spf-card::before,
+.simplysf2e .spf-card .spf-card::after {
+  content: none;
+}
+
 .simplysf2e .spf-icon-btn {
   flex: 0 0 auto;
   display: inline-grid;
@@ -607,7 +620,7 @@
   flex-direction: column;
   gap: 0;
   padding: var(--spf-space-xs) var(--spf-space-md);
-  border: 1px solid color-mix(in srgb, var(--spf-mode-accent, var(--spf-brand-accent)) 55%, var(--spf-border));
+  border: 1px solid color-mix(in srgb, var(--spf-brand-accent) 55%, var(--spf-border));
   border-radius: var(--spf-radius);
   background: var(--spf-surface);
   box-shadow: var(--spf-inset-glow);
@@ -1136,8 +1149,9 @@
   padding-bottom: var(--spf-space-xs);
 }
 
-/* Tinted by the generator's per-mode accent; the item forge falls back to
-   the brand accent. */
+/* Mode tint (D2): the statblock rule is one of the two places that carry
+   the generator's per-mode accent (the other is the active mode tile); the
+   item forge falls back to the brand accent. */
 .simplysf2e .simplysf2e-generator .spf-statblock-header {
   border-bottom-color: color-mix(in srgb, var(--spf-mode-accent, var(--spf-brand-accent)) 75%, transparent);
 }
@@ -1160,7 +1174,7 @@
   align-items: center;
   gap: 0.3em;
   padding: var(--spf-space-2xs) var(--spf-space-sm);
-  border: 1px solid color-mix(in srgb, var(--spf-mode-accent, var(--spf-brand-accent)) 55%, var(--spf-border));
+  border: 1px solid color-mix(in srgb, var(--spf-brand-accent) 55%, var(--spf-border));
   border-radius: var(--spf-radius);
   background: color-mix(in srgb, var(--spf-brand-dark) 70%, var(--spf-window-bg));
   font-family: var(--spf-font-mono);

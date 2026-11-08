@@ -715,6 +715,17 @@ for (const mode of ["monster", "npc", "encounter", "character"]) {
 assert.match(css, /\.simplysf2e \.spf-statusbar\s*\{/, "statusbar strip must be styled");
 assert.match(css, /\.simplysf2e \.spf-statgrid\s*\{/, "stat grid must be styled");
 assert.match(css, /\.simplysf2e \.spf-card\s*\{[^}]*clip-path:/s, "cards must be notched via clip-path");
+assert.match(
+  css,
+  /\.simplysf2e \.spf-card \.spf-card::before,\s*\.simplysf2e \.spf-card \.spf-card::after\s*\{[^}]*content:\s*none/s,
+  "the HUD frame (ticks and notch) stays on outer cards only"
+);
+// D2: the per-mode tint reaches only the active mode tile and the statblock rule.
+assert.deepEqual(
+  [...css.replace(/\/\*[\s\S]*?\*\//g, "").matchAll(/([^{}]+)\{[^}]*var\(--spf-mode-accent/g)].map((m) => m[1].trim()),
+  [".simplysf2e .simplysf2e-generator .spf-statblock-header"],
+  "only the statblock rule reads the mode accent"
+);
 
 // Window scrolling (QA 12r): Foundry clips .window-content, so every module
 // window's root part must fill it and scroll, or a short or resized window
