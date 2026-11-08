@@ -384,7 +384,9 @@ export class TreasureApp extends SpfApp {
       if (survivor) {
         // The hoard still exists: drop the draft so a retry cannot duplicate it.
         this.#clearPreview();
-        this.#error = `${err.message} ${game.i18n.format("SIMPLYSF2E.Treasure.RollbackSurvivor", { name: survivor })}`;
+        // A sentence break between the failure and the survivor note; the message may lack a period.
+        const sep = /[.!?]$/.test(err.message.trim()) ? " " : ". ";
+        this.#error = `${err.message}${sep}${game.i18n.format("SIMPLYSF2E.Treasure.RollbackSurvivor", { name: survivor })}`;
       } else {
         this.#error = err.message;
       }

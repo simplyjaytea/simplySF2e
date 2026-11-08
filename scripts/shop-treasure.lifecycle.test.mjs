@@ -155,6 +155,22 @@ for (const [label, App, controls, createdKey, survivorKey] of [
   verifyFailure = null;
   deleteFailure = null;
 
+  // (a2) The survivor note is its own sentence: a period is added when the failure lacks one, never doubled.
+  for (const [message, lead] of [["manifest did not match", "manifest did not match. "], ["Verify failed.", "Verify failed. "]]) {
+    app = instance(App, controls);
+    await generate.call(app);
+    createdName = "Survivor Two";
+    verifyFailure = new Error(message);
+    deleteFailure = new Error("delete refused");
+    await create.call(app);
+    const error = (await app._prepareContext()).error;
+    assert.ok(error.startsWith(lead + survivorKey), `${label}: "${message}" is followed by a separate sentence (got ${error})`);
+    assert.ok(!error.includes(".."), `${label}: no doubled period`);
+    verifyFailure = null;
+    deleteFailure = null;
+    createdName = "Merchant";
+  }
+
   // (b) Starting progress throws once: Generate is not left busy.
   app = instance(App, controls);
   beginFailure = new Error("progress setup failed");
