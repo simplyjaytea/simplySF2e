@@ -267,12 +267,13 @@ export class ItemForgeApp extends SpfApp {
   }
 
   async #generateWondrous() {
-    const signal = this._beginProgress([
-      ["templates", game.i18n.localize("SIMPLYSF2E.ItemForge.ProgressTemplates")],
-      ["concept", game.i18n.localize("SIMPLYSF2E.ItemForge.ProgressConcept")],
-      ["assemble", game.i18n.localize("SIMPLYSF2E.ItemForge.ProgressAssemble")]
-    ]);
+    let signal = null;
     try {
+      signal = this._beginProgress([
+        ["templates", game.i18n.localize("SIMPLYSF2E.ItemForge.ProgressTemplates")],
+        ["concept", game.i18n.localize("SIMPLYSF2E.ItemForge.ProgressConcept")],
+        ["assemble", game.i18n.localize("SIMPLYSF2E.ItemForge.ProgressAssemble")]
+      ]);
       // 1. Ground truth first: which effect kinds have real rule exemplars
       // in this world's compendiums? Only those are offered to the AI.
       await this._setStep("templates");
@@ -334,12 +335,13 @@ export class ItemForgeApp extends SpfApp {
    * documents at generation time — see item-builder.mjs's buildRunedItem.
    */
   async #generateRuned(kind) {
-    const signal = this._beginProgress([
-      ["templates", game.i18n.localize("SIMPLYSF2E.ItemForge.ProgressCandidates")],
-      ["concept", game.i18n.localize("SIMPLYSF2E.ItemForge.ProgressConcept")],
-      ["assemble", game.i18n.localize("SIMPLYSF2E.ItemForge.ProgressAssemble")]
-    ]);
+    let signal = null;
     try {
+      signal = this._beginProgress([
+        ["templates", game.i18n.localize("SIMPLYSF2E.ItemForge.ProgressCandidates")],
+        ["concept", game.i18n.localize("SIMPLYSF2E.ItemForge.ProgressConcept")],
+        ["assemble", game.i18n.localize("SIMPLYSF2E.ItemForge.ProgressAssemble")]
+      ]);
       // 1. Ground truth first: real base items, real property runes, and
       // which fundamental rune tiers actually fit under the target level.
       await this._setStep("templates");
@@ -425,7 +427,7 @@ export class ItemForgeApp extends SpfApp {
             ui.notifications.warn(game.i18n.localize("SIMPLYSF2E.ItemForge.MacroFailed"));
           }
         }
-        ui.notifications.info(game.i18n.format("SIMPLYSF2E.ItemForge.Created", { name: item.name }));
+        ui.notifications.info("SIMPLYSF2E.ItemForge.Created", { localize: true, format: { name: item.name }, escape: true });
         await item.sheet.render(true);
       } catch (err) {
         console.error(`${MODULE_ID} | created item presentation failed`, err);

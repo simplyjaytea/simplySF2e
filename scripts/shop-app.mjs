@@ -209,13 +209,14 @@ export class ShopApp extends SpfApp {
     this.#clearPreview();
     const { prompt, level, size, rarity } = this.#input;
     const count = SHOP_SIZES[size];
-    const signal = this._beginProgress([
-      ["shopConcept", game.i18n.localize("SIMPLYSF2E.Shop.ProgressConcept")],
-      ["candidates", game.i18n.localize("SIMPLYSF2E.Shop.ProgressCandidates")],
-      ["stock", game.i18n.localize("SIMPLYSF2E.Shop.ProgressStock")],
-      ["prices", game.i18n.localize("SIMPLYSF2E.Shop.ProgressPrices")]
-    ]);
+    let signal = null;
     try {
+      signal = this._beginProgress([
+        ["shopConcept", game.i18n.localize("SIMPLYSF2E.Shop.ProgressConcept")],
+        ["candidates", game.i18n.localize("SIMPLYSF2E.Shop.ProgressCandidates")],
+        ["stock", game.i18n.localize("SIMPLYSF2E.Shop.ProgressStock")],
+        ["prices", game.i18n.localize("SIMPLYSF2E.Shop.ProgressPrices")]
+      ]);
       // 1. Flavor and search terms only.
       await this._setStep("shopConcept");
       const { concept: raw, usage } = await generateShopConcept({
@@ -311,7 +312,7 @@ export class ShopApp extends SpfApp {
       // Committed: consume the draft before presentation so a sheet error
       // cannot lead to a duplicate shop.
       this.#clearPreview();
-      ui.notifications.info(game.i18n.format("SIMPLYSF2E.Shop.Created", { name: created.name }));
+      ui.notifications.info("SIMPLYSF2E.Shop.Created", { localize: true, format: { name: created.name }, escape: true });
       try {
         await created.sheet.render(true);
       } catch (err) {
@@ -320,10 +321,22 @@ export class ShopApp extends SpfApp {
     } catch (err) {
       console.error(`${MODULE_ID} | shop creation failed`, err);
       // Roll back a half-made merchant so a failed create leaves nothing behind.
+      let survivor = null;
       if (actor?.id) {
-        try { await actor.delete(); } catch (deleteErr) { console.warn(`${MODULE_ID} | could not roll back shop`, deleteErr); }
+        try { await actor.delete(); } catch (deleteErr) {
+          console.warn(`${MODULE_ID} | could not roll back shop`, deleteErr);
+          survivor = actor.name;
+        }
       }
-      this.#error = err.message;
+      if (survivor) {
+        // The merchant still exists: drop the draft so a retry cannot duplicate it.
+        this.#clearPreview();
+        // A sentence break between the failure and the survivor note; the message may lack a period.
+        const sep = /[.!?]$/.test(err.message.trim()) ? " " : ". ";
+        this.#error = `${err.message}${sep}${game.i18n.format("SIMPLYSF2E.Shop.RollbackSurvivor", { name: survivor })}`;
+      } else {
+        this.#error = err.message;
+      }
       this._recordFailure(err, "shop creation", this.#error);
     } finally {
       this.#busy = false;
