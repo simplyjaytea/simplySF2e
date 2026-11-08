@@ -314,7 +314,7 @@
       "NpcPrompt": "Describe the NPC",
       "NpcPromptPlaceholder": "e.g. A calculating Absalom Station smuggler captain protecting her crew from a rival gang...",
       "PromptExample": "e.g.",
-      "RandomTooltip": "Random creature: ignores the description and invents something at this level. Every click rolls a new surprise.",
+      "RandomTooltip": "Random creature: ignores the description and invents one at this level.",
       "RandomNpcTooltip": "Random NPC: ignores the description and invents someone at this level. Every click rolls a new surprise.",
       "RandomEncounterTooltip": "Random encounter: ignores the theme and invents a new one at this party level. Every click rolls a new surprise.",
       "RandomCharacterTooltip": "Random character: ignores the description and invents an adventurer at this level. Every click rolls a new surprise.",
@@ -496,15 +496,15 @@
     },
     "Mode": {
       "Monster": "Monster",
-      "MonsterHint": "Xenobiology specimen",
+      "MonsterHint": "One creature with stats and abilities",
       "Npc": "NPC",
-      "NpcHint": "Personnel file",
-      "Encounter": "Encounters",
-      "EncounterHint": "Tactical ops engagement",
-      "Character": "Player Character",
-      "CharacterHint": "Spacefarer operative",
+      "NpcHint": "One NPC with stats and abilities",
+      "Encounter": "Encounter",
+      "EncounterHint": "A group of creatures sized to the party",
+      "Character": "Character",
+      "CharacterHint": "One playable character",
       "Reskin": "Reskin",
-      "ReskinHint": "New fiction, same stat block"
+      "ReskinHint": "Copy an existing creature with new names and fiction"
     },
     "Recent": {
       "Heading": "Recent previews",
