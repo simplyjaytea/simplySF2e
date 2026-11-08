@@ -1,5 +1,5 @@
 import { MODULE_ID, SETTINGS, getSetting } from "./settings.mjs";
-import { RELEASE_NOTES, manualNotes, markSeen, splitManualNotes } from "./whats-new.mjs";
+import { markSeen, splitManualNotes, whatsNewView } from "./whats-new.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -14,8 +14,16 @@ export class WhatsNewApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   constructor(options = {}, notes = null) {
     super(options);
-    this.#manual = !Array.isArray(notes);
-    this.#notes = Array.isArray(notes) ? notes : manualNotes(RELEASE_NOTES);
+    const view = whatsNewView(notes);
+    this.#manual = view.manual;
+    this.#notes = view.notes;
+  }
+
+  /** Switch an open automatic window to the manual view (newest notes). Caller renders. */
+  showManual() {
+    const view = whatsNewView(null);
+    this.#manual = view.manual;
+    this.#notes = view.notes;
   }
 
   static DEFAULT_OPTIONS = {

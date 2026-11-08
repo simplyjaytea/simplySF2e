@@ -152,6 +152,16 @@ export function manualNotes(notes, cap = MANUAL_NOTE_CAP) {
   return (Array.isArray(notes) ? notes : []).slice(0, cap);
 }
 
+/**
+ * The window's mode and notes. An array is the automatic view (the unseen notes);
+ * anything else is the manual view (the newest RELEASE_NOTES, capped).
+ */
+export function whatsNewView(notes) {
+  return Array.isArray(notes)
+    ? { manual: false, notes }
+    : { manual: true, notes: manualNotes(RELEASE_NOTES) };
+}
+
 /** Split manual notes into newest release day vs earlier. */
 export function splitManualNotes(notes) {
   const arr = Array.isArray(notes) ? notes : [];
