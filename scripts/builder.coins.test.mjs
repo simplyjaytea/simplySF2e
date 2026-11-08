@@ -228,4 +228,40 @@ assert.equal(resolveCurrencyTemplate("Gold Pieces"), null);
   assert.ok(warnings[0].includes("clamped"), "the warning names the clamp");
 }
 
+// Loot that already holds a Credstick line takes the existing-line branch: clamp and warn the same way.
+{
+  const warnings = [];
+  const realWarn = console.warn;
+  console.warn = (...args) => warnings.push(args.join(" "));
+  let padded;
+  try {
+    padded = await applyTreasureBudget([{ name: "Credstick", quantity: 1, resolvedValue: CREDIT_UNIT_GP, entry: { currency: "credits" } }], 1056000);
+  } finally {
+    console.warn = realWarn;
+  }
+  const sticks = padded.filter((line) => line.name === "Credstick");
+  assert.equal(sticks.length, 1, "still one Credstick line");
+  assert.equal(sticks[0].quantity, CURRENCY_ITEM_MAX, "an existing Credstick line clamps at the cap");
+  assert.equal(warnings.length, 1, "the existing-line clamp warns once");
+  assert.ok(warnings[0].includes("clamped"), "the warning names the clamp");
+}
+
+// The same existing line padded to 50 gp stays under the cap and warns nothing.
+{
+  const warnings = [];
+  const realWarn = console.warn;
+  console.warn = (...args) => warnings.push(args.join(" "));
+  let padded;
+  try {
+    padded = await applyTreasureBudget([{ name: "Credstick", quantity: 1, resolvedValue: CREDIT_UNIT_GP, entry: { currency: "credits" } }], 50);
+  } finally {
+    console.warn = realWarn;
+  }
+  const sticks = padded.filter((line) => line.name === "Credstick");
+  assert.equal(sticks.length, 1, "still one Credstick line");
+  assert.equal(sticks[0].quantity, 500, "49.9 gp gap becomes 499 more credits at 0.1 gp each");
+  assert.ok(sticks[0].quantity < CURRENCY_ITEM_MAX, "below the cap");
+  assert.equal(warnings.length, 0, "no clamp, no warning");
+}
+
 console.log("builder.coins.test.mjs: credits/UPB templates, gold-to-credit mapping, and budget padding passed");
