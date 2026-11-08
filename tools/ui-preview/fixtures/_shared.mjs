@@ -1,6 +1,6 @@
 // Shared pieces for the fixtures. Context shapes are copied from the real
-// _prepareContext() / #build*PreviewContext() methods; the pure functions
-// those methods call (computeStats, adjustedStats, createProgress, ...) are
+// _prepareContext() method and the builders in scripts/generator-context/;
+// the pure functions those call (computeStats, adjustedStats, createProgress, ...) are
 // imported from the module itself so the numbers are the real ones.
 // Update the matching fixture whenever one of those methods changes. The
 // harness reports any root key a template reads that a fixture lacks.

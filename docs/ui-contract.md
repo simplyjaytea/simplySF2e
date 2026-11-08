@@ -66,7 +66,7 @@ Keys: new `SIMPLYSF2E.Generator.CompendiumShort`, `.ReadyShort`, `.JevShort`, `.
 
 ## Item 1 — Character review: one caveat, short action titles
 
-Template: `templates/generator.hbs` (`characterReview`). Supply in: `GeneratorApp.#skillReportContext()` and where `#characterReview` is built (~l.1800 of `generator-app.mjs`).
+Template: `templates/generator.hbs` (`characterReview`). Supply in: `skillReportContext()` in `scripts/generator-context/pc-preview.mjs`, called where `#characterReview` is built in `generator-app.mjs`.
 
 | Field | Type | Meaning | Example (fixture `generator-character-review`) |
 | --- | --- | --- | --- |
