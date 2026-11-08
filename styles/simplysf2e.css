@@ -72,6 +72,16 @@
   --spf-radius: 2px;
   --spf-radius-sm: 1px;
   --spf-icon-btn: 1.8rem;
+  /* Compact icon button (in-row remove, reroll dice, status-bar gear/test):
+     1.5rem = 24px, the minimum pointer target (WCAG 2.5.8). */
+  --spf-icon-btn-sm: 1.5rem;
+  /* Window reading surface behind every card. */
+  --spf-window-bg: #0c1620;
+  /* Text or glyph on a filled control (success fill, active tile). */
+  --spf-on-fill: #fff;
+  /* Warning text and glyphs: the cited warning orange lifted toward peach so
+     it reads on the navy surfaces (11.5:1 on --spf-surface). */
+  --spf-warning-fg: #ffd2b8;
 }
 
 /* --------------------------------------------------------------------------
