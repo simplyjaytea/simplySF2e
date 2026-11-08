@@ -306,7 +306,7 @@ const newApp = (form) => {
   const app = newApp(form);
   await actions.loadModels.call(app, null, { querySelector: () => null });
   assert.equal(form.querySelector("[name='apiKey']").value, "", "the typed key was stored and the field is cleared");
-  assert.equal(form.querySelector("[name='apiKey']").placeholder, "SIMPLYSF2E.ProviderSetup.ApiKeySaved", "the field reads as a saved key");
+  assert.equal(form.querySelector("[name='apiKey']").placeholder, "SIMPLYSF2E.ProviderSetup.ApiKeyOptional", "the placeholder is the neutral one; the saved state is the hint");
   assert.equal(privacy.inserted.length, 1, "the clear-key box is added once");
   assert.equal(privacy.inserted[0][0], "beforebegin", "the box goes before the privacy note, as in the template");
   assert.match(privacy.inserted[0][1], /name="clearApiKey"/, "the box is the clear-key checkbox");
@@ -351,6 +351,23 @@ const newApp = (form) => {
   confirmAnswer = true;
   await actions.createConnection.call(app, null, {});
   assert.equal(createCalls, 1, "Switch anyway: the connection is created");
+}
+
+// (h) A rejected manual price names its field, so the template can mark that input invalid and link the message.
+{
+  resetState();
+  const form = standardForm();
+  form.querySelector("[name='inputPerM']").value = "-1";
+  const app = newApp(form);
+  await actions.saveAndTest.call(app, null, { querySelector: () => null });
+  const context = await app._prepareContext();
+  assert.equal(context.priceErrorField, "input", "the input price is the invalid field");
+  assert.equal(context.priceError, "SIMPLYSF2E.ProviderSetup.PriceInputInvalid", "its message is in the context");
+  form.querySelector("[name='inputPerM']").value = "0.5";
+  form.querySelector("[name='outputPerM']").value = "-2";
+  await actions.saveAndTest.call(app, null, { querySelector: () => null });
+  const outputContext = await app._prepareContext();
+  assert.equal(outputContext.priceErrorField, "output", "a rejected output price names the output field");
 }
 
 console.log("provider-setup-app.test.mjs: ok");

@@ -92,6 +92,8 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
   #busy = false;
   #pricesOpen = false;
   #priceError = null;
+  /** Which manual price the last validation rejected: "input", "output" or null. */
+  #priceErrorField = null;
   #jevOpen = false;
 
   constructor(options = {}, onSaved = null) {
@@ -167,6 +169,7 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
       ...jev,
       pricesOpen: this.#priceError != null || this.#pricesOpen,
       priceError: this.#priceError,
+      priceErrorField: this.#priceErrorField,
       pricesSummary,
       jevOpen: jev.jevOnTypeSafe || jev.hasJevKey || this.#jevOpen,
       showLocalHint: LOCAL_PRESET_IDS.has(selected),
@@ -189,10 +192,9 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
     };
   }
 
-  static #jevPlaceholder(hasKey, source) {
-    return hasKey
-      ? game.i18n.localize("SIMPLYSF2E.ProviderSetup.JevKeySaved")
-      : game.i18n.format("SIMPLYSF2E.ProviderSetup.JevKeyPlaceholder", { source: JEV_SOURCES[source].label });
+  /** The Jev key placeholder is the same whether or not a key is saved; the saved state shows as a hint (JevKeySaved). */
+  static #jevPlaceholder(_hasKey, source) {
+    return game.i18n.format("SIMPLYSF2E.ProviderSetup.JevKeyPlaceholder", { source: JEV_SOURCES[source].label });
   }
 
   _onRender(context, options) {
@@ -436,12 +438,14 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
     };
     for (const input of Object.values(priceInputs)) input?.setCustomValidity?.("");
     this.#priceError = null;
+    this.#priceErrorField = null;
     const prices = { inputPerM: priceInputs.inputPerM?.value, outputPerM: priceInputs.outputPerM?.value };
     for (const field of ["inputPerM", "outputPerM"]) {
       // A number field blanks non-numeric text; validity.badInput still sees it.
       if (!parsePrice(prices[field]).error && !priceInputs[field]?.validity?.badInput) continue;
       const message = game.i18n.localize(`SIMPLYSF2E.ProviderSetup.Price${field === "inputPerM" ? "Input" : "Output"}Invalid`);
       this.#priceError = message;
+      this.#priceErrorField = field === "inputPerM" ? "input" : "output";
       priceInputs[field]?.closest?.("details")?.setAttribute?.("open", "");
       const errEl = priceInputs[field]?.closest?.("details")?.querySelector?.("[data-price-error]");
       if (errEl) { errEl.hidden = false; const span = errEl.querySelector("span"); if (span) span.textContent = message; }
@@ -611,8 +615,7 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
     // The key field and the clear-key box follow hasApiKey, as provider-setup.hbs renders them.
     const keyInput = this.element?.querySelector("[name='apiKey']");
     if (keyInput) {
-      keyInput.placeholder = game.i18n.localize(state.hasConfiguredApiKey
-        ? "SIMPLYSF2E.ProviderSetup.ApiKeySaved" : "SIMPLYSF2E.ProviderSetup.ApiKeyOptional");
+      keyInput.placeholder = game.i18n.localize("SIMPLYSF2E.ProviderSetup.ApiKeyOptional");
       keyInput.value = "";
     }
     const clearBox = this.element?.querySelector(".spf-provider-clear-key");
