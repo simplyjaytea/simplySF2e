@@ -69,8 +69,8 @@
       <progress aria-label="{{localize 'SIMPLYSF2E.Welcome.ConnectingTitle'}}"></progress>
       <ol class="spf-welcome-progress-steps">
         <li><i aria-hidden="true" class="fa-solid fa-spinner fa-spin"></i> {{localize "SIMPLYSF2E.Welcome.StepValidate"}}</li>
-        <li><i aria-hidden="true" class="fa-regular fa-circle"></i> {{localize "SIMPLYSF2E.Welcome.StepModel"}}</li>
-        <li><i aria-hidden="true" class="fa-regular fa-circle"></i> {{localize "SIMPLYSF2E.Welcome.StepTest"}}</li>
+        <li class="spf-welcome-step-pending"><i aria-hidden="true" class="fa-solid fa-circle"></i> {{localize "SIMPLYSF2E.Welcome.StepModel"}}</li>
+        <li class="spf-welcome-step-pending"><i aria-hidden="true" class="fa-solid fa-circle"></i> {{localize "SIMPLYSF2E.Welcome.StepTest"}}</li>
       </ol>
     </section>
   {{/if}}
@@ -82,8 +82,8 @@
     </div>
   {{/if}}
 
-  <details class="spf-card spf-welcome-advanced" {{#if advancedOpen}}open{{/if}}>
-    <summary><span>{{localize "SIMPLYSF2E.Welcome.Advanced"}}</span> <small>{{localize "SIMPLYSF2E.Welcome.AdvancedSummary"}}</small></summary>
+  <details class="spf-card spf-disclosure spf-welcome-advanced" {{#if advancedOpen}}open{{/if}}>
+    <summary><span class="spf-disclosure-label">{{localize "SIMPLYSF2E.Welcome.Advanced"}}</span> <small>{{localize "SIMPLYSF2E.Welcome.AdvancedSummary"}}</small></summary>
     <div class="spf-welcome-advanced-body">
       <h3>{{localize "SIMPLYSF2E.Welcome.OtherConnections"}}</h3>
       <div class="spf-welcome-advanced-buttons" role="group" aria-label="{{localize 'SIMPLYSF2E.Welcome.OtherConnections'}}">

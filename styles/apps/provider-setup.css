@@ -47,16 +47,11 @@
   gap: var(--spf-space-sm);
 }
 
-/* Connection bank: notched frame matching the shared cards. */
+/* Connection bank: the card frame and legend come from spf-card and spf-provider-section. */
 .simplysf2e .spf-connection-bank {
   display: flex;
   flex-direction: column;
   gap: var(--spf-space-xs);
-  border: 1px solid var(--spf-border);
-  background: var(--spf-surface);
-  box-shadow: var(--spf-inset-glow);
-  padding: var(--spf-space-md) var(--spf-space-lg);
-  clip-path: polygon(0 0, calc(100% - var(--spf-cut)) 0, 100% var(--spf-cut), 100% 100%, 0 100%);
 }
 
 .simplysf2e .spf-connection-row {
@@ -143,6 +138,9 @@
 .simplysf2e .spf-price-field input {
   width: 100%;
   min-width: 0;
+  /* Prices are numbers the GM compares: tabular figures, right-aligned (S8). */
+  font-variant-numeric: tabular-nums;
+  text-align: end;
 }
 
 .simplysf2e .spf-provider-privacy,

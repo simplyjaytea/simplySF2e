@@ -19,6 +19,14 @@
   box-shadow: var(--spf-inset-glow);
 }
 
+/* Narrow windows: six tracks, so the first three kinds span two each and the last
+   two span three each. Three then two fills both rows with no empty cell. */
+@container spf-window (max-width: 520px) {
+  .simplysf2e .spf-kind-choices { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .simplysf2e .spf-kind-choice { grid-column: span 2; }
+  .simplysf2e .spf-kind-choice:nth-child(n + 4) { grid-column: span 3; }
+}
+
 .simplysf2e .spf-kind-choice {
   position: relative;
   display: flex;

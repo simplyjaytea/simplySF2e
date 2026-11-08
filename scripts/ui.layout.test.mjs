@@ -150,7 +150,12 @@ assert.match(
   "narrow windows must use a readable two-column control layout"
 );
 assert.doesNotMatch(css, /@media \(max-width/, "narrow layout must query the window container, not the viewport");
-assert.match(css, /\.simplysf2e \.spf-provider-model\s*\{[^}]*text-overflow:\s*ellipsis;/s);
+// The model id wraps, never an ellipsis (audit S11, A14/B13); this assertion
+// used to pin the ellipsis, which was the defect.
+assert.match(css, /\.simplysf2e \.spf-wrap-name,\s*\.simplysf2e \.spf-provider-model\s*\{[^}]*overflow-wrap:\s*anywhere;/s,
+  "the status-bar model id must wrap instead of being cut with an ellipsis");
+assert.doesNotMatch(css.match(/\.simplysf2e \.spf-provider-model\s*\{([^}]*)\}/s)?.[1] ?? "", /text-overflow:\s*ellipsis/,
+  "the status-bar model id must not be ellipsized");
 assert.match(css, /\.simplysf2e \.spf-provider-presets\s*\{[^}]*grid-template-columns:\s*repeat\(3/s);
 assert.match(css, /\.simplysf2e \.spf-actions\s*\{[^}]*flex-wrap:\s*wrap;/s,
   "action rows must wrap when localized labels do not fit");
@@ -434,7 +439,11 @@ assert.match(
   const labelAt = itemForge.indexOf("SIMPLYSF2E.Generator.CompendiumContent");
   const fieldsetAt = itemForge.indexOf("<fieldset");
   assert.ok(labelAt >= 0 && gearAt > labelAt && gearAt < fieldsetAt, "item forge sources gear must sit in the labeled Compendium Content row");
-  assert.ok(rowAt > fieldsetAt && itemForge.indexOf('data-action="configureSources"', gearAt + 1) < 0, "item forge generate row must not repeat the sources gear");
+  // Two gears are allowed in the status strip (healthy and missing branches render one each); the Generate row has none.
+  assert.ok(rowAt > fieldsetAt && itemForge.indexOf('data-action="configureSources"', rowAt) < 0, "item forge generate row must not repeat the sources gear");
+  // The status strip carries one gear per readiness branch (healthy and missing); exactly two, both before the fieldset.
+  const gearsBeforeFieldset = itemForge.slice(0, fieldsetAt).split('data-action="configureSources"').length - 1;
+  assert.equal(gearsBeforeFieldset, 2, "item forge status strip: one sources gear per readiness branch");
 }
 assert.match(generator, /SIMPLYSF2E\.Generator\.CompendiumContent/);
 assert.match(generator, /SIMPLYSF2E\.Generator\.SourcesReady/);

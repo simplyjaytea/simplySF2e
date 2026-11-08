@@ -201,3 +201,17 @@
 .simplysf2e .simplysf2e-sources {
   scroll-padding-block-end: 3.5rem;
 }
+
+/* Narrow window: the package id wraps to its own line, left-aligned under the title (audit C21). */
+@container spf-window (max-width: 520px) {
+  .simplysf2e .spf-pack {
+    flex-wrap: wrap;
+  }
+
+  .simplysf2e .spf-pack-source {
+    flex-basis: 100%;
+    max-width: none;
+    text-align: left;
+    padding-inline-start: var(--spf-space-lg);
+  }
+}

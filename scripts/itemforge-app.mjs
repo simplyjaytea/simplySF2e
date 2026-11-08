@@ -15,6 +15,8 @@ import { createActivationMacro } from "./macro-templates.mjs";
 import { SourcesConfigApp } from "./sources-app.mjs";
 import { gpToCredits } from "./currency.mjs";
 import { SpfApp } from "./app-base.mjs";
+import { getPacksFor, describeMissingSources } from "./compendium.mjs";
+import { jevKeySource } from "./jev.mjs";
 
 /* Localized label per equipment grade slug (EQUIPMENT_GRADES, runes.mjs). Literal
  * keys so i18n-keys.test.mjs sees them as used. An unknown slug shows no grade. */
@@ -69,6 +71,7 @@ export class ItemForgeApp extends SpfApp {
   #input = { prompt: "", level: 4, rarity: "common", kind: "wondrous" };
   #busy = false;
   #error = null;
+  #readinessOpen = false;
   #concept = null;
   /** Which pipeline the current #concept/#itemData came from — set at generation time. */
   #kind = "wondrous";
@@ -84,7 +87,15 @@ export class ItemForgeApp extends SpfApp {
   /** Effect kinds with no real exemplar in this world (set after first scan). */
   #unavailableKinds = null;
 
+  _onRender(context, options) {
+    super._onRender?.(context, options);
+    this.element?.querySelector("details[data-readiness]")?.addEventListener("toggle", (event) => {
+      this.#readinessOpen = event.currentTarget.open;
+    });
+  }
+
   async _prepareContext() {
+    const equipmentPacks = getPacksFor("equipment");
     const authState = getProviderRequestConfig();
     const authWarningKey = getProviderAuthWarningKey(authState);
     return {
@@ -102,6 +113,11 @@ export class ItemForgeApp extends SpfApp {
       connections: authState.connections ?? [],
       canSwitchConnection: (authState.connections?.length ?? 0) > 1,
       providerReady: !authWarningKey,
+      sourcesReady: equipmentPacks.length > 0,
+      sourcePackCount: equipmentPacks.length,
+      sourceMissing: equipmentPacks.length ? "" : describeMissingSources(["equipment"]),
+      jevSource: jevKeySource(),
+      readinessOpen: this.#readinessOpen,
       canAuthorizeApiKey: Boolean(
         authState.baseUrl && authState.hasConfiguredApiKey && !authState.apiKeyIsBound && !authState.apiKeyInsecure
       ),

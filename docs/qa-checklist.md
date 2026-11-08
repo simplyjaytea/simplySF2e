@@ -779,3 +779,41 @@ Generate a level 7 NPC with a limited cone breath (name "Frost Breath", cold), a
 | --- | --- | --- | --- | --- | --- |
 | 12ae.1 | Provider Setup: change the Jev source or type a Jev endpoint, then press Load models. | The Jev field keeps the value you set; the model list fills in; nothing was reset. | Provider Setup | | |
 | 12ae.2 | Start a Generator run, then in Provider Setup pick another Saved connection. | The switch is refused with "A run is in progress. Wait for it to finish before switching connections."; the select shows the connection still in use. | Provider Setup, Generator | | |
+
+## 14a. Shell consistency, Generator (U2-GEN)
+
+| # | Step | Expected | Where to look | Result | Evidence |
+| --- | --- | --- | --- | --- | --- |
+| 14a.1 | Generator: a monster preview, then look at the footer. | Discard is red and sits at the far end of the row, apart from the primary action. | Generator | | |
+| 14a.2 | Generator: Encounter mode, preview an encounter. | Members are plain rows with a rule between them, not boxes inside the preview card. | Generator | | |
+| 14a.3 | Generator: Encounter mode at a wide window (720 px), Party level 5, with a party. | The party note sits beside the level stepper, in a wider column, not three narrow lines. | Generator | | |
+| 14a.4 | Generator: preview a monster with Module-built, Narrative-only and custom abilities. | The three tags share a neutral outline; each tag sits before the reroll button, as spell and feat rows do. | Generator | | |
+| 14a.5 | Generator: preview a monster with immunities, resistances and weaknesses. | Immunities, resistances and weaknesses each take the full width of the stat grid. | Generator | | |
+| 14a.6 | Generator: Reskin mode with a source creature; preview the reskin. | The source name reads "Based on <name>"; a read-aloud text is set off with a left rule. | Generator | | |
+| 14a.7 | Generator: Reskin mode with a dropped source; check the generate row and the re-level control. | The generate row sits clear of the text area; the re-level label sits inline with its stepper, as Level does in other modes. | Generator | | |
+| 14a.8 | Generator with no API key for a remote provider; then with a stored key that is not authorized for the current endpoint. | Both messages name AI Provider Setup and say "endpoint". | Generator | | |
+| 14a.9 | Welcome: press Connect with an empty key for a remote provider. | The same no-key message as the Generator, naming AI Provider Setup and no gear. | Welcome | | |
+| 14a.10 | Provider Setup: press Save with a stored key that is not authorized for the endpoint. | The same not-authorized message as the Generator, naming AI Provider Setup and no gear. | Provider Setup | | |
+
+## 14b. U2 Forge, Shop and Treasure polish (docs/ui-audit-2026-11-08.md)
+
+| # | Step | Expected | Where to look | Result | Evidence |
+| --- | --- | --- | --- | --- | --- |
+| 14b.1 | Open Item Forge, Shop or Treasure with a preview. | Discard is red, at the far end of the footer, apart from Create. | Preview footer | | |
+| 14b.2 | Open Shop with Compendium Sources configured. | Compendium and Jev show on one line; expanding it shows the Compendium row with its gear, which opens Compendium Sources. It stays open after a re-render. | Shop, Treasure, Item Forge | | |
+| 14b.3 | Turn off every equipment pack in Compendium Sources, then open Treasure. | Compendium shows as a warning, expanded, naming Equipment; its gear opens Compendium Sources. | Treasure | | fixture shop/treasure/itemforge-sources-missing viewed by eye; harness has no string assert |
+| 14b.4 | Open Shop at normal width with a stock preview. | The column reads Quantity; at narrow width it reads Qty. | Shop | | |
+| 14b.5 | Create a shop with ten or more stock rows. | Rows are compact; the remove buttons are small. Needs the U2-SHELL tokens. | Shop, Treasure | | |
+| 14b.6 | Create a hoard. | The budget line is in the body font. The per-character line reads about N credits per character (count). | Treasure | | |
+| 14b.7 | Open Item Forge at narrow width. | The five kinds fill two rows: three on top, two below, both spanning the width, with no empty cell. | Item Forge | | |
+
+## 14c. U2 setup windows (audit setup-windows #8, #18, #20, #21, #23)
+
+| # | Step | Expected | Where to look | Result | Evidence |
+|---|------|----------|---------------|--------|----------|
+| 14c.1 | Open AI Provider Setup. Read the connection block at the top. | "Saved connections" is a framed group with a legend. Its select is labelled "Active connection". The privacy line under the API key is a hint line with a shield icon, not a boxed notice. | Provider Setup | | |
+| 14c.2 | Open AI Provider Setup with two or more saved connections. Look at the trash (Delete connection) button. | The trash button is red (the shared destructive style) and sits after the + button. With one connection it is disabled. | Provider Setup | | |
+| 14c.3 | Open Compendium Sources. Look at the button row under the list. | "Reset to defaults" is red and sits at the far right of the row, after Save. | Compendium Sources | | |
+| 14c.4 | Open Compendium Sources in a window narrower than 520 px. Read a pack row. | The package id (monospace) sits on its own line under the pack title, left-aligned. | Compendium Sources | | |
+| 14c.5 | Open Compendium Sources and What's new. Read the intro sentence under the title. | The sentence is body colour. Only its icon is cyan. | Compendium Sources, What's new | | |
+| 14c.6 | Open Welcome. Look at the "Advanced" row. | It shows a chevron, opens and closes on click, and its right-hand summary stays on the same line. | Welcome | | |

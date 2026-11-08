@@ -29,6 +29,7 @@ export function itemforgeContext(kind, patch = {}) {
     error: null,
     progress: null,
     ...providerContext(),
+    sourcesReady: true, sourcePackCount: 3, sourceMissing: "", jevSource: "key", readinessOpen: false,
     minLevel: 1,
     maxLevel: 20,
     kinds: KINDS.map((k) => ({ ...k, selected: k.value === kind })),
@@ -57,6 +58,11 @@ const wondrous = (kind = "wondrous") => ({
 });
 
 export default [
+  {
+    id: "itemforge-sources-missing",
+    app: "itemforge",
+    context: itemforgeContext("wondrous", { sourcesReady: false, sourcePackCount: 0, sourceMissing: "Equipment", showEmptyState: true })
+  },
   ...KINDS.map((k) => ({
     id: `itemforge-empty-${k.value}`,
     app: "itemforge",
