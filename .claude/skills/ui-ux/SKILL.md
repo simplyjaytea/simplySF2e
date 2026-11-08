@@ -7,7 +7,7 @@ description: Design and build UI/UX changes for the simplySF2e Foundry VTT modul
 
 The module's windows are Foundry ApplicationV2 apps rendered from Handlebars templates with plain CSS. There is no build step and no component framework. You change `templates/<app>.hbs`, `styles/simplysf2e.css` (shared tokens and controls), `styles/apps/<app>.css` (one window), `lang/en.json` (every string), and `tools/ui-preview/fixtures/*.mjs` (the harness states). You look at the result in the screenshot harness, never by guessing.
 
-Read first: `PLAYBOOK.md` §3, §4 "UI changes" and §8; `docs/ui-plan.md` "Rules for every item" (the items themselves shipped in v0.1.15); `tools/ui-preview/README.md`. When the task adds context fields the app JS does not yet supply, document them in `docs/ui-contract.md` using its table format so the wiring worker can implement exactly that.
+Read first: `references/anti-slop-checklist.md` in this folder (what generic AI-made UI looks like here and the check that catches it; `references/quick-reference.md` is the long form). Then `PLAYBOOK.md` §3, §4 "UI changes" and §8; `docs/ui-plan.md` "Rules for every item" (the items themselves shipped in v0.1.15); `tools/ui-preview/README.md`. When the task adds context fields the app JS does not yet supply, document them in `docs/ui-contract.md` using its table format so the wiring worker can implement exactly that.
 
 ## Hard rules
 
@@ -29,7 +29,7 @@ Read first: `PLAYBOOK.md` §3, §4 "UI changes" and §8; `docs/ui-plan.md` "Rule
 5. Fixtures: update or add a fixture for every state you changed and every new conditional branch. A fixture is `{ id, app, context, optionalKeys?, height?, open? }`; `open` lists `<details>` selectors to expand for a second screenshot.
 6. Run the harness again: `node shoot.mjs <id-fragment>` while iterating, the full run before committing. It must exit 0 with no `note:` about sideways scroll. Open the PNGs at `@720`, `@460` and `@460-short` and look at them; the Read tool renders PNGs.
 7. Verify: `node --check` on any touched `.mjs`; the all-tests loop in `PLAYBOOK.md` §4; `node scripts/i18n-keys.test.mjs`; `git diff --check`.
-8. Report to `/root/sf2e-wt/reports/<ID>.md`: branch, SHA, files, each fixture id you looked at and what changed in it, new `lang/en.json` keys, any context field the app must now supply (also written to `docs/ui-contract.md`), anything you could not verify. Reply only `DONE <ID>`.
+8. Run `references/anti-slop-checklist.md` sections 1 to 6 on every changed PNG and string. Report to `/root/sf2e-wt/reports/<ID>.md`: branch, SHA, files, each fixture id you looked at and what changed in it, the checklist lines you could not verify, new `lang/en.json` keys, any context field the app must now supply (also written to `docs/ui-contract.md`), anything you could not verify. Reply only `DONE <ID>`.
 
 ## Harness caveats to remember
 
