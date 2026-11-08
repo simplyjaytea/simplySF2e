@@ -9,7 +9,7 @@ Run: `node tools/class-bench/fetch.mjs` once, then `node tools/pipeline-bench/ma
 R5 (branch `simplyjaytea/m-r5`, base `batch/m2-m4`): **240 of 240 runs pass; the bench exits 0.** HC (branch `simplyjaytea/fix-hc`, base `batch/m2-m4`) makes the hoard create step mirror `treasure-app.mjs` exactly. The matrix is unchanged; the Credstick counts are now the app's.
 
 - F1 (unpriced equipment stocked at 0 credits): fixed. Unpriced items are left out of shop and hoard candidates before the AI sees them.
-- F3 (several Credstick rows per hoard): by design. The leftover is split at `CURRENCY_ITEM_MAX` (100,000 credits per Credstick), so only hoards above 100,000 credits get several Credsticks.
+- F3 (several Credstick rows per hoard): by design. The leftover is split at `CURRENCY_ITEM_MAX` (5,000,000 credits per Credstick since 2026-11-08; it was 100,000), so only a hoard above 5,000,000 credits gets several Credsticks.
 - F2 (hoard budget ignores rarity): not changed; a balance call for JT (see "Owner decisions needed").
 
 Before R5 the bench exited 1 with 62 failing runs (178 pass, all 62 failures F1).
@@ -123,7 +123,7 @@ Unverified live: that the 15 items really have no price in the running sf2e 1.6.
 - No live Foundry: no `Actor.create`, `verifyCreatedActor`, `moveToGeneratedFolder`, sheet, Reroll or preview. The shop and hoard steps are mirrors (see Scope), so a drift in the app would not be caught here.
 - The AI is a stub. Spend, rarity mix and item variety in the matrix say nothing about real picks.
 - Prices are the pack JSON's values, not the live system's prepared data (`priceToGp` and `gpToCredits` run on the raw source).
-- Whether Foundry accepts a Credstick with up to 100,000 credits in `system.price.value.sp` (the value is only a number in the source; no sf2e validation was checked).
+- Whether Foundry accepts a Credstick with up to 5,000,000 credits (was 100,000) in `system.price.value.sp` (the value is only a number in the source; no sf2e validation was checked).
 
 ## Live check for JT
 

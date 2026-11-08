@@ -266,7 +266,7 @@
         },
         "OneCredstick": {
           "Title": "One Credstick per hoard",
-          "Body": "A treasure hoard's leftover credits now go on a single Credstick (up to 5,000,000 credits) instead of several 100,000-credit sticks."
+          "Body": "A treasure hoard's leftover credits now go on a single Credstick (up to 5,000,000 credits) instead of several 100,000-credit sticks. NPC and player-character Credstick coin now reaches the full treasure budget at every level (it used to stop at 100,000 credits, which cut level 13+ budgets short)."
         },
         "UiPolish": {
           "Title": "Cleaner windows",

@@ -228,6 +228,24 @@ assert.equal(resolveCurrencyTemplate("Gold Pieces"), null);
   assert.ok(warnings[0].includes("clamped"), "the warning names the clamp");
 }
 
+// A 20,000 gp target (above the old 100,000-credit ceiling) is met in full on one Credstick, no clamp, no warning.
+{
+  const warnings = [];
+  const realWarn = console.warn;
+  console.warn = (...args) => warnings.push(args.join(" "));
+  let padded;
+  try {
+    padded = await applyTreasureBudget([], 20000);
+  } finally {
+    console.warn = realWarn;
+  }
+  const sticks = padded.filter((line) => line.name === "Credstick");
+  assert.equal(sticks.length, 1, "one Credstick");
+  assert.equal(sticks[0].quantity, 200000, "20,000 gp at 0.1 gp per credit is 200,000 credits, above the old 100,000 ceiling");
+  assert.ok(Math.abs(sticks[0].quantity * sticks[0].value - 20000) < 1e-6, "the Credstick is worth the full target");
+  assert.equal(warnings.length, 0, "below the cap, no warning");
+}
+
 // Loot that already holds a Credstick line takes the existing-line branch: clamp and warn the same way.
 {
   const warnings = [];

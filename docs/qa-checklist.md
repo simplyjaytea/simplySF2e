@@ -62,6 +62,7 @@ Repeat 2.1-2.7 for **Level 1**, **Level 5** and **Level 12**. Use the same promp
 | 2.11 | Same level 7 NPC, prompt: "a serpent that spits an acid line down a corridor". Create Actor. | An at-will 2-action item with a 30-foot line, damage `4d6` acid, "DC 25 Reflex basic", and no recharge sentence. | Preview, Actions tab | | |
 | 2.12 | Generator → mode **NPC**, level 8. Prompt: "a fungal swamp hulk whose spores sicken everything that comes near it". Generate, then Create Actor. Read the aura item and place the token on the canvas. | A passive 30-foot aura visible on the canvas around the token (Aura radius 30 on the sheet). The ability text has a clickable `@Check[fortitude\|dc:23]` (DC 23 is SPELL_DC moderate at level 8) and reads "On a failure, it becomes sickened 2". The module applies nothing: the GM clicks the check and applies the condition. | Canvas, Actions tab, chat | | |
 | 2.13 | Same level 8 creature, prompt: "a glowing reactor core that burns everything within ten feet each turn". Create Actor. Place the token on the canvas. | A passive 10-foot aura visible on the canvas around the token. The ability text has a clickable `@Damage[4d6[fire]]` link (4d6 is the unlimited column at level 6, level 8 minus 2) and a clickable `@Check[fortitude\|dc:23\|basic]`. The module applies no damage: the GM rolls and applies it. | Canvas, Actions tab, chat | | |
+| 2.14 | Generator → mode **NPC**, level 14, rarity Unique, Treasure amount Generous, any prompt that gives it loot. Create the actor and open its inventory. | The Credstick in its inventory brings the loot value to about the treasure budget shown in the stat check / preview (about 17,520 gp = 175,200 credits), not 10,000 gp. | Preview, stat check, NPC inventory | | |
 
 | Level | Result | Evidence |
 |-------|--------|----------|
@@ -199,6 +200,7 @@ Per class and level:
 | 7.7 | Skills. | Trained skills match class base + Int + background; increases only at legal levels for the class. | Skills section | | |
 | 7.8 | Equipment. | Gear priced in credits; armor/weapon readied only if trained, else a Loadout note (e.g. "An untrained armor item was left stowed."). | Inventory | | |
 | 7.9 | Class path items: Operative specialization skill feat and Sniper bonus feat chosen without a native prompt; Solarian has Solar Manifestations. | Cited L1 choices closed before creation; none blank. | Feats, Actions | | |
+| 7.10 | Create a level 18 character with no named loot picks. | The Credstick coin equals the starting wealth for level 18 (45,000 gp = 450,000 credits) minus the gear's value. | Character inventory | | |
 
 ### 7a. Mystic and Witchwarper spellcasting (both levels)
 
