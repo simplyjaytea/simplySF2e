@@ -1196,17 +1196,19 @@
   margin: var(--spf-space-sm) 0;
 }
 
-/* Trait chips: magenta-outline pills. */
+/* Trait tags (S10): the sf2e tag shape, square corners on the cited trait
+   colours (--color-bg-trait fill, --color-border-trait cyan edge, see the
+   header), drawn in the neon kit's tokens. A HUD label: uppercase. */
 .simplysf2e .spf-trait {
-  background: color-mix(in srgb, var(--spf-neon) 14%, var(--spf-brand-dark));
+  background: var(--spf-brand-mid);
   color: var(--spf-text);
-  border: 1px solid color-mix(in srgb, var(--spf-neon) 55%, var(--spf-border));
-  border-radius: 999px;
-  padding: 0 var(--spf-space-sm);
+  border: 1px solid var(--spf-brand-accent);
+  border-radius: var(--spf-radius-sm);
+  padding: 0 var(--spf-space-xs);
   font-size: var(--spf-text-xs);
   font-weight: bold;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.05em;
   box-shadow: none;
 }
 

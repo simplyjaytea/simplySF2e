@@ -727,6 +727,13 @@ for (const m of css.replace(/\/\*[\s\S]*?\*\//g, "").matchAll(/([^{}]+)\{([^}]*t
   assert.doesNotMatch(selector, /\b(h[1-6]|button|summary|label)\b|spf-primary|window-header|spf-mode-toggle/,
     `uppercase is for HUD labels only, not ${selector}`);
 }
+// S10: trait tags take the sf2e square tag shape, not 999px pills.
+{
+  const trait = css.match(/\.simplysf2e \.spf-trait\s*\{([^}]*)\}/s)?.[1] ?? "";
+  assert.match(trait, /border-radius:\s*var\(--spf-radius-sm\)/, "trait tags are square");
+  assert.match(trait, /color:\s*var\(--spf-text\)/, "trait tag text reads the text token");
+  assert.doesNotMatch(trait, /999px|--spf-neon/, "trait tags are not magenta pills");
+}
 // D2: the per-mode tint reaches only the active mode tile and the statblock rule.
 assert.deepEqual(
   [...css.replace(/\/\*[\s\S]*?\*\//g, "").matchAll(/([^{}]+)\{[^}]*var\(--spf-mode-accent/g)].map((m) => m[1].trim()),
