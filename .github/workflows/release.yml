@@ -167,7 +167,7 @@ jobs:
           done
           mapfile -t release_files < <(
             printf '%s\n' module.json LICENSE LICENSES.md README.md
-            find lang scripts styles templates -type f ! -name '*.test.mjs' -print | sort
+            find lang scripts styles templates -type f ! -name '*.test.mjs' ! -path 'scripts/__snapshots__/*' -print | sort
           )
           zip -q module.zip "${release_files[@]}"
           if unzip -Z1 module.zip | grep -Eq '(^|/)[^/]+\.test\.mjs$'; then
