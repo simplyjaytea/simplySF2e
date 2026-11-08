@@ -519,7 +519,7 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
         ? "fa-solid fa-circle-check"
         : step.state === "active"
           ? "fa-solid fa-spinner fa-spin"
-          : "fa-regular fa-circle";
+          : "fa-solid fa-circle";
     });
     // One polite announcement per step change (not per percent tick).
     const active = steps.find((step) => step.state === "active");
