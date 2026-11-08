@@ -9,7 +9,7 @@ import { isPlaceholderArt } from "./art.mjs";
 import { parseRunes, applyRunes, dropUncitedRunePrefix, runeGp, hasRunes } from "./runes.mjs";
 import {
   parseCoins, currencyQuantity, isCurrencyDocument, gpToCredits,
-  assembleCurrency, resolveCurrencyTemplate, CREDIT_UNIT_GP, creditsToGp
+  assembleCurrency, resolveCurrencyTemplate, CREDIT_UNIT_GP, creditsToGp, CURRENCY_ITEM_MAX
 } from "./currency.mjs";
 
 /* Re-exported so the rest of the module keeps importing its shared helpers
@@ -787,7 +787,7 @@ export async function applyTreasureBudget(loot, targetGp) {
       const credits = loot.find((l) => parseCoins(l.name)?.name === "Credstick");
       if (credits) {
         const unit = coinUnitGp(credits) || CREDIT_UNIT_GP;
-        credits.quantity = Math.min(credits.quantity + Math.max(Math.round(gap / unit), 1), 100000);
+        credits.quantity = Math.min(credits.quantity + Math.max(Math.round(gap / unit), 1), CURRENCY_ITEM_MAX);
       } else {
         const resolved = resolveCurrencyTemplate("Credstick");
         if (!resolved) {
@@ -797,7 +797,7 @@ export async function applyTreasureBudget(loot, targetGp) {
         const unit = resolved.resolvedValue || CREDIT_UNIT_GP;
         loot.push({
           name: "Credstick",
-          quantity: Math.min(Math.max(Math.round(gap / unit), 1), 100000),
+          quantity: Math.min(Math.max(Math.round(gap / unit), 1), CURRENCY_ITEM_MAX),
           value: unit,
           runes: parseRunes("Credstick"),
           entry: resolved.entry,

@@ -349,8 +349,8 @@ export class TreasureApp extends SpfApp {
       const items = this.#items.map((row) => foundry.utils.deepClone(row.itemData));
       // Removed rows hand their price back, so the Credstick holds whatever
       // the budget has left (cited credstick.json template, see currency.mjs).
-      // One Credstick holds at most CURRENCY_ITEM_MAX credits, so a large
-      // leftover (high levels, whole level) goes on several.
+      // One Credstick holds at most CURRENCY_ITEM_MAX credits (5,000,000), so
+      // every supported hoard fits on one; splitCurrency stays as the guard.
       for (const part of splitCurrency(hoardLeftover(this.#budget, this.#items))) {
         const credstick = assembleCurrency("credits", part);
         if (!credstick) throw new Error(game.i18n.localize("SIMPLYSF2E.Treasure.NoItems"));

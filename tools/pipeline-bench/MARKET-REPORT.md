@@ -106,11 +106,13 @@ Unverified live: that the 15 items really have no price in the running sf2e 1.6.
 
 `checkHoard` fails a hoard when a Credstick is over `CURRENCY_ITEM_MAX` or the Credsticks do not sum to the leftover.
 
+2026-11-08: CURRENCY_ITEM_MAX raised to 5,000,000 (JT decision, docs/balance-proposals.md item 2). Every hoard in the matrix is now one Credstick; the 49-row L20 figure above is from the 100,000 cap.
+
 ## Owner decisions needed
 
 1. **F2 (JT):** should a Rare or Uncommon hoard carry a larger budget than a Common one? Today all three use the common standard budget. R5 did not change the math.
 2. **F3 pick cap (JT):** `TREASURE_PICKS` (`treasure.mjs`, 12 encounter and 24 whole level) limits how many items the AI is asked for. A 24-item hoard can still spend little of a whole-level budget with cheap picks. Should the cap rise, or should the hoard hold more of the budget as Credsticks (as it does now)?
-3. **F3 sheet size (JT):** a whole-level level-20 hoard is 49 Credsticks of 100,000 credits (one of 99,5xx). Confirm that is acceptable on the sheet. Raising `CURRENCY_ITEM_MAX` changes only the count, not the total.
+3. **F3 sheet size (JT):** a whole-level level-20 hoard is 49 Credsticks of 100,000 credits (one of 99,5xx). Confirm that is acceptable on the sheet. Raising `CURRENCY_ITEM_MAX` changes only the count, not the total. Decided 2026-11-08: raised to 5,000,000.
 
 ## Open
 

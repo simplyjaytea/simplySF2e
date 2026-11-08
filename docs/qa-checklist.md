@@ -675,6 +675,7 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 | 13h.3 | Party level 4, One encounter, Common, theme "Abandoned corporate lab on an ice moon". Generate hoard, then Reroll, then switch to Whole level and Generate. | One encounter shows Budget 680 credits and Whole level 8,500; items are level 4 or lower and common, one of each, and item prices plus the Credits row add up to the budget. Party size changes only the "each" line, not the budget. Reroll gives a different hoard. | Preview | | |
 | 13h.4 | Remove one item row with ×. | The row goes and its price is added to the Credits row. | Preview | | |
 | 13h.5 | Press Create hoard. | A loot actor opens in Loot mode in SimplySF2e > Treasure, holding the remaining items (each linked to its compendium entry, quantity 1) and a Credstick worth the Credits row. The description shows the theme prose. | Loot sheet, Actors sidebar | | |
+| 13h.6 | Party level 20, Whole level, Common. Remove every item row with ×, then press Create hoard. | The loot actor holds exactly one Credstick whose price reads as a plain number of credits, 4,900,000, and the sheet's wealth total shows the same number. | Loot sheet | | |
 
 ## 13i. What's new
 

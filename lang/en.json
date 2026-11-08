@@ -264,6 +264,10 @@
           "Title": "Reskin keeps Trample in step",
           "Body": "When a Reskin renames a melee Strike, a Trample ability the module built for that creature now names the new Strike. Published creatures are not changed."
         },
+        "OneCredstick": {
+          "Title": "One Credstick per hoard",
+          "Body": "A treasure hoard's leftover credits now go on a single Credstick (up to 5,000,000 credits) instead of several 100,000-credit sticks."
+        },
         "UiPolish": {
           "Title": "Cleaner windows",
           "Body": "Previews fold the token report into one line, encounter cards show stats as a grid, the character review lists what to check, AI Provider Setup and Compendium Sources are easier to scan (with a pack filter), and narrow windows read better."
