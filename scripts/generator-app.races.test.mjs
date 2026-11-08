@@ -288,4 +288,27 @@ const npc = (uuid) => ({
   assert.ok(createdWith.every((c) => c.loot.target === 45), "both actors carry loot fitted to the final count (90 / 2)");
 }
 
+// --- Every notification that carries an AI/actor name escapes it (all sites, not just reroll) ---
+{
+  const calls = [...source.matchAll(/ui\.notifications\.(?:info|warn|error)\(([^;]*?)\)\s*;/gs)]
+    .map((match) => match[1])
+    .filter((args) => /\b(?:actor|folder)\.name\b|\bcurrentName\b/.test(args));
+  assert.ok(calls.length >= 9, `found the name-carrying notification sites (${calls.length})`);
+  for (const args of calls) {
+    assert.ok(/localize: true,\s*format: \{[^}]*\},\s*escape: true/.test(args), `escaped format call: ${args}`);
+    assert.ok(!/i18n\.format/.test(args), `no pre-formatted string: ${args}`);
+  }
+}
+// Runtime: a manual create with a hostile name reaches the notice as an escaped format value.
+{
+  const app = makeApp();
+  app._test_concept = { name: "<i>x</i>", level: 1, traits: [], feats: [], specialAbilities: [], equipment: [], loot: [] };
+  app._test_resolved = { spells: [], feats: [], abilities: [], focusSpells: [], equipment: [], loot: [], skippedGear: [] };
+  app._test_manifest = { complete: true };
+  notices.length = 0;
+  await App._test_onCreateActor.call(app);
+  const made = notices.find((n) => n.message === "SIMPLYSF2E.Generator.Created");
+  assert.deepEqual(JSON.parse(JSON.stringify(made?.options)), { localize: true, format: { name: "<i>x</i>" }, escape: true });
+}
+
 console.log("generator-app.races.test.mjs: reskin load, member steps, empty encounter, busy reset and notice escaping passed");

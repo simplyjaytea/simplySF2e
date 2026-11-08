@@ -324,8 +324,8 @@ export default [
       context: generatorContext("encounter", {
         input: { level: 4 }, showEmptyState: false, tokenReport: TOKEN_REPORT,
         encounterPreview: {
-          name: "Ambush at the Failing Lattice", budget: "120", spent: "135", overBudget: true, allSkipped,
-          treasureBudget: "2,800", treasureSpent: "1,200", treasureOverBudget: false, members: rowList
+          name: "Ambush at the Failing Lattice", budget: "120", spent: allSkipped ? "0" : "135", overBudget: !allSkipped, allSkipped,
+          treasureBudget: "2,800", treasureSpent: allSkipped ? "0" : "1,200", treasureOverBudget: false, members: rowList
         }
       })
     });
