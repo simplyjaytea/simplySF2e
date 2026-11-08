@@ -4,7 +4,7 @@
   <div class="spf-connection-bank">
     <label for="spf-active-connection">{{localize "SIMPLYSF2E.ProviderSetup.Connections"}}</label>
     <div class="spf-connection-row">
-      <select id="spf-active-connection" name="activeConnection" aria-label="{{localize 'SIMPLYSF2E.ProviderSetup.ActiveConnection'}}">
+      <select id="spf-active-connection" name="activeConnection">
         {{#each connections}}
           <option value="{{this.id}}" {{#if this.active}}selected{{/if}}>{{this.name}}</option>
         {{/each}}

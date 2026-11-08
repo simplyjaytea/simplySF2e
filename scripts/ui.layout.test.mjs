@@ -209,8 +209,9 @@ for (const [name, template, createAction] of [
   ["generator", generator, "createActor"],
   ["item forge", itemForge, "createItem"]
 ]) {
+  // Generate is secondary whenever another primary is on screen: a preview, a created result or a character review.
   const previewStates = name === "generator"
-    ? ["preview", "encounterPreview", "pcPreview", "reskinPreview"]
+    ? ["preview", "encounterPreview", "pcPreview", "reskinPreview", "created", "characterReview"]
     : ["preview"];
   const generateClass = '{{#if preview}}spf-secondary'
     + previewStates.slice(1).map((state) => `{{else if ${state}}}spf-secondary`).join("")

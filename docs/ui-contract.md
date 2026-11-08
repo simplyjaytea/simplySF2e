@@ -15,6 +15,7 @@ Template: `templates/whats-new.hbs`. Supply in: `WhatsNewApp._prepareContext()` 
 | Field | Type | Meaning | Example (fixture `whats-new-manual-all`) |
 | --- | --- | --- | --- |
 | `notes` | `{id, title, body}[]` | Changed meaning in the manual view only: the notes of the newest release day. Unchanged in the automatic view (all unseen notes). | the four `2026-11-07-*` notes |
+| `manual` | `boolean` (new) | `true` when opened by hand (settings menu, `/sf2e whatsnew`, `api.openWhatsNew`); `false` for the automatic unseen view. Selects the intro: `WhatsNew.IntroAll` when true, `WhatsNew.Intro` (with `version`) when false. Always supplied, never omitted. | `whats-new-manual-all` `true`; `whats-new-unseen` `false` |
 | `earlierNotes` | `{id, title, body}[]` (new) | Manual view: the remaining notes of `manualNotes(RELEASE_NOTES)` (still capped at `MANUAL_NOTE_CAP`). Automatic (unseen) view: always `[]`, so it renders exactly as today. | the six older notes |
 
 Behaviour:

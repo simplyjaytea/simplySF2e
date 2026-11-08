@@ -210,6 +210,7 @@ export default [
   {
     id: "generator-empty-encounter-no-party",
     app: "generator",
+    open: [".spf-advanced"],
     context: generatorContext("encounter", { input: { level: 4 }, party: null })
   },
   {
@@ -347,6 +348,7 @@ export default [
   {
     id: "generator-character-empty-free-archetype",
     app: "generator",
+    open: [".spf-advanced"],
     context: generatorContext("character", {
       input: { level: 3, multiclass: "ai" },
       multiclassPicker: multiclassPicker("ai")
