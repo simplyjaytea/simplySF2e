@@ -172,11 +172,8 @@
 }
 
 .simplysf2e .spf-welcome-advanced summary {
-  display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
   gap: var(--spf-space-xs) var(--spf-space-md);
-  cursor: pointer;
   color: var(--spf-text);
   font-weight: 700;
 }
