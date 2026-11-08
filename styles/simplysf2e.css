@@ -515,8 +515,9 @@
 .simplysf2e .spf-provider-actions button {
   display: inline-grid;
   place-items: center;
-  width: 1.45rem;
-  height: 1.45rem;
+  /* 24px minimum pointer target (G14). */
+  width: var(--spf-icon-btn-sm);
+  height: var(--spf-icon-btn-sm);
   min-height: 0;
   padding: 0;
   border: 0;
@@ -941,6 +942,13 @@
 }
 
 /* Per-step token usage shown under the finished preview */
+/* Inline reroll dice beside a spell, feat or ability: the compact icon
+   size, which still meets the 24px target (G14). Higher specificity than
+   the window stylesheet's local --spf-icon-btn override. */
+.simplysf2e button.spf-reroll-pick {
+  --spf-icon-btn: var(--spf-icon-btn-sm);
+}
+
 /* --------------------------------------------------------------------------
    Data tables (Shop stock, Treasure items): short narrow-window headings.
    .spf-col-full is the real label; in a narrow window it becomes visually
