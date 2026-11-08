@@ -14,20 +14,18 @@ import {
   getAncestryCandidates, getBackgroundCandidates, getClassCandidates, getHeritageCandidates, getFeatCandidates, getAbilityCandidates, sourceReadiness, describeMissingSources
 } from "./compendium.mjs";
 import {
-  normalizeLoot, resolveLoot, computeStats, adjustedStats, createActor,
-  applyTreasureBudget, equipmentValueGp, lootValueGp, parseCoins, slugify,
-  dedupeLootAgainstEquipment, enforceNamedLootBudget, reskinActorData, rerollAbilityInto
+  normalizeLoot, resolveLoot, createActor, applyTreasureBudget, equipmentValueGp, lootValueGp,
+  parseCoins, slugify, dedupeLootAgainstEquipment, enforceNamedLootBudget, reskinActorData,
+  rerollAbilityInto
 } from "./builder.mjs";
 import { normalizeReskin, reskinRenameTargets } from "./reskin.mjs";
-import { relevelPreview, relevelReskin, loadRelevelSources, clampRelevel, RELEVEL_MIN, RELEVEL_MAX } from "./relevel.mjs";
+import { relevelReskin, loadRelevelSources, clampRelevel } from "./relevel.mjs";
 import { REROLL_KINDS, rerollTarget, rerollPool, applyRerollPick, rerollKeywords } from "./reroll.mjs";
 import {
   normalizePCConcept, resolvePCConcept, resolveFeatPicks, createCharacterActor, pcStartingWealthGp, archetypeCasterPlan, resolveArchetypeBridges
 } from "./pc-builder.mjs";
 import { pcSpellcastingProfile, pcSpellPlan } from "./pc-tables.mjs";
 import { reviewUnresolvedChoices } from "./choice-set.mjs";
-import { normalizeSkillPriorities, skillPriorityOrder, initialSkillTraining } from "./pc-skills.mjs";
-import { ABILITY_KEYS, projectAttributeModifiers, projectSkillRanks } from "./pc-projection.mjs";
 import { treasureBudget, TREASURE_AMOUNT_MULTIPLIER } from "./tables.mjs";
 import { gpToCredits } from "./currency.mjs";
 import { getCustomPresets, findPreset, examplePrompt, randomBrief, presetPickerGroups } from "./presets.mjs";
@@ -35,21 +33,19 @@ import { ManagePresetsApp } from "./manage-presets-app.mjs";
 import { SourcesConfigApp } from "./sources-app.mjs";
 import { composeEncounter, THREATS } from "./encounter.mjs";
 import { findBestiaryScaffold, scaffoldArt } from "./art.mjs";
-import { assertComplete, completionManifest, completionSummary } from "./completion.mjs";
+import { assertComplete, completionManifest } from "./completion.mjs";
 import { verifyCreatedActor } from "./post-create.mjs";
-import {
-  manualNotesContent, supportedClassCandidates, isCompletePCClass, COMPLETE_PC_CLASS_SLUGS, getMulticlassDedicationSlug
-} from "./pc-support.mjs";
-import { validateArchetypeSlotPlacement, stagedActorContext } from "./pc-prerequisites.mjs";
+import { manualNotesContent, supportedClassCandidates, isCompletePCClass } from "./pc-support.mjs";
+import { validateArchetypeSlotPlacement } from "./pc-prerequisites.mjs";
 import { SpfApp } from "./app-base.mjs";
 import { jevKeySource } from "./jev.mjs";
-import { signed, esc, escAi, capitalized } from "./text.mjs";
+import { esc, escAi } from "./text.mjs";
 import { statCheckForActor, describeStatCheck, hasSpellEntry } from "./stat-check.mjs";
 import { moveToGeneratedFolder, generatedFolderId } from "./folders.mjs";
 import { createHandout } from "./handout.mjs";
 import { findRecent, forgetRecent, previewModeOf, previewNameOf, rememberRecent } from "./recent-generations.mjs";
 import { activeParty } from "./party.mjs";
-import { mapNamed, mapSpells, mapGear, matchSummary, pcFeatRows, emptyFeatSlots, skillName } from "./generator-context/rows.mjs";
+import { emptyFeatSlots } from "./generator-context/rows.mjs";
 import { buildCreaturePreviewContext } from "./generator-context/creature-preview.mjs";
 import { buildEncounterPreviewContext } from "./generator-context/encounter-preview.mjs";
 import { buildReskinPreviewContext, buildRelevelContext } from "./generator-context/reskin-context.mjs";
