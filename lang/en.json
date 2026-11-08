@@ -183,8 +183,8 @@
       "OtherConnections": "Other connections",
       "Anthropic": "Anthropic via OpenRouter",
       "FastPicks": "Fast picks",
-        "LmStudio": "LM Studio",
-        "JevTypeSafe": "Jev · TypeSafe",
+      "LmStudio": "LM Studio",
+      "JevTypeSafe": "Jev · TypeSafe",
       "Sources": "Compendium sources",
       "SystemOld": "Version {version} is older than {minimum}. Update the Starfinder 2e system.",
       "SourcesMissing": "Missing: {categories}. Open Compendium Sources and enable a pack for each.",
@@ -208,7 +208,7 @@
       "Note": {
         "CopySweep": {
           "Title": "Clearer wording",
-          "Body": "Window titles, buttons and empty-state hints use the same names. Empty Shop, Treasure and Item Forge windows and their warnings name the Generate button to press next. Mode tooltips say what each mode builds. Provider notes read Not yet tested, and a failed Welcome connect reads Connection failed."
+          "Body": "Window titles, buttons and empty-state hints use the same names. Empty Shop, Treasure and Item Forge windows name the button to press next. Mode tooltips say what each mode builds. Provider notes read Not yet tested, and a failed Welcome connect reads Connection failed."
         },
         "ShellConsistency": {
           "Title": "Tidier windows",
@@ -366,7 +366,7 @@
       "GenerateEncounter": "Generate Encounter",
       "GenerateCharacter": "Generate Character",
       "PreviewPlan": "Preview Plan",
-      "Busy": "Waiting for the AI provider…",
+      "Busy": "Creating…",
       "ChoicesNeedInput": "Some character choices could not be selected automatically. Complete any SF2e choice dialogs to continue.",
       "CreateActor": "Create Actor",
       "RerollLoot": "Reroll Loot",
@@ -886,7 +886,7 @@
       "NoPrompt": "Describe the shop first.",
       "NoEquipmentPack": "No equipment compendium is enabled. Check Compendium Sources.",
       "NoCandidates": "No equipment at this level and rarity was found in your compendiums. Raise Rarest stock or Shop level, or enable more packs in Compendium Sources.",
-      "NoStock": "The AI picked nothing from the offered items. Press Generate another shop.",
+      "NoStock": "The AI picked nothing from the offered items. Press Generate again.",
       "EmptyHint": "Describe the shop, then press Generate shop to stock it from your sf2e equipment compendium.",
       "ProgressConcept": "Naming the shop",
       "ProgressCandidates": "Finding matching items",
@@ -954,7 +954,7 @@
       "GenerateAnotherVersion": "Generate another hoard",
       "NoEquipmentPack": "No equipment compendium is enabled. Check Compendium Sources.",
       "NoCandidates": "No equipment at this party level and rarity was found in your compendiums. Raise Rarest item, or enable more packs in Compendium Sources.",
-      "NoItems": "Nothing fit the budget. Press Generate another hoard.",
+      "NoItems": "Nothing fit the budget. Press Generate again.",
       "EmptyHint": "Set the party level and amount, then press Generate hoard to fill it from your sf2e equipment compendium.",
       "ProgressConcept": "Naming the hoard",
       "ProgressCandidates": "Finding matching items",

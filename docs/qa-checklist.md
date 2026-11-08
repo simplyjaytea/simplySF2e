@@ -90,7 +90,7 @@ Use one prompt at level 5. The goal is to prove the adjustment is applied once (
 
 | # | Step | Expected | Where to look | Result | Evidence |
 |---|------|----------|---------------|--------|----------|
-| 4.1 | Generator → mode **Encounters**. Party level 3, Party size 4, Threat **Moderate**. Optionally enter a theme. Click **Generate Encounter**. | Progress shows "Encounter design" then "Member i/N" steps. A plan appears with roles (Boss, Minion, etc.) and per-member counts. | Generator preview | | |
+| 4.1 | Generator → mode **Encounter**. Party level 3, Party size 4, Threat **Moderate**. Optionally enter a theme. Click **Generate Encounter**. | Progress shows "Encounter design" then "Member i/N" steps. A plan appears with roles (Boss, Minion, etc.) and per-member counts. | Generator preview | | |
 | 4.2 | Read the XP readout and treasure readout. | Total XP at or near the Moderate budget for the party (80 XP at party size 4); within-budget styling when under. Treasure in credits with thousands separators. | Preview | | |
 | 4.3 | Use "Add one" / "Remove one" on a member. | XP readout updates; "Remove one" at 0 skips that creature. | Preview | | |
 | 4.4 | Preview with Threat Trivial, Severe, Extreme and with party size 5. | Member counts and XP scale with threat and party size. Record XP: `__ / __ / __ / __`. | Preview | | |
@@ -176,7 +176,7 @@ Open the Forge from the Items tab **Item Forge** button. Pick the **Item type**,
 
 ## 7. Player Characters (all eight classes)
 
-Run each class at **level 1** and at one higher level (use **5**; record the level used). Mode **Player Character**. Pick the class preset (Envoy, Mystic, Operative, Solarian, Soldier, Witchwarper) or name the class in the prompt (Mechanic and Technomancer have no preset), set Level, click **Generate Character**. Leave the Free Archetype setting off.
+Run each class at **level 1** and at one higher level (use **5**; record the level used). Mode **Character**. Pick the class preset (Envoy, Mystic, Operative, Solarian, Soldier, Witchwarper) or name the class in the prompt (Mechanic and Technomancer have no preset), set Level, click **Generate Character**. Leave the Free Archetype setting off.
 
 | Class | L1 PASS/FAIL | L5 PASS/FAIL | Notes / evidence |
 |-------|--------------|--------------|------------------|
@@ -823,9 +823,9 @@ Generate a level 7 NPC with a limited cone breath (name "Frost Breath", cold), a
 | # | Step | Expected | Where to look | Result | Evidence |
 |---|------|----------|---------------|--------|----------|
 | 14d.1 | Open Generator. Read the mode tiles and hover each one. | Tile names read Monster, NPC, Encounter, Character, Reskin. Each tooltip says what that mode builds: one creature, one NPC, a group sized to the party, one playable character, or a copy with new fiction. Random button reads "Random creature: ignores the description and invents one at this level." | Generator | | |
-| 14d.2 | Open Generator and press Generate. Read the progress card while the AI is busy with no step message. | The fallback line reads "Waiting for the AI provider…". Expand the readiness row: its label reads "Compendium content". | Generator | | |
+| 14d.2 | Generator, mode Monster, a preview on screen. Press **Create Actor**. Read the busy card while the actor is written. | The no-progress fallback line reads "Creating…" (no AI request runs in a Create step). | Generator |  | |
 | 14d.3 | Open Item Forge with no preview. Read the empty hint. Generate an item with no usable passive effects. | Empty hint: "Describe an item and press Generate…". The warning says "Press Generate another version for a mechanical one." The window title reads "SimplySF2e Item Forge". The button reads "Create item". | Item Forge | | |
 | 14d.4 | Open Shop with no preview. Read the empty hint. Remove every stock row, then read the warning. | Empty hint names Generate shop. The warning reads "Press Generate another shop to restock." Title reads "SimplySF2e Shop". | Shop | | |
-| 14d.5 | Open Treasure with no preview. Read the empty hint. Set a rarity no compendium item meets, then press Generate hoard. | Empty hint names Generate hoard. The error names Rarest item and Compendium Sources. Title reads "SimplySF2e Treasure". | Treasure | | |
+| 14d.5 | Open Treasure with no preview. Read the empty hint and the title. The no-candidates error needs a level and rarity with no matching compendium item, which a GM cannot set reliably, so check its wording on the harness fixture `treasure-error` (`tools/ui-preview`). | Empty hint names **Generate hoard**. Title reads "SimplySF2e Treasure". Fixture error reads "No equipment at this party level and rarity was found in your compendiums. Raise Rarest item, or enable more packs in Compendium Sources." | Treasure |  | |
 | 14d.6 | Open Manage Presets with no custom presets. Read the empty state and the footer. | Empty state: "Press New preset to create one, or Import to paste exported preset JSON." Buttons read "New preset" and "Export all". Title reads "Manage custom presets". | Manage Presets | | |
 | 14d.7 | Open Welcome. Read the Google note, the Advanced block, then press Connect with a key that is not authorized. | The Google note reads "Not yet tested". The Advanced block has a "Fast picks" heading and the labels "LM Studio" and "Jev · TypeSafe". A failed connect shows the title "Connection failed". | Welcome | | |
