@@ -206,7 +206,7 @@
       "Note": {
         "ShellConsistency": {
           "Title": "Tidier windows",
-          "Body": "Discard, Delete and Reset are red and sit apart from the main action. Numbers line up in tables and the token report. Empty panels and status rows are shorter at narrow widths. Encounter members, review lists and the Forge, Shop and Treasure readiness row match the Generator's layout."
+          "Body": "Discard, Delete and Reset are red and sit apart from the main action. Numbers line up in tables and the token report. Empty panels are more compact, and long model and connection names wrap instead of being cut off. Encounter members, review lists and the Forge, Shop and Treasure readiness row match the Generator's layout."
         },
         "RunGuards": {
           "Title": "Fewer ways to lose work",
