@@ -192,3 +192,17 @@ Treasure (no new context): the footer Reroll and its `reroll` action are removed
 - `encounterPreview.members[].statline` (item 9).
 - Strike attack/damage rows inside `reskinRelevel.rows` (item 7; they move to `reskinRelevel.strikes`).
 - `characterReview.skills.warnings` / `.loadoutWarnings` as plain strings (item 1; now `{title, detail}`).
+
+## U2 Shop, Treasure and Item Forge: readiness line (B14, S12)
+
+Templates: `templates/itemforge.hbs`, `shop.hbs`, `treasure.hbs` (the status bar). Supply in: each app's `_prepareContext()` (`scripts/itemforge-app.mjs`, `shop-app.mjs`, `treasure-app.mjs`), the same fields the Generator supplies (`generator-app.mjs` ~l.258-262).
+
+| Field | Type | Meaning | Example |
+| --- | --- | --- | --- |
+| `sourcesReady` (new) | boolean | Equipment packs are available (`getPacksFor("equipment")`). False renders the warning row, expanded. | `true` |
+| `sourcePackCount` (new) | number | Number of equipment packs, for the one-line status. | `3` |
+| `sourceMissing` (new) | string | Human-readable missing category when `sourcesReady` is false. | `"Equipment"` |
+| `jevSource` (new) | string or null | Jev key source from `jevKeySource()`, as in the Generator. | `"key"` |
+| `readinessOpen` (new) | boolean | Open state of the one-line disclosure; kept per window through a `toggle` listener in `_onRender`. | `false` |
+
+Scope note: these windows draw only from equipment packs, so readiness checks the equipment category alone. The Generator checks its creature categories.
