@@ -62,6 +62,7 @@ Repeat 2.1-2.7 for **Level 1**, **Level 5** and **Level 12**. Use the same promp
 | 2.11 | Same level 7 NPC, prompt: "a serpent that spits an acid line down a corridor". Create Actor. | An at-will 2-action item with a 30-foot line, damage `4d6` acid, "DC 25 Reflex basic", and no recharge sentence. | Preview, Actions tab | | |
 | 2.12 | Generator → mode **NPC**, level 8. Prompt: "a fungal swamp hulk whose spores sicken everything that comes near it". Generate, then Create Actor. Read the aura item and place the token on the canvas. | A passive 30-foot aura visible on the canvas around the token (Aura radius 30 on the sheet). The ability text has a clickable `@Check[fortitude\|dc:23]` (DC 23 is SPELL_DC moderate at level 8) and reads "On a failure, it becomes sickened 2". The module applies nothing: the GM clicks the check and applies the condition. | Canvas, Actions tab, chat | | |
 | 2.13 | Same level 8 creature, prompt: "a glowing reactor core that burns everything within ten feet each turn". Create Actor. Place the token on the canvas. | A passive 10-foot aura visible on the canvas around the token. The ability text has a clickable `@Damage[4d6[fire]]` link (4d6 is the unlimited column at level 6, level 8 minus 2) and a clickable `@Check[fortitude\|dc:23\|basic]`. The module applies no damage: the GM rolls and applies it. | Canvas, Actions tab, chat | | |
+| 2.14 | Generator → mode **NPC**, level 14, rarity Unique, Treasure amount Generous, any prompt that gives it loot. Create the actor and open its inventory. | The Credstick in its inventory brings the loot value to about the Credits budget chip in the preview (175,200 for a single level 14 creature, about 17,520 gp), not 10,000 gp. | Preview, NPC inventory | | |
 
 | Level | Result | Evidence |
 |-------|--------|----------|
@@ -199,6 +200,7 @@ Per class and level:
 | 7.7 | Skills. | Trained skills match class base + Int + background; increases only at legal levels for the class. | Skills section | | |
 | 7.8 | Equipment. | Gear priced in credits; armor/weapon readied only if trained, else a Loadout note (e.g. "An untrained armor item was left stowed."). | Inventory | | |
 | 7.9 | Class path items: Operative specialization skill feat and Sniper bonus feat chosen without a native prompt; Solarian has Solar Manifestations. | Cited L1 choices closed before creation; none blank. | Feats, Actions | | |
+| 7.10 | Level 18 character, Treasure amount Standard, no named loot picks. Create it, then add up the prices of all inventory items except the Credstick. | Credstick credits plus that sum is about 450,000 credits (45,000 gp), not about 100,000 credits plus the gear. | Character inventory | | |
 
 ### 7a. Mystic and Witchwarper spellcasting (both levels)
 
@@ -675,6 +677,7 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 | 13h.3 | Party level 4, One encounter, Common, theme "Abandoned corporate lab on an ice moon". Generate hoard, then Reroll, then switch to Whole level and Generate. | One encounter shows Budget 680 credits and Whole level 8,500; items are level 4 or lower and common, one of each, and item prices plus the Credits row add up to the budget. Party size changes only the "each" line, not the budget. Reroll gives a different hoard. | Preview | | |
 | 13h.4 | Remove one item row with ×. | The row goes and its price is added to the Credits row. | Preview | | |
 | 13h.5 | Press Create hoard. | A loot actor opens in Loot mode in SimplySF2e > Treasure, holding the remaining items (each linked to its compendium entry, quantity 1) and a Credstick worth the Credits row. The description shows the theme prose. | Loot sheet, Actors sidebar | | |
+| 13h.6 | Party level 20, Whole level, Common. Remove every item row with ×, then press Create hoard. | The loot actor holds exactly one Credstick whose price reads as a plain number of credits, 4,900,000, and the sheet's wealth total shows the same number. | Loot sheet | | |
 
 ## 13i. What's new
 
