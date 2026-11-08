@@ -765,3 +765,4 @@ Generate a level 7 NPC with a limited cone breath (name "Frost Breath", cold), a
 | 12ac.9 | What's new manual view. | Newest release day open, earlier collapsed. | What's new | | |
 | 12ac.10 | Shop/Treasure narrow windows. | Tables readable. | Shop/Treasure | | |
 | 12ac.11 | Polish nits. | API-key warning order, Welcome note, divider. | Various | | |
+| 12ad.1 | Hard to force on a live world: a shop or hoard create where the actor is written, verification fails, and the rollback delete is refused (for example, the actor is locked by another user's permission change mid-create). | The error names the surviving actor (for example "Merchant \"X\" still exists ... remove it manually") and the preview is cleared; Create again does not make a second actor. | Shop, Treasure | | |

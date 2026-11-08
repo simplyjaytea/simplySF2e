@@ -882,6 +882,7 @@
       "Dropped": "{count} pick(s) were not on the offered list and were left out.",
       "Create": "Create merchant",
       "Created": "Created merchant {name}.",
+      "RollbackSurvivor": "Merchant \"{name}\" still exists. The draft was discarded to prevent a duplicate; remove it manually before trying again.",
       "CategoryWeapons": "Weapons",
       "CategoryArmor": "Armor",
       "CategoryGear": "Gear",
@@ -948,7 +949,8 @@
       "AllRemoved": "Every item was removed. The whole budget is now credits.",
       "Dropped": "{count} pick(s) were not offered, had no price, or did not fit the budget, and were left out.",
       "Create": "Create hoard",
-      "Created": "Created hoard {name}."
+      "Created": "Created hoard {name}.",
+      "RollbackSurvivor": "Hoard \"{name}\" still exists. The draft was discarded to prevent a duplicate; remove it manually before trying again."
     },
     "StatCheck": {
       "Heading": "Stat check",

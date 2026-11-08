@@ -236,13 +236,14 @@ export class TreasureApp extends SpfApp {
     this.#clearPreview();
     const { prompt, level, partySize, amount, rarity } = this.#input;
     const budget = treasureBudgetCredits(level, amount);
-    const signal = this._beginProgress([
-      ["treasureConcept", game.i18n.localize("SIMPLYSF2E.Treasure.ProgressConcept")],
-      ["candidates", game.i18n.localize("SIMPLYSF2E.Treasure.ProgressCandidates")],
-      ["picks", game.i18n.localize("SIMPLYSF2E.Treasure.ProgressPicks")],
-      ["prices", game.i18n.localize("SIMPLYSF2E.Treasure.ProgressPrices")]
-    ]);
+    let signal = null;
     try {
+      signal = this._beginProgress([
+        ["treasureConcept", game.i18n.localize("SIMPLYSF2E.Treasure.ProgressConcept")],
+        ["candidates", game.i18n.localize("SIMPLYSF2E.Treasure.ProgressCandidates")],
+        ["picks", game.i18n.localize("SIMPLYSF2E.Treasure.ProgressPicks")],
+        ["prices", game.i18n.localize("SIMPLYSF2E.Treasure.ProgressPrices")]
+      ]);
       // 1. Flavor and search terms only.
       await this._setStep("treasureConcept");
       const { concept: raw, usage } = await generateTreasureConcept({
@@ -364,7 +365,7 @@ export class TreasureApp extends SpfApp {
       // Committed: consume the draft before presentation so a sheet error
       // cannot lead to a duplicate hoard.
       this.#clearPreview();
-      ui.notifications.info(game.i18n.format("SIMPLYSF2E.Treasure.Created", { name: created.name }));
+      ui.notifications.info("SIMPLYSF2E.Treasure.Created", { localize: true, format: { name: created.name }, escape: true });
       try {
         await created.sheet.render(true);
       } catch (err) {
@@ -373,10 +374,20 @@ export class TreasureApp extends SpfApp {
     } catch (err) {
       console.error(`${MODULE_ID} | treasure creation failed`, err);
       // Roll back a half-made hoard so a failed create leaves nothing behind.
+      let survivor = null;
       if (actor?.id) {
-        try { await actor.delete(); } catch (deleteErr) { console.warn(`${MODULE_ID} | could not roll back treasure`, deleteErr); }
+        try { await actor.delete(); } catch (deleteErr) {
+          console.warn(`${MODULE_ID} | could not roll back treasure`, deleteErr);
+          survivor = actor.name;
+        }
       }
-      this.#error = err.message;
+      if (survivor) {
+        // The hoard still exists: drop the draft so a retry cannot duplicate it.
+        this.#clearPreview();
+        this.#error = `${err.message} ${game.i18n.format("SIMPLYSF2E.Treasure.RollbackSurvivor", { name: survivor })}`;
+      } else {
+        this.#error = err.message;
+      }
       this._recordFailure(err, "treasure creation", this.#error);
     } finally {
       this.#busy = false;

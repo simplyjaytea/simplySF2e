@@ -24,14 +24,17 @@ let createFailure;
 let macroFailure;
 let activation = null;
 const warnings = [];
+const notices = [];
+let createdName = "QA charm";
+let beginFailure = null;
 const context = vm.createContext({
   console: { log() {}, debug() {}, warn() {}, error() {} },
   game: { i18n: { localize: (key) => key, format: (key) => key } },
-  ui: { notifications: { info() {}, warn: (text) => warnings.push(text) } },
+  ui: { notifications: { info: (...args) => notices.push(args), warn: (text) => warnings.push(text) } },
   Item: { create: async () => {
     createCalls++;
     if (createFailure) throw createFailure;
-    return { id: "forged", name: "QA charm", sheet: { render: async () => { if (sheetFailure) throw sheetFailure; } } };
+    return { id: "forged", name: createdName, sheet: { render: async () => { if (sheetFailure) throw sheetFailure; } } };
   } }
 });
 class MockSpfApp {
@@ -43,7 +46,10 @@ class MockSpfApp {
   _recordFailure(err, operation, shown) { this.recordedFailure = { err, operation, shown }; }
   _canReportBug() { return false; }
   async render() {}
-  _beginProgress() { this.abort = new AbortController(); return this.abort.signal; }
+  _beginProgress() {
+    if (beginFailure) { const failure = beginFailure; beginFailure = null; throw failure; }
+    this.abort = new AbortController(); return this.abort.signal;
+  }
   _throwIfCancelled() {
     if (this.abort?.signal.aborted) throw Object.assign(new Error("cancelled"), { cancelled: true });
   }
@@ -132,4 +138,26 @@ await actions.createItem.call(forge);
 assert.equal((await forge._prepareContext()).preview, null);
 assert.equal((await forge._prepareContext()).error, null);
 assert.ok(warnings.some((text) => text.includes("MacroFailed")));
+// A throw while starting progress happens inside the run's try: Generate is not
+// left busy, so the next Generate runs.
+forge = app();
+beginFailure = new Error("progress setup failed");
+const generationsBefore = generationCalls;
+await actions.generate.call(forge).catch(() => {});
+await actions.generate.call(forge);
+assert.equal(generationCalls, generationsBefore + 1, "a failed progress start must not leave Generate stuck busy");
+
+// AI-named items reach the notification as escaped format values, not as pre-built text.
+forge = app();
+createdName = "<b>x</b>";
+await actions.generate.call(forge);
+notices.length = 0;
+await actions.createItem.call(forge);
+const createdNotice = notices.find(([key]) => key === "SIMPLYSF2E.ItemForge.Created");
+assert.ok(createdNotice, "the created notice is sent");
+assert.equal(createdNotice[1].localize, true);
+assert.equal(createdNotice[1].escape, true, "AI names are escaped by the notification");
+assert.equal(createdNotice[1].format.name, "<b>x</b>", "the raw name is a format value");
+createdName = "QA charm";
+
 console.log("itemforge-app.lifecycle.test.mjs: reentry, final-step cancellation, commit and retry passed");
