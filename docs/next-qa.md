@@ -13,3 +13,4 @@ Appended by the coordinator when a batch lands on `next`; copied into the PR bod
 | BATCH-7 (2026-11-08) | 14a.1-14a.10, 14b.1-14b.7, 14c.1-14c.6 | 2026-11-08-shell-consistency |
 | BATCH-8 (2026-11-08) | none | none (P2 short candidate ids; ABC id-or-name validation) |
 | BATCH-9 (2026-11-08) | none | none (P5 harness page pool) |
+| BATCH-10 (2026-11-08) | 14d.1-14d.7 | 2026-11-08-copy-sweep |

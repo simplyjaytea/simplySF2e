@@ -237,7 +237,7 @@ Per class and level:
 
 | # | Step | Expected | Where to look | Result | Evidence |
 |---|------|----------|---------------|--------|----------|
-| 7d.1 | Level 1 **Living Hologram** PC. Player Character mode; name the ancestry in the prompt (e.g. "a living hologram courier"). Generate Character, then Create Actor. | No native size prompt appears. The module answers the size choice. The sheet shows the creature size it chose. | Dialogs, sheet | | |
+| 7d.1 | Level 1 **Living Hologram** PC. Character mode; name the ancestry in the prompt (e.g. "a living hologram courier"). Generate Character, then Create Actor. | No native size prompt appears. The module answers the size choice. The sheet shows the creature size it chose. | Dialogs, sheet | | |
 | 7d.2 | Level 1 **SRO** PC (SRO Frame). Same steps, naming the SRO ancestry in the prompt. | As 7d.1. | Dialogs, sheet | | |
 
 ### 7e. Multiclass (Free Archetype on only)
@@ -246,7 +246,7 @@ Turn on **Free Archetype variant rule** (Module Settings → SimplySF2e) for 7e.
 
 | # | Step | Expected | Where to look | Result | Evidence |
 |---|------|----------|---------------|--------|----------|
-| 7e.1 | With **Free Archetype variant rule** off, open the Generator in Player Character mode. Turn the setting on and reopen it. | Off: no **Multiclass** picker. On: a Multiclass picker appears, blank by default. | Generator | | |
+| 7e.1 | With **Free Archetype variant rule** off, open the Generator in Character mode. Turn the setting on and reopen it. | Off: no **Multiclass** picker. On: a Multiclass picker appears, blank by default. | Generator | | |
 | 7e.2 | Free Archetype on. Class Soldier, level 5. Multiclass picker: Mystic. Generate Character, then Create Actor. | The Mystic Dedication fills the level-2 archetype slot. Preview and sheet agree. | Preview, Feats tab | | |
 | 7e.3 | Same character. Read the archetype feats at levels 4 and later. | Where a legal follow-up exists, later archetype slots take Mystic archetype feats (their prerequisites name the Mystic Dedication or an earlier Mystic feat). | Feats tab | | |
 | 7e.4 | Free Archetype on. Multiclass picker left empty. Prompt: "a soldier who dabbles in mysticism", level 5. Generate Character, then Create Actor. | The AI picks a dedication from the prompt. That dedication fills the level-2 archetype slot; the picker stays empty. | Preview, Feats tab | | |
@@ -304,7 +304,7 @@ As GM, in the chat box. The command word is case-insensitive.
 | 11.7 | `/sf2e monster 7` | Monster mode, level 7. | Fields | | |
 | 11.8 | `/sf2e npc 4 street doc` | NPC mode, level 4, prompt "street doc" prefilled. | Fields | | |
 | 11.9 | `/sf2e encounter 3 smugglers` | Encounter mode opens with Party level 3 and the theme box reading "smugglers" (encounter mode reuses the level and prompt fields). | Fields | | |
-| 11.10 | `/sf2e character 1 gruff vesk soldier` | Player Character mode, level 1, prompt prefilled. | Fields | | |
+| 11.10 | `/sf2e character 1 gruff vesk soldier` | Character mode, level 1, prompt prefilled. | Fields | | |
 | 11.11 | `/sf2e 6 something` | Opens with level 6 and the prompt; mode unchanged. | Fields | | |
 | 11.12 | Run `/sf2e` while the Generator is already open. | The same window comes forward; no duplicate. | Window | | |
 | 11.13 | Console: `game.modules.get("simplysf2e").api.open()` and `.openItemForge()`. | Windows open. | Console | | |
