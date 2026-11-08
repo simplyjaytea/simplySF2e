@@ -294,7 +294,7 @@ export default [
       })
     };
   })(),
-  (() => {
+  ...(() => {
     const mk = (over, level) => concept(over, { level });
     const members = [
       { count: 1, role: "boss", concept: mk({ name: "Warden Ixtl, Keeper of the Seventh Lattice", level: 6, spellcasting: { tradition: "arcane", dcScale: "high", attackScale: "high" }, strikes: [{ name: "Gravity Maul", type: "melee", attackScale: "high", damageScale: "high", damageType: "bludgeoning", traits: [] }] }, 6), blurb: "A rift warden." },
@@ -318,17 +318,22 @@ export default [
         }
       };
     });
-    return {
-      id: "generator-encounter-preview",
+    const preview = (id, rowList, allSkipped) => ({
+      id,
       app: "generator",
       context: generatorContext("encounter", {
         input: { level: 4 }, showEmptyState: false, tokenReport: TOKEN_REPORT,
         encounterPreview: {
-          name: "Ambush at the Failing Lattice", budget: "120", spent: "135", overBudget: true,
-          treasureBudget: "2,800", treasureSpent: "1,200", treasureOverBudget: false, members: rows
+          name: "Ambush at the Failing Lattice", budget: "120", spent: "135", overBudget: true, allSkipped,
+          treasureBudget: "2,800", treasureSpent: "1,200", treasureOverBudget: false, members: rowList
         }
       })
-    };
+    });
+    return [
+      preview("generator-encounter-preview", rows, false),
+      // Every member skipped: Create All is disabled (T-BUG-GEN, docs/ui-contract.md).
+      preview("generator-encounter-all-skipped", rows.map((r) => ({ ...r, count: 0, skipped: true })), true)
+    ];
   })(),
   // Character preview. Feat rows and the empty-slot notice follow #pcFeatRows() and
   // the emptyFeatNotice build in #buildPCPreviewContext(): a found feat has no empty

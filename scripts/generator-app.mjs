@@ -152,6 +152,10 @@ export class GeneratorApp extends SpfApp {
   #previewMeta = null;
   /** True while a one-click Generate is between its preview and its create. */
   #createPending = false;
+  /** Bumped whenever a run, a recent-preview swap or a new reskin load takes over the preview. */
+  #previewEpoch = 0;
+  /** Serialises encounter member-count loot re-fits so quick clicks resolve in order. */
+  #stepQueue = Promise.resolve();
   /** Names rerolled away from, per "kind:index" slot, so a reroll never swaps back. */
   #rerollRejected = new Map();
   /** Cycles the example placeholder; starts randomly so reopening varies. */
@@ -695,6 +699,8 @@ export class GeneratorApp extends SpfApp {
       budget: Number(this.#encounter.budget ?? 0).toLocaleString("en-US"),
       spent: Number(this.#encounter.spent ?? 0).toLocaleString("en-US"),
       overBudget: this.#encounter.spent > this.#encounter.budget,
+      // True when every member's count is 0: Create All has nothing to create.
+      allSkipped: this.#encounter.members.every((m) => !(m.count > 0)),
       // Internal treasure math stays in gp (applyTreasureBudget/lootValueGp);
       // only the display boundary converts to credits via the cited rate.
       treasureBudget: gpToCredits(Math.round(this.#encounter.treasureBudget ?? 0)).toLocaleString("en-US"),
@@ -993,21 +999,34 @@ export class GeneratorApp extends SpfApp {
     await this.#stepMemberCount(Number(target.dataset.index), -1);
   }
 
-  /** Adjust an encounter member's count (0 = skip it) and refresh XP + treasure math. */
-  async #stepMemberCount(index, delta) {
+  /**
+   * Adjust an encounter member's count (0 = skip it) and refresh XP + treasure math.
+   * The count changes at once; the loot re-fit is queued so two quick clicks
+   * cannot resolve out of order. Every queued fit reads the count as it is when
+   * it runs, so the last one always matches the final count.
+   */
+  #stepMemberCount(index, delta) {
     const member = this.#encounter?.members?.[index];
-    if (!member) return;
+    if (!member) return Promise.resolve();
     member.count = Math.min(8, Math.max(0, member.count + delta));
     this.#encounter.spent = this.#encounter.members.reduce((sum, m) => sum + m.count * m.xpEach, 0);
+    const run = this.#stepQueue.then(() => this.#refitMemberLoot(member));
+    this.#stepQueue = run.catch(() => {});
+    return run;
+  }
+
+  /** Re-nudge one member's shared loot toward its current per-copy split, then refresh totals. */
+  async #refitMemberLoot(member) {
     // The group's treasure share (treasureGroupBudget) stays constant; only
     // the per-copy split changes, so re-nudge the shared loot toward the new
     // split (applyTreasureBudget re-targets from whatever the loot currently
     // holds, so calling it again is safe) and refresh that member's actuals.
-    if (member.treasureGroupBudget != null) {
+    if (this.#encounter?.members?.includes(member) && member.treasureGroupBudget != null) {
       member.treasureBudgetEach = member.treasureGroupBudget / Math.max(member.count, 1);
       member.resolved.loot = await applyTreasureBudget(member.resolved.loot, member.treasureBudgetEach);
       member.treasureEach = lootValueGp(member.resolved.loot);
     }
+    if (!this.#encounter) return;
     // Both treasure totals are per-creature × count, which now nets back to
     // each group's constant share regardless of how the stepper is set.
     this.#encounter.treasureBudget = this.#encounter.members.reduce((sum, m) => sum + m.count * (m.treasureBudgetEach ?? 0), 0);
@@ -1159,16 +1178,17 @@ export class GeneratorApp extends SpfApp {
     this.#pcConcept = null;
     this.#pcResolved = null;
     this._tokenUsage = [];
-    const signal = this._beginProgress([
-      ["concept", game.i18n.localize("SIMPLYSF2E.Progress.Concept")],
-      ...(this.#input.allowSpellcasting ? [["spells", game.i18n.localize("SIMPLYSF2E.Progress.Spells")]] : []),
-      ["abilities", game.i18n.localize("SIMPLYSF2E.Progress.Abilities")],
-      ["feats", game.i18n.localize("SIMPLYSF2E.Progress.Feats")],
-      ["equipment", game.i18n.localize("SIMPLYSF2E.Progress.Equipment")],
-      ["loot", game.i18n.localize("SIMPLYSF2E.Progress.Loot")],
-      ["match", game.i18n.localize("SIMPLYSF2E.Progress.Match")]
-    ]);
+    let signal;
     try {
+      signal = this._beginProgress([
+        ["concept", game.i18n.localize("SIMPLYSF2E.Progress.Concept")],
+        ...(this.#input.allowSpellcasting ? [["spells", game.i18n.localize("SIMPLYSF2E.Progress.Spells")]] : []),
+        ["abilities", game.i18n.localize("SIMPLYSF2E.Progress.Abilities")],
+        ["feats", game.i18n.localize("SIMPLYSF2E.Progress.Feats")],
+        ["equipment", game.i18n.localize("SIMPLYSF2E.Progress.Equipment")],
+        ["loot", game.i18n.localize("SIMPLYSF2E.Progress.Loot")],
+        ["match", game.i18n.localize("SIMPLYSF2E.Progress.Match")]
+      ]);
       const gmPrompt = isRandom ? randomBrief(this.#input.mode) : this.#input.prompt;
       const { concept, resolved, manifest } = await generateCreature({
         mode: this.#input.mode,
@@ -1290,16 +1310,17 @@ export class GeneratorApp extends SpfApp {
     this.#pcConcept = null;
     this.#pcResolved = null;
     this._tokenUsage = [];
-    const signal = this._beginProgress([
-      ["concept", game.i18n.localize("SIMPLYSF2E.Progress.PCConcept")],
-      ["abc", game.i18n.localize("SIMPLYSF2E.Progress.ABC")],
-      ["feats", game.i18n.localize("SIMPLYSF2E.Progress.Feats")],
-      ...(this.#input.allowSpellcasting ? [["spells", game.i18n.localize("SIMPLYSF2E.Progress.Spells")]] : []),
-      ["equipment", game.i18n.localize("SIMPLYSF2E.Progress.Equipment")],
-      ["loot", game.i18n.localize("SIMPLYSF2E.Progress.Loot")],
-      ["match", game.i18n.localize("SIMPLYSF2E.Progress.Match")]
-    ]);
+    let signal;
     try {
+      signal = this._beginProgress([
+        ["concept", game.i18n.localize("SIMPLYSF2E.Progress.PCConcept")],
+        ["abc", game.i18n.localize("SIMPLYSF2E.Progress.ABC")],
+        ["feats", game.i18n.localize("SIMPLYSF2E.Progress.Feats")],
+        ...(this.#input.allowSpellcasting ? [["spells", game.i18n.localize("SIMPLYSF2E.Progress.Spells")]] : []),
+        ["equipment", game.i18n.localize("SIMPLYSF2E.Progress.Equipment")],
+        ["loot", game.i18n.localize("SIMPLYSF2E.Progress.Loot")],
+        ["match", game.i18n.localize("SIMPLYSF2E.Progress.Match")]
+      ]);
       await this._setStep("concept");
       // Multiclass needs Free Archetype. The AI is asked for a second class only
       // when the GM left the picker on "Let the AI decide"; a GM pick never asks it.
@@ -1730,13 +1751,13 @@ export class GeneratorApp extends SpfApp {
       if (createdMode === "npc") {
         const handout = await createHandout(actor, createdConcept);
         if (handout) {
-          try { ui.notifications.info(game.i18n.format("SIMPLYSF2E.Handout.Created", { name: actor.name })); }
+          try { ui.notifications.info("SIMPLYSF2E.Handout.Created", { localize: true, format: { name: actor.name }, escape: true }); }
           catch (err) { console.warn(`${MODULE_ID} | handout created, but its notice could not be shown`, err); }
         }
       }
       this.#created.statCheck = GeneratorApp.#statCheckContext([{ concept: createdConcept, resolved: createdResolved, actor }]);
       try {
-        ui.notifications.info(game.i18n.format("SIMPLYSF2E.Generator.Created", { name: actor.name }));
+        ui.notifications.info("SIMPLYSF2E.Generator.Created", { localize: true, format: { name: actor.name }, escape: true });
         await actor.sheet.render(true);
       } catch (err) {
         console.warn(`${MODULE_ID} | actor created, but its sheet could not be displayed`, err);
@@ -1773,11 +1794,11 @@ export class GeneratorApp extends SpfApp {
     const applyingMessage = game.i18n.localize("SIMPLYSF2E.Progress.ApplyingCharacter");
     const applyLabel = game.i18n.localize("SIMPLYSF2E.Progress.Apply");
     this.#busyMessage = applyingMessage;
-    this._beginProgress([["apply", applyLabel]], { cancellable: false });
     let created = false;
     let committed = false;
     let actor = null;
     try {
+      this._beginProgress([["apply", applyLabel]], { cancellable: false });
       await this._setStep("apply");
       if (this._progress) this._progress.detail = applyingMessage;
       await this.render();
@@ -1859,9 +1880,9 @@ export class GeneratorApp extends SpfApp {
             actionCount, skills };
         }
         if (review.choices.length || review.incomplete || skillReport?.warnings.length || skillReport?.loadoutWarnings?.length) {
-          ui.notifications.warn(game.i18n.format("SIMPLYSF2E.Generator.ReviewCreated", { name: actor.name }));
+          ui.notifications.warn("SIMPLYSF2E.Generator.ReviewCreated", { localize: true, format: { name: actor.name }, escape: true });
         } else {
-          ui.notifications.info(game.i18n.format("SIMPLYSF2E.Generator.Created", { name: actor.name }));
+          ui.notifications.info("SIMPLYSF2E.Generator.Created", { localize: true, format: { name: actor.name }, escape: true });
         }
         await actor.sheet.render(true);
       } catch (err) {
@@ -1934,6 +1955,10 @@ export class GeneratorApp extends SpfApp {
   /** Create every encounter member, each with closest-match bestiary art. */
   async #createEncounterActors() {
     if (this.#busy || !this.#encounter) return;
+    if (this.#encounter.members.every((m) => !(m.count > 0))) {
+      ui.notifications.warn(game.i18n.localize("SIMPLYSF2E.Generator.NoMembers"));
+      return;
+    }
     this.#busy = true;
     this.#error = null;
     await this.render();
@@ -1979,9 +2004,9 @@ export class GeneratorApp extends SpfApp {
       committed = true;
       this.#created.statCheck = GeneratorApp.#statCheckContext(checked);
       try {
-        ui.notifications.info(game.i18n.format("SIMPLYSF2E.Generator.CreatedAll", {
-          count: created, name: folder.name
-        }));
+        ui.notifications.info("SIMPLYSF2E.Generator.CreatedAll", {
+          localize: true, format: { count: created, name: folder.name }, escape: true
+        });
       } catch (err) {
         console.warn(`${MODULE_ID} | encounter created, but completion presentation failed`, err);
         try { ui.notifications.warn(game.i18n.localize("SIMPLYSF2E.Generator.CreatedPresentationFailed")); }
@@ -2049,6 +2074,8 @@ export class GeneratorApp extends SpfApp {
         ?? actor.system?.details?.level?.value ?? actor.level ?? 0
     };
     this.#reskinLevel = null;
+    this.#previewEpoch += 1;
+    const epoch = this.#previewEpoch;
     const sourceUuid = this.#reskinSource.uuid;
     let data = null;
     let sources = {};
@@ -2060,8 +2087,16 @@ export class GeneratorApp extends SpfApp {
     }
     // Another drop may have started while this one loaded; keep the newer source's preview.
     if (this.#reskinSource?.uuid !== sourceUuid) return;
+    // The source data belongs to the current source either way; keep it in step.
     this.#reskinData = data;
     this.#reskinSources = sources;
+    // A run, create, preview swap or newer drop may have taken over the preview
+    // during the load: it owns the flavor and error now, so leave them alone
+    // (a finished run has already rendered).
+    if (this.#previewEpoch !== epoch || this.#busy || this.#createPending) {
+      await this.render();   // only the source data changed: refresh the re-level rows
+      return;
+    }
     this.#reskinFlavor = null;
     this.#created = null;
     this.#error = null;
@@ -2106,8 +2141,9 @@ export class GeneratorApp extends SpfApp {
     this.#created = null;
     this.#reskinFlavor = null;
     this._tokenUsage = [];
-    const signal = this._beginProgress([["reskin", game.i18n.localize("SIMPLYSF2E.Progress.Reskin")]]);
+    let signal;
     try {
+      signal = this._beginProgress([["reskin", game.i18n.localize("SIMPLYSF2E.Progress.Reskin")]]);
       await this._setStep("reskin");
       const source = await this.#reskinSourceData();
       const { flavor, usage } = await generateReskin({
@@ -2151,7 +2187,7 @@ export class GeneratorApp extends SpfApp {
       this.#created = { name: actor.name, actorId: actor.id, count: 1, grounding: { total: 0, rows: [] }, statCheck: null };
       await moveToGeneratedFolder(actor, "creature");
       try {
-        ui.notifications.info(game.i18n.format("SIMPLYSF2E.Generator.Created", { name: actor.name }));
+        ui.notifications.info("SIMPLYSF2E.Generator.Created", { localize: true, format: { name: actor.name }, escape: true });
         await actor.sheet.render(true);
       } catch (err) {
         console.warn(`${MODULE_ID} | reskinned actor created, but its sheet could not be displayed`, err);
@@ -2170,8 +2206,9 @@ export class GeneratorApp extends SpfApp {
     if (this.#busy || !this.#concept) return;
     this.#busy = true;
     this.#error = null;
-    const signal = this._beginProgress([["loot", game.i18n.localize("SIMPLYSF2E.Progress.LootReroll")]]);
+    let signal;
     try {
+      signal = this._beginProgress([["loot", game.i18n.localize("SIMPLYSF2E.Progress.LootReroll")]]);
       await this._setStep("loot");
       const { loot, usage } = await generateLoot({
         concept: this.#concept,
@@ -2227,8 +2264,9 @@ export class GeneratorApp extends SpfApp {
     this.#busy = true;
     this.#error = null;
     const label = game.i18n.localize("SIMPLYSF2E.Progress.PickReroll");
-    const signal = this._beginProgress([["reroll", label]]);
+    let signal;
     try {
+      signal = this._beginProgress([["reroll", label]]);
       await this._setStep("reroll");
       const concept = this.#concept;
       const keywords = rerollKeywords(concept, kind, index);
@@ -2239,7 +2277,7 @@ export class GeneratorApp extends SpfApp {
           : await getAbilityCandidates(keywords);
       const pool = rerollPool(catalog, { concept, kind, index, rejected: [...(this.#rerollRejected.get(slot) ?? [])] });
       if (!pool.length) {
-        ui.notifications.warn(game.i18n.format("SIMPLYSF2E.Generator.RerollPickNone", { name: currentName }));
+        ui.notifications.warn("SIMPLYSF2E.Generator.RerollPickNone", { localize: true, format: { name: currentName }, escape: true });
         return;
       }
       const { candidate, usage } = await selectRerollPick({
@@ -2249,7 +2287,7 @@ export class GeneratorApp extends SpfApp {
       this._recordTokens(label, usage);
       this._throwIfCancelled();
       if (!candidate) {
-        ui.notifications.warn(game.i18n.format("SIMPLYSF2E.Generator.RerollPickInvalid", { name: currentName }));
+        ui.notifications.warn("SIMPLYSF2E.Generator.RerollPickInvalid", { localize: true, format: { name: currentName }, escape: true });
         return;
       }
       let next;
@@ -2258,7 +2296,7 @@ export class GeneratorApp extends SpfApp {
         // The same resolve decision as the early check (builder.mjs rerollAbilityInto).
         const rerolled = await rerollAbilityInto(concept, this.#resolved, { index, candidate });
         if (!rerolled) {
-          ui.notifications.warn(game.i18n.format("SIMPLYSF2E.Generator.RerollPickBlocked", { name: currentName }));
+          ui.notifications.warn("SIMPLYSF2E.Generator.RerollPickBlocked", { localize: true, format: { name: currentName }, escape: true });
           return;
         }
         next = rerolled.concept;
@@ -2373,6 +2411,7 @@ export class GeneratorApp extends SpfApp {
     this.#reskinFlavor = null;
     this.#rerollRejected.clear();
     this.#previewMeta = null;
+    this.#previewEpoch += 1;
   }
 
   #buildRecentContext() {

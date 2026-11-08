@@ -311,6 +311,7 @@
       "Character": "Character",
       "Creature": "Creature",
       "CreateAll": "Create All Actors",
+      "NoMembers": "Set at least one member to create.",
       "CreatedOneInFolder": "Created 1 actor in folder \"{name}\".",
       "CreatedAll": "Created {count} actors in folder \"{name}\".",
       "LevelUp": "Increase level",

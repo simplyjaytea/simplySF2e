@@ -37,6 +37,8 @@ Template: `templates/generator.hbs` (`encounterPreview`). Supply in: `GeneratorA
 | `members[].stats.strike` | `{name, bonus, damage}` or `null` | first strike: `strike.name`, `signed(strike.bonus)`, `strike.damage` | `{ name: "Gravity Maul", bonus: "+17", damage: "2d8+9" }` |
 | `members[].stats.spellDC` | number or `null` | `stats.spellDC ?? null` | `24` |
 
+`encounterPreview.allSkipped` (new, T-BUG-GEN): boolean, `true` when every member's count is 0. Supplied by `#buildEncounterPreviewContext()` as `members.every((m) => !(m.count > 0))`; the template disables Create All when it is true, and `#createEncounterActors` returns early with `SIMPLYSF2E.Generator.NoMembers`. Fixture `generator-encounter-preview`: `false`; `generator-encounter-all-skipped`: `true`.
+
 Removed: `members[].statline` (the template no longer reads it; delete the string build and the `t()` helper if nothing else uses it). All other `encounterPreview` fields (`spent`, `budget`, `overBudget`, `treasure*`, `count`, `skipped`, `role`, `level`, `blurb`, `index`) are unchanged.
 
 Keys: new `SIMPLYSF2E.Generator.CreditsLabel`, `SIMPLYSF2E.Preview.ACFull`, `.HPFull`, `.FortFull`, `.RefFull` (template only). Deleted `SIMPLYSF2E.Generator.CreditsUnit` (no longer used anywhere).
