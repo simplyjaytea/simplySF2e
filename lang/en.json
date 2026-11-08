@@ -204,6 +204,10 @@
       "Disable": "Don't show for updates",
       "Earlier": "Earlier changes ({count})",
       "Note": {
+        "ThemeSystem": {
+          "Title": "One look in every window",
+          "Body": "The neon effects now mean the same thing everywhere. Glow marks what is live: the main action, the active mode and a running progress card. The moving sheen means a run is working, a slow pulse marks a list that waits for your decision, and only the current step blinks. Mode colours stay on the mode tile and the line under a preview's name. Only labels and tags are in capitals; headings and buttons are not. Trait tags are square, and empty panels share one look."
+        },
         "ShellConsistency": {
           "Title": "Tidier windows",
           "Body": "Discard, Delete and Reset are red and sit apart from the main action. Numbers line up in tables and the token report. Empty panels are more compact, and long model and connection names wrap instead of being cut off. Encounter members, review lists and the Forge, Shop and Treasure readiness row match the Generator's layout."

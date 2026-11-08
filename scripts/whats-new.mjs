@@ -9,6 +9,11 @@
 /** Newest first. title/body are i18n keys in lang/en.json. */
 export const RELEASE_NOTES = [
   {
+    id: "2026-11-08-theme-system",
+    title: "SIMPLYSF2E.WhatsNew.Note.ThemeSystem.Title",
+    body: "SIMPLYSF2E.WhatsNew.Note.ThemeSystem.Body"
+  },
+  {
     id: "2026-11-08-shell-consistency",
     title: "SIMPLYSF2E.WhatsNew.Note.ShellConsistency.Title",
     body: "SIMPLYSF2E.WhatsNew.Note.ShellConsistency.Body"

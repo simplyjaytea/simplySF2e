@@ -15,6 +15,23 @@
    #40256f, --color-bg-trait #2d4f6a, --color-border-trait #9edae6,
    --color-proficiency-master #3a7b59, --color-proficiency-legendary
    #98503d. No system sheet art or logos are loaded.
+
+   The theme as a system (docs/ui-overhaul-plan.md §1): every effect has one
+   job, the same in every window. Everything idle is still.
+   - Magenta: the one primary action (gradient, glow, text-shadow).
+   - Cyan: system state, HUD labels and legends; flat.
+   - Per-mode tints: the active mode tile and the statblock rule only.
+   - Red / green: danger / success, always with a word or icon.
+   - Glow ("live"): .spf-primary, the active mode tile, the running
+     progress card. Never on a static frame.
+   - Sheen ("working"): the progress fill while a run works.
+   - Pulse ("waiting for you"): a panel that needs a GM decision.
+   - Blink ("active step"): the current progress step only.
+   - Scan lines ("standby"): empty-state panels only.
+   - Notch and corner ticks: outer cards only; nested panels are plain.
+   - Uppercase + letter-spacing: HUD labels (legends, chips, status keys);
+     never headings or buttons, whose hierarchy is size and weight.
+   - Colours, spacing (4/8 px) and type sizes come from the tokens below.
    ========================================================================== */
 
 .simplysf2e {
