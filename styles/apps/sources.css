@@ -171,8 +171,9 @@
   color: var(--spf-brand-accent);
 }
 
+/* Category frames are static: the card's inset hairline only, no glow. */
 .simplysf2e .spf-hud-frame {
-  box-shadow: var(--spf-inset-glow), 0 0 10px color-mix(in srgb, var(--spf-brand-accent) 14%, transparent);
+  box-shadow: var(--spf-inset-glow);
 }
 
 /* One state message when nothing was detected; Save is disabled with it. */

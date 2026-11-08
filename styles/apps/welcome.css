@@ -78,7 +78,7 @@
 .simplysf2e .spf-welcome-provider-active {
   border-color: var(--spf-brand-accent);
   background: var(--spf-brand-soft);
-  box-shadow: inset 0 0 0 1px var(--spf-brand-accent), var(--spf-neon-glow);
+  box-shadow: inset 0 0 0 1px var(--spf-brand-accent);
   color: var(--spf-text);
   font-weight: 700;
 }

@@ -74,12 +74,11 @@
   border-color: var(--spf-border);
 }
 
-/* Must precede the active rule: an active tile keeps its glow box-shadow
-   (same specificity) while focused; the outline still shows. */
+/* Focus is the outline alone (glow belongs to the active tile, which
+   keeps its own while focused). */
 .simplysf2e .spf-mode-toggle label:focus-within {
   outline: 2px solid var(--spf-focus);
   outline-offset: 1px;
-  box-shadow: var(--spf-glow);
 }
 
 /* Active selectors glow cyan with a violet undercurrent. */
@@ -771,8 +770,11 @@
   font-size: var(--spf-text-sm);
 }
 
+/* Pulse: rows the GM should look at after Create (keyframe in
+   simplysf2e.css; reduced motion stops it at the end of this file). */
 .simplysf2e .spf-stat-check-attention {
   border-left-color: var(--spf-warning);
+  animation: spf-await-pulse 2.6s ease-in-out infinite;
 }
 
 .simplysf2e .spf-stat-check h3 {
@@ -931,6 +933,8 @@
   border: 0;
   border-top: 1px solid var(--spf-border);
   border-left: 3px solid var(--spf-amber);
+  /* Pulse: required choices and warnings wait for the GM. */
+  animation: spf-await-pulse 2.6s ease-in-out infinite;
 }
 
 .simplysf2e .spf-review-actions h3 {
@@ -979,4 +983,12 @@
 
 .simplysf2e .spf-mode-reskin .spf-generate-row {
   margin-top: var(--spf-space-md);
+}
+
+/* Reduced motion: last in this file so it outranks the pulse rules above. */
+@media (prefers-reduced-motion: reduce) {
+  .simplysf2e .spf-review-actions,
+  .simplysf2e .spf-stat-check-attention {
+    animation: none;
+  }
 }

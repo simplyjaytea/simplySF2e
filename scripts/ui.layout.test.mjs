@@ -617,10 +617,28 @@ assert.match(
   /\.simplysf2e \.spf-progress-bar\s*\{[^}]*repeating-linear-gradient\(90deg/s,
   "the progress bar must carry segmented telemetry divisions"
 );
+// Motion vocabulary (docs/ui-overhaul-plan.md §1): glow = live, sheen =
+// working, pulse = waiting for the GM, blink = active step.
 assert.match(
   css,
-  /\.simplysf2e \.spf-progress-percent\s*\{[^}]*text-shadow/s,
-  "the telemetry readout must glow"
+  /\.simplysf2e \.spf-progress:not\(\.spf-progress-cancelling\)\s*\{[^}]*--spf-live-glow/s,
+  "the running progress card carries the live glow"
+);
+assert.doesNotMatch(
+  css.match(/\.simplysf2e \.spf-progress-percent\s*\{([^}]*)\}/s)?.[1] ?? "",
+  /text-shadow/,
+  "the telemetry readout is plain; the card itself is the live element"
+);
+assert.doesNotMatch(css, /spf-hud-pulse/, "the busy card no longer pulses");
+assert.match(
+  css,
+  /\.simplysf2e \.spf-review-actions\s*\{[^}]*animation:\s*spf-await-pulse/s,
+  "required review choices pulse: they wait for the GM"
+);
+assert.doesNotMatch(
+  css.match(/\.simplysf2e \.spf-hud-frame\s*\{([^}]*)\}/s)?.[1] ?? "",
+  /0 0 \d+px/,
+  "Sources category frames are static: no outer glow"
 );
 assert.match(css, /@keyframes spf-telemetry-blink/, "telemetry pip motion must be a named keyframe");
 assert.match(
