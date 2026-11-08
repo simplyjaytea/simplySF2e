@@ -306,7 +306,7 @@ const newApp = (form) => {
   const app = newApp(form);
   await actions.loadModels.call(app, null, { querySelector: () => null });
   assert.equal(form.querySelector("[name='apiKey']").value, "", "the typed key was stored and the field is cleared");
-  assert.equal(form.querySelector("[name='apiKey']").placeholder, "SIMPLYSF2E.ProviderSetup.ApiKeySaved", "the field reads as a saved key");
+  assert.equal(form.querySelector("[name='apiKey']").placeholder, "SIMPLYSF2E.ProviderSetup.ApiKeyOptional", "the placeholder is the neutral one; the saved state is the hint");
   assert.equal(privacy.inserted.length, 1, "the clear-key box is added once");
   assert.equal(privacy.inserted[0][0], "beforebegin", "the box goes before the privacy note, as in the template");
   assert.match(privacy.inserted[0][1], /name="clearApiKey"/, "the box is the clear-key checkbox");

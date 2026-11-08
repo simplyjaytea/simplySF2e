@@ -163,7 +163,7 @@ export default [
       jevOnTypeSafe: true,
       jevOpen: true,
       jevEndpoint: "https://jev-proxy.example.com/v1/systemone",
-      jevKeyPlaceholder: localize("SIMPLYSF2E.ProviderSetup.JevKeySaved")
+      jevKeyPlaceholder: localize("SIMPLYSF2E.ProviderSetup.JevKeyPlaceholder", { source: "TypeSafe AI" })
     })
   },
   { id: "sources-default", app: "sources", height: 640, context: sources() },

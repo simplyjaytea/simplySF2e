@@ -192,10 +192,9 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
     };
   }
 
-  static #jevPlaceholder(hasKey, source) {
-    return hasKey
-      ? game.i18n.localize("SIMPLYSF2E.ProviderSetup.JevKeySaved")
-      : game.i18n.format("SIMPLYSF2E.ProviderSetup.JevKeyPlaceholder", { source: JEV_SOURCES[source].label });
+  /** The Jev key placeholder is the same whether or not a key is saved; the saved state shows as a hint (JevKeySaved). */
+  static #jevPlaceholder(_hasKey, source) {
+    return game.i18n.format("SIMPLYSF2E.ProviderSetup.JevKeyPlaceholder", { source: JEV_SOURCES[source].label });
   }
 
   _onRender(context, options) {
@@ -616,8 +615,7 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
     // The key field and the clear-key box follow hasApiKey, as provider-setup.hbs renders them.
     const keyInput = this.element?.querySelector("[name='apiKey']");
     if (keyInput) {
-      keyInput.placeholder = game.i18n.localize(state.hasConfiguredApiKey
-        ? "SIMPLYSF2E.ProviderSetup.ApiKeySaved" : "SIMPLYSF2E.ProviderSetup.ApiKeyOptional");
+      keyInput.placeholder = game.i18n.localize("SIMPLYSF2E.ProviderSetup.ApiKeyOptional");
       keyInput.value = "";
     }
     const clearBox = this.element?.querySelector(".spf-provider-clear-key");
