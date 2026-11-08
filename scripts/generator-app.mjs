@@ -51,6 +51,7 @@ import { findRecent, forgetRecent, previewModeOf, previewNameOf, rememberRecent 
 import { activeParty } from "./party.mjs";
 import { mapNamed, mapSpells, mapGear, matchSummary, pcFeatRows, emptyFeatSlots, skillName } from "./generator-context/rows.mjs";
 import { buildCreaturePreviewContext } from "./generator-context/creature-preview.mjs";
+import { buildEncounterPreviewContext } from "./generator-context/encounter-preview.mjs";
 
 async function rollbackActor(actor, label) {
   if (!actor) return null;
@@ -628,46 +629,9 @@ export class GeneratorApp extends SpfApp {
   }
 
   #buildEncounterPreviewContext() {
-    if (!this.#encounter) return null;
-    return {
-      name: this.#encounter.name,
-      // Display-boundary thousands separators only; budget math stays numeric
-      // above (overBudget comparisons use the raw values, unchanged).
-      budget: Number(this.#encounter.budget ?? 0).toLocaleString("en-US"),
-      spent: Number(this.#encounter.spent ?? 0).toLocaleString("en-US"),
-      overBudget: this.#encounter.spent > this.#encounter.budget,
-      // True when every member's count is 0: Create All has nothing to create.
-      allSkipped: this.#encounter.members.every((m) => !(m.count > 0)),
-      // Internal treasure math stays in gp (applyTreasureBudget/lootValueGp);
-      // only the display boundary converts to credits via the cited rate.
-      treasureBudget: gpToCredits(Math.round(this.#encounter.treasureBudget ?? 0)).toLocaleString("en-US"),
-      treasureSpent: gpToCredits(this.#encounter.treasureSpent ?? 0).toLocaleString("en-US"),
-      treasureOverBudget: (this.#encounter.treasureSpent ?? 0) > (this.#encounter.treasureBudget ?? 0),
-      members: this.#encounter.members.map((member, index) => {
-        const stats = adjustedStats(computeStats(member.concept), member.concept);
-        const strike = stats.strikes[0];
-        return {
-          index,
-          count: member.count,
-          skipped: member.count === 0,
-          role: `SIMPLYSF2E.Role.${member.role.charAt(0).toUpperCase()}${member.role.slice(1)}`,
-          name: member.concept.name,
-          level: stats.level,
-          blurb: member.concept.blurb,
-          stats: {
-            ac: stats.ac,
-            hp: stats.hp,
-            perception: signed(stats.perception),
-            fort: signed(stats.saves.fortitude),
-            ref: signed(stats.saves.reflex),
-            will: signed(stats.saves.will),
-            strike: strike ? { name: strike.name, bonus: signed(strike.bonus), damage: strike.damage } : null,
-            spellDC: stats.spellDC ?? null
-          }
-        };
-      })
-    };
+    return buildEncounterPreviewContext(this.#encounter);
   }
+
 
   #buildPreviewContext() {
     return buildCreaturePreviewContext(this.#concept, this.#resolved);

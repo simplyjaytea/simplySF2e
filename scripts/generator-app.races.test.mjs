@@ -9,6 +9,8 @@ import { spawnSync } from "node:child_process";
 import vm from "node:vm";
 import * as reroll from "./reroll.mjs";
 import * as recentGenerations from "./recent-generations.mjs";
+import { readdirSync } from "node:fs";
+import { normalizeConcept } from "./builder.mjs";
 
 if (!vm.SourceTextModule) {
   const run = spawnSync(process.execPath, ["--experimental-vm-modules", import.meta.filename], { stdio: "inherit" });
@@ -38,6 +40,16 @@ const context = vm.createContext({
   fromUuid: (uuid) => fromUuidImpl(uuid)
 });
 
+const generatorContext = Object.assign({}, ...await Promise.all(readdirSync(new URL("./generator-context/", import.meta.url))
+  .filter((file) => file.endsWith(".mjs")).map((file) => import(`./generator-context/${file}`))));
+// A real concept for the encounter preview (the builder now runs the real stat helpers).
+const memberConcept = (name) => normalizeConcept({
+  name, level: 1, rarity: "common", size: "medium", blurb: "", description: "",
+  abilityScales: { str: "moderate", dex: "moderate", con: "moderate", int: "low", wis: "moderate", cha: "low" },
+  acScale: "moderate", hpScale: "moderate", perceptionScale: "moderate", saveScales: { fortitude: "moderate", reflex: "moderate", will: "moderate" },
+  speeds: [{ type: "land", value: 25 }], senses: [], languages: [], skills: [], strikes: [], specialAbilities: [], feats: [], equipment: [], loot: [],
+  traits: ["humanoid"], resistances: [], weaknesses: [], immunities: []
+}, { level: 1, rarity: "common" });
 let beginFails = 0;
 let treasureCalls = [];
 const createdWith = [];
@@ -63,6 +75,8 @@ const mocks = {
   },
   ...reroll,
   ...recentGenerations,
+  // The context builders moved out of generator-app.mjs (T-P4): the real ones.
+  ...generatorContext,
   generateReskin: async () => reskinReply,
   normalizeReskin: (flavor) => ({ ...flavor, normalized: true }),
   reskinRenameTargets: () => [],
@@ -71,10 +85,6 @@ const mocks = {
   applyTreasureBudget: (loot, target) => treasureCalls.shift()?.(loot, target),
   getFeatCandidates: async () => [{ id: "F0", name: "Quick Draw", ref: featRef("qd") }],
   selectRerollPick: async () => ({ candidate: null, usage: { total: 1 } }),
-  computeStats: () => ({ level: 1, ac: 10, hp: 10, perception: 0, saves: { fortitude: 0, reflex: 0, will: 0 }, strikes: [] }),
-  adjustedStats: (stats) => stats,
-  signed: (n) => String(n),
-  gpToCredits: (gp) => Math.round(gp * 10),
   generatedFolderId: async () => null,
   completionManifest: () => ({ complete: true }),
   completionSummary: () => ({ total: 0 }),
@@ -244,7 +254,7 @@ const npc = (uuid) => ({
 {
   const app = makeApp();
   app._test_encounter = {
-    name: "Empty", members: [{ count: 0, role: "minion", concept: { name: "A" } }, { count: 0, role: "minion", concept: { name: "B" } }], spent: 0, budget: 100
+    name: "Empty", members: [{ count: 0, role: "minion", concept: memberConcept("A") }, { count: 0, role: "minion", concept: memberConcept("B") }], spent: 0, budget: 100
   };
   folders.length = 0;
   notices.length = 0;
