@@ -198,9 +198,8 @@
   margin: var(--spf-space-sm) 0 var(--spf-space-xs);
   border: 0;
   color: var(--spf-brand-accent);
-  font-size: var(--spf-text-sm);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-size: var(--spf-text-md);
+  font-weight: 700;
 }
 
 .simplysf2e .spf-welcome-advanced-buttons {

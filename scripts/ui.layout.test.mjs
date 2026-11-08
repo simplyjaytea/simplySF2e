@@ -720,6 +720,13 @@ assert.match(
   /\.simplysf2e \.spf-card \.spf-card::before,\s*\.simplysf2e \.spf-card \.spf-card::after\s*\{[^}]*content:\s*none/s,
   "the HUD frame (ticks and notch) stays on outer cards only"
 );
+// D3: uppercase and letter-spacing are for HUD labels (legends, chips, status
+// keys) only, never headings, buttons or disclosure summaries.
+for (const m of css.replace(/\/\*[\s\S]*?\*\//g, "").matchAll(/([^{}]+)\{([^}]*text-transform:\s*uppercase[^}]*)\}/g)) {
+  const selector = m[1].trim();
+  assert.doesNotMatch(selector, /\b(h[1-6]|button|summary|label)\b|spf-primary|window-header|spf-mode-toggle/,
+    `uppercase is for HUD labels only, not ${selector}`);
+}
 // D2: the per-mode tint reaches only the active mode tile and the statblock rule.
 assert.deepEqual(
   [...css.replace(/\/\*[\s\S]*?\*\//g, "").matchAll(/([^{}]+)\{[^}]*var\(--spf-mode-accent/g)].map((m) => m[1].trim()),

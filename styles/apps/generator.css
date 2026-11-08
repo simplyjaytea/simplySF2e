@@ -65,8 +65,6 @@
   color: var(--spf-text-muted);
   font-size: var(--spf-text-sm);
   font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
   text-align: center;
 }
 
@@ -335,8 +333,6 @@
   padding: var(--spf-space-sm) 0;
   font-size: var(--spf-text-sm);
   font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
   color: var(--spf-brand-accent);
 }
 
@@ -682,10 +678,9 @@
 
 .simplysf2e .spf-recent h3 {
   margin: 0 0 var(--spf-space-xs);
-  font-size: var(--spf-text-sm);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--spf-text-muted);
+  font-size: var(--spf-text-md);
+  font-weight: 700;
+  color: var(--spf-text);
 }
 
 .simplysf2e .spf-recent-list {
@@ -938,9 +933,8 @@
   align-items: baseline;
   gap: var(--spf-space-sm);
   margin: 0 0 var(--spf-space-xs);
-  font-size: var(--spf-text-sm);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  font-size: var(--spf-text-md);
+  font-weight: 700;
   color: var(--spf-amber);
 }
 

@@ -78,8 +78,12 @@
   --spf-space-lg: 0.75rem;
   --spf-space-xl: 1rem;
   /* Type + shape: sans + sharper corners, not PF2e parchment */
+  /* Type scale: hierarchy from size and weight, not from uppercase (D3).
+     xs is the HUD label size (chips, tags, table keys); md is a panel
+     heading that lost its uppercase and needs the size back. */
+  --spf-text-md: 1rem;
   --spf-text-sm: 0.85rem;
-  --spf-text-xs: 0.85rem;
+  --spf-text-xs: 0.78rem;
   --spf-font-display: var(--font-sans, "Signika", sans-serif);
   --spf-font-mono: var(--font-monospace, ui-monospace, "Cascadia Code", monospace);
   --spf-radius: 2px;
@@ -138,8 +142,6 @@
   border-bottom: 1px solid var(--spf-neon);
   box-shadow: 0 1px 0 color-mix(in srgb, var(--spf-neon) 60%, transparent);
   color: var(--spf-text);
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
 }
 
 .application.simplysf2e .window-header .window-title {
@@ -256,8 +258,6 @@
   border: 1px solid var(--spf-neon);
   color: var(--spf-text);
   font-weight: 700;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
   text-shadow: 0 0 8px color-mix(in srgb, var(--spf-brand-accent) 40%, transparent);
   box-shadow: var(--spf-inset-glow), var(--spf-neon-glow), inset 0 0 14px color-mix(in srgb, var(--spf-brand-secondary) 32%, transparent);
   clip-path: polygon(0 0, calc(100% - var(--spf-cut)) 0, 100% var(--spf-cut), 100% 100%, 0 100%);
@@ -284,7 +284,6 @@
   background: var(--spf-surface);
   border: 1px solid var(--spf-control-border);
   color: var(--spf-text-muted);
-  letter-spacing: 0.04em;
 }
 
 .simplysf2e button.spf-secondary:not(:disabled):hover {
@@ -357,7 +356,6 @@
   border-radius: var(--spf-radius);
   color: var(--spf-text-muted);
   font-style: normal;
-  letter-spacing: 0.02em;
 }
 
 .simplysf2e .spf-sr-only {
@@ -978,7 +976,6 @@
   font-size: var(--spf-text-sm);
   color: var(--spf-text-muted);
   min-height: 1.2em;
-  letter-spacing: 0.02em;
 }
 
 /* Per-step token usage shown under the finished preview */
@@ -1163,8 +1160,7 @@
   border: none;
   font-family: var(--spf-font-display);
   font-variant: normal;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-weight: 700;
   color: var(--spf-text);
   overflow-wrap: anywhere;
 }
@@ -1191,8 +1187,6 @@
   margin: 0 0 var(--spf-space-xs);
   color: var(--spf-text-muted);
   font-size: var(--spf-text-sm);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
 }
 
 .simplysf2e .spf-traits {
@@ -1229,10 +1223,9 @@
   margin: var(--spf-space-md) 0 var(--spf-space-2xs) 0;
   border-bottom: 1px solid var(--spf-border);
   font-family: var(--spf-font-display);
-  font-size: 1em;
+  font-size: var(--spf-text-md);
+  font-weight: 700;
   font-variant: normal;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
 }
 
 .simplysf2e .spf-list {
