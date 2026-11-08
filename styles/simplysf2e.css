@@ -928,6 +928,21 @@
   color: var(--spf-success-fg);
 }
 
+/* Step telemetry: a finished step's elapsed time, or "running" on the active
+   step. A status value, not a label: no uppercase, muted, tabular. Empty on
+   pending steps, which stay dots. */
+.simplysf2e .spf-step-elapsed {
+  font-size: var(--spf-text-xs);
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--spf-text-muted);
+}
+
+.simplysf2e .spf-step-elapsed:empty {
+  display: none;
+}
+
 .simplysf2e .spf-progress-bar {
   height: 0.7rem;
   border: 1px solid color-mix(in srgb, var(--spf-brand-accent) 50%, var(--spf-window-bg));

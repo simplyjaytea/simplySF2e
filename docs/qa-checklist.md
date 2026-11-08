@@ -860,7 +860,19 @@ Generate a level 7 NPC with a limited cone breath (name "Frost Breath", cold), a
 | # | Step | Expected | Where to look | Result | Evidence |
 | --- | --- | --- | --- | --- | --- |
 | 14f.1 | Welcome with the Compendium Sources warning (remove an equipment pack, then open Welcome). | The warning names the missing category in a sentence and shows a "Configure compendium sources" button; the button opens Compendium Sources. | Welcome | | |
-| 14f.2 | Welcome, with the provider cards in view. | The group is labelled "1. Choose a provider" (its visible legend); a screen reader announces that name for the group. | Welcome | | |
+| 14f.2 | Welcome, with the provider cards in view. | The group is labelled "Choose a provider" (its visible legend); a screen reader announces that name for the group. | Welcome | | |
 | 14f.3 | Provider Setup, look under the footer buttons. | One hint line: Save & Test sends one test request; Save & Authorize authorizes the key for this endpoint. | Provider Setup | | |
 | 14f.4 | Provider Setup with a saved API key, and with a saved Jev key. | A visible hint under each field says a key is saved, in addition to the placeholder. | Provider Setup | | |
 | 14f.5 | Provider Setup: enter a negative input price and press Save & Test. | The input price has a red border and its error message is linked to it; output price unaffected. | Provider Setup | | |
+
+## 14h. U4B progress telemetry and Welcome boot sequence
+
+| # | Step | Expected | Where to look | Result | Evidence |
+| --- | --- | --- | --- | --- | --- |
+| 14h.1 | Generator, Monster: generate a level 4 creature and watch the step list until the bar finishes. | Each finished step shows how long it took after its name ("0.8 s", "12 s", "1 m 05 s"), small, muted and not in capitals. The current step says "running" and blinks; the steps still to come are dots. The percent and the token line are unchanged. | Generator progress card | | |
+| 14h.2 | Same run: watch the time on a step that has just finished. | The time appears the moment the next step starts, without the card flickering or the bar jumping back. A step the run skipped shows no time. | Generator progress card | | |
+| 14h.3 | Run Item Forge, Shop and Treasure once each. | The same per-step times and "running" value appear on their progress cards. | Item Forge, Shop, Treasure | | |
+| 14h.4 | Open Welcome fresh (Help > Welcome, or a world with no provider). | The legends read "Choose a provider" and "Connect", without numbers. OpenRouter is pressed, and Connect is live. | Welcome | | |
+| 14h.5 | Welcome: pick OpenRouter, then Ollama. | Picking a tile presses it and focuses the key field (OpenRouter) or the address field (Ollama). Connect is the only magenta button. | Welcome | | |
+| 14h.6 | Welcome: enter a key and press Connect. | "Checking your connection" lists the three checks one per line; the first says "running" at the end of its line, the other two are dots. No new animation besides the existing spinners. | Welcome | | |
+| 14h.7 | Screen reader on the Welcome provider group (supersedes 14f.2). | The group is announced as "Choose a provider". | Welcome | | |
