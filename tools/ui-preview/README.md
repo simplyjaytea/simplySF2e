@@ -13,6 +13,11 @@ npm run shoot      # all fixtures
 node shoot.mjs generator-npc   # only fixtures whose id contains the text
 ```
 
+Two environment variables tune a run:
+
+- `SPF_SHOOT_CONC` (default `4`): how many fixture pages render at once over one browser. `1` runs serially, as before. The summary line prints the elapsed seconds and the page count. `npm run shoot` and `tools/release-check.sh` use the default.
+- `SPF_SHOOT_FREEZE=1` (default off): before each screenshot, stop CSS animations and transitions (`animation: none`, `transition: none`). PNGs from animated fixtures (progress sheen, blink, pulse, spinner) differ from run to run unless frozen; with the variable off, a fixture's pixels can change between runs. Use the freeze when comparing two runs pixel for pixel.
+
 Output goes to `tools/ui-preview/out/` (gitignored): `<fixture-id>@720.png`, `<fixture-id>@460.png`, and the rendered `.html` next to each. Playwright is preinstalled globally in cloud sessions (`PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers`); the script falls back to the global install when `playwright` is not in this folder.
 
 The command exits non-zero, and lists the problems, when a fixture is out of step with its template:

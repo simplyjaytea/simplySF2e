@@ -25,6 +25,13 @@ const SHORT_WINDOW_CSS = `
   .application .window-content { flex: 1; min-height: 0; overflow: hidden !important; }
 `;
 const filter = process.argv[2] ?? "";
+// SPF_SHOOT_CONC: pages rendered at once over one browser (1 = serial, as before).
+// SPF_SHOOT_FREEZE=1: stop CSS animations and transitions before each screenshot,
+// so animated fixtures give the same pixels run to run. Off by default.
+const CONC = Number.parseInt(process.env.SPF_SHOOT_CONC ?? "4", 10);
+if (!(CONC >= 1)) throw new Error(`SPF_SHOOT_CONC must be a whole number of 1 or more, got "${process.env.SPF_SHOOT_CONC}"`);
+const FREEZE = process.env.SPF_SHOOT_FREEZE === "1";
+const FREEZE_CSS = "*, *::before, *::after { animation: none !important; transition: none !important; }";
 
 async function loadPlaywright() {
   try { return await import("playwright"); } catch { /* fall through to the global install */ }
@@ -61,8 +68,10 @@ const origin = `http://127.0.0.1:${server.address().port}`;
 const { chromium } = await loadPlaywright();
 const browser = await chromium.launch();
 const problems = [];
+const started = Date.now();
 try {
-  for (const fixture of selected) {
+  const queue = [...selected];
+  const doFixture = async (fixture) => {
     for (const width of WIDTHS) {
       const { html, missingKeys, missingTranslations } = renderFixture(fixture, { cssBase: "/", width });
       if (width === WIDTHS[0]) {
@@ -85,6 +94,7 @@ try {
         }).filter(Boolean), fixture.open);
         for (const sel of opened) problems.push(`${name}: open selector "${sel}" matches nothing`);
       }
+      if (FREEZE) await page.addStyleTag({ content: FREEZE_CSS });
       await page.locator(".application").screenshot({ path: join(OUT, `${name}.png`) });
       const overflow = await page.evaluate(() => {
         const content = document.querySelector(".window-content");
@@ -120,14 +130,21 @@ try {
       await page.close();
     }
     console.log(`ok  ${fixture.id}`);
-  }
+  };
+  // One worker per page slot; each takes the next fixture when it is free.
+  await Promise.all(Array.from({ length: Math.min(CONC, queue.length) }, async () => {
+    while (queue.length) await doFixture(queue.shift());
+  }));
 } finally {
   await browser.close();
   server.close();
 }
+const elapsed = ((Date.now() - started) / 1000).toFixed(1);
+// Workers finish in any order: sort the problem list so repeated runs print the same text.
+problems.sort();
 if (problems.length) {
   console.error(`\n${problems.length} fixture problem(s):\n  ${problems.join("\n  ")}`);
   process.exitCode = 1;
 } else {
-  console.log(`\n${selected.length} fixtures x ${WIDTHS.length} widths -> ${OUT}`);
+  console.log(`\n${selected.length} fixtures x ${WIDTHS.length} widths -> ${OUT} (${elapsed}s, ${CONC} page${CONC === 1 ? "" : "s"} at a time)`);
 }
