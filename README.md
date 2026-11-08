@@ -272,7 +272,7 @@ SimplySF2e builds from real content and **fails closed**: when it cannot match s
 - **Spells.** Review empty slots, signature spells and subclass or feat spell bonuses on casters after creation.
 - **Upgrade slots.** The number of upgrade slots on forged weapons and armor (1 for weapons and 0 for armor when the item text names none) is a module default. No published source has been cited for it, and this is on hold.
 - **Not built yet:** upgrade prerequisite checks, shields and ammunition in the Item Forge, companion actors (a Mechanic's drone is set up by hand), and custom art.
-- **Big hoards.** One Credstick holds at most 100,000 credits, so a large hoard (high level, whole level) carries several.
+- **Big hoards.** One Credstick holds at most 5,000,000 credits, so even a level-20 whole-level hoard is a single Credstick.
 - **Live checks.** The last full live pass was on 2026-10-08. Live results since then are logged in [`docs/live-log.md`](docs/live-log.md), and [`docs/release-pass.md`](docs/release-pass.md) is the checklist for the next full pass. This is Beta.
 
 ## Troubleshooting

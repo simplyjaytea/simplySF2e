@@ -5,7 +5,7 @@
 // behavior, out of scope here.) Run: node scripts/currency.test.mjs
 
 import assert from "node:assert/strict";
-import { gpToCredits, creditsToGp, toCredits, assembleCurrency, splitCurrency, CURRENCY_ITEM_MAX, CREDSTICK_SOURCE, UPB_SOURCE } from "./currency.mjs";
+import { gpToCredits, creditsToGp, toCredits, assembleCurrency, splitCurrency, currencyQuantity, parseCoins, CURRENCY_ITEM_MAX, CREDSTICK_SOURCE, UPB_SOURCE } from "./currency.mjs";
 
 /* ---------------------------------------------------------------------- *
  * gpToCredits(): non-positive and non-numeric gp never becomes credits
@@ -75,8 +75,11 @@ assert.equal(assembleCurrency("bogus", 5), null, "unknown units assemble nothing
 
 {
   const capped = assembleCurrency("credits", 1e9);
-  assert.equal(capped.system.price.value.sp, 100000, "quantities cap instead of overflowing");
+  assert.equal(capped.system.price.value.sp, CURRENCY_ITEM_MAX, "quantities cap instead of overflowing");
 }
+// A parsed currency line's stack size is capped the same way.
+assert.equal(currencyQuantity(parseCoins("9000000000 credits"), 1), CURRENCY_ITEM_MAX, "parsed stack size caps");
+assert.equal(CURRENCY_ITEM_MAX, 5000000, "one Credstick holds the largest supported hoard");
 
 {
   // Bad template shapes fail closed (guards at assembleCurrency): mutate in
@@ -111,5 +114,6 @@ assert.deepEqual(splitCurrency(0), []);
 assert.deepEqual(splitCurrency(680), [680]);
 assert.deepEqual(splitCurrency(CURRENCY_ITEM_MAX * 2 + 5), [CURRENCY_ITEM_MAX, CURRENCY_ITEM_MAX, 5]);
 assert.equal(splitCurrency(4900000).reduce((a, b) => a + b, 0), 4900000);
+assert.deepEqual(splitCurrency(4900000), [4900000], "the largest hoard is one Credstick");
 
 console.log("currency.test.mjs: conversion edges and assembleCurrency fail-closed behavior passed");
