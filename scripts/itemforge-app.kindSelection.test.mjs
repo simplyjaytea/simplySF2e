@@ -37,6 +37,9 @@ const requestConfig = {
   apiKeyIsBound: false
 };
 const mocks = {
+  getPacksFor: () => ["sf2e.equipment"],
+  describeMissingSources: () => "",
+  jevKeySource: () => null,
   MODULE_ID: "simplysf2e",
   SpfApp: MockSpfApp,
   RUNED_ITEM_KINDS: new Set(["weapon", "armor"]),

@@ -35,6 +35,7 @@ export function treasureContext(patch = {}) {
     canReportBug: false,
     progress: null,
     ...providerContext(),
+    sourcesReady: true, sourcePackCount: 3, sourceMissing: "", jevSource: "key", readinessOpen: false,
     minLevel: 1,
     maxLevel: 20,
     minParty: 1,
@@ -89,6 +90,11 @@ const preview = (patch = {}) => {
 };
 
 export default [
+  {
+    id: "treasure-sources-missing",
+    app: "treasure",
+    context: treasureContext({ sourcesReady: false, sourcePackCount: 0, sourceMissing: "Equipment" })
+  },
   { id: "treasure-empty", app: "treasure", context: treasureContext() },
   { id: "treasure-empty-attention", app: "treasure", context: treasureContext({ ...PROVIDER_ATTENTION, party: null }) },
   {
