@@ -19,6 +19,14 @@ const FORGE_STEPS = [
   ["assemble", localize("SIMPLYSF2E.ItemForge.ProgressAssemble")]
 ];
 
+const PROMPT_PLACEHOLDERS = {
+  wondrous: "Describe the item's effect, how it looks, and who carries or wears it.",
+  weapon: "Describe the weapon's form, its wear, and any feature that sets it apart, such as a scorch mark or a cracked grip.",
+  armor: "Describe the armor's material, its wear, and any module fitted to it, such as a salvaged shield module.",
+  augmentation: "Describe the implant: the body part it replaces or extends, and what it does for the wearer, such as a built-in scanner.",
+  crystal: "Describe the crystal: its color, how it behaves, and what it powers or does, such as humming near hot metal."
+};
+
 export function itemforgeContext(kind, patch = {}) {
   const input = { prompt: "", level: 4, rarity: "common", kind, ...(patch.input ?? {}) };
   const { input: _ignored, ...rest } = patch;
@@ -33,6 +41,7 @@ export function itemforgeContext(kind, patch = {}) {
     minLevel: 1,
     maxLevel: 20,
     kinds: KINDS.map((k) => ({ ...k, selected: k.value === kind })),
+    promptPlaceholder: PROMPT_PLACEHOLDERS[kind] ?? "e.g. A scorched visor that shields the wearer's mind and lets them see in the dark...",
     rarities: RARITIES,
     unavailableNote: null,
     preview: null,

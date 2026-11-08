@@ -206,3 +206,13 @@ Templates: `templates/itemforge.hbs`, `shop.hbs`, `treasure.hbs` (the status bar
 | `readinessOpen` (new) | boolean | Open state of the one-line disclosure; kept per window through a `toggle` listener in `_onRender`. | `false` |
 
 Scope note: these windows draw only from equipment packs, so readiness checks the equipment category alone. The Generator checks its creature categories.
+
+## U5 Item Forge: per-kind placeholder
+
+Template: `templates/itemforge.hbs` (the prompt textarea `placeholder`). Supply in: `ItemForgeApp._prepareContext()` (`scripts/itemforge-app.mjs`, `PROMPT_PLACEHOLDER_KEYS`).
+
+| Field | Type | Meaning | Example |
+| --- | --- | --- | --- |
+| `promptPlaceholder` (new) | localized string | The prompt hint for the selected kind tile: `SIMPLYSF2E.ItemForge.Placeholder.{Wondrous,Weapon,Armor,Augmentation,Crystal}`. Falls back to the generic `SIMPLYSF2E.ItemForge.PromptPlaceholder` for a kind without its own key (not reachable through the kind tiles). | "Describe the weapon's form, its wear, and any feature that sets it apart, such as a scorch mark or a cracked grip." |
+
+The kind tile action re-renders the window (`#onSelectKind`), so the placeholder follows the tile at once. The generic key stays in `lang/en.json` as the fallback.

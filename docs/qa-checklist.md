@@ -829,3 +829,9 @@ Generate a level 7 NPC with a limited cone breath (name "Frost Breath", cold), a
 | 14d.5 | Open Treasure with no preview. Read the empty hint and the title. The no-candidates error needs a level and rarity with no matching compendium item, which a GM cannot set reliably, so check its wording on the harness fixture `treasure-error` (`tools/ui-preview`). | Empty hint names **Generate hoard**. Title reads "SimplySF2e Treasure". Fixture error reads "No equipment at this party level and rarity was found in your compendiums. Raise Rarest item, or enable more packs in Compendium Sources." | Treasure |  | |
 | 14d.6 | Open Manage Presets with no custom presets. Read the empty state and the footer. | Empty state: "Press New preset to create one, or Import to paste exported preset JSON." Buttons read "New preset" and "Export all". Title reads "Manage custom presets". | Manage Presets | | |
 | 14d.7 | Open Welcome. Read the Google note, the Advanced block, then press Connect with a key that is not authorized. | The Google note reads "Not yet tested". The Advanced block has a "Fast picks" heading and the labels "LM Studio" and "Jev · TypeSafe". A failed connect shows the title "Connection failed". | Welcome | | |
+
+## 14g. U5 Item Forge per-kind placeholder
+
+| # | Step | Expected | Where to look | Result | Evidence |
+|---|------|----------|---------------|--------|----------|
+| 14g.1 | Open Item Forge with an empty prompt. Select the Weapon tile, read the prompt placeholder, then select the Crystal tile and read it again. | The placeholder names what to describe for the selected kind (weapon: form, wear, feature; crystal: colour, behaviour, what it powers). It changes with the tile, and the prompt text, level and rarity are kept. | Item Forge | | |
