@@ -25,6 +25,14 @@ const SHORT_WINDOW_CSS = `
   .application .window-content { flex: 1; min-height: 0; overflow: hidden !important; }
 `;
 const filter = process.argv[2] ?? "";
+// SPF_SHOOT_CONC: pages rendered at once over one browser (1 = serial, as before).
+// SPF_SHOOT_FREEZE=1: stop CSS animations and transitions before each screenshot,
+// so animated fixtures give the same pixels run to run. Off by default.
+const CONC_TEXT = process.env.SPF_SHOOT_CONC ?? "4";
+const CONC = /^\d+$/.test(CONC_TEXT) ? Number(CONC_TEXT) : 0;
+if (!(CONC >= 1)) throw new Error(`SPF_SHOOT_CONC must be a whole number of 1 or more, got "${CONC_TEXT}"`);
+const FREEZE = process.env.SPF_SHOOT_FREEZE === "1";
+const FREEZE_CSS = "*, *::before, *::after { animation: none !important; transition: none !important; }";
 
 async function loadPlaywright() {
   try { return await import("playwright"); } catch { /* fall through to the global install */ }
@@ -61,73 +69,92 @@ const origin = `http://127.0.0.1:${server.address().port}`;
 const { chromium } = await loadPlaywright();
 const browser = await chromium.launch();
 const problems = [];
+const started = Date.now();
 try {
-  for (const fixture of selected) {
+  const queue = [...selected];
+  const doFixture = async (fixture) => {
+    let threw = false;
     for (const width of WIDTHS) {
-      const { html, missingKeys, missingTranslations } = renderFixture(fixture, { cssBase: "/", width });
-      if (width === WIDTHS[0]) {
-        for (const key of missingKeys) problems.push(`${fixture.id}: template reads "${key}" but the fixture lacks it`);
-        for (const key of missingTranslations) problems.push(`${fixture.id}: missing translation ⟦${key}⟧`);
-      }
       const name = `${fixture.id}@${width}`;
-      writeFileSync(join(OUT, `${name}.html`), html);
-      const page = await browser.newPage({ viewport: { width: width + 40, height: 1000 } });
-      page.on("requestfailed", (r) => problems.push(`${name}: request failed ${r.url()}`));
-      page.on("response", (r) => { if (r.status() >= 400) problems.push(`${name}: HTTP ${r.status()} ${r.url()}`); });
-      await page.goto(`${origin}/out/${name}.html`, { waitUntil: "networkidle" });
-      // `open`: CSS selectors of <details> to expand, standing in for a click,
-      // so a fixture can show a collapsed section's expanded look.
-      if (fixture.open?.length) {
-        const opened = await page.evaluate((selectors) => selectors.map((sel) => {
-          const found = [...document.querySelectorAll(sel)];
-          found.forEach((el) => { el.open = true; });
-          return found.length ? null : sel;
-        }).filter(Boolean), fixture.open);
-        for (const sel of opened) problems.push(`${name}: open selector "${sel}" matches nothing`);
-      }
-      await page.locator(".application").screenshot({ path: join(OUT, `${name}.png`) });
-      const overflow = await page.evaluate(() => {
-        const content = document.querySelector(".window-content");
-        return content.scrollWidth > content.clientWidth + 1 ? content.scrollWidth - content.clientWidth : 0;
-      });
-      // A window body must never need a sideways scrollbar (JT: whole UI reachable).
-      if (overflow) problems.push(`${name}: scrolls horizontally by ${overflow}px`);
-      await page.addStyleTag({ content: SHORT_WINDOW_CSS });
-      await page.evaluate(() => document.documentElement.classList.add("spf-short-window"));
-      const unreachable = await page.evaluate(() => {
-        // Scroll only what a user can scroll (overflow auto/scroll), never the
-        // clipped .window-content itself, and see whether each control fits.
-        const content = document.querySelector(".window-content");
-        const box = content.getBoundingClientRect();
-        const userScrolls = (el) => /auto|scroll/.test(getComputedStyle(el).overflowY);
-        const controls = [...content.querySelectorAll("button, input, select, textarea, a[href]")]
-          .filter((el) => el.getClientRects().length && getComputedStyle(el).visibility !== "hidden"
-            && !el.closest("details:not([open]) > :not(summary)"));
-        for (const control of controls) {
-          for (let el = control.parentElement; el && el !== content; el = el.parentElement) {
-            if (!userScrolls(el)) continue;
-            const r = control.getBoundingClientRect(), s = el.getBoundingClientRect();
-            if (r.bottom > s.bottom) el.scrollTop += r.bottom - s.bottom;
-            if (r.top < s.top) el.scrollTop -= s.top - r.top;
-          }
-          const r = control.getBoundingClientRect();
-          if (r.bottom > box.bottom + 1 || r.top < box.top - 1) return control.textContent.trim() || control.outerHTML.slice(0, 60);
+      let page = null;
+      try {
+        const { html, missingKeys, missingTranslations } = renderFixture(fixture, { cssBase: "/", width });
+        if (width === WIDTHS[0]) {
+          for (const key of missingKeys) problems.push(`${fixture.id}: template reads "${key}" but the fixture lacks it`);
+          for (const key of missingTranslations) problems.push(`${fixture.id}: missing translation ⟦${key}⟧`);
         }
-        return null;
-      });
-      await page.locator(".application").screenshot({ path: join(OUT, `${name}-short.png`) });
-      if (unreachable) problems.push(`${name}: in a ${SHORT_HEIGHT}px window a control cannot be scrolled into view: "${unreachable}"`);
-      await page.close();
+        writeFileSync(join(OUT, `${name}.html`), html);
+        page = await browser.newPage({ viewport: { width: width + 40, height: 1000 } });
+        page.on("requestfailed", (r) => problems.push(`${name}: request failed ${r.url()}`));
+        page.on("response", (r) => { if (r.status() >= 400) problems.push(`${name}: HTTP ${r.status()} ${r.url()}`); });
+        await page.goto(`${origin}/out/${name}.html`, { waitUntil: "networkidle" });
+        // `open`: CSS selectors of <details> to expand, standing in for a click,
+        // so a fixture can show a collapsed section's expanded look.
+        if (fixture.open?.length) {
+          const opened = await page.evaluate((selectors) => selectors.map((sel) => {
+            const found = [...document.querySelectorAll(sel)];
+            found.forEach((el) => { el.open = true; });
+            return found.length ? null : sel;
+          }).filter(Boolean), fixture.open);
+          for (const sel of opened) problems.push(`${name}: open selector "${sel}" matches nothing`);
+        }
+        if (FREEZE) await page.addStyleTag({ content: FREEZE_CSS });
+        await page.locator(".application").screenshot({ path: join(OUT, `${name}.png`) });
+        const overflow = await page.evaluate(() => {
+          const content = document.querySelector(".window-content");
+          return content.scrollWidth > content.clientWidth + 1 ? content.scrollWidth - content.clientWidth : 0;
+        });
+        // A window body must never need a sideways scrollbar (JT: whole UI reachable).
+        if (overflow) problems.push(`${name}: scrolls horizontally by ${overflow}px`);
+        await page.addStyleTag({ content: SHORT_WINDOW_CSS });
+        await page.evaluate(() => document.documentElement.classList.add("spf-short-window"));
+        const unreachable = await page.evaluate(() => {
+          // Scroll only what a user can scroll (overflow auto/scroll), never the
+          // clipped .window-content itself, and see whether each control fits.
+          const content = document.querySelector(".window-content");
+          const box = content.getBoundingClientRect();
+          const userScrolls = (el) => /auto|scroll/.test(getComputedStyle(el).overflowY);
+          const controls = [...content.querySelectorAll("button, input, select, textarea, a[href]")]
+            .filter((el) => el.getClientRects().length && getComputedStyle(el).visibility !== "hidden"
+              && !el.closest("details:not([open]) > :not(summary)"));
+          for (const control of controls) {
+            for (let el = control.parentElement; el && el !== content; el = el.parentElement) {
+              if (!userScrolls(el)) continue;
+              const r = control.getBoundingClientRect(), s = el.getBoundingClientRect();
+              if (r.bottom > s.bottom) el.scrollTop += r.bottom - s.bottom;
+              if (r.top < s.top) el.scrollTop -= s.top - r.top;
+            }
+            const r = control.getBoundingClientRect();
+            if (r.bottom > box.bottom + 1 || r.top < box.top - 1) return control.textContent.trim() || control.outerHTML.slice(0, 60);
+          }
+          return null;
+        });
+        await page.locator(".application").screenshot({ path: join(OUT, `${name}-short.png`) });
+        if (unreachable) problems.push(`${name}: in a ${SHORT_HEIGHT}px window a control cannot be scrolled into view: "${unreachable}"`);
+        await page.close();
+        page = null;
+      } catch (err) {
+        problems.push(`${name}: render failed: ${err?.message ?? String(err)}`);
+        threw = true;
+        if (page) await page.close().catch(() => {});
+      }
     }
-    console.log(`ok  ${fixture.id}`);
-  }
+    console.log(threw ? `FAIL  ${fixture.id}` : `ok  ${fixture.id}`);
+  };
+  // One worker per page slot; each takes the next fixture when it is free.
+  await Promise.all(Array.from({ length: Math.min(CONC, queue.length) }, async () => {
+    while (queue.length) await doFixture(queue.shift());
+  }));
 } finally {
   await browser.close();
   server.close();
 }
+const elapsed = ((Date.now() - started) / 1000).toFixed(1);
+// Workers finish in any order: sort the problem list so repeated runs print the same text.
+problems.sort();
 if (problems.length) {
   console.error(`\n${problems.length} fixture problem(s):\n  ${problems.join("\n  ")}`);
   process.exitCode = 1;
 } else {
-  console.log(`\n${selected.length} fixtures x ${WIDTHS.length} widths -> ${OUT}`);
+  console.log(`\n${selected.length} fixtures x ${WIDTHS.length} widths -> ${OUT} (${elapsed}s, ${CONC} page${CONC === 1 ? "" : "s"} at a time)`);
 }
