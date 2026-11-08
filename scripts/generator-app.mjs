@@ -2401,14 +2401,13 @@ export class GeneratorApp extends SpfApp {
     return new Map([...(source ?? [])].map(([slot, names]) => [slot, new Set(names)]));
   }
 
-  /** Move the on-screen preview into Recent generations before anything replaces it. */
-  /** Mark the window busy and invalidate any in-flight preview load: a load
-   * that resumes after this run finished must not wipe what the run produced. */
+  /** Mark a run as started: set busy and take over the preview epoch so a late load leaves it alone. */
   #beginBusy() {
     this.#busy = true;
     this.#previewEpoch += 1;
   }
 
+  /** Move the on-screen preview into Recent generations before anything replaces it. */
   #stashPreview() {
     const entry = this.#capturePreview();
     if (entry) this.#recent = rememberRecent(this.#recent, entry);

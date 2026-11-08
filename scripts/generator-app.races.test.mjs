@@ -105,6 +105,52 @@ await module.link((specifier) => {
 await module.evaluate();
 const App = module.namespace.GeneratorApp;
 // No DOM here: the form read is a no-op, so inputs are whatever the test sets.
+// Blanks // and /* */ comments and the bodies of string and template literals (keeping delimiters and
+// newlines, so offsets match). A quoted "SIMPLYSF2E.<key>" literal keeps its body.
+function scrubLiterals(text) {
+  const out = text.split("");
+  const blank = (from, to) => { for (let k = from; k < to; k += 1) if (out[k] !== "\n") out[k] = " "; };
+  let i = 0;
+  while (i < text.length) {
+    const c = text[i];
+    if (c === "/" && text[i + 1] === "/") {
+      const end = text.indexOf("\n", i);
+      const stop = end < 0 ? text.length : end;
+      blank(i, stop);
+      i = stop;
+    } else if (c === "/" && text[i + 1] === "*") {
+      const end = text.indexOf("*/", i + 2);
+      const stop = end < 0 ? text.length : end + 2;
+      blank(i, stop);
+      i = stop;
+    } else if (c === "'" || c === '"' || c === "`") {
+      let j = i + 1;
+      while (j < text.length && text[j] !== c) {
+        if (c !== "`" && text[j] === "\n") break;
+        j += text[j] === "\\" ? 2 : 1;
+      }
+      const body = text.slice(i + 1, j);
+      if (c === "`" || !/^SIMPLYSF2E\.[\w.]+$/.test(body)) blank(i + 1, j);
+      i = j + 1;
+    } else {
+      i += 1;
+    }
+  }
+  return out.join("");
+}
+
+// The first argument's text: everything before the first comma that sits outside any brackets.
+function topLevelFirstArg(args) {
+  let depth = 0;
+  for (let k = 0; k < args.length; k += 1) {
+    const c = args[k];
+    if ("([{".includes(c)) depth += 1;
+    else if (")]}".includes(c)) depth -= 1;
+    else if (c === "," && depth === 0) return args.slice(0, k);
+  }
+  return args;
+}
+
 const makeApp = () => { const app = new App(); app._test_readForm = () => {}; return app; };
 const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
 const deferred = () => {
@@ -290,13 +336,29 @@ const npc = (uuid) => ({
 
 // --- Every notification that carries an AI/actor name escapes it (all sites, not just reroll) ---
 {
-  const calls = [...source.matchAll(/ui\.notifications\.(?:info|warn|error)\(([^;]*?)\)\s*;/gs)]
-    .map((match) => match[1])
-    .filter((args) => /\b(?:actor|folder)\.name\b|\bcurrentName\b/.test(args));
-  assert.ok(calls.length >= 9, `found the name-carrying notification sites (${calls.length})`);
-  for (const args of calls) {
-    assert.ok(/localize: true,\s*format: \{[^}]*\},\s*escape: true/.test(args), `escaped format call: ${args}`);
-    assert.ok(!/i18n\.format/.test(args), `no pre-formatted string: ${args}`);
+  // Comments and string/template bodies are blanked (same length, so offsets map back to the raw
+  // source). Only a bare "SIMPLYSF2E.<key>" literal keeps its body. Name detection uses the raw text,
+  // so a name hidden in a comment still selects its call, and the options must be live code.
+  const scrubbed = scrubLiterals(source);
+  const calls = [];
+  for (const match of scrubbed.matchAll(/ui\.notifications\.(?:info|warn|error)\(/g)) {
+    const open = match.index + match[0].length;
+    let depth = 1;
+    let close = open;
+    for (; close < scrubbed.length && depth > 0; close += 1) {
+      if (scrubbed[close] === "(") depth += 1;
+      else if (scrubbed[close] === ")") depth -= 1;
+    }
+    calls.push({ code: scrubbed.slice(open, close - 1), raw: source.slice(open, close - 1) });
+  }
+  const named = calls.filter(({ raw }) => /\b(?:actor|folder)\.name\b|\bcurrentName\b/.test(raw));
+  assert.ok(named.length >= 9, `found the name-carrying notification sites (${named.length})`);
+  for (const { code, raw } of named) {
+    const first = topLevelFirstArg(code);
+    assert.ok(/^\s*(['"])SIMPLYSF2E\.[\w.]+\1\s*$/.test(first), `first argument is a bare key: ${raw}`);
+    assert.ok(/localize:\s*true/.test(code) && /format:\s*\{/.test(code) && /escape:\s*true/.test(code),
+      `escaped options object in live code: ${raw}`);
+    assert.ok(!/game\.i18n\.format/.test(code) && !code.includes("`"), `no pre-formatted string or template literal: ${raw}`);
   }
 }
 // Runtime: a manual create with a hostile name reaches the notice as an escaped format value.
