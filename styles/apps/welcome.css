@@ -4,9 +4,8 @@
    colors reuse the shared Neon Drift kit.
    ========================================================================== */
 
+/* Root flex column from simplysf2e.css; this window spaces its cards wider. */
 .simplysf2e .simplysf2e-welcome {
-  display: flex;
-  flex-direction: column;
   gap: var(--spf-space-lg);
   padding: var(--spf-space-sm);
 }
@@ -22,20 +21,6 @@
   min-width: 0;
   margin: 0;
   padding: var(--spf-space-md) var(--spf-space-lg) var(--spf-space-lg);
-}
-
-.simplysf2e .spf-welcome-section legend {
-  padding: 0 var(--spf-space-sm);
-  border: 1px solid var(--spf-border);
-  border-radius: var(--spf-radius-sm);
-  background: color-mix(in srgb, var(--spf-brand-dark) 85%, #0c1620);
-  box-shadow: var(--spf-inset-glow);
-  color: var(--spf-brand-accent);
-  font-family: var(--spf-font-display);
-  font-size: var(--spf-text-sm);
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
 }
 
 .simplysf2e .spf-welcome-providers {
@@ -78,7 +63,7 @@
 .simplysf2e .spf-welcome-provider-active {
   border-color: var(--spf-brand-accent);
   background: var(--spf-brand-soft);
-  box-shadow: inset 0 0 0 1px var(--spf-brand-accent), var(--spf-neon-glow);
+  box-shadow: inset 0 0 0 1px var(--spf-brand-accent);
   color: var(--spf-text);
   font-weight: 700;
 }
@@ -101,7 +86,7 @@
 }
 
 .simplysf2e .spf-welcome-connect .spf-hint {
-  margin: 0.15rem 0 0;
+  margin: var(--spf-space-2xs) 0 0;
 }
 
 .simplysf2e .spf-welcome-connect-button,
@@ -198,9 +183,8 @@
   margin: var(--spf-space-sm) 0 var(--spf-space-xs);
   border: 0;
   color: var(--spf-brand-accent);
-  font-size: var(--spf-text-sm);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-size: var(--spf-text-md);
+  font-weight: 700;
 }
 
 .simplysf2e .spf-welcome-advanced-buttons {
@@ -216,7 +200,7 @@
 .simplysf2e .spf-welcome-dismiss {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: var(--spf-space-md);
   align-self: flex-start;
   color: var(--spf-text-muted);
   cursor: pointer;

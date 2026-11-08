@@ -206,6 +206,10 @@
       "Disable": "Don't show for updates",
       "Earlier": "Earlier changes ({count})",
       "Note": {
+        "ThemeSystem": {
+          "Title": "One look in every window",
+          "Body": "The neon effects now mean the same thing everywhere. Glow marks what is live: the main action, the active mode and a running progress card. The moving sheen means a run is working, a slow pulse marks a list that waits for your decision, and only the current step blinks. Mode colours stay on the mode tile and the line under a preview's name. Only labels, column headings and tags are in capitals; titles and buttons are not. Trait tags are square, and empty panels share one look."
+        },
         "SetupWiring": {
           "Title": "Clearer setup windows",
           "Body": "The Welcome warning for missing compendium content has a Configure compendium sources button. AI Provider Setup explains Save & Test and Save & Authorize, shows when an API key or a Jev key is saved, and marks a rejected price field. The Item Forge prompt hint follows the item kind."

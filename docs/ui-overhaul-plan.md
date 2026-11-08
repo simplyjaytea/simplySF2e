@@ -18,7 +18,7 @@ Today the neon kit is applied by hand per window, so it reads as decoration. The
 | Blink | "active step" | the current progress step only |
 | Scan lines | "standby" | empty-state panels only, one short line of text, left-aligned |
 | Corner ticks and notch | the window's HUD frame | outer cards only; nested panels (encounter members, stat check, review list) are plain |
-| Uppercase + letter-spacing | HUD labels (legends, chips, status keys) | never on headings or buttons; hierarchy comes from size and weight |
+| Uppercase + letter-spacing | Labels only: legends, chips, status keys (table column headers, stat keys, token heading, fold titles) | never on headings or buttons; hierarchy comes from size and weight |
 | Typography | Signika from Foundry; tabular figures for every number the GM compares | wrap by word, no ellipsis |
 
 Everything idle is still. Everything that moves says what the module is doing.
