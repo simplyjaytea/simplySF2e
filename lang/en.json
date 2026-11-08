@@ -953,7 +953,7 @@
       "BudgetLabel": "Budget",
       "BudgetEncounter": "{budget} credits (one encounter)",
       "BudgetLevel": "{budget} credits (whole level)",
-      "Each": "about {each} credits each for {count}",
+      "Each": "about {each} credits per character ({count})",
       "ItemsHeading": "Items ({count})",
       "ColItem": "Item",
       "ColLevel": "Level",
