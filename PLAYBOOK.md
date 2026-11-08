@@ -27,7 +27,7 @@ The one file every agent (Claude, Codex, anything else) reads first. It holds wh
 - **Open wording/design calls for JT (each a one-line revert):** mode tiles lost their uppercase under D3 (buttons are never uppercase); the Welcome Google tile says "Not yet tested" instead of "Live check pending"; "flavor" spelling kept over the worksheet's "flavour"; `scripts/__snapshots__/` is excluded from the release zip (release.yml find).
 - **Small follow-ups parked:** `getPacksFor("equipment")` warns on every Shop/Treasure/Forge render when equipment packs are missing (accepted in U2-SHOPS); no harness fixture shows `Shop.NoStock`; an empty Sources category's scan lines are in no fixture; `formatElapsed` units are not localized.
 
-**Agents now (2026-11-08, JT):** Claude Code only, five herdr terminals: coordinator Fable 5.1 (`t1p`), lead engineer Sonnet 5.5 (`t1t`), three Haiku 5.5 workers (`t9`, `t1q`, `t1s`); Opus/Sonnet/Haiku subagents for UI audits and for reviews or builds when every terminal is busy. Kimi and OpenCode are retired; §6 holds the process. Today: 14 worker tasks, 6 batches; reviews found real defects in 6 of 10 code branches before merge (two of them in the lead engineer's own work, caught by fresh reviewers).
+**Agents now (2026-11-08, JT):** Claude Code only: the coordinator session (Fable 5.1) plus four herdr terminals it spawns by name (`lead` Sonnet 5.5; `w1` `w2` `w3` Haiku 5.5; recipe in §6 "Spawning the crew"); Opus/Sonnet/Haiku subagents for UI audits and for reviews or builds when every terminal is busy. Kimi and OpenCode are retired; §6 holds the process. Today: 14 worker tasks, 6 batches; reviews found real defects in 6 of 10 code branches before merge (two of them in the lead engineer's own work, caught by fresh reviewers).
 
 - **Next (JT's calls):** (1) say when `next` should become a beta build: one milestone PR `next` → `main` with the ids in `docs/next-qa.md`; (2) `docs/ui-overhaul-plan.md` decisions D1 (4/8 spacing rhythm), D3 (uppercase on HUD labels only), D5 (inline prompt validation), and which of the five feature proposals (§4) to design; (3) go/no-go on the measured optimisations (§5): P5 harness page pool first, P2 short candidate ids, P4 staged generator-app split. Ready to dispatch without a decision: batch U2 (shell consistency) and U3 (copy sweep) from the plan. Further ability templates (grab, on-hit riders, burst) only after Area Blast and Aura are live-tested. M8/M9 in `docs/consumer-plan.md`.
 - **Waiting on JT:** live pass of v0.1.15 with `docs/beta-pass.md` (steps 1-19: rows 2.8-2.13, 12w.4/12w.7, 12t.*, 12ab.*, 13m.*, 12aa.*, 12ac.*, sf2e 1.7.0 checks) logged to `docs/live-log.md`; then the stable promotion; a hosted model-matrix run (`MATRIX_API_KEY`, `tools/model-matrix/config.example.json`) and a local one on JT's machine (`--local`, see `tools/model-matrix/README.md`)
@@ -36,7 +36,7 @@ The one file every agent (Claude, Codex, anything else) reads first. It holds wh
 - **Earlier JT decisions still in force:** Welcome (Google shown "live check pending"; GM picks the model when the default is missing; sample monster = preview only; readiness only as a failure banner; Anthropic = OpenRouter filtered to `anthropic/*`); published-creature values where GM Core has no rule; fill rules R1-R7 (`ability-fill.mjs`); Area Blast cone/line rules (`ability-templates.mjs`); hoard budgets independent of rarity; feat cap 8; D6 60k run budget; D3, D5, D8-D11 Fable's recommendations until JT changes them.
 - **sf2e 1.7.0** (2026-11-05, v14-dev `52dfeee`): offline compatible (drift clean, benches identical). Live checks pending; `BENCH_SHA` now pins it.
 - **Bench baselines (pinned `52dfeee` = tag sf2e-1.7.0 since 2026-11-07; identical on the old pin `675d2b7`):** class 49/31/0, forge 126/48/0 (+6 n/a), market 240/0/0, creature 35/2/0. UI harness: all 82 fixtures pass.
-- **Environment:** Linux VPS (bash, Node 22+, `gh` authenticated). Agents as herdr terminals (§6). Repo `/root/simplySF2e`; worktrees `/root/sf2e-wt/`; prompts `/root/sf2e-wt/prompts/`, reports `/root/sf2e-wt/reports/`. Git identity `jt` / `jt_f@ymail.com`. Rules reference: `https://2e.aonsrd.com/rules/<id>-<slug>`.
+- **Environment:** Linux VPS (bash, Node 22+, `gh` authenticated). Workers are herdr terminals the coordinator spawns by name (§6 "Spawning the crew"); JT only says "spin up the crew" / "close the sessions". Repo `/root/simplySF2e`; worktrees `/root/sf2e-wt/`; prompts `/root/sf2e-wt/prompts/`, reports `/root/sf2e-wt/reports/`. Git identity `jt` / `jt_f@ymail.com`. Rules reference: `https://2e.aonsrd.com/rules/<id>-<slug>`.
 
 ## 2. The project
 
@@ -119,17 +119,33 @@ Three actor/item pipelines over shared compendium and table code, plus the Shop,
 
 ## 6. How work runs
 
-JT's standing rules (2026-11-08). Claude Code only. Five long-lived terminals in one herdr workspace on the VPS, plus subagents the coordinator spawns with the Agent tool. This section is the general workflow as actually run; the prompt templates below are the exact words.
+JT's standing rules (2026-11-08). Claude Code only. One coordinator session plus four herdr terminals the coordinator spawns by name (recipe below), plus subagents from the Agent tool. This section is the general workflow as actually run; the prompt templates below are the exact words.
 
 | Role | Where | Does |
 | --- | --- | --- |
-| Coordinator | Claude Code terminal, Fable 5.1 (`t1p`) | Plans; fetches and cites sf2e/Foundry source into prompts; creates worktrees off `next`; writes every prompt; dispatches; reads every diff (tier 3); lands batches on `next`; owns this file, CLAUDE.md, AGENTS.md, the plan docs. Writes code only when no worker fits (small coordinator-owned doc commits go straight to `next`). |
-| Lead engineer | Claude Code terminal, Sonnet 5.5 (`t1t`) | Tier-2 review of every branch it did not build; integrates a batch (`work/BATCH-n`), reads merged files, runs `tools/release-check.sh` with the UI step, reports; builds the hard pieces (run-state logic, prompt/selector changes, perf work) when no Haiku fits. Never merges to `next` or `main`. |
-| Workers (3) | Claude Code terminals, Haiku 5.5 (`t9`, `t1q`, `t1s`) | Build from exact prompts (templates, CSS, strings, fixtures, tests, small app changes); tier-1 review of a branch another Haiku built (cross-review: A reviews B, B reviews C, C reviews A); follow-up fix commits on their own branch. |
+| Coordinator | the Claude Code session JT talks to, Fable 5.1 | Plans; fetches and cites sf2e/Foundry source into prompts; creates worktrees off `next`; writes every prompt; dispatches; reads every diff (tier 3); lands batches on `next`; owns this file, CLAUDE.md, AGENTS.md, the plan docs. Writes code only when no worker fits (small coordinator-owned doc commits go straight to `next`). |
+| Lead engineer | herdr terminal `lead`, Sonnet 5.5 | Tier-2 review of every branch it did not build; integrates a batch (`work/BATCH-n`), reads merged files, runs `tools/release-check.sh` with the UI step, reports; builds the hard pieces (run-state logic, prompt/selector changes, perf work) when no Haiku fits. Never merges to `next` or `main`. |
+| Workers (3) | herdr terminals `w1` `w2` `w3`, Haiku 5.5 | Build from exact prompts (templates, CSS, strings, fixtures, tests, small app changes); tier-1 review of a branch another Haiku built (cross-review: A reviews B, B reviews C, C reviews A); follow-up fix commits on their own branch. |
 | UI/UX designer | Opus subagent (Agent tool, `model: opus`) | UI audits against `.claude/skills/ui-ux/references/anti-slop-checklist.md` (one auditor per window group); shared-shell CSS and theme passes in a worktree. Returns a report; cannot be reached with `hc`. |
 | Fresh reviewers / small builders | Sonnet or Haiku subagents (Agent tool, `general-purpose`) | Tier 2 when the lead engineer built the diff (report `<ID>-T2i.md`); tier-1 re-checks and one-commit follow-ups when every terminal is busy; read-only investigations (bug hunt, perf measurements) in their own worktree. |
 
-**Terminals** (`hc` = `herdr-core`). Addresses change on restart: `hc ls`, then `hc read <t>` and match the model line (`Fable 5.1`, `Sonnet 5.5`, `Haiku 5.5`); keep the table in §1 current.
+**Spawning the crew (JT says "spin up the crew" and the coordinator runs this; nothing else to set up).** `hc` = `herdr-core`. The coordinator is the Claude Code session JT is talking to (Fable 5.1); the four workers are herdr terminals the coordinator starts by name, so their addresses never need looking up:
+```
+cd /root/sf2e-wt && for spec in lead:sonnet w1:haiku w2:haiku w3:haiku; do
+  n=${spec%%:*}; m=${spec##*:}
+  hc run --name "$n" --bg --outlive-parent --no-notify --no-parent --cwd /root/sf2e-wt \
+    bash -lc "claude --model $m --permission-mode auto -n $n"
+done
+```
+- Names: `lead` (Sonnet 5.5, lead engineer), `w1` `w2` `w3` (Haiku 5.5 workers). Every `hc send`/`hc read`/`hc kill` takes the name in place of `t9`-style addresses. `hc ls` shows `"name":"w1"` with the live address.
+- First launch in a folder shows Claude Code's "Quick safety check" trust dialog with **"No, exit" selected by default**: `hc keys <name> down` then `hc keys <name> enter` (verified 2026-11-08). `/root/sf2e-wt` is trusted now, so the dialog does not return there; it does return for any other `--cwd`. Never `hc send` text while the dialog is up (the text lands in the dialog).
+- Ready check (about 10 s after launch): `hc ls` lists each name with `"agent":"claude-code"`; `hc read <name>` ends with `⏵⏵ auto mode on`. Then `hc send w1 "Reply with only the word pong."` once if in doubt.
+- Workers' cwd is `/root/sf2e-wt` (prompts, reports and worktrees live under it); every prompt still says `cd /root/sf2e-wt/<ID>` so a worker never edits `/root/simplySF2e`.
+- Stop the crew ("close the sessions"): `for n in lead w1 w2 w3; do hc kill $n; done; sleep 3; hc ls --all` and `hc rm <address>` for each finished entry. Kill only after `hc ls` shows every name `done` and no report watcher is pending; a killed worker loses only its chat context (all work is in commits and `/root/sf2e-wt/reports/`).
+- One coordinator only: the coordinator never spawns a second Fable terminal; subagents (Agent tool) cover extra reviewers, Opus visuals and bursts.
+- Addresses in the older notes (`t1p`, `t1t`, `t9`, `t1q`, `t1s`) belong to the terminals JT started by hand on 2026-11-08; the named recipe above replaces them.
+
+**Terminals, day to day.**
 - Dispatch: `hc send <t> "/clear"` (wait 3-4 s), then `hc send <t> "Read /root/sf2e-wt/prompts/<ID>.md and do the task."`. Never send to a `working` terminal. `/clear` before every new task so old context does not leak.
 - Wait: a background `until [ -f /root/sf2e-wt/reports/<ID>.md ]; do sleep 10; done` per expected report, never `sleep` in the foreground and not `hc wait` (it returns at once while a Claude Code Monitor is pending). A terminal that ends its turn with monitors running may never resume: nudge it with the fact it waits for.
 - Result: every worker, reviewer and the lead engineer writes `/root/sf2e-wt/reports/<ID>.md` (follow-ups append `## Fix`, `## Fix 2`) and replies `DONE <ID>`. `hc read` shows only the visible pane; never rely on it for content.
