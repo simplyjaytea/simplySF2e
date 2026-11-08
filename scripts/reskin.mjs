@@ -131,9 +131,11 @@ export function applyReskin(actorData, flavor = {}, { recallSkill = null, recall
   if (notes.length) data.system.details.publicNotes = notes.join("\n");
 
   const renames = new Map((flavor.renames ?? []).map((rename) => [rename.id, rename.name]));
+  const renamedStrikes = [];
   for (const item of data.items ?? []) {
     const name = renames.get(item._id);
     if (!name || !RENAMEABLE_TYPES.includes(item.type)) continue;
+    const oldName = item.name;
     // A renamed area blast keeps its own recharge sentence and #Recharge label in step with the new name.
     if (item.type === "action" && typeof item.system?.description?.value === "string") {
       item.system.description.value = renameRechargeText(item.system.description.value, item.name, name);
@@ -141,8 +143,29 @@ export function applyReskin(actorData, flavor = {}, { recallSkill = null, recall
     item.system ??= {};
     item.system.slug ||= pf2eSluggify(item.name);
     item.name = name;
+    if (item.type === "melee") renamedStrikes.push({ from: oldName, to: name });
+  }
+  // A module-filled Trample names the melee Strike it was built from; keep that sentence in step.
+  for (const item of data.items ?? []) {
+    const built = item.flags?.simplysf2e?.built;
+    if (item.type !== "action" || built?.kind !== "glossary-fill" || built?.spec?.slug !== "trample") continue;
+    if (typeof item.system?.description?.value !== "string") continue;
+    for (const strike of renamedStrikes) {
+      item.system.description.value = renameTrampleText(item.system.description.value, strike.from, strike.to);
+    }
   }
   return data;
+}
+
+/**
+ * The module-filled Trample sentence names the melee Strike it was built from
+ * (ability-fill.mjs R6, escAi(best.name)). Replaces every escaped occurrence of
+ * the old Strike name with the escaped new one. Other text is unchanged.
+ */
+export function renameTrampleText(description, oldStrikeName, newStrikeName) {
+  const oldEscaped = escAi(String(oldStrikeName ?? ""));
+  if (!oldEscaped) return description;
+  return description.split(oldEscaped).join(escAi(String(newStrikeName ?? "")));
 }
 
 /**

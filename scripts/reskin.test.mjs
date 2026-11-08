@@ -7,6 +7,8 @@
 import assert from "node:assert/strict";
 import { normalizeReskin, applyReskin, reskinRenameTargets, pf2eSluggify, renameRechargeText } from "./reskin.mjs";
 import { buildAreaBlast, normalizeAreaBlast, buildAura, normalizeAura } from "./ability-templates.mjs";
+import { fillPlaceholderAbility } from "./ability-fill.mjs";
+import { escAi } from "./text.mjs";
 
 const source = {
   _id: "src", name: "Cave Bear", type: "npc",
@@ -120,4 +122,42 @@ console.log("reskin.test.mjs: reskin changes fiction and display names only");
   assert.equal(renameRechargeText(blast, "Flame Breath", "[[]]"), "It can't use Area Blast again for [[/gmr 1d4 #Recharge Area Blast]]{1d4 rounds}.", "blast fallback");
   const aura = "temporarily immune to Foul Air for 1 minute.";
   assert.equal(renameRechargeText(aura, "Foul Air", "[[]]"), "temporarily immune to Aura for 1 minute.", "aura fallback");
+}
+
+// Trample: a melee Strike renamed by Reskin is renamed inside the module-filled Trample text.
+// An unflagged copy (published creature) and a non-melee rename leave the text alone.
+{
+  const TRAMPLE = "<p>[Size], [Listed Strike], @Check[reflex|dc:|basic]</p>\n<hr />\n<p>@Localize[PF2E.NPC.Abilities.Glossary.Trample]</p>";
+  const HOOF = { name: "Hoof", damage: "2d12+6", type: "melee" };
+  const TUSK = { name: "Tusk", damage: "1d8+2", type: "melee" };
+  const trampleItem = { name: "Trample", type: "action", system: { description: { value: TRAMPLE }, rules: [] } };
+  // Production fill for a given melee strike (Hoof has the highest average damage).
+  const fillWith = (strike) => fillPlaceholderAbility(trampleItem, { level: 7, size: "lg", strikes: [strike, TUSK] });
+  const filled = fillWith(HOOF);
+  assert.ok(filled, "trample fills from the melee strikes");
+  // Provenance shape as builder.mjs:1797-1802 stamps it (withBuildProvenance is not exported).
+  const built = { kind: "glossary-fill", spec: { slug: "trample", abilityDcScale: null, damageType: null }, name: "Trample", source: null };
+  const actor = {
+    name: "Mammoth", type: "npc",
+    items: [
+      { _id: "hoof", name: "Hoof", type: "melee", system: { slug: null, attackEffects: { value: [] } } },
+      { _id: "tusk", name: "Tusk", type: "melee", system: { slug: null, attackEffects: { value: [] } } },
+      { _id: "roar", name: "Roar", type: "action", system: { description: { value: "<p>Loud.</p>" }, rules: [] } },
+      // Separate deep copies: a shallow spread would alias system and let the flagged copy's edit leak.
+      { ...structuredClone(filled), _id: "tr", flags: { simplysf2e: { built } } },
+      { ...structuredClone(filled), _id: "tr-published" }
+    ]
+  };
+  const byId = (data, id) => data.items.find((item) => item._id === id);
+  const originalText = filled.system.description.value;
+
+  const renamed = applyReskin(actor, { renames: [{ id: "hoof", name: "Hoof & <Horn>" }] });
+  const text = byId(renamed, "tr").system.description.value;
+  assert.equal(text, fillWith({ ...HOOF, name: "Hoof & <Horn>" }).system.description.value, "trample names the renamed strike exactly as the production fill would");
+  assert.ok(text.includes(escAi("Hoof & <Horn>")), "trample has the escaped new strike name");
+  assert.ok(!text.includes(`${escAi("Hoof")}, @Check`), "trample no longer names the old strike");
+  assert.equal(byId(renamed, "tr-published").system.description.value, originalText, "unflagged trample is unchanged");
+
+  const roared = applyReskin(actor, { renames: [{ id: "roar", name: "Bellow" }] });
+  assert.equal(byId(roared, "tr").system.description.value, originalText, "renaming a non-melee item changes no trample text");
 }
