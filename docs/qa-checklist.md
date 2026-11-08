@@ -425,6 +425,7 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 | 12l.1 | Forge a wondrous item, then a weapon. | Both previews show price in credits (no gp). | Forge preview | | |
 | 12l.2 | Open the Item Forge. | A "Compendium Content" row sits under the provider row with a gear that opens Compendium Sources; Generate stands alone in its row. | Item Forge | | |
 | 12l.3 | Generate an item, then look at the primary button. | It still reads **Generate**, not Regenerate; pressing it again makes a new version. | Item Forge | | |
+| 12l.4 | Forge a weapon or armor at Advanced grade, then look at the preview statline and the Upgrades list. | The statline reads "Price … credits" then "Grade Advanced". The Upgrades list has no grade bullet. | Forge preview | | |
 
 ## 12m. U6 Narrow windows
 

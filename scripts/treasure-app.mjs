@@ -36,7 +36,6 @@ export class TreasureApp extends SpfApp {
     position: { width: 720, height: "auto" },
     actions: {
       generate: TreasureApp.#onGenerate,
-      reroll: TreasureApp.#onGenerate,
       createTreasure: TreasureApp.#onCreateTreasure,
       discard: TreasureApp.#onDiscard,
       removeItem: TreasureApp.#onRemoveItem,
@@ -223,7 +222,7 @@ export class TreasureApp extends SpfApp {
     this._cancelGeneration();
   }
 
-  /** Generate and Reroll both run the whole pipeline again from the form. */
+  /** Generate (and "Generate another hoard") runs the whole pipeline again from the form. */
   static async #onGenerate() {
     if (this.#busy) return;
     this.#readForm();

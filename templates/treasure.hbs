@@ -71,13 +71,13 @@
             <i aria-hidden="true" class="fa-solid fa-plus"></i>
           </button>
         </div>
+        <p id="spf-treasure-party-hint" class="spf-hint">{{localize "SIMPLYSF2E.Treasure.PartyHint"}}</p>
       </div>
     </div>
     <div class="spf-party-fill">
       <button type="button" class="spf-secondary spf-use-party" data-action="useParty" data-tooltip="{{localize 'SIMPLYSF2E.Party.UseTooltip'}}" {{#if busy}}disabled{{/if}}{{#unless party}} disabled{{/unless}}><i aria-hidden="true" class="fa-solid fa-users"></i> {{localize "SIMPLYSF2E.Party.Use"}}</button>
       <span class="spf-party-note">{{#if party}}{{localize "SIMPLYSF2E.Party.Summary" name=party.name count=party.count level=party.level}}{{else}}{{localize "SIMPLYSF2E.Party.None"}}{{/if}}</span>
     </div>
-    <p id="spf-treasure-party-hint" class="spf-hint">{{localize "SIMPLYSF2E.Treasure.PartyHint"}}</p>
     <div class="spf-row spf-treasure-optionrow">
       <div class="form-group">
         <label for="spf-treasure-amount">{{localize "SIMPLYSF2E.Treasure.Amount"}}</label>
@@ -204,9 +204,6 @@
     <footer class="spf-actions">
       <button type="button" class="spf-primary" data-action="createTreasure" {{#if busy}}disabled{{/if}}{{#unless preview.hasItems}}{{#unless preview.hasLeftover}} disabled{{/unless}}{{/unless}}>
         <i aria-hidden="true" class="fa-solid fa-gem"></i> {{localize "SIMPLYSF2E.Treasure.Create"}}
-      </button>
-      <button type="button" data-action="reroll" {{#if busy}}disabled{{/if}}>
-        <i aria-hidden="true" class="fa-solid fa-rotate"></i> {{localize "SIMPLYSF2E.Treasure.Reroll"}}
       </button>
       <button type="button" data-action="discard" {{#if busy}}disabled{{/if}}>
         <i aria-hidden="true" class="fa-solid fa-trash"></i> {{localize "SIMPLYSF2E.Generator.Discard"}}
