@@ -27,6 +27,7 @@ let selectCalls;
 let createCalls;
 let confirmAnswer;
 let confirmCalls;
+let lastConfirm;
 const errors = [];
 const warnings = [];
 const runningApps = new Map();
@@ -46,6 +47,7 @@ const resetState = () => {
   createCalls = 0;
   confirmAnswer = true;
   confirmCalls = 0;
+  lastConfirm = null;
   errors.length = 0;
   warnings.length = 0;
   runningApps.clear();
@@ -116,7 +118,7 @@ const context = vm.createContext({
       api: {
         ApplicationV2,
         HandlebarsApplicationMixin: (Base) => Base,
-        DialogV2: { confirm: async (options) => { confirmCalls += 1; return confirmAnswer; } }
+        DialogV2: { confirm: async (options) => { confirmCalls += 1; lastConfirm = options; return confirmAnswer; } }
       },
       instances: { values: () => runningApps.values() }
     }
@@ -289,6 +291,7 @@ const newApp = (form) => {
   confirmAnswer = false;
   await actions.createConnection.call(app, null, {});
   assert.equal(confirmCalls, 1, "the unsaved-edits dialog is shown");
+  assert.equal(lastConfirm.yes.label, "SIMPLYSF2E.ProviderSetup.UnsavedContinue", "Create asks to Continue, not Switch");
   assert.equal(createCalls, 0, "Stay: no connection is created");
   confirmAnswer = true;
   await actions.createConnection.call(app, null, {});

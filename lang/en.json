@@ -71,6 +71,8 @@
       "UnsavedBody": "You changed {fields} for {name}. Switch anyway and lose those edits?",
       "UnsavedSwitch": "Switch",
       "UnsavedStay": "Stay",
+      "UnsavedBodyContinue": "You changed {fields} for {name}. Continue and lose those edits?",
+      "UnsavedContinue": "Continue",
       "BusySwitch": "A run is in progress. Wait for it to finish before switching connections.",
       "ChooseProvider": "Choose provider",
       "LocalServerHint": "Ollama: add {origin} to OLLAMA_ORIGINS. LM Studio: enable CORS (Developer → Server Settings, or lms server start --cors) and authentication. An HTTPS Foundry page cannot call an HTTP provider.",

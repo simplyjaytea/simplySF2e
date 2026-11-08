@@ -766,7 +766,7 @@ Generate a level 7 NPC with a limited cone breath (name "Frost Breath", cold), a
 | 12ac.11 | Polish nits. | API-key warning order, Welcome note, divider. | Various | | |
 | 12ac.12 | Unsaved edits guard. Edit the endpoint of a saved connection, then pick another connection in Saved connections. | Dialog "Unsaved changes" names the endpoint field and the connection. Stay keeps the edit and puts the select back on the current connection. Switch loads the other connection. | Provider Setup | | |
 
-## 12ad. Provider Setup: edits and busy switch (T-BUG-PROV)
+## 12ae. Provider Setup: edits and busy switch (T-BUG-PROV)
 
-| 12ad.1 | Provider Setup: change the Jev source or type a Jev endpoint, then press Load models. | The Jev field keeps the value you set; the model list fills in; nothing was reset. | Provider Setup | | |
-| 12ad.2 | Start a Generator run, then in Provider Setup pick another Saved connection. | The switch is refused with "A run is in progress. Wait for it to finish before switching connections."; the select shows the connection still in use. | Provider Setup, Generator | | |
+| 12ae.1 | Provider Setup: change the Jev source or type a Jev endpoint, then press Load models. | The Jev field keeps the value you set; the model list fills in; nothing was reset. | Provider Setup | | |
+| 12ae.2 | Start a Generator run, then in Provider Setup pick another Saved connection. | The switch is refused with "A run is in progress. Wait for it to finish before switching connections."; the select shows the connection still in use. | Provider Setup, Generator | | |
