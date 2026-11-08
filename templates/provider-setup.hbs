@@ -61,7 +61,7 @@
     <legend>{{localize "SIMPLYSF2E.ProviderSetup.CredentialsLegend"}}</legend>
     <div class="form-group stacked">
       <label for="spf-provider-api-key">{{localize "SIMPLYSF2E.ProviderSetup.ApiKeyLabel"}}</label>
-      <input id="spf-provider-api-key" type="password" name="apiKey" value="" spellcheck="false" autocomplete="new-password" placeholder="{{localize 'SIMPLYSF2E.ProviderSetup.ApiKeyOptional'}}">
+      <input id="spf-provider-api-key" type="password" name="apiKey" value="" spellcheck="false" autocomplete="new-password" placeholder="{{#unless hasApiKey}}{{localize 'SIMPLYSF2E.ProviderSetup.ApiKeyOptional'}}{{/unless}}">
       {{#if hasApiKey}}<p class="spf-hint spf-key-saved">{{localize "SIMPLYSF2E.ProviderSetup.ApiKeySaved"}}</p>{{/if}}
       <p class="spf-hint">{{localize "SIMPLYSF2E.ProviderSetup.ApiKeyHint"}}</p>
     </div>

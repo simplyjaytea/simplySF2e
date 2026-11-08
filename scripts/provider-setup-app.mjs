@@ -615,7 +615,7 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
     // The key field and the clear-key box follow hasApiKey, as provider-setup.hbs renders them.
     const keyInput = this.element?.querySelector("[name='apiKey']");
     if (keyInput) {
-      keyInput.placeholder = game.i18n.localize("SIMPLYSF2E.ProviderSetup.ApiKeyOptional");
+      keyInput.placeholder = state.hasConfiguredApiKey ? "" : game.i18n.localize("SIMPLYSF2E.ProviderSetup.ApiKeyOptional");
       keyInput.value = "";
     }
     const clearBox = this.element?.querySelector(".spf-provider-clear-key");
