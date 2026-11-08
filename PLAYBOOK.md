@@ -18,7 +18,7 @@ The one file every agent (Claude, Codex, anything else) reads first. It holds wh
 
 **Shipped in v0.1.15 (#81):** UI polish (`docs/ui-plan.md` items 1-10 + nits; visuals by an Opus subagent, wiring by OpenCode, contract `docs/ui-contract.md`); run deadline default 5 min; reroll runs the resolve decision (refuses unusable picks, keeps the slot's DC scale/damage type, targets the right slot); duplicate glossary drafts dropped; manual-priced runs with an unpriced total-only remainder read "at least"; benches pinned to sf2e 1.7.0 (`52dfeee`); model matrix `--local`; repo cleanup; README, `docs/beta-pass.md` (one ordered live pass, steps 1-19). Earlier: v0.1.13 (#80, the big feature batch) and v0.1.14 (#79, herdr workflow).
 
-**Agents now (2026-11-08):** the coordinator (Claude Opus 5.5, `t9`) plus OpenCode terminals running "Beam Free" at low thinking (`t1n`; `t1m` closed). Free models drop tasks midway and over-claim in reports: give them small, exact tasks, verify every claim against the diff, and use a Claude subagent (Opus for visuals, Sonnet for reviews) where judgement matters.
+**Agents now (2026-11-08, JT):** Claude Code only, five herdr terminals: coordinator Fable 5.1 (`t1p`), lead engineer Sonnet 5.5 (`t1t`), three Haiku 5.5 workers (`t9`, `t1q`, `t1s`). UI/UX visuals go to an Opus subagent of the coordinator with the repo skill `.claude/skills/ui-ux/`. Kimi and OpenCode are retired; §6 holds the process.
 
 - **Next:** JT live-tests v0.1.14 on the beta manifest, then promotes to stable (Actions > Release, version `0.1.14`, channel `stable`, ref tag `v0.1.14`) and checks `releases/latest/download/module.json`. Further ability templates (grab, on-hit riders, burst) only after Area Blast and Aura are live-tested. M8/M9 in `docs/consumer-plan.md`.
 - **Waiting on JT:** live pass of v0.1.15 with `docs/beta-pass.md` (steps 1-19: rows 2.8-2.13, 12w.4/12w.7, 12t.*, 12ab.*, 13m.*, 12aa.*, 12ac.*, sf2e 1.7.0 checks) logged to `docs/live-log.md`; then the stable promotion; a hosted model-matrix run (`MATRIX_API_KEY`, `tools/model-matrix/config.example.json`) and a local one on JT's machine (`--local`, see `tools/model-matrix/README.md`)
@@ -108,31 +108,33 @@ Three actor/item pipelines over shared compendium and table code, plus the Shop,
 
 ## 6. How work runs
 
-JT's standing rules (2026-11-05). Three long-lived agents run as terminals in one herdr workspace on the VPS. Each may spawn its own subagents.
+JT's standing rules (2026-11-08). Claude Code only. Five long-lived terminals in one herdr workspace on the VPS, plus subagents the coordinator spawns with the Agent tool.
 
 | Role | Terminal | Does |
 | --- | --- | --- |
-| Coordinator | Claude Code, Opus 5.5 | Plans every task; fetches and cites sf2e source; creates worktrees; dispatches; reviews last (tier 3); integrates; opens PRs and merges; owns this file, CLAUDE.md and AGENTS.md. Writes code only when no worker fits. Never hands off release/workflow `.yml` reasoning. |
+| Coordinator | Claude Code, Fable 5.1 (`t1p`) | Plans every task; fetches and cites sf2e source; creates worktrees; writes prompts; dispatches to the Haiku workers; reviews last (tier 3); reads CI and merges the PR; owns this file, CLAUDE.md and AGENTS.md. Writes code only when no worker fits. Never hands off release/workflow `.yml` reasoning. |
 | Planner (optional) | Opus `Plan` subagent of the coordinator | Second opinion on a large or risky plan; the coordinator still owns it. |
-| Default worker | Claude Code, Haiku 5.5 | **Most tasks go here:** mechanical edits, tests, sweeps, docs, bench runs, tier-1 review. |
-| Heavy worker | Kimi Code, K3.1 Pro (thinking high) | UI (templates, CSS, screenshot harness), art, and tasks needing deeper reasoning, including schema-dependent work (sf2e field names, enums, pack ids, REs) from cited source. Tier-2 review. |
+| Lead engineer | Claude Code, Sonnet 5.5 (`t1t`) | Receives every finished worktree: reviews it (tier 2), sends findings back through the coordinator, integrates passed branches with `--no-ff`, reads the merged files, runs `tools/release-check.sh`, pushes, opens the one PR for the batch. Builds the hard pieces (schema-dependent work from cited source, concurrency, transport) when no Haiku fits. Never merges to `main`. |
+| Workers (3) | Claude Code, Haiku 5.5 (`t9`, `t1q`, `t1s`) | **Most tasks go here:** mechanical edits, tests, sweeps, docs, bench runs, harness runs, tier-1 review of another worker's diff. One task per worker, one worktree each. |
+| UI/UX designer | Opus subagent of the coordinator (Agent tool, `model: opus`) | Templates, CSS, fixtures and screenshots for a UI item, in its own worktree, following `.claude/skills/ui-ux/SKILL.md`. A Haiku or Sonnet wires the app context per `docs/ui-contract.md`. |
 
-**Talking to terminals** (`hc` = `herdr-core`). Addresses (`t6`, `t8`, ...) change when a terminal restarts; run `hc ls` and match the `agent` field (`kimi-code`, `claude-code`) before dispatching. Check `hc read <t>` to tell the two Claude terminals apart.
+**Talking to terminals** (`hc` = `herdr-core`). Addresses change when a terminal restarts; run `hc ls`, then `hc read <t>` and match the model line (`Fable 5.1`, `Sonnet 5.5`, `Haiku 5.5`) before dispatching. Keep the address table in §1 current.
 - Dispatch: check `hc ls` first, then `hc send <t> "<prompt>"`. Never send to a `working` terminal; it lands mid-turn. (`--if idle` refuses a terminal whose status is `done`, which is also safe to send to.)
-- Wait: `hc wait <t>` (not `sleep`). Long tasks: dispatch both workers first, then wait on each.
-- Result: workers and reviewers write their report to `/root/sf2e-wt/reports/<ID>.md` and reply `DONE <ID>`. Do not rely on `hc read`: a TUI agent redraws its screen, so history past the visible pane is lost.
-- Before a new, unrelated task, send `/clear` to the Haiku terminal (separate `hc send`, wait a few seconds) so old context does not leak in.
+- Wait: `hc wait <t>` (not `sleep`). Long tasks: dispatch every worker first, then wait on each.
+- Result: workers, reviewers and the lead engineer write their report to `/root/sf2e-wt/reports/<ID>.md` and reply `DONE <ID>`. Do not rely on `hc read`: a TUI agent redraws its screen, so history past the visible pane is lost.
+- Before a new, unrelated task, send `/clear` to that terminal (separate `hc send`, wait a few seconds) so old context does not leak in. This applies to Sonnet too.
 - Long prompts: write them to `/root/sf2e-wt/prompts/<ID>.md` and send `Read /root/sf2e-wt/prompts/<ID>.md and do the task.` Pasted multi-line text can be split into several turns.
+- Subagents (Agent tool) are for the Opus UI designer, the optional Opus planner, and a fresh reviewer when every terminal of the right model is busy or built the diff. Subagents cannot be reached with `hc`; they report back in their final message, and the coordinator saves anything durable to `/root/sf2e-wt/reports/`.
 
-**Review ladder.** Tier 1 Haiku → tier 2 Kimi → tier 3 coordinator. Nobody reviews their own diff: if the coordinator wrote it, tier 3 is a fresh Opus subagent; if Haiku built it, tier 1 is a fresh Haiku subagent spawned by the coordinator, and if Kimi built it, tier 2 is a fresh Claude subagent (Sonnet, `general-purpose`, so it can run `node`) spawned by the coordinator. When Kimi is busy, tier 2 is a fresh Sonnet `general-purpose` subagent spawned by the coordinator; tiers 1 and 2 may then run in parallel. Every diff gets tiers 1 and 2. The coordinator reads every diff before merge and gives a full tier-3 review to schema- or balance-sensitive ones (`tables.mjs`, `relevel.mjs`, `stat-check.mjs`, stat math, pack ids, enums, REs, PC grants/slots). Treat any "verified" claim without a quoted source line as unverified. A reviewer must be able to run `node` (the terminals can; `caveman:cavecrew-reviewer` subagents only run git read commands, so they cannot verify tests).
+**Review ladder.** Tier 1 fresh Haiku → tier 2 Sonnet → tier 3 coordinator. Nobody reviews their own diff: tier 1 is an idle Haiku terminal that did not build the task (or a fresh Haiku subagent when all three are busy); tier 2 is Sonnet as part of integration, or a fresh Sonnet `general-purpose` subagent when Sonnet built the diff; if the coordinator wrote it, tier 3 is a fresh Opus subagent. Every diff gets tiers 1 and 2. The coordinator reads every diff before merge and gives a full tier-3 review to schema- or balance-sensitive ones (`tables.mjs`, `relevel.mjs`, `stat-check.mjs`, stat math, pack ids, enums, REs, PC grants/slots). Treat any "verified" claim without a quoted source line as unverified. A reviewer must be able to run `node` (terminals and `general-purpose` subagents can; `caveman:cavecrew-reviewer` subagents only run git read commands, so they cannot verify tests).
 
 **Lifecycle.**
 1. **Plan:** goal, stop condition, and the files each task may touch. Do every sf2e lookup now and keep the quoted lines for the prompts.
 2. **Split:** one task per worktree, no file overlap between parallel tasks. The coordinator creates each one: `git -C /root/simplySF2e worktree add /root/sf2e-wt/<ID> -b work/<ID> main`, then sets the git identity in it (§1). First time: `mkdir -p /root/sf2e-wt/prompts /root/sf2e-wt/reports`.
-3. **Dispatch:** Haiku by default; Kimi for UI, art, schema or hard reasoning. Send independent tasks before waiting on any.
-4. **Review:** a finding goes back to the same worker as a **new** commit, never an amend, and the fix climbs again from the tier that found it. Minor findings in coordinator-owned docs are fixed by the coordinator.
-5. **Integrate:** one branch from `main`, `git merge --no-ff` each passed branch, read the merged files, then run `bash tools/release-check.sh` (`--no-ui` only if no template/CSS changed). A batch of more than one branch gets the ladder again on the combined diff (tier 1 + 2, + 3 if sensitive).
-6. **PR and merge:** push, open **one** PR for the batch (each merge is a public beta release), and wait for `verify` and `Benches`. The PR body lists the QA ids JT must run live. JT's results go into `docs/live-log.md`; a feature is live-verified only when it has a logged PASS there. The coordinator may merge once reviews have no open blockers and CI is green on the current head.
+3. **Dispatch:** a Haiku terminal by default, up to three tasks in parallel; Sonnet for hard or schema-dependent pieces; the Opus subagent for UI/UX visuals. Send independent tasks before waiting on any.
+4. **Review:** tier 1 by an idle Haiku, then the worktree goes to Sonnet for tier 2 (steps 4 and 5 are one Sonnet prompt per batch: review each branch, then integrate the ones that pass). A finding goes back to the same worker as a **new** commit, never an amend, and the fix climbs again from the tier that found it. Minor findings in coordinator-owned docs are fixed by the coordinator.
+5. **Integrate (Sonnet):** one branch from `main`, `git merge --no-ff` each passed branch, read the merged files, then run `bash tools/release-check.sh` (`--no-ui` only if no template/CSS changed and no GM-visible string changed). A batch of more than one branch gets the ladder again on the combined diff (tier 1 Haiku + tier 2 Sonnet, + 3 if sensitive).
+6. **PR (Sonnet) and merge (coordinator):** Sonnet pushes, opens **one** PR for the batch (each merge is a public beta release) with the QA ids JT must run live in the body, and reports the PR number. The coordinator reads the full diff, waits for `verify` and `Benches` on the current head, then merges. JT's results go into `docs/live-log.md`; a feature is live-verified only when it has a logged PASS there.
 7. **Tidy:** `git worktree remove` each worktree and delete its local `work/<ID>` branch. JT's standing authority covers push, PR and merge only; anything else that writes to GitHub (deleting a remote branch, editing a release, labels) needs JT's OK.
 8. **Hand off:** rewrite §1; add lessons to §8.
 
@@ -155,6 +157,14 @@ Independent review (tier <n>) of work/<ID> in simplySF2e. Read-only: do NOT edit
 Worktree: /root/sf2e-wt/<ID>. Diff: git -C /root/sf2e-wt/<ID> diff <main-sha> HEAD. Intent: <one sentence, incl. "no behavior change" if so>.
 Check: 1. <specific risks: removed names still referenced, runtime-built keys, schema shapes, balance numbers> 2. any other behavior change 3. run node --check + the all-tests loop.
 Output: one finding per line `path:line: severity: problem. fix.` (blocker/major/minor) or "no findings"; end with VERDICT <ID>: PASS|FAIL + test result. Write it to /root/sf2e-wt/reports/<ID>-T<n>.md, then reply only: DONE <ID>-T<n>.
+```
+**Lead engineer (Sonnet) integration prompt template.**
+```
+You are the lead engineer on simplySF2e. Read /root/simplySF2e/PLAYBOOK.md §3, §4, §6 and §8 first. Batch <BATCH>: branches <work/ID1, work/ID2, ...> in /root/sf2e-wt/<ID>/. Tier-1 reports: /root/sf2e-wt/reports/<ID>-T1.md.
+1. Tier-2 review each branch (git -C /root/sf2e-wt/<ID> diff <main-sha> HEAD): indirect callers, lost side effects, lost test coverage, schema shapes against the cited lines in the prompt, GM-visible wording. Write /root/sf2e-wt/reports/<ID>-T2.md each. A FAIL stops here: report and wait.
+2. Integrate: git -C /root/simplySF2e worktree add /root/sf2e-wt/<BATCH> -b work/<BATCH> main; set identity; git merge --no-ff each PASS branch; read every merged file; bash tools/release-check.sh (with the UI step if any template, CSS or GM-visible string changed).
+3. Push work/<BATCH>; gh pr create with a body listing each task, the QA ids JT must run live, and the What's new id. Do NOT merge the PR.
+Report: /root/sf2e-wt/reports/<BATCH>.md with PR number, head SHA, release-check result, per-branch verdicts. Then reply only: DONE <BATCH>.
 ```
 Tier 2 and tier 3 prompts state what the lower tiers already checked. They then look deeper: indirect callers (namespace imports, `module.api`, macro bodies as strings, Hooks), lost side effects, lost coverage of live code, and wording a GM will read.
 
@@ -218,17 +228,17 @@ Each line is a bug class that already cost a fix. The full story is in `docs/arc
 - A "longer, clearer" copy change can break layout: T-ERR's `Party.None` text widened the Generator by 172 px through a `min-width: max-content` row. Run the UI harness on any batch that changes GM-visible strings, not only on template/CSS changes.
 - `ai.creatureFidelity.test.mjs` forbids naming published abilities in the creature prompt. Describe behaviour, not names.
 
-- Kimi Code shows an idle-session dialog (compact / new session / continue) after long idle; `hc send` then reports `started:false`. The coordinator must not answer it (auto-mode blocks it, rightly); route the task to a Sonnet subagent instead and tell JT.
+- A TUI agent may sit on a dialog (idle-session, permission, compact) after long idle; `hc send` then reports `started:false`. The coordinator must not answer another agent's prompt (auto-mode blocks it, rightly); route the task to a subagent instead and tell JT.
 - Reviewers repeatedly caught bugs whose tests used fixture shapes production never produces (Trample damage, selector `{name, candidate}` refs, cost total-only usage). Every new feature gets one end-to-end test through the real normalizer, the real candidate list and a selector stub with the production return shape.
 - QA row ids are global: pick a free prefix (`grep -n "^| <id>\." docs/qa-checklist.md`) and run `release-check.sh` — it catches duplicates.
-- A shared Claude account limits both Claude terminals and all subagents; prefer Kimi for reviews when it is free.
+- One Claude Max account feeds all five terminals and every subagent. Keep Haiku tasks small, spawn Opus only for UI/UX or planning, and stagger heavy runs (benches, harness) so one burst does not stall the others.
 
 **Release and process**
 - A tag pushed with the default `GITHUB_TOKEN` does not fire `push: tags`; releases chain through `workflow_call`. In a reusable workflow, `github.event_name` is the caller's event, so use `inputs.version`. `node --check` never catches these; a `.yml` change needs a real test merge.
 - Fresh-context review has caught real bugs many times; a builder's self-report is not verification.
 - `hc read` loses a TUI agent's scrollback (the first T1 report on 2026-11-05 was unreadable). Always have agents write reports to files.
 - Parallel workers need one worktree each and disjoint files; shared worktrees collided before. Set identity with `git config` in each new worktree.
-- `hc read` shows only the visible pane of a TUI agent; `hc send --if idle` refuses a `done` terminal (send without `--if` after checking `hc ls`). Kimi Code asks before commands unless its approval mode is "Never Ask" (set by JT); the coordinator must not answer another agent's permission prompt.
+- `hc read` shows only the visible pane of a TUI agent; `hc send --if idle` refuses a `done` terminal (send without `--if` after checking `hc ls`). If a worker terminal stops on a permission prompt, the coordinator must not answer it; tell JT.
 - JT sometimes merges while a review is still running. Say when one is in flight; fixes for a merged PR go in a new PR.
 - Keep each file's existing line endings (LF on this VPS clone); `git diff --check` must stay clean.
 - `tools/release-check.sh` UI step runs `npm install`, which drops a `--no-save` Playwright; run `node tools/ui-preview/shoot.mjs` directly after `npm install --no-save playwright` if it reports `Cannot find module 'playwright'`.
