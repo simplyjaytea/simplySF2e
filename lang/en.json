@@ -190,6 +190,7 @@
       "MenuLabel": "What's New",
       "MenuHint": "See the latest changes to SimplySF2e. It also opens once by itself after an update that changes something you can see.",
       "Intro": "SimplySF2e {version}: here is what changed since you last looked.",
+      "IntroAll": "Everything that has changed, newest first.",
       "BrokeTitle": "Something broke?",
       "BrokeBody": "Use Copy bug report in the Generator's error box and send it, with a line on what you were doing, to whoever gave you the module.",
       "GotIt": "Got it",

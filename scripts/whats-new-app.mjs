@@ -48,6 +48,7 @@ export class WhatsNewApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
     return {
       version: game.modules.get(MODULE_ID)?.version ?? "",
+      manual: this.#manual,
       notes: notesList.map((note) => ({
         id: note.id,
         title: game.i18n.localize(note.title),

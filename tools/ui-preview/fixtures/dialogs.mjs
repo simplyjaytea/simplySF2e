@@ -28,13 +28,15 @@ const CATEGORY_LABELS = {
 };
 
 function providerSetup(selected, patch = {}) {
+  // The active connection is the one named by connectionName, so the select, the name field and the preset agree.
+  const connectionName = patch.connectionName ?? "OpenRouter";
   return {
     providers: PROVIDER_PRESETS.map((provider) => ({ ...provider, selected: provider.id === selected })),
     connections: [
-      { id: "c1", name: "OpenRouter", active: true },
+      { id: "c1", name: connectionName, active: true },
       { id: "c2", name: "Home Ollama", active: false }
     ],
-    connectionName: "OpenRouter",
+    connectionName,
     canDeleteConnection: true,
     apiBaseUrl: "https://openrouter.ai/api/v1",
     model: "anthropic/claude-sonnet-5",
@@ -114,6 +116,7 @@ export default [
     id: "provider-setup-models-loaded",
     app: "provider-setup",
     context: providerSetup("ollama", {
+      connectionName: "Home Ollama", connections: [{ id: "c1", name: "Home Ollama", active: true }, { id: "c2", name: "OpenRouter", active: false }],
       apiBaseUrl: "http://localhost:11434/v1", model: "llama3.1:70b-instruct-q4_K_M", hasApiKey: false,
       availableModels: ["llama3.1:70b-instruct-q4_K_M", "qwen2.5:32b", "mistral-nemo:12b"]
     })
@@ -149,6 +152,7 @@ export default [
     id: "provider-setup-jev-typesafe",
     app: "provider-setup",
     context: providerSetup("openai", {
+      connectionName: "OpenAI",
       apiBaseUrl: "https://api.openai.com/v1", model: "gpt-5.6-luna", hasJevKey: true,
       jevSources: [
         { id: "openrouter", label: "OpenRouter", selected: false },

@@ -16,17 +16,17 @@ export default [
   {
     id: "whats-new-unseen",
     app: "whats-new",
-    context: { version: "0.9.12", notes: RELEASE_NOTES.slice(0, 3).map(note), earlierNotes: [] }
+    context: { version: "0.9.12", manual: false, notes: RELEASE_NOTES.slice(0, 3).map(note), earlierNotes: [] }
   },
   {
     id: "whats-new-manual-all",
     app: "whats-new",
-    context: { version: "0.9.12", notes: newest.map(note), earlierNotes: earlier.map(note) }
+    context: { version: "0.9.12", manual: true, notes: newest.map(note), earlierNotes: earlier.map(note) }
   },
   {
     id: "whats-new-manual-earlier-open",
     app: "whats-new",
     open: [".spf-whats-new-earlier"],
-    context: { version: "0.9.12", notes: newest.map(note), earlierNotes: earlier.map(note) }
+    context: { version: "0.9.12", manual: true, notes: newest.map(note), earlierNotes: earlier.map(note) }
   }
 ];

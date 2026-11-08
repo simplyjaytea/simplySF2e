@@ -14,9 +14,9 @@ const KINDS = [
 ];
 
 const FORGE_STEPS = [
-  ["templates", "Scanning published items"],
-  ["concept", "Drafting the item"],
-  ["resolve", "Resolving components"]
+  ["templates", localize("SIMPLYSF2E.ItemForge.ProgressTemplates")],
+  ["concept", localize("SIMPLYSF2E.ItemForge.ProgressConcept")],
+  ["assemble", localize("SIMPLYSF2E.ItemForge.ProgressAssemble")]
 ];
 
 export function itemforgeContext(kind, patch = {}) {
@@ -125,7 +125,7 @@ export default [
         runed: true,
         grade: "advanced",
         upgrades: kind === "weapon" ? ["Flaming Module", "Ghost Touch Module"] : ["Hardened Plating"],
-        skippedNote: kind === "armor" ? "No free upgrade slot on this base, so these were not installed: Servo Assist." : null,
+        skippedNote: kind === "armor" ? localize("SIMPLYSF2E.ItemForge.UpgradesSkipped", { upgrades: "Servo Assist" }) : null,
         potency: 0,
         secondary: null,
         propertyRunes: []

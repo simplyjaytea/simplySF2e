@@ -199,6 +199,7 @@ Per class and level:
 | 7.7 | Skills. | Trained skills match class base + Int + background; increases only at legal levels for the class. | Skills section | | |
 | 7.8 | Equipment. | Gear priced in credits; armor/weapon readied only if trained, else a Loadout note (e.g. "An untrained armor item was left stowed."). | Inventory | | |
 | 7.9 | Class path items: Operative specialization skill feat and Sniper bonus feat chosen without a native prompt; Solarian has Solar Manifestations. | Cited L1 choices closed before creation; none blank. | Feats, Actions | | |
+| 7.10 | Create a character from the Generator, then look at the buttons under the result. | After Create only Open Sheet is highlighted; the Generate button is secondary. | Generator | | |
 
 ### 7a. Mystic and Witchwarper spellcasting (both levels)
 
