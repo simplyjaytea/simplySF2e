@@ -543,7 +543,7 @@ const PC_SPELL_RANKS = ["cantrip", "rank-one", "rank-two", "rank-three", "rank-f
 
 /** Compatibility for stale local models: a legacy name is accepted only when
  * it identifies exactly one offered candidate. New prompts use opaque IDs. */
-function candidateForPick(candidates, pick) {
+export function candidateForPick(candidates, pick) {
   const byId = new Map(candidates.map((candidate) => [candidate.id, candidate]));
   // Short ids are matched ignoring case, like decodeCandidatePick and the feat ids; two ids that
   // differ only in case are ambiguous and match nothing this way.
@@ -569,6 +569,8 @@ function candidateForPick(candidates, pick) {
     return byName.get(id.toLocaleLowerCase()) ?? null;
   }
   const name = String(pick?.name ?? "").toLocaleLowerCase();
+  // A slot with neither id nor name never matches a nameless candidate.
+  if (!name) return null;
   // Test/migration callers without candidate IDs predate the exact-catalog
   // contract. Preserve their deterministic first entry only when the whole
   // supplied catalog has no IDs; a production catalog never takes this path.

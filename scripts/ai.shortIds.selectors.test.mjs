@@ -33,7 +33,7 @@ const opaque = /\bc-[A-Za-z0-9+/]{8,}/;
 const bodyText = () => JSON.stringify(requests.at(-1));
 
 try {
-  const { selectShopStock, selectTreasureItems, selectLoot, selectAncestryBackgroundClass, selectCreatureAbilities } = await import("./ai.mjs");
+  const { selectShopStock, selectTreasureItems, selectLoot, selectAncestryBackgroundClass, selectCreatureAbilities, candidateForPick } = await import("./ai.mjs");
   const item = (name, type, level, id) => {
     const entry = { packId: "sf2e.equipment", _id: id };
     return { id: candidateId(entry), ref: entry, name, type, level };
@@ -102,6 +102,29 @@ try {
   replies.push({ abilityIds: ["A1x", "a", "F1", "A3", "A", "e1"] });
   const near = await selectCreatureAbilities({ concept: abilityConcept, candidates: abilities, jevConfig: null });
   assert.deepEqual(near.abilities, [], "A1x, a, a cross-prefix id, an unissued number and a bare prefix still resolve nothing");
+  // (a) Case-only ambiguity: two issued ids that differ only in case match nothing by short id.
+  // Checked on candidateForPick directly: the encoder never shows two ids that differ only in case.
+  const ambiguous = [{ id: "Ab1", name: "Ember" }, { id: "aB1", name: "Frost" }];
+  assert.equal(candidateForPick(ambiguous, { id: " ab1 " }), null, "an ambiguous short id fails closed");
+  assert.equal(candidateForPick(ambiguous, { id: "AB1" }), null, "an ambiguous short id fails closed in upper case");
+
+  // (b) ABC mixed reply: the ancestry by short id, the background by its exact issued name.
+  replies.push({ ancestryId: "C1", heritageId: "C2", backgroundId: "", background: "Chosen background", classId: pcClass[0].id, keyAbility: "dex" });
+  const mixed = await selectAncestryBackgroundClass({
+    concept: { name: "Pc", level: 1, ancestry: "x", background: "y", class: "z", keyAbility: "dex", blurb: "", backstory: "" },
+    ancestryCandidates: ancestry, heritageCandidates: heritage, backgroundCandidates: background, classCandidates: pcClass
+  });
+  assert.equal(mixed.ancestryCandidate, ancestry[0].ref, "the ancestry id resolves");
+  assert.equal(mixed.backgroundCandidate, background[0].ref, "the background name resolves to the issued ref");
+
+  // (c) A nameless candidate never matches a slot with no id and no name.
+  const nameless = [{ id: "Q1", name: "" }];
+  assert.equal(candidateForPick(nameless, { id: "", name: "" }), null, "an empty slot does not match a nameless candidate");
+  assert.equal(candidateForPick(nameless, {}), null, "a missing slot does not match a nameless candidate");
+  const namelessAbility = { id: candidateId({ packId: "sf2e.glossary", _id: "nameless" }), ref: { packId: "sf2e.glossary", _id: "nameless" }, name: "" };
+  replies.push({ abilityIds: [""] });
+  const blankAnswer = await selectCreatureAbilities({ concept: abilityConcept, candidates: [namelessAbility], jevConfig: null });
+  assert.deepEqual(blankAnswer.abilities, [], "a blank answer does not match a nameless candidate");
   assert.equal(replies.length, 0);
 } finally {
   globalThis.fetch = originalFetch;
