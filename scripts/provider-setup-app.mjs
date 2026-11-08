@@ -32,8 +32,27 @@ const UNSAVED_FIELD_LABELS = Object.freeze({
   apiKey: "SIMPLYSF2E.Settings.ApiKey.Name",
   clearApiKey: "SIMPLYSF2E.ProviderSetup.ClearApiKey",
   inputPerM: "SIMPLYSF2E.ProviderSetup.PriceInput",
-  outputPerM: "SIMPLYSF2E.ProviderSetup.PriceOutput"
+  outputPerM: "SIMPLYSF2E.ProviderSetup.PriceOutput",
+  jevSource: "SIMPLYSF2E.ProviderSetup.JevSourceLabel",
+  jevEndpoint: "SIMPLYSF2E.ProviderSetup.JevEndpointLabel",
+  jevApiKey: "SIMPLYSF2E.ProviderSetup.JevKeyLabel",
+  clearJevApiKey: "SIMPLYSF2E.ProviderSetup.ClearJevKey"
 });
+
+/** Another open window runs a generation (its progress or run budget is live); the connection must not change under it. */
+function anotherRunInProgress(self) {
+  for (const app of foundry.applications.instances?.values?.() ?? []) {
+    if (app !== self && (app?._progress || app?._generationAbort)) return true;
+  }
+  return false;
+}
+
+/** Prices as the summary line shows them, as used after a save. */
+function pricesSummaryText(prices) {
+  if (prices.inputPerM == null && prices.outputPerM == null) return game.i18n.localize("SIMPLYSF2E.ProviderSetup.CostNotSet");
+  const shown = (value) => (value == null ? "—" : `$${value}`);
+  return game.i18n.format("SIMPLYSF2E.ProviderSetup.CostSummary", { input: shown(prices.inputPerM), output: shown(prices.outputPerM) });
+}
 
 /** Presets that talk to a server the GM runs, so the CORS / OLLAMA_ORIGINS hint applies. */
 const LOCAL_PRESET_IDS = new Set(["ollama", "lmstudio", "custom"]);
@@ -67,7 +86,7 @@ export function jevTestNotice(result) {
 export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) {
   #onSaved;
   #selectedPreset = null;
-  #enterBound = false;
+  #keysElement = null;
   #availableModels = [];
   #modelsBaseUrl = "";
   #busy = false;
@@ -212,15 +231,17 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
       }
     });
     // Enter in a field runs the visual primary (Save & Test), not the plain submit button.
-    // The form element survives re-renders, so bind it only once.
-    if (!this.#enterBound) this.element.addEventListener?.("keydown", (event) => {
-      if (event.key !== "Enter" || event.isComposing || event.defaultPrevented) return;
-      const field = event.target;
-      if (field?.tagName !== "INPUT" || ["checkbox", "button", "submit"].includes(field.type)) return;
-      event.preventDefault();
-      this.element.querySelector("[data-action='saveAndTest']")?.click();
-    });
-    this.#enterBound = true;
+    // The frame survives re-renders but not close and reopen, so bind once per frame (as app-base does).
+    if (this.#keysElement !== this.element && this.element?.addEventListener) {
+      this.#keysElement = this.element;
+      this.element.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter" || event.isComposing || event.defaultPrevented) return;
+        const field = event.target;
+        if (field?.tagName !== "INPUT" || ["checkbox", "button", "submit"].includes(field.type)) return;
+        event.preventDefault();
+        this.element.querySelector("[data-action='saveAndTest']")?.click();
+      });
+    }
     this.element.querySelector("[name='activeConnection']")?.addEventListener("change", (event) =>
       ProviderSetupApp.#switchConnection.call(this, event.currentTarget.value)
     );
@@ -279,32 +300,66 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
     );
   }
 
+  /** Unsaved Jev edits in the form (they persist only on their own Save), as form field names. */
+  #jevDirtyFields() {
+    const stored = getJevRequestConfig();
+    const control = (name) => this.element?.querySelector(`[name='${name}']`);
+    const dirty = [];
+    const source = control("jevSource");
+    if (source && normalizeJevSource(source.value) !== normalizeJevSource(stored.source)) dirty.push("jevSource");
+    const endpoint = control("jevEndpoint");
+    if (endpoint && String(endpoint.value ?? "").trim() !== String(stored.endpoint ?? "").trim()) dirty.push("jevEndpoint");
+    if (String(control("jevApiKey")?.value ?? "").trim()) dirty.push("jevApiKey");
+    if (control("clearJevApiKey")?.checked) dirty.push("clearJevApiKey");
+    return dirty;
+  }
+
+  /**
+   * Ask before a render would drop unsaved chat or Jev edits. True when there
+   * are none, or the GM chooses to go on. Same dialog for every action that renders.
+   */
+  async #confirmDropEdits({ continuing = false } = {}) {
+    const dirty = [...this.#dirtyFields(), ...this.#jevDirtyFields()];
+    if (!dirty.length) return true;
+    const { DialogV2 } = foundry.applications.api;
+    const name = esc(getProviderRequestConfig().connectionName);
+    const labels = dirty.map((field) => game.i18n.localize(UNSAVED_FIELD_LABELS[field]));
+    // Create and Delete are not a switch: their dialog says Continue, not Switch.
+    const body = continuing ? "SIMPLYSF2E.ProviderSetup.UnsavedBodyContinue" : "SIMPLYSF2E.ProviderSetup.UnsavedBody";
+    const yes = continuing ? "SIMPLYSF2E.ProviderSetup.UnsavedContinue" : "SIMPLYSF2E.ProviderSetup.UnsavedSwitch";
+    return DialogV2.confirm({
+      window: { title: "SIMPLYSF2E.ProviderSetup.UnsavedTitle" },
+      content: `<p>${game.i18n.format(body, {
+        fields: esc(labels.join(", ")), name
+      })}</p>`,
+      yes: { label: yes },
+      no: { label: "SIMPLYSF2E.ProviderSetup.UnsavedStay" },
+      rejectClose: false
+    });
+  }
+
   static async #switchConnection(id) {
-    if (this.#busy) return;
     const current = getProviderRequestConfig().connectionId;
     if (!id || id === current) return;
-    const dirty = this.#dirtyFields();
-    if (dirty.length) {
-      const { DialogV2 } = foundry.applications.api;
-      const name = esc(getProviderRequestConfig().connectionName);
-      const labels = dirty.map((field) => game.i18n.localize(UNSAVED_FIELD_LABELS[field]));
-      const switchAnyway = await DialogV2.confirm({
-        window: { title: "SIMPLYSF2E.ProviderSetup.UnsavedTitle" },
-        content: `<p>${game.i18n.format("SIMPLYSF2E.ProviderSetup.UnsavedBody", {
-          fields: esc(labels.join(", ")), name
-        })}</p>`,
-        yes: { label: "SIMPLYSF2E.ProviderSetup.UnsavedSwitch" },
-        no: { label: "SIMPLYSF2E.ProviderSetup.UnsavedStay" },
-        rejectClose: false
-      });
-      if (!switchAnyway) {
-        // Stay: keep the edits and put the select back on the connection still loaded.
-        const select = this.element?.querySelector("[name='activeConnection']");
-        if (select) select.value = current;
-        return;
-      }
-      // The dialog was open: a save or test may have started meanwhile.
-      if (this.#busy) return;
+    // Stay, or a refused switch: put the select back on the connection still loaded.
+    const keepCurrent = () => {
+      const select = this.element?.querySelector("[name='activeConnection']");
+      if (select) select.value = current;
+    };
+    // A run in this window or in another one reads the connection per request: refuse, do not switch under it.
+    if (this.#busy || anotherRunInProgress(this)) {
+      ui.notifications.warn("SIMPLYSF2E.ProviderSetup.BusySwitch", { localize: true });
+      keepCurrent();
+      return;
+    }
+    if (!(await this.#confirmDropEdits())) {
+      keepCurrent();
+      return;
+    }
+    // The dialog was open: a save, test or run may have started meanwhile.
+    if (this.#busy || anotherRunInProgress(this)) {
+      keepCurrent();
+      return;
     }
     await selectProviderConnection(id);
     this.#selectedPreset = null;
@@ -315,6 +370,7 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
 
   static async #onCreateConnection() {
     if (this.#busy) return;
+    if (!(await this.#confirmDropEdits({ continuing: true })) || this.#busy) return;
     const inferred = getProviderRequestConfig().provider.id;
     const selected = this.#selectedPreset
       ?? (PROVIDER_PRESETS.some((provider) => provider.id === inferred) ? inferred : "custom");
@@ -343,6 +399,7 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
       rejectClose: false
     });
     if (!confirmed) return;
+    if (!(await this.#confirmDropEdits({ continuing: true })) || this.#busy) return;
     await deleteProviderConnection(state.connectionId);
     this.#selectedPreset = null;
     this.#availableModels = [];
@@ -489,9 +546,9 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
       }
     } catch (err) {
       console.error("simplysf2e | Jev key save failed", err);
-      ui.notifications.error(game.i18n.format("SIMPLYSF2E.ProviderSetup.JevSaveFailed", {
-        message: err?.message ?? String(err)
-      }));
+      ui.notifications.error("SIMPLYSF2E.ProviderSetup.JevSaveFailed", {
+        localize: true, format: { message: err?.message ?? String(err) }, escape: true
+      });
     } finally {
       this.#endBusy(busy);
     }
@@ -513,12 +570,12 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
         await this.#onSaved?.();
       }
       const notice = jevTestNotice(await testJevConnection());
-      ui.notifications[notice.level](game.i18n.format(notice.key, notice.data));
+      ui.notifications[notice.level](notice.key, { localize: true, format: notice.data, escape: true });
     } catch (err) {
       console.error("simplysf2e | Jev test failed", err);
-      ui.notifications.error(game.i18n.format("SIMPLYSF2E.ProviderSetup.JevSaveFailed", {
-        message: err?.message ?? String(err)
-      }));
+      ui.notifications.error("SIMPLYSF2E.ProviderSetup.JevSaveFailed", {
+        localize: true, format: { message: err?.message ?? String(err) }, escape: true
+      });
     } finally {
       this.#endBusy(busy);
     }
@@ -535,11 +592,35 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
     } catch (err) {
       // closeOnSubmit is off so a failed save keeps the form open with its edits.
       console.error("simplysf2e | provider save failed", err);
-      ui.notifications.error(game.i18n.format("SIMPLYSF2E.ProviderSetup.SaveFailed", {
-        message: err?.message ?? String(err)
-      }));
+      ui.notifications.error("SIMPLYSF2E.ProviderSetup.SaveFailed", {
+        localize: true, format: { message: err?.message ?? String(err) }, escape: true
+      });
     } finally {
       this.#endBusy(state);
+    }
+  }
+
+  /** What a settings save can change in the open form, updated in place (no render). */
+  #refreshAfterSave(state) {
+    const list = this.element?.querySelector("#spf-provider-model-list");
+    if (list) list.innerHTML = this.#availableModels.map((model) => `<option value="${esc(model)}"></option>`).join("");
+    const option = this.element?.querySelector(`[name='activeConnection'] option[value='${state.connectionId}']`);
+    if (option) option.textContent = state.connectionName;
+    const summary = this.element?.querySelector("details[data-section='prices'] .spf-fold-state");
+    if (summary && this.#priceError == null) summary.textContent = pricesSummaryText(getActiveProviderPrices());
+    // The key field and the clear-key box follow hasApiKey, as provider-setup.hbs renders them.
+    const keyInput = this.element?.querySelector("[name='apiKey']");
+    if (keyInput) {
+      keyInput.placeholder = game.i18n.localize(state.hasConfiguredApiKey
+        ? "SIMPLYSF2E.ProviderSetup.ApiKeySaved" : "SIMPLYSF2E.ProviderSetup.ApiKeyOptional");
+      keyInput.value = "";
+    }
+    const clearBox = this.element?.querySelector(".spf-provider-clear-key");
+    const privacy = this.element?.querySelector(".spf-provider-privacy");
+    if (state.hasConfiguredApiKey && !clearBox) {
+      privacy?.insertAdjacentHTML("beforebegin", `<label class="spf-provider-clear-key"><input type="checkbox" name="clearApiKey"> ${esc(game.i18n.localize("SIMPLYSF2E.ProviderSetup.ClearApiKey"))}</label>`);
+    } else if (!state.hasConfiguredApiKey && clearBox) {
+      clearBox.remove();
     }
   }
 
@@ -558,15 +639,16 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
       if (warningKey) throw new Error(game.i18n.localize(warningKey));
       this.#availableModels = await listProviderModels();
       this.#modelsBaseUrl = state.baseUrl;
-      await this.render();
-      ui.notifications.info(game.i18n.format("SIMPLYSF2E.ProviderSetup.ModelsLoaded", {
-        count: this.#availableModels.length
-      }));
+      // In place, not a render: a render would drop unsaved Jev and chat edits.
+      this.#refreshAfterSave(state);
+      ui.notifications.info("SIMPLYSF2E.ProviderSetup.ModelsLoaded", {
+        localize: true, format: { count: this.#availableModels.length }, escape: true
+      });
     } catch (err) {
       console.error("simplysf2e | provider model discovery failed", err);
-      ui.notifications.error(game.i18n.format("SIMPLYSF2E.ProviderSetup.ModelsFailed", {
-        message: err?.message ?? String(err)
-      }));
+      ui.notifications.error("SIMPLYSF2E.ProviderSetup.ModelsFailed", {
+        localize: true, format: { message: err?.message ?? String(err) }, escape: true
+      });
     } finally {
       this.#endBusy(busy);
     }
@@ -584,17 +666,17 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
       const warningKey = getProviderAuthWarningKey(state);
       if (warningKey) throw new Error(game.i18n.localize(warningKey));
       const usage = await testProviderConnection();
-      ui.notifications.info(game.i18n.format("SIMPLYSF2E.ProviderSetup.TestSuccess", {
-        provider: provider.name,
-        model,
-        total: usage.total.toLocaleString()
-      }));
+      ui.notifications.info("SIMPLYSF2E.ProviderSetup.TestSuccess", {
+        localize: true,
+        format: { provider: provider.name, model, total: usage.total.toLocaleString() },
+        escape: true
+      });
       await this.close();
     } catch (err) {
       console.error("simplysf2e | provider save-and-test failed", err);
-      ui.notifications.error(game.i18n.format("SIMPLYSF2E.ProviderSetup.TestFailed", {
-        message: err?.message ?? String(err)
-      }));
+      ui.notifications.error("SIMPLYSF2E.ProviderSetup.TestFailed", {
+        localize: true, format: { message: err?.message ?? String(err) }, escape: true
+      });
     } finally {
       this.#endBusy(busy);
     }
