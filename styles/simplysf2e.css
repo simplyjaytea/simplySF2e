@@ -230,6 +230,17 @@
   text-shadow: 0 0 10px color-mix(in srgb, var(--spf-brand-accent) 70%, transparent);
 }
 
+/* A primary that cannot be pressed (busy, missing input) goes flat: no
+   gradient, glow or text-shadow, so the most saturated element on screen
+   is never one the GM cannot use (S13). Keeps the notch shape. */
+.simplysf2e button.spf-primary:disabled {
+  background: var(--spf-surface);
+  border-color: var(--spf-border);
+  color: var(--spf-text-muted);
+  box-shadow: none;
+  text-shadow: none;
+}
+
 .simplysf2e button.spf-secondary {
   background: var(--spf-surface);
   border: 1px solid var(--spf-control-border);
@@ -306,13 +317,6 @@
   border-radius: var(--spf-radius);
   color: var(--spf-text-muted);
   font-style: normal;
-  letter-spacing: 0.02em;
-}
-
-.simplysf2e .spf-model {
-  color: var(--spf-text-muted);
-  font-size: var(--spf-text-sm);
-  font-family: var(--spf-font-mono);
   letter-spacing: 0.02em;
 }
 
@@ -805,6 +809,12 @@
 
 .simplysf2e .spf-step-pending {
   color: var(--spf-text-muted);
+}
+
+/* Pending pip: a small solid dot (same icon style as done/active, S4). */
+.simplysf2e .spf-step-pending i {
+  font-size: 0.55em;
+  opacity: 0.8;
 }
 
 .simplysf2e .spf-step-active {
