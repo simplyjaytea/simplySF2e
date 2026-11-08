@@ -779,3 +779,14 @@ Generate a level 7 NPC with a limited cone breath (name "Frost Breath", cold), a
 | --- | --- | --- | --- | --- | --- |
 | 12ae.1 | Provider Setup: change the Jev source or type a Jev endpoint, then press Load models. | The Jev field keeps the value you set; the model list fills in; nothing was reset. | Provider Setup | | |
 | 12ae.2 | Start a Generator run, then in Provider Setup pick another Saved connection. | The switch is refused with "A run is in progress. Wait for it to finish before switching connections."; the select shows the connection still in use. | Provider Setup, Generator | | |
+
+## 14c. U2 setup windows (audit setup-windows #8, #18, #20, #21, #23)
+
+| # | Step | Expected | Where to look | Result | Evidence |
+|---|------|----------|---------------|--------|----------|
+| 14c.1 | Open AI Provider Setup. Read the connection block at the top. | "Saved connections" is a framed group with a legend. Its select is labelled "Active connection". The privacy line under the API key is a hint line with a shield icon, not a boxed notice. | Provider Setup | | |
+| 14c.2 | Open AI Provider Setup with two or more saved connections. Look at the trash (Delete connection) button. | The trash button is red (the shared destructive style) and sits after the + button. With one connection it is disabled. | Provider Setup | | |
+| 14c.3 | Open Compendium Sources. Look at the button row under the list. | "Reset to defaults" is red and sits at the far right of the row, after Save. | Compendium Sources | | |
+| 14c.4 | Open Compendium Sources in a window narrower than 520 px. Read a pack row. | The package id (monospace) sits on its own line under the pack title, left-aligned. | Compendium Sources | | |
+| 14c.5 | Open Compendium Sources and What's new. Read the intro sentence under the title. | The sentence is body colour. Only its icon is cyan. | Compendium Sources, What's new | | |
+| 14c.6 | Open Welcome. Look at the "Advanced" row. | It shows a chevron, opens and closes on click, and its right-hand summary stays on the same line. | Welcome | | |
