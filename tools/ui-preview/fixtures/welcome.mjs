@@ -15,6 +15,7 @@ function welcome(patch = {}) {
     sourcesMissing: false,
     readinessWarning: "",
     providers: providers.map((provider) => ({ ...provider })),
+    providerChosen: true,
     selectedProvider: "OpenRouter",
     apiKey: "",
     keyless: false,
@@ -35,7 +36,21 @@ function welcome(patch = {}) {
 }
 
 export default [
-  { id: "welcome-fresh", app: "welcome", context: welcome() },
+  {
+    // First open: no provider picked yet, so no tile is pressed and the
+    // Connect section is gated (WelcomeApp #providerChosen).
+    id: "welcome-fresh",
+    app: "welcome",
+    context: welcome({
+      providerChosen: false,
+      providers: providers.map((provider) => ({ ...provider, selected: false }))
+    })
+  },
+  {
+    id: "welcome-provider-chosen",
+    app: "welcome",
+    context: welcome()
+  },
   {
     id: "welcome-key-entered",
     app: "welcome",

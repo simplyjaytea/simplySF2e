@@ -68,6 +68,27 @@
   font-weight: 700;
 }
 
+/* The Connect body carries the section's column rhythm; it is a wrapper so
+   the gate (inert + aria-disabled) can cover the controls and leave the
+   legend and the gate hint readable. */
+.simplysf2e .spf-welcome-connect-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spf-space-md);
+  min-width: 0;
+}
+
+/* Gated: no provider picked yet. The order is carried by layout, not by
+   numbered legends: the section is dimmed like a disabled control until a
+   provider tile is chosen. */
+.simplysf2e .spf-welcome-gated .spf-welcome-connect-body {
+  opacity: 0.55;
+}
+
+.simplysf2e .spf-welcome-gate-hint {
+  margin: 0;
+}
+
 .simplysf2e .spf-welcome-connect .form-group {
   margin: 0;
 }
@@ -110,16 +131,32 @@
   accent-color: var(--spf-neon);
 }
 
+/* Boot log: one line per check, top to bottom, the status value at the end
+   of the line (the shared .spf-step-elapsed rule). */
 .simplysf2e .spf-welcome-progress-steps {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: var(--spf-space-xs) var(--spf-space-md);
+  flex-direction: column;
+  gap: var(--spf-space-2xs);
   margin: var(--spf-space-sm) 0 0;
   padding: 0;
   list-style: none;
   color: var(--spf-text-muted);
   font-size: var(--spf-text-sm);
+}
+
+.simplysf2e .spf-welcome-progress-steps li {
+  display: flex;
+  align-items: center;
+  gap: var(--spf-space-xs);
+  min-width: 0;
+}
+
+.simplysf2e .spf-welcome-progress-steps .spf-step-elapsed {
+  margin-inline-start: auto;
+}
+
+.simplysf2e .spf-welcome-step-active {
+  color: var(--spf-text);
 }
 
 /* Pending steps: the same small solid dot the shared .spf-step-pending i rule gives the progress list (S4). */
