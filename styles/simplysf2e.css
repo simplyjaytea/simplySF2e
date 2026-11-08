@@ -203,7 +203,8 @@
   padding: 0;
   line-height: 1;
   background: var(--spf-surface);
-  border: 1px solid var(--spf-border);
+  /* Control edge, not a divider: >= 3:1 on card and surface (S1). */
+  border: 1px solid var(--spf-control-border);
   color: var(--spf-brand-accent);
 }
 
@@ -231,7 +232,7 @@
 
 .simplysf2e button.spf-secondary {
   background: var(--spf-surface);
-  border: 1px solid var(--spf-border);
+  border: 1px solid var(--spf-control-border);
   color: var(--spf-text-muted);
   letter-spacing: 0.04em;
 }
@@ -733,7 +734,7 @@
   width: var(--spf-icon-btn);
   height: auto;
   min-height: var(--spf-icon-btn);
-  border-color: var(--spf-border);
+  border-color: var(--spf-control-border);
   color: var(--spf-brand-accent);
 }
 
