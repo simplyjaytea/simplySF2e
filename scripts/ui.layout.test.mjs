@@ -797,4 +797,17 @@ assert.match(
 assert.match(css, /\.spf-dialog-body\s*\{[^}]*display:\s*contents;/s, "the dialog wrapper must not change core's form layout");
 assert.match(appBase, /addEventListener\("wheel"[\s\S]*?input\[type='number'\][\s\S]*?\.blur\(\)/, "the wheel must scroll, not step a focused number box");
 
+// The window frame and the status bar carry no neon glow: glow marks what is live (U4A-T1 finding 2).
+{
+  const blocks = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)];
+  const frameGlow = blocks.filter(([, selector, body]) =>
+    selector.split(",").some((part) => /^\s*\.(application\.simplysf2e|simplysf2e\.application)\s*$/.test(part))
+    && /box-shadow[^;]*--spf-(neon-)?glow/.test(body));
+  assert.equal(frameGlow.length, 0, "the module window frame carries no neon glow");
+  const barGlow = blocks.filter(([, selector, body]) =>
+    selector.split(",").some((part) => /^\s*\.simplysf2e \.spf-statusbar\s*$/.test(part))
+    && /box-shadow[^;]*--spf-(neon-)?glow/.test(body));
+  assert.equal(barGlow.length, 0, "the status bar carries no neon glow");
+}
+
 console.log("UI layout contract checks passed.");

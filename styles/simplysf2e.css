@@ -29,8 +29,9 @@
    - Blink ("active step"): the current progress step only.
    - Scan lines ("standby"): empty-state panels only.
    - Notch and corner ticks: outer cards only; nested panels are plain.
-   - Uppercase + letter-spacing: HUD labels (legends, chips, status keys);
-     never headings or buttons, whose hierarchy is size and weight.
+   - Uppercase + letter-spacing: labels only: legends, chips, status keys
+     (table column headers, stat keys, token heading, fold titles); never
+     headings or buttons, whose hierarchy is size and weight.
    - Colours, spacing (4/8 px) and type sizes come from the tokens below.
    ========================================================================== */
 

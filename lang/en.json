@@ -206,7 +206,7 @@
       "Note": {
         "ThemeSystem": {
           "Title": "One look in every window",
-          "Body": "The neon effects now mean the same thing everywhere. Glow marks what is live: the main action, the active mode and a running progress card. The moving sheen means a run is working, a slow pulse marks a list that waits for your decision, and only the current step blinks. Mode colours stay on the mode tile and the line under a preview's name. Only labels and tags are in capitals; headings and buttons are not. Trait tags are square, and empty panels share one look."
+          "Body": "The neon effects now mean the same thing everywhere. Glow marks what is live: the main action, the active mode and a running progress card. The moving sheen means a run is working, a slow pulse marks a list that waits for your decision, and only the current step blinks. Mode colours stay on the mode tile and the line under a preview's name. Only labels, column headings and tags are in capitals; titles and buttons are not. Trait tags are square, and empty panels share one look."
         },
         "ShellConsistency": {
           "Title": "Tidier windows",
