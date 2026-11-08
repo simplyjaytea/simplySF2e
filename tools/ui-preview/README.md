@@ -13,7 +13,7 @@ npm run shoot      # all fixtures
 node shoot.mjs generator-npc   # only fixtures whose id contains the text
 ```
 
-Two environment variables tune a run:
+Environment variables tune a run:
 
 - `SPF_SHOOT_CONC` (default `4`): how many fixture pages render at once over one browser. Only a whole number of 1 or more is accepted; anything else (`0`, `-2`, `2abc`) stops the run with an error. `1` gives the same order and per-fixture output as the old serial run. The summary line prints the elapsed seconds and the page count. `npm run shoot` and `tools/release-check.sh` use the default.
 - Each fixture prints `ok  <id>` when both widths rendered without an error, or `FAIL  <id>` when a render threw; the error text is in the problem list and the run exits 1.
