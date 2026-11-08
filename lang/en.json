@@ -630,6 +630,7 @@
       "StepDone": "(done)",
       "StepActive": "(in progress)",
       "StepPending": "(waiting)",
+      "Running": "running",
       "Concept": "Creature concept",
       "SpellFocus": "Spell focus",
       "Spells": "Spell selection",

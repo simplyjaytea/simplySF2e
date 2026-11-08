@@ -2,6 +2,7 @@
 // No provider calls, Foundry documents, or test-only production hooks.
 // Multiclass picker, GM-vs-AI routing and the archetype placement context.
 import assert from "node:assert/strict";
+import { progressView } from "./progress.mjs";
 import { readFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import vm from "node:vm";
@@ -67,6 +68,7 @@ const context = vm.createContext({
 const resolved = () => ({ ancestryDoc: { name: "Dwarf" }, classDoc: { name: mainClass },
   backgroundDoc: { name: "Warrior" }, featSlots: previewFeats.map(({ type, level, archetype }) => ({ type, level, archetype, candidates: [] })), feats: previewFeats, spells: [], equipment: [], loot: previewLoot });
 const mocks = {
+  progressView,
   ...recentGenerations,
   isCompletePCClass, COMPLETE_PC_CLASS_SLUGS, getMulticlassDedicationSlug, capitalized, stagedActorContext,
   ABILITY_KEYS: ["str", "dex", "con", "int", "wis", "cha"], initialSkillTraining: () => ({ ranks: {} }),

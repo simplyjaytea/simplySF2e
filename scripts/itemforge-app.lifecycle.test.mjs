@@ -1,6 +1,7 @@
 // Exercise production action boundaries with deferred dependencies. No provider
 // requests or real Foundry documents are needed to prove cancellation/commit.
 import assert from "node:assert/strict";
+import { progressView } from "./progress.mjs";
 import { readFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import vm from "node:vm";
@@ -58,6 +59,7 @@ class MockSpfApp {
   _finishRun() { this.abort = null; }
 }
 const mocks = {
+  progressView,
   getPacksFor: () => ["sf2e.equipment"],
   describeMissingSources: () => "",
   jevKeySource: () => null,

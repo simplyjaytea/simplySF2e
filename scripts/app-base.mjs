@@ -19,6 +19,7 @@ import {
   progressPercent,
   progressPhaseClass,
   resetStreamPhase,
+  stepElapsed,
   streamFraction
 } from "./progress.mjs";
 import { coarsenTokenEstimate, lastRunTokenTotal } from "./tokens.mjs";
@@ -505,6 +506,12 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
             : step.state === "active" ? "SIMPLYSF2E.Progress.StepActive"
               : "SIMPLYSF2E.Progress.StepPending"
         );
+      }
+      const elapsed = li.querySelector(".spf-step-elapsed");
+      if (elapsed) {
+        elapsed.textContent = step.state === "active"
+          ? game.i18n.localize("SIMPLYSF2E.Progress.Running")
+          : stepElapsed(step);
       }
       const icon = li.querySelector("i");
       if (!icon) return;
