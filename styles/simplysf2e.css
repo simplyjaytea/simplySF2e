@@ -310,9 +310,11 @@
   margin: var(--spf-space-xs) 0;
 }
 
+/* Standby panel: the scan-line texture says "nothing here yet"; one short
+   line of text, left-aligned, compact padding from the space scale (S15). */
 .simplysf2e .spf-empty {
-  text-align: center;
-  padding: var(--spf-space-xl);
+  text-align: start;
+  padding: var(--spf-space-md) var(--spf-space-lg);
   border: 1px dashed var(--spf-border);
   border-radius: var(--spf-radius);
   color: var(--spf-text-muted);
