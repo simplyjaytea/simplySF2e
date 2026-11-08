@@ -185,6 +185,16 @@ for (const [label, App, controls, createdKey, survivorKey] of [
   deleteFailure = null;
   createdName = "Merchant";
 
+  // (a4) A plain-string throw with a successful rollback still shows that string as the error.
+  app = instance(App, controls);
+  await generate.call(app);
+  verifyFailure = "plain string, clean rollback";
+  deleteFailure = null;
+  await create.call(app);
+  const cleanPlain = (await app._prepareContext()).error;
+  assert.equal(cleanPlain, "plain string, clean rollback", `${label}: the plain-string message is the error text (got ${cleanPlain})`);
+  verifyFailure = null;
+
   // (b) Starting progress throws once: Generate is not left busy.
   app = instance(App, controls);
   beginFailure = new Error("progress setup failed");

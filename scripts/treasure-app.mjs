@@ -320,7 +320,7 @@ export class TreasureApp extends SpfApp {
     } catch (err) {
       if (err?.cancelled) console.warn(`${MODULE_ID} | treasure generation cancelled`);
       else console.error(`${MODULE_ID} | treasure generation failed`, err);
-      this.#error = err.message;
+      this.#error = String(err?.message ?? err ?? "");
       this._recordFailure(err, "treasure generation", this.#error);
       this.#clearPreview();
     } finally {
@@ -389,7 +389,7 @@ export class TreasureApp extends SpfApp {
         const sep = /[.!?]$/.test(message.trim()) ? " " : ". ";
         this.#error = `${message}${sep}${game.i18n.format("SIMPLYSF2E.Treasure.RollbackSurvivor", { name: survivor })}`;
       } else {
-        this.#error = err.message;
+        this.#error = String(err?.message ?? err ?? "");
       }
       this._recordFailure(err, "treasure creation", this.#error);
     } finally {

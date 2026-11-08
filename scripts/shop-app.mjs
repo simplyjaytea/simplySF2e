@@ -275,7 +275,7 @@ export class ShopApp extends SpfApp {
     } catch (err) {
       if (err?.cancelled) console.warn(`${MODULE_ID} | shop generation cancelled`);
       else console.error(`${MODULE_ID} | shop generation failed`, err);
-      this.#error = err.message;
+      this.#error = String(err?.message ?? err ?? "");
       this._recordFailure(err, "shop generation", this.#error);
       this.#clearPreview();
     } finally {
@@ -336,7 +336,7 @@ export class ShopApp extends SpfApp {
         const sep = /[.!?]$/.test(message.trim()) ? " " : ". ";
         this.#error = `${message}${sep}${game.i18n.format("SIMPLYSF2E.Shop.RollbackSurvivor", { name: survivor })}`;
       } else {
-        this.#error = err.message;
+        this.#error = String(err?.message ?? err ?? "");
       }
       this._recordFailure(err, "shop creation", this.#error);
     } finally {
