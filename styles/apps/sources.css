@@ -201,3 +201,22 @@
 .simplysf2e .simplysf2e-sources {
   scroll-padding-block-end: 3.5rem;
 }
+
+/* Reset is the destructive action: red, at the far end of the button row (audit C18). */
+.simplysf2e .simplysf2e-sources > .spf-actions > .spf-danger {
+  margin-inline-start: auto;
+}
+
+/* Narrow window: the package id wraps to its own line, left-aligned under the title (audit C21). */
+@container spf-window (max-width: 520px) {
+  .simplysf2e .spf-pack {
+    flex-wrap: wrap;
+  }
+
+  .simplysf2e .spf-pack-source {
+    flex-basis: 100%;
+    max-width: none;
+    text-align: left;
+    padding-inline-start: var(--spf-space-lg);
+  }
+}
