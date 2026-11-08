@@ -48,10 +48,12 @@ globalThis.game = {
   }
 };
 const notices = { info: [], warn: [], error: [] };
+// Notifications take a localized key with { format } values; keep the value text visible here.
+const shown = (message, options) => (options?.format ? `${message}:${JSON.stringify(options.format)}` : message);
 globalThis.ui = { notifications: {
-  info: (message) => notices.info.push(message),
-  warn: (message) => notices.warn.push(message),
-  error: (message) => notices.error.push(message)
+  info: (message, options) => notices.info.push(shown(message, options)),
+  warn: (message, options) => notices.warn.push(shown(message, options)),
+  error: (message, options) => notices.error.push(shown(message, options))
 } };
 
 registerSettings(class SourcesConfigApp {}, class ProviderSetupApp {});
