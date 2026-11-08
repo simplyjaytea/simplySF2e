@@ -3,35 +3,20 @@
    Loaded after styles/simplysf2e.css; tokens and shared kit live there.
    ========================================================================== */
 
-.simplysf2e .simplysf2e-sources {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spf-space-md);
-  padding: var(--spf-space-xs);
-}
-
-/* HUD readout legends: console chips with a neon edge. */
+/* Category legends: the shared console chip (.spf-card > legend) with a
+   tighter tracking and pad and a neon edge. */
 .simplysf2e .spf-source-category legend {
-  font-family: var(--spf-font-display);
-  font-weight: bold;
-  font-variant: normal;
   letter-spacing: 0.06em;
-  text-transform: uppercase;
-  font-size: var(--spf-text-sm);
-  padding: 0 0.3rem;
-  background: color-mix(in srgb, var(--spf-brand-dark) 85%, #0c1620);
+  padding: 0 var(--spf-space-xs);
   border: 1px solid color-mix(in srgb, var(--spf-neon) 40%, var(--spf-border));
-  border-radius: var(--spf-radius-sm);
-  box-shadow: var(--spf-inset-glow);
-  color: var(--spf-brand-accent);
 }
 
 .simplysf2e .spf-pack {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: var(--spf-space-md);
   min-height: 1.9rem;
-  padding: 0.15rem var(--spf-space-sm);
+  padding: var(--spf-space-2xs) var(--spf-space-sm);
   border-left: 2px solid transparent;
   border-radius: var(--spf-radius-sm);
   cursor: pointer;
@@ -102,7 +87,7 @@
 .simplysf2e .spf-source-filter input[type="search"] {
   flex: 1 1 14rem;
   min-width: 0;
-  padding: 3px 6px;
+  padding: var(--spf-space-xs) var(--spf-space-md);
 }
 
 .simplysf2e .spf-source-selected-only {
@@ -127,7 +112,7 @@
 .simplysf2e .spf-link-btn {
   width: auto;
   min-height: 0;
-  padding: 0 0.15rem;
+  padding: 0 var(--spf-space-2xs);
   border: 0;
   background: transparent;
   color: var(--spf-brand-accent);
@@ -142,7 +127,7 @@
 }
 
 .simplysf2e .spf-source-count {
-  margin-left: 0.35rem;
+  margin-left: var(--spf-space-xs);
   font-family: var(--spf-font-mono);
   font-weight: 400;
   letter-spacing: 0;
@@ -164,15 +149,15 @@
 /* HUD hooks: must follow the shared .spf-hint / .spf-card rules they refine. */
 .simplysf2e .spf-hud-accent {
   color: var(--spf-brand-accent);
-  letter-spacing: 0.04em;
 }
 
 .simplysf2e .spf-hud-accent > i {
   color: var(--spf-brand-accent);
 }
 
+/* Category frames are static: the card's inset hairline only, no glow. */
 .simplysf2e .spf-hud-frame {
-  box-shadow: var(--spf-inset-glow), 0 0 10px color-mix(in srgb, var(--spf-brand-accent) 14%, transparent);
+  box-shadow: var(--spf-inset-glow);
 }
 
 /* One state message when nothing was detected; Save is disabled with it. */
@@ -193,7 +178,7 @@
   bottom: calc(var(--spf-space-xs) * -1);
   margin-top: 0;
   padding: var(--spf-space-sm) 0 var(--spf-space-xs);
-  background: color-mix(in srgb, var(--spf-brand-dark) 40%, #0a121b);
+  background: color-mix(in srgb, var(--spf-brand-dark) 40%, var(--spf-window-bg-deep));
   z-index: 1;
 }
 

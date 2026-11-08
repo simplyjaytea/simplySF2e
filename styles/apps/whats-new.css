@@ -3,13 +3,6 @@
    Loaded after styles/simplysf2e.css, like welcome.css.
    ========================================================================== */
 
-.simplysf2e .simplysf2e-whats-new {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spf-space-md);
-  padding: var(--spf-space-xs);
-}
-
 .simplysf2e .spf-whats-new-list {
   list-style: none;
   margin: 0;
@@ -22,23 +15,18 @@
 .simplysf2e .spf-whats-new-note {
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  gap: var(--spf-space-xs);
   margin: 0;
   padding: var(--spf-space-sm) var(--spf-space-md);
   border-left: 3px solid var(--spf-brand-accent);
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--spf-note-bg);
   overflow-wrap: anywhere;
-}
-
-.simplysf2e .spf-whats-new-body {
-  color: var(--spf-text-muted);
-  font-size: var(--spf-text-sm);
 }
 
 .simplysf2e .spf-whats-new-broke {
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  gap: var(--spf-space-xs);
   font-size: var(--spf-text-sm);
   color: var(--spf-text-muted);
   overflow-wrap: anywhere;
@@ -53,8 +41,6 @@
 .simplysf2e .spf-whats-new-earlier > summary {
   font-size: var(--spf-text-sm);
   font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
   color: var(--spf-brand-accent);
 }
 
@@ -64,5 +50,5 @@
 
 .simplysf2e .spf-whats-new-earlier .spf-whats-new-note {
   border-left-color: var(--spf-border);
-  background: rgba(255, 255, 255, 0.025);
+  background: var(--spf-note-bg-quiet);
 }

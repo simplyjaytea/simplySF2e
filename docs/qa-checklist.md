@@ -830,6 +830,25 @@ Generate a level 7 NPC with a limited cone breath (name "Frost Breath", cold), a
 | 14d.6 | Open Manage Presets with no custom presets. Read the empty state and the footer. | Empty state: "Press New preset to create one, or Import to paste exported preset JSON." Buttons read "New preset" and "Export all". Title reads "Manage custom presets". | Manage Presets | | |
 | 14d.7 | Open Welcome. Read the Google note, the Advanced block, then press Connect with a key that is not authorized. | The Google note reads "Not yet tested". The Advanced block has a "Fast picks" heading and the labels "LM Studio" and "Jev · TypeSafe". A failed connect shows the title "Connection failed". | Welcome | | |
 
+## 14e. Theme as a system (U4A, docs/ui-overhaul-plan.md §1)
+
+| # | Step | Expected | Where to look | Result | Evidence |
+|---|------|----------|---------------|--------|----------|
+| 14e.1 | Open the Generator and leave it idle for a few seconds. | Nothing moves. The window frame has no outer glow. Only the main action (Generate, magenta) and the active mode tile glow. | Generator | | |
+| 14e.2 | Switch through all five modes. | Only the active mode tile and the line under a preview's name take the mode colour. The status bar, the level and budget chips, the recent preview rows and the Reskin drop zone stay cyan. | Generator | | |
+| 14e.3 | Start a Generate run and watch the progress card. | The card has a steady cyan inner glow and does not pulse. The fill has a moving sheen. Only the current step's dot blinks. The window header edge is solid magenta with no glow. | Generator, Item Forge, Shop, Treasure | | |
+| 14e.4 | Press Cancel during a run. | While it cancels, the sheen stops and the card loses its glow. | Generator | | |
+| 14e.5 | Create a character that ends with a "To review" list. | The amber rail of the "To review" panel pulses slowly. Nothing else on the card moves. | Generator (character review) | | |
+| 14e.6 | Create a creature whose stat check reports rows to look at. | The stat check's left rail pulses. A clean stat check does not. | Generator (after Create) | | |
+| 14e.7 | Turn on the OS "reduce motion" setting and repeat 14e.3 and 14e.5. | No sheen, no blink, no pulse; the spinner stands still. The progress card keeps its static glow. | Generator | | |
+| 14e.8 | Press Tab through a window. | Every control shows a cyan outline with no glow around it, including the mode tiles. | Any module window | | |
+| 14e.9 | Read the labels in the Generator, Shop and Provider Setup. | Uppercase: section legends, chips (level, traits, Custom, member roles), table column heads, progress steps, "Token usage", Provider Setup fold titles. Not uppercase: the window title, every button (Generate, Create Actor, Preview Plan), mode tiles, the preview name, headings such as Abilities or Recent previews, "Advanced options", "Earlier changes". | Generator, Shop, Provider Setup, What's new | | |
+| 14e.10 | Open a monster preview and a shop preview. | Trait and category tags are square, navy with a cyan edge and light text; no rounded magenta pills. | Generator, Shop, Item Forge | | |
+| 14e.11 | Open Compendium Sources. | Category frames have no glow; their legends are cyan chips with a magenta edge. | Compendium Sources | | |
+| 14e.12 | Pick a provider in AI Provider Setup and in Welcome. | The selected tile has a cyan ring and bold label, with no glow. | Provider Setup, Welcome | | |
+| 14e.13 | Look at each empty state: Generator and Item Forge before a run, Shop and Treasure before a run, Manage Presets with none saved, Sources with no packs, no filter match, or an empty category. | Each is a left-aligned panel with the faint scan-line texture and one short line of text. | Generator, Item Forge, Shop, Treasure, Manage Presets, Compendium Sources | | |
+| 14e.14 | Open a Shop stock table and a Treasure hoard at normal and narrow width. | Both tables look as before this change: same row height, aligned numbers, remove buttons in one column, Lvl/Qty at narrow width. | Shop, Treasure | | |
+
 ## 14g. U5 Item Forge per-kind placeholder
 
 | # | Step | Expected | Where to look | Result | Evidence |
