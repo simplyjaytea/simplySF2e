@@ -392,7 +392,7 @@ export async function buildRunedItem(concept) {
   if (upgradeDocs.length) {
     specList.push(`Installed Upgrades: ${upgradeDocs.map((d) => d.name).join(", ")}`);
   }
-  paragraphs.push(`<hr /><p><strong>${game.i18n.localize("SIMPLYSF2E.ItemForge.RunesHeading")}</strong> ${specList.join("; ")}.</p>`);
+  paragraphs.push(`<hr /><p><strong>${game.i18n.localize("SIMPLYSF2E.ItemForge.ItemGradeUpgradesHeading")}</strong> ${specList.join("; ")}.</p>`);
   data.system.description = { value: paragraphs.join("\n") };
 
   return {
