@@ -206,6 +206,10 @@
       "Disable": "Don't show for updates",
       "Earlier": "Earlier changes ({count})",
       "Note": {
+        "SetupWiring": {
+          "Title": "Clearer setup windows",
+          "Body": "The Welcome warning for missing compendium content has a Configure compendium sources button. AI Provider Setup explains Save & Test and Save & Authorize, shows when an API key or a Jev key is saved, and marks a rejected price field. The Item Forge prompt hint follows the item kind."
+        },
         "CopySweep": {
           "Title": "Clearer wording",
           "Body": "Window titles, buttons and empty-state hints use the same names. Empty Shop, Treasure and Item Forge windows name the button to press next. Mode tooltips say what each mode builds. Provider notes read Not yet tested, and a failed Welcome connect reads Connection failed."
