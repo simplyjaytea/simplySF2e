@@ -260,6 +260,10 @@
           "Title": "What's new",
           "Body": "This window. It opens once after an update that changes something you can see. Reopen it any time with /sf2e whatsnew."
         },
+        "ReskinTrample": {
+          "Title": "Reskin keeps Trample in step",
+          "Body": "When a Reskin renames a melee Strike, a Trample ability the module built for that creature now names the new Strike. Published creatures are not changed."
+        },
         "UiPolish": {
           "Title": "Cleaner windows",
           "Body": "Previews fold the token report into one line, encounter cards show stats as a grid, the character review lists what to check, AI Provider Setup and Compendium Sources are easier to scan (with a pack filter), and narrow windows read better."
