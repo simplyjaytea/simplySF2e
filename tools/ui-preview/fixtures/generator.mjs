@@ -1,6 +1,6 @@
-// Generator window. Shapes follow GeneratorApp._prepareContext() and the
-// #build*PreviewContext() / #mapGear / #mapNamed / #mapSpells helpers in
-// scripts/generator-app.mjs.
+// Generator window. Shapes follow GeneratorApp._prepareContext() and the context
+// builders in scripts/generator-context/*.mjs (rows, creature-preview,
+// encounter-preview, reskin-context, pc-preview, result-context).
 import {
   RARITIES, providerContext, PROVIDER_ATTENTION, TOKEN_REPORT, TOKEN_REPORT_COST, TOKEN_REPORT_PARTIAL, progressAt, MONSTER_STEPS,
   concept, computeStats, adjustedStats, localize
@@ -25,7 +25,7 @@ const RANDOM_TOOLTIP = {
   character: "SIMPLYSF2E.Generator.RandomCharacterTooltip"
 };
 
-/** #buildRecentContext() rows: one per mode, plus an overlong name. */
+/** buildRecentContext() rows (result-context.mjs): one per mode, plus an overlong name. */
 const RECENT = [
   { id: "recent-5", mode: "character", icon: "fa-user-astronaut", name: "Kess Vandrel", detail: "Player Character · Level 3 · 14:32" },
   { id: "recent-4", mode: "encounter", icon: "fa-crosshairs", name: "Ambush at the Failing Lattice", detail: "Encounters · Level 4 · 14:20" },
@@ -34,7 +34,7 @@ const RECENT = [
   { id: "recent-1", mode: "monster", icon: "fa-dna", name: "Rift-Scarred Vanguard", detail: "Monster · Level 4 · 13:41" }
 ];
 
-/** #statCheckContext() output, built with the module's own stat check. */
+/** GeneratorApp #statCheckContext() output (still in generator-app.mjs), built with the module's own stat check. */
 function statCheck(entries) {
   const i18n = { localize, format: localize };
   const creatures = entries.map(([name, c, patch = {}]) => {
@@ -106,13 +106,13 @@ export function generatorContext(mode, patch = {}) {
   };
 }
 
-/** #mapNamed / #mapSpells / #mapGear row shapes. */
+/** mapNamed / mapSpells / mapGear row shapes (rows.mjs). */
 const named = (name, found = true) => ({ name, found });
 const spell = (name, rank, found = true, signature = false) => ({ name, rank, found, signature });
 
-/** Context of #buildPreviewContext() for a (possibly adjusted) creature concept. */
+/** Context of buildCreaturePreviewContext() (creature-preview.mjs) for a (possibly adjusted) creature concept. */
 function creaturePreview(c, { abilities = [], spells = [], feats = [], equipment = [], loot = [] } = {}) {
-  // Reroll slots, as #buildPreviewContext() adds them: every row but narrative abilities.
+  // Reroll slots, as buildCreaturePreviewContext() adds them: every row but narrative abilities.
   const slot = (row, index) => ({ ...row, index, rerollable: !row.narrative });
   abilities = abilities.map(slot);
   spells = spells.map(slot);
@@ -121,7 +121,7 @@ function creaturePreview(c, { abilities = [], spells = [], feats = [], equipment
   const all = [...spells, ...feats, ...equipment, ...loot];
   const total = all.length + abilities.filter((a) => !a.narrative && !a.moduleBuilt).length;
   const matched = all.filter((i) => i.found).length + abilities.filter((a) => a.fromGlossary).length;
-  // Same display object the real #buildPreviewContext() builds.
+  // Same display object the real buildCreaturePreviewContext() builds.
   const display = {
     perception: signed(stats.perception),
     skills: (stats.skills ?? []).map((skill) => ({ name: skill.name, mod: signed(skill.mod) })),
@@ -171,7 +171,7 @@ function multiclassPicker(selected) {
   return { options: options.map((option) => ({ ...option, selected: option.value === selected })) };
 }
 
-/** Character preview window; #buildPCPreviewContext() supplies the feat rows and emptyFeatNotice. */
+/** Character preview window; buildPCPreviewContext() (pc-preview.mjs) supplies the feat rows and emptyFeatNotice. */
 function characterPreview(id, { feats, emptyFeatNotice = null, multiclass = null }) {
   const pcConcept = { name: "Kess Vandrel", level: 3, blurb: "A disgraced envoy who still believes in the mission.", spellcasting: { tradition: "occult" }, backstory: "Kess left the Pact Worlds diplomatic corps after a treaty she negotiated was used as cover for a raid." };
   return {
@@ -309,7 +309,7 @@ export default [
         index, count: member.count, skipped: member.count === 0,
         role: `SIMPLYSF2E.Role.${cap(member.role)}`,
         name: member.concept.name, level: stats.level, blurb: member.blurb,
-        // Contract (docs/ui-contract.md, item 9): #buildEncounterPreviewContext()
+        // Contract (docs/ui-contract.md, item 9): buildEncounterPreviewContext() (encounter-preview.mjs)
         // returns raw display values; the template adds the labels.
         stats: {
           ac: stats.ac, hp: stats.hp, perception: signed(stats.perception),
@@ -336,8 +336,8 @@ export default [
       preview("generator-encounter-all-skipped", rows.map((r) => ({ ...r, count: 0, skipped: true })), true)
     ];
   })(),
-  // Character preview. Feat rows and the empty-slot notice follow #pcFeatRows() and
-  // the emptyFeatNotice build in #buildPCPreviewContext(): a found feat has no empty
+  // Character preview. Feat rows and the empty-slot notice follow pcFeatRows() (rows.mjs) and
+  // the emptyFeatNotice build in buildPCPreviewContext() (pc-preview.mjs): a found feat has no empty
   // flag set; an empty slot is { found: false, empty: true } and the notice lists it.
   characterPreview("generator-character-preview", {
     feats: [{ ...named("Nimble Dodge"), empty: false }, { ...named("Hobnobber", false), empty: false }]

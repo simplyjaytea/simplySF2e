@@ -37,6 +37,7 @@ function collect(dir, ext, re, test = () => true) {
 const used = new Map([
   ...collect("templates", ".hbs", TEMPLATE_RE),
   ...collect("scripts", ".mjs", SCRIPT_RE, (f) => !f.endsWith(".test.mjs")),
+  ...collect("scripts/generator-context", ".mjs", SCRIPT_RE),
 ]);
 assert.ok(used.size > 50, `expected to find many literal keys, found ${used.size}; is the regex stale?`);
 
@@ -51,6 +52,7 @@ assert.deepEqual(
 const looseUsed = new Set([
   ...collect("templates", ".hbs", new RegExp(`["'](${KEY})["']`, "g")).keys(),
   ...collect("scripts", ".mjs", new RegExp(`["'](${KEY})["']`, "g"), (f) => !f.endsWith(".test.mjs")).keys(),
+  ...collect("scripts/generator-context", ".mjs", new RegExp(`["'](${KEY})["']`, "g")).keys(),
 ]);
 // Keys built at runtime (a template string, or a small map of names). Each family
 // names the line that builds it, so the warning lists only keys nothing can reach.

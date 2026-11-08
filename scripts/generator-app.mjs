@@ -14,20 +14,18 @@ import {
   getAncestryCandidates, getBackgroundCandidates, getClassCandidates, getHeritageCandidates, getFeatCandidates, getAbilityCandidates, sourceReadiness, describeMissingSources
 } from "./compendium.mjs";
 import {
-  normalizeLoot, resolveLoot, computeStats, adjustedStats, createActor,
-  applyTreasureBudget, equipmentValueGp, lootValueGp, parseCoins, slugify,
-  dedupeLootAgainstEquipment, enforceNamedLootBudget, reskinActorData, rerollAbilityInto
+  normalizeLoot, resolveLoot, createActor, applyTreasureBudget, equipmentValueGp, lootValueGp,
+  parseCoins, slugify, dedupeLootAgainstEquipment, enforceNamedLootBudget, reskinActorData,
+  rerollAbilityInto
 } from "./builder.mjs";
 import { normalizeReskin, reskinRenameTargets } from "./reskin.mjs";
-import { relevelPreview, relevelReskin, loadRelevelSources, clampRelevel, RELEVEL_MIN, RELEVEL_MAX } from "./relevel.mjs";
+import { relevelReskin, loadRelevelSources, clampRelevel } from "./relevel.mjs";
 import { REROLL_KINDS, rerollTarget, rerollPool, applyRerollPick, rerollKeywords } from "./reroll.mjs";
 import {
   normalizePCConcept, resolvePCConcept, resolveFeatPicks, createCharacterActor, pcStartingWealthGp, archetypeCasterPlan, resolveArchetypeBridges
 } from "./pc-builder.mjs";
 import { pcSpellcastingProfile, pcSpellPlan } from "./pc-tables.mjs";
 import { reviewUnresolvedChoices } from "./choice-set.mjs";
-import { normalizeSkillPriorities, skillPriorityOrder, initialSkillTraining } from "./pc-skills.mjs";
-import { ABILITY_KEYS, projectAttributeModifiers, projectSkillRanks } from "./pc-projection.mjs";
 import { treasureBudget, TREASURE_AMOUNT_MULTIPLIER } from "./tables.mjs";
 import { gpToCredits } from "./currency.mjs";
 import { getCustomPresets, findPreset, examplePrompt, randomBrief, presetPickerGroups } from "./presets.mjs";
@@ -35,21 +33,27 @@ import { ManagePresetsApp } from "./manage-presets-app.mjs";
 import { SourcesConfigApp } from "./sources-app.mjs";
 import { composeEncounter, THREATS } from "./encounter.mjs";
 import { findBestiaryScaffold, scaffoldArt } from "./art.mjs";
-import { assertComplete, completionManifest, completionSummary } from "./completion.mjs";
+import { assertComplete, completionManifest } from "./completion.mjs";
 import { verifyCreatedActor } from "./post-create.mjs";
-import {
-  manualNotesContent, supportedClassCandidates, isCompletePCClass, COMPLETE_PC_CLASS_SLUGS, getMulticlassDedicationSlug
-} from "./pc-support.mjs";
-import { validateArchetypeSlotPlacement, stagedActorContext } from "./pc-prerequisites.mjs";
+import { manualNotesContent, supportedClassCandidates, isCompletePCClass } from "./pc-support.mjs";
+import { validateArchetypeSlotPlacement } from "./pc-prerequisites.mjs";
 import { SpfApp } from "./app-base.mjs";
 import { progressView } from "./progress.mjs";
 import { jevKeySource } from "./jev.mjs";
-import { signed, esc, escAi, capitalized } from "./text.mjs";
+import { esc, escAi } from "./text.mjs";
 import { statCheckForActor, describeStatCheck, hasSpellEntry } from "./stat-check.mjs";
 import { moveToGeneratedFolder, generatedFolderId } from "./folders.mjs";
 import { createHandout } from "./handout.mjs";
 import { findRecent, forgetRecent, previewModeOf, previewNameOf, rememberRecent } from "./recent-generations.mjs";
 import { activeParty } from "./party.mjs";
+import { emptyFeatSlots } from "./generator-context/rows.mjs";
+import { buildCreaturePreviewContext } from "./generator-context/creature-preview.mjs";
+import { buildEncounterPreviewContext } from "./generator-context/encounter-preview.mjs";
+import { buildReskinPreviewContext, buildRelevelContext } from "./generator-context/reskin-context.mjs";
+import {
+  buildPCPreviewContext, multiclassPickerContext, archetypePlacementContext, skillReportContext
+} from "./generator-context/pc-preview.mjs";
+import { completionContext, buildRecentContext } from "./generator-context/result-context.mjs";
 
 async function rollbackActor(actor, label) {
   if (!actor) return null;
@@ -336,20 +340,9 @@ export class GeneratorApp extends SpfApp {
   }
 
   #buildReskinPreviewContext() {
-    const flavor = this.#reskinFlavor;
-    if (!flavor || !this.#reskinSource) return null;
-    return {
-      name: flavor.name ?? this.#reskinSource.name,
-      level: this.#reskinTargetLevel(),
-      releveled: this.#reskinTargetLevel() !== this.#reskinSource.level,
-      sourceName: this.#reskinSource.name,
-      blurb: flavor.blurb,
-      readAloud: flavor.readAloud,
-      paragraphs: (flavor.description ?? "").split(/\n{2,}/).map((p) => p.trim()).filter(Boolean),
-      recallKnowledge: flavor.recallKnowledge,
-      renames: flavor.renames
-    };
+    return buildReskinPreviewContext(this.#reskinFlavor, this.#reskinSource, this.#reskinTargetLevel());
   }
+
 
   /** The copy's level: the GM's re-level choice, else the source's own level. */
   #reskinTargetLevel() {
@@ -358,62 +351,7 @@ export class GeneratorApp extends SpfApp {
 
   /** Re-level controls and the before/after rows for the loaded NPC (relevel.mjs). */
   #buildRelevelContext() {
-    if (!this.#reskinSource) return null;
-    const level = this.#reskinTargetLevel();
-    const preview = this.#reskinData
-      ? relevelPreview(this.#reskinData, level, this.#reskinSources)
-      : { rows: [], abilities: [] };
-    const bands = {
-      extreme: "BandExtreme", high: "BandHigh", moderate: "BandModerate", low: "BandLow", terrible: "BandTerrible"
-    };
-    const locScale = (row) => bands[row.scale] ? game.i18n.localize(`SIMPLYSF2E.StatCheck.${bands[row.scale]}`) : "";
-    const locRow = (row) => ({
-      label: row.name ? game.i18n.format(row.label, { name: row.name }) : game.i18n.localize(row.label),
-      scale: locScale(row),
-      from: row.from,
-      to: row.to
-    });
-    const rows = [];
-    const strikesMap = new Map();
-    const strikeOrder = [];
-    for (const row of preview.rows) {
-      const key = String(row.key ?? "");
-      const m = key.match(/^(strike|damage)-(.+)$/);
-      if (m) {
-        const kind = m[1];
-        const id = m[2];
-        if (!strikesMap.has(id)) {
-          strikesMap.set(id, { name: row.name, attack: null, damage: null });
-          strikeOrder.push(id);
-        }
-        const entry = strikesMap.get(id);
-        if (!entry.name && row.name) entry.name = row.name;
-        const obj = { scale: locScale(row), from: row.from, to: row.to };
-        if (kind === "strike") entry.attack = obj;
-        else entry.damage = obj;
-      } else {
-        rows.push(locRow(row));
-      }
-    }
-    const strikes = strikeOrder.map((id) => strikesMap.get(id));
-    const changed = level !== this.#reskinSource.level;
-    if (!changed) {
-      rows.length = 0;
-      strikes.length = 0;
-    }
-    return {
-      from: this.#reskinSource.level,
-      level,
-      min: RELEVEL_MIN,
-      max: RELEVEL_MAX,
-      changed,
-      rows,
-      strikes,
-      hasRows: changed ? (rows.length > 0 || strikes.length > 0) : false,
-      abilities: preview.abilities.map((line) => line.rebuilt
-        ? { kept: false, label: game.i18n.format("SIMPLYSF2E.Relevel.AbilityRebuilt", { name: line.name, level }) }
-        : { kept: true, label: game.i18n.format("SIMPLYSF2E.Relevel.AbilityKept", { name: line.name, reason: line.reason }) })
-    };
+    return buildRelevelContext(this.#reskinSource, this.#reskinTargetLevel(), this.#reskinData, this.#reskinSources);
   }
 
   /** Free Archetype is the campaign rule multiclass depends on; read it live, and treat an unreadable setting as off. */
@@ -428,177 +366,11 @@ export class GeneratorApp extends SpfApp {
 
   /** Multiclass picker options: None, Let the AI decide, then each supported class. */
   #multiclassPickerContext() {
-    const options = [
-      { value: "none", label: game.i18n.localize("SIMPLYSF2E.Generator.MulticlassNone") },
-      { value: "ai", label: game.i18n.localize("SIMPLYSF2E.Generator.MulticlassAI") },
-      ...[...COMPLETE_PC_CLASS_SLUGS].map((slug) => ({ value: slug, label: capitalized(slug) }))
-    ];
-    return { options: options.map((option) => ({ ...option, selected: option.value === this.#input.multiclass })) };
-  }
-
-  /** Preview line for a multiclass pick; the dedication counts only when it was placed on a real feat. */
-  #multiclassPreview(concept, resolved) {
-    if (!concept.multiclass) return null;
-    const dedicationSlug = getMulticlassDedicationSlug(concept.multiclass);
-    const placed = (resolved.feats ?? []).find((feat) => feat?.entry && feat.placement !== "rejected"
-      && feat.name && slugify(feat.name) === dedicationSlug);
-    return { name: capitalized(concept.multiclass), dedication: placed?.name ?? null };
-  }
-
-  /**
-   * Staged context for the archetype placement check: what the PC already has
-   * at its level (ABC, class path, heritage) plus the projected ability
-   * modifiers and skill ranks that resolvePCConcept proved candidates against.
-   * The projection repeats pc-builder's inputs because its helpers are private.
-   * Ranks and modifiers only grow with level, so the final-level context is
-   * never stricter than a slot's own candidate-time context.
-   */
-  #archetypePlacementContext(resolved, concept) {
-    const { ancestryDoc, heritageDoc, backgroundDoc, classDoc, pathPlan } = resolved;
-    const keyOptions = Array.isArray(classDoc.system?.keyAbility?.value) ? classDoc.system.keyAbility.value : [];
-    const keyAbility = keyOptions.includes(concept.keyAbility) ? concept.keyAbility
-      : keyOptions[0] ?? (ABILITY_KEYS.includes(concept.keyAbility) ? concept.keyAbility : "str");
-    const modsAt = (level) => projectAttributeModifiers({
-      ancestrySystem: ancestryDoc.system, backgroundSystem: backgroundDoc.system,
-      keyAbility, preferences: concept.abilityPriorities, level
-    });
-    const levelMods = modsAt(concept.level);
-    const initialMods = modsAt(1);
-    const { ranks: provenSkills } = initialSkillTraining(classDoc.system, backgroundDoc.system);
-    for (const planned of Object.values(pathPlan ?? {})) {
-      for (const [slug, rank] of Object.entries(planned?.skills ?? {})) {
-        provenSkills[slug] = Math.max(provenSkills[slug] ?? 0, rank);
-      }
-    }
-    const projection = levelMods && initialMods ? projectSkillRanks({
-      classSystem: classDoc.system, backgroundSystem: backgroundDoc.system, provenSkills,
-      intelligence: levelMods.int, initialIntelligence: initialMods.int, keyAbility,
-      priorities: concept.skillPriorities, level: concept.level
-    }) : null;
-    const loreSkills = Object.fromEntries((Array.isArray(backgroundDoc.system?.trainedSkills?.lore)
-      ? backgroundDoc.system.trainedSkills.lore : [])
-      .filter((name) => typeof name === "string" && name.trim())
-      .map((name) => [slugify(name), 1]));
-    const features = [];
-    for (const [tag, planned] of Object.entries(pathPlan ?? {})) {
-      if (!planned?.name) continue;
-      features.push({ name: planned.name });
-      if (tag === "mechanic-exocortex") features.push({ name: `${planned.name} exocortex` });
-      if (tag === "technomancer-programming-language") features.push({ name: `${planned.name} programming language` });
-    }
-    if (heritageDoc) features.push({ name: `${heritageDoc.name} heritage` });
-    return stagedActorContext({
-      level: concept.level, ancestry: ancestryDoc, heritage: heritageDoc, background: backgroundDoc, class: classDoc,
-      features, skills: { ...(projection ? projection.ranksAt(concept.level) : provenSkills), ...loreSkills },
-      abilities: levelMods ?? {}
-    });
+    return multiclassPickerContext(this.#input.multiclass);
   }
 
   #buildPCPreviewContext() {
-    if (!this.#pcConcept) return null;
-    const concept = this.#pcConcept;
-    const resolved = this.#pcResolved;
-    const ancestry = { name: resolved.ancestryDoc?.name ?? concept.ancestry, found: Boolean(resolved.ancestryDoc) };
-    const heritage = concept.heritage
-      ? { name: resolved.heritageDoc?.name ?? concept.heritage, found: Boolean(resolved.heritageDoc) }
-      : null;
-    const background = { name: resolved.backgroundDoc?.name ?? concept.background, found: Boolean(resolved.backgroundDoc) };
-    const pcClass = { name: resolved.classDoc?.name ?? concept.class, found: Boolean(resolved.classDoc) };
-    const feats = GeneratorApp.#pcFeatRows(resolved.feats);
-    const emptyFeatSlots = GeneratorApp.#emptyFeatSlots(resolved);
-    const spells = GeneratorApp.#mapSpells(resolved.spells);
-    const signatureRanks = concept.spellcasting?.signatureRanks ?? [];
-    const plannedSignatures = new Set(spells.filter((spell) => spell.found && spell.signature
-      && signatureRanks.includes(spell.rank)).map((spell) => spell.rank));
-    const equipment = GeneratorApp.#mapGear(resolved.equipment, resolved.skippedGear, "equipment");
-    const loot = GeneratorApp.#mapGear(resolved.loot, resolved.skippedGear, "loot");
-    return {
-      concept,
-      multiclass: this.#multiclassPreview(concept, resolved),
-      ancestry,
-      heritage,
-      background,
-      class: pcClass,
-      skillPriorities: skillPriorityOrder(concept.skillPriorities, concept.keyAbility).order.map((slug) => ({ name: GeneratorApp.#skillName(slug) })),
-      automaticSkills: normalizeSkillPriorities(concept.skillPriorities).length === 0,
-      spellcastingNotice: concept.spellcastingNoticeKey ? game.i18n.localize(concept.spellcastingNoticeKey) : null,
-      signatureSummary: signatureRanks.length ? game.i18n.format("SIMPLYSF2E.Preview.PCSignaturePlan", {
-        selected: plannedSignatures.size, total: signatureRanks.length
-      }) : null,
-      feats,
-      emptyFeatNotice: emptyFeatSlots.length ? game.i18n.format("SIMPLYSF2E.PC.EmptyFeatSlots", {
-        count: emptyFeatSlots.length, slots: emptyFeatSlots.join(", ")
-      }) : null,
-      spells,
-      equipment,
-      loot,
-      matchSummary: this.#matchSummary([ancestry], heritage ? [heritage] : [], [background], [pcClass],
-        feats.filter((feat) => !feat.empty), spells, equipment, loot)
-    };
-  }
-
-  /** PC feat rows. An empty slot (no legal feat left) is shown as empty, not as a miss;
-   * a rejected fill is still a miss. */
-  static #pcFeatRows(list) {
-    return (list ?? []).map((feat) => feat.entry
-      ? { name: feat.entry.name ?? feat.name, found: true }
-      : { name: GeneratorApp.#featSlotLabel(feat), found: false, empty: feat.placement !== "rejected" });
-  }
-
-  /** Labels such as "general 19" for character feat slots left empty. A
-   * rejected fill is unresolved, not empty, so it is not listed here. */
-  static #emptyFeatSlots(resolved) {
-    return (resolved?.feats ?? [])
-      .filter((feat) => !feat.entry && feat.placement !== "rejected")
-      .map((feat) => GeneratorApp.#featSlotLabel(feat));
-  }
-
-  static #featSlotLabel(feat) {
-    return `${feat.archetype ? "archetype " : ""}${feat.type} ${feat.level}`;
-  }
-
-  static #skillName(slug) {
-    return game.i18n.localize(globalThis.CONFIG?.PF2E?.skills?.[slug]?.label ?? slug);
-  }
-
-  static #skillReportContext(report) {
-    if (!report) return null;
-    const warningKeys = {
-      "native-data": "NativeData", "training-data": "TrainingData", "schedule": "Schedule",
-      "grant-timing": "GrantTiming", "native-rank-rule": "NativeRule",
-      "intelligence-timing": "IntelligenceTiming",
-      "unspent-training": "UnspentTraining", "unspent-increases": "UnspentIncreases",
-      "projection-mismatch": "ProjectionMismatch"
-    };
-    return {
-      rows: report.rows.map((row) => ({ name: row.name ?? this.#skillName(row.slug),
-        rank: game.i18n.localize(`SIMPLYSF2E.Skills.Rank${row.rank}`) })),
-      automatic: report.automatic,
-      budget: report.trainingBudget !== null && report.unspentTraining !== null
-        ? game.i18n.format("SIMPLYSF2E.Skills.Budget", {
-          spent: report.trainingBudget - report.unspentTraining, total: report.trainingBudget
-        }) : null,
-      warnings: report.warnings.map((code) => {
-        const key = warningKeys[code] ?? "NativeData";
-        const count = code === "unspent-training" ? report.unspentTraining : report.unspentIncreases;
-        return {
-          title: game.i18n.format(`SIMPLYSF2E.Skills.${key}Title`, { count }),
-          detail: game.i18n.format(`SIMPLYSF2E.Skills.${key}`, { count })
-        };
-      }),
-      loadoutWarnings: (report.loadoutWarnings ?? []).map((code) => {
-        const key = {
-          "loadout-native-data": "NativeData", "loadout-untrained-armor": "UntrainedArmor",
-          "loadout-armor-conflict": "ArmorConflict", "loadout-untrained-weapon": "UntrainedWeapon",
-          "loadout-hand-conflict": "HandConflict", "loadout-manual-ammo": "ManualAmmo",
-          "loadout-missing-ammo": "MissingAmmo"
-        }[code] ?? "NativeData";
-        return {
-          title: game.i18n.localize(`SIMPLYSF2E.Loadout.${key}Title`),
-          detail: game.i18n.localize(`SIMPLYSF2E.Loadout.${key}`)
-        };
-      })
-    };
+    return buildPCPreviewContext(this.#pcConcept, this.#pcResolved);
   }
 
   /**
@@ -634,185 +406,15 @@ export class GeneratorApp extends SpfApp {
     }).catch((err) => console.warn(`${MODULE_ID} | could not whisper the stat check`, err));
   }
 
-  /** Localized, count-only view of a validated completion manifest. */
-  static #completionContext(manifests) {
-    const summary = completionSummary(manifests);
-    const rows = [
-      ["compendium", "SIMPLYSF2E.Generator.CompletionCompendium"],
-      ["native", "SIMPLYSF2E.Generator.CompletionNative"],
-      ["moduleBuilt", "SIMPLYSF2E.Generator.CompletionModuleBuilt"],
-      ["customNarrative", "SIMPLYSF2E.Generator.CompletionCustomNarrative"],
-      ["skipped", "SIMPLYSF2E.Generator.CompletionSkipped"],
-      ["empty", "SIMPLYSF2E.Generator.CompletionEmpty"]
-    ].filter(([key]) => summary[key] > 0).map(([key, label]) => ({
-      text: game.i18n.format(label, { count: summary[key] })
-    }));
-    return { total: summary.total, rows };
-  }
-
-  /* The three preview shapes below are identical for creatures and characters,
-     so both #buildPreviewContext and #buildPCPreviewContext share them. Each
-     returns rows carrying `found`, which drives both the per-row checkmark and
-     #matchSummary's aggregate. */
-
-  /** Rows for a plain {name, entry} list (feats). */
-  static #mapNamed(list) {
-    return (list ?? []).map(({ name, entry }) => ({ name: entry?.name ?? name, found: Boolean(entry) }));
-  }
-
-  /** Rows for resolved spells, which carry their cast rank. */
-  static #mapSpells(list) {
-    return (list ?? []).map(({ spell, entry }) => ({
-      name: entry?.name ?? spell.name,
-      rank: spell.rank,
-      signature: spell.signature === true,
-      found: Boolean(entry)
-    }));
-  }
-
-  /**
-   * Rows for equipment or loot. A runed name is shown as the AI wrote it (the
-   * entry is only the base item), a spell gem as the item it will be built into,
-   * and a stack gets its ×N suffix. Skipped gear of this category (no
-   * published match, so it will not be created) follows as unfound rows.
-   */
-  static #mapGear(list, skipped = [], category = null) {
-    return [
-      ...(list ?? []).map(({ name, quantity, runes, entry, scroll }) => ({
-        name: (scroll && entry?.name
-          ? `Spell Gem of ${entry.name} (Rank ${scroll.rank})`
-          : (runes?.potency ? name : entry?.name ?? name)) + (quantity > 1 ? ` ×${quantity}` : ""),
-        found: Boolean(entry)
-      })),
-      ...(skipped ?? []).filter((item) => item.category === category).map(({ name, quantity }) => ({
-        name: name + (quantity > 1 ? ` ×${quantity}` : ""),
-        found: false
-      }))
-    ];
-  }
-
   #buildEncounterPreviewContext() {
-    if (!this.#encounter) return null;
-    return {
-      name: this.#encounter.name,
-      // Display-boundary thousands separators only; budget math stays numeric
-      // above (overBudget comparisons use the raw values, unchanged).
-      budget: Number(this.#encounter.budget ?? 0).toLocaleString("en-US"),
-      spent: Number(this.#encounter.spent ?? 0).toLocaleString("en-US"),
-      overBudget: this.#encounter.spent > this.#encounter.budget,
-      // True when every member's count is 0: Create All has nothing to create.
-      allSkipped: this.#encounter.members.every((m) => !(m.count > 0)),
-      // Internal treasure math stays in gp (applyTreasureBudget/lootValueGp);
-      // only the display boundary converts to credits via the cited rate.
-      treasureBudget: gpToCredits(Math.round(this.#encounter.treasureBudget ?? 0)).toLocaleString("en-US"),
-      treasureSpent: gpToCredits(this.#encounter.treasureSpent ?? 0).toLocaleString("en-US"),
-      treasureOverBudget: (this.#encounter.treasureSpent ?? 0) > (this.#encounter.treasureBudget ?? 0),
-      members: this.#encounter.members.map((member, index) => {
-        const stats = adjustedStats(computeStats(member.concept), member.concept);
-        const strike = stats.strikes[0];
-        return {
-          index,
-          count: member.count,
-          skipped: member.count === 0,
-          role: `SIMPLYSF2E.Role.${member.role.charAt(0).toUpperCase()}${member.role.slice(1)}`,
-          name: member.concept.name,
-          level: stats.level,
-          blurb: member.concept.blurb,
-          stats: {
-            ac: stats.ac,
-            hp: stats.hp,
-            perception: signed(stats.perception),
-            fort: signed(stats.saves.fortitude),
-            ref: signed(stats.saves.reflex),
-            will: signed(stats.saves.will),
-            strike: strike ? { name: strike.name, bonus: signed(strike.bonus), damage: strike.damage } : null,
-            spellDC: stats.spellDC ?? null
-          }
-        };
-      })
-    };
+    return buildEncounterPreviewContext(this.#encounter);
   }
+
 
   #buildPreviewContext() {
-    if (!this.#concept) return null;
-    const concept = this.#concept;
-    // Show what the sheet will display once pf2e applies Elite/Weak.
-    const stats = adjustedStats(computeStats(concept), concept);
-    // Resolved spells, feats and abilities line up 1:1 with the concept lists,
-    // so a row's index is also its reroll slot.
-    const rerollable = (kind, index) => Boolean(rerollTarget(concept, kind, index));
-    const abilities = (this.#resolved?.abilities ?? []).map(({ ability, entry }, index) => ({
-      name: ability.name,
-      fromGlossary: Boolean(entry),
-      glossaryName: entry?.name ?? null,
-      // A module-built area blast shows the Module-built label (no compendium source), not the narrative label.
-      narrative: Boolean(ability.narrative),
-      // A working area blast is module-built, not narrative-only (its own preview label).
-      moduleBuilt: Boolean(ability.areaBlast || ability.aura),
-      description: ability.description,
-      index,
-      rerollable: rerollable("ability", index)
-    }));
-    const spells = GeneratorApp.#mapSpells(this.#resolved?.spells)
-      .map((row, index) => ({ ...row, index, rerollable: rerollable("spell", index) }));
-    const feats = GeneratorApp.#mapNamed(this.#resolved?.feats)
-      .map((row, index) => ({ ...row, index, rerollable: rerollable("feat", index) }));
-    const equipment = GeneratorApp.#mapGear(this.#resolved?.equipment, this.#resolved?.skippedGear, "equipment");
-    const loot = GeneratorApp.#mapGear(this.#resolved?.loot, this.#resolved?.skippedGear, "loot");
-    // Signed display strings live beside `stats`, never in it: stats also feeds
-    // actor creation and arithmetic elsewhere.
-    const display = {
-      perception: signed(stats.perception),
-      skills: (stats.skills ?? []).map((skill) => ({ name: skill.name, mod: signed(skill.mod) })),
-      saves: {
-        fortitude: signed(stats.saves?.fortitude),
-        reflex: signed(stats.saves?.reflex),
-        will: signed(stats.saves?.will)
-      },
-      strikes: (stats.strikes ?? []).map((strike) => ({ ...strike, bonusText: signed(strike.bonus) })),
-      spellAttack: signed(stats.spellAttack)
-    };
-    return {
-      concept,
-      stats,
-      display,
-      traits: [concept.rarity !== "common" ? concept.rarity : null, concept.size, ...concept.traits].filter(Boolean),
-      speeds: concept.speeds.map((s) => `${s.type} ${s.value} ft.`).join(", "),
-      senses: concept.senses.map((s) => [s.type, s.acuity, s.range ? `${s.range} ft.` : null].filter(Boolean).join(" ")).join(", "),
-      languages: concept.languages.join(", "),
-      abilities,
-      spells,
-      feats,
-      equipment,
-      loot,
-      matchSummary: this.#matchSummary(
-        abilities.map((a) => ({ found: a.fromGlossary, narrative: a.narrative || a.moduleBuilt })), spells, feats, equipment, loot
-      ),
-      iwr: {
-        immunities: concept.immunities.join(", "),
-        resistances: concept.resistances.map((r) => `${r} ${stats.resistanceValue}`).join(", "),
-        weaknesses: concept.weaknesses.map((w) => `${w} ${stats.resistanceValue}`).join(", ")
-      }
-    };
+    return buildCreaturePreviewContext(this.#concept, this.#resolved);
   }
 
-  /**
-   * Aggregate "found vs. total" across every generated category — issue #52:
-   * the GM had no summary of how much of a generation actually grounded
-   * against the real compendium vs. fell back to AI-estimated custom items,
-   * only a per-item warning icon buried in each list. Each argument is an
-   * array of objects carrying a `found` boolean (a single ABC/heritage pick
-   * is wrapped in a 1-element array by the caller so it can be flattened the
-   * same way as the list categories).
-   * @returns {{matched: number, total: number, text: string}|null}
-   */
-  #matchSummary(...groups) {
-    const items = groups.flat().filter((item) => item && !item.narrative);
-    const total = items.length;
-    if (!total) return null;
-    const matched = items.filter((i) => i.found).length;
-    return { matched, total, text: game.i18n.format("SIMPLYSF2E.Preview.MatchSummary", { matched, total }) };
-  }
 
   /** Read the current form inputs into #input. */
   #readForm() {
@@ -1442,7 +1044,7 @@ export class GeneratorApp extends SpfApp {
           const { dropped } = validateArchetypeSlotPlacement(
             archetypePositions.map((index) => resolved.featSlots[index]),
             archetypePositions.map((index) => resolved.feats[index]),
-            this.#archetypePlacementContext(resolved, concept)
+            archetypePlacementContext(resolved, concept)
           );
           for (const { index, name } of dropped) {
             const position = archetypePositions[index];
@@ -1738,7 +1340,7 @@ export class GeneratorApp extends SpfApp {
       verifyCreatedActor(actor, this.#manifest, created.expectedItems);
       // The actor now exists. Clear the retryable plan before any presentation
       // work so a sheet-render failure cannot create a duplicate on retry.
-      const grounding = GeneratorApp.#completionContext(this.#manifest);
+      const grounding = completionContext(this.#manifest);
       const createdConcept = this.#concept;
       const createdResolved = this.#resolved;
       const createdMode = this.#previewMeta?.mode;
@@ -1842,8 +1444,8 @@ export class GeneratorApp extends SpfApp {
       verifyCreatedActor(actor, this.#manifest, result.expectedItems);
       // Commit all creation state before any presentation. Rendering and
       // notifications are intentionally unable to roll back valid work.
-      const grounding = GeneratorApp.#completionContext(this.#manifest);
-      const emptyFeatSlots = GeneratorApp.#emptyFeatSlots(this.#pcResolved);
+      const grounding = completionContext(this.#manifest);
+      const emptySlots = emptyFeatSlots(this.#pcResolved);
       this.#pcConcept = null;
       this.#pcResolved = null;
       this.#characterReview = null;
@@ -1854,8 +1456,8 @@ export class GeneratorApp extends SpfApp {
       committed = true;
       // Localized here because the empty-slot line carries its own arguments.
       const notes = (result.manualNotes ?? []).map((key) => game.i18n.localize(key));
-      if (emptyFeatSlots.length) {
-        notes.push(game.i18n.format("SIMPLYSF2E.PC.EmptyFeatSlots", { count: emptyFeatSlots.length, slots: emptyFeatSlots.join(", ") }));
+      if (emptySlots.length) {
+        notes.push(game.i18n.format("SIMPLYSF2E.PC.EmptyFeatSlots", { count: emptySlots.length, slots: emptySlots.join(", ") }));
       }
       if (notes.length) {
         ChatMessage.create({
@@ -1872,7 +1474,7 @@ export class GeneratorApp extends SpfApp {
           review = { choices: [], incomplete: true };
         }
         if (skillReport || review.choices.length || review.incomplete) {
-          const skills = GeneratorApp.#skillReportContext(skillReport);
+          const skills = skillReportContext(skillReport);
           const actionCount = (review.choices?.length ?? 0)
             + (skills?.warnings?.length ?? 0)
             + (skills?.loadoutWarnings?.length ?? 0)
@@ -1999,7 +1601,7 @@ export class GeneratorApp extends SpfApp {
       }
       // Commit before presentation: all writes succeeded, so this plan cannot
       // safely be retried even if the next render fails.
-      const grounding = GeneratorApp.#completionContext(this.#encounter.members.flatMap((member) =>
+      const grounding = completionContext(this.#encounter.members.flatMap((member) =>
         Array.from({ length: member.count }, () => member.manifest)
       ));
       this.#encounter = null;
@@ -2425,25 +2027,7 @@ export class GeneratorApp extends SpfApp {
   }
 
   #buildRecentContext() {
-    if (!this.#recent.length) return null;
-    const icons = {
-      monster: "fa-dna", npc: "fa-id-badge", encounter: "fa-crosshairs",
-      character: "fa-user-astronaut", reskin: "fa-masks-theater"
-    };
-    const modeKeys = { monster: "Monster", npc: "Npc", encounter: "Encounter", character: "Character", reskin: "Reskin" };
-    return this.#recent.map((entry) => {
-      const mode = game.i18n.localize(`SIMPLYSF2E.Mode.${modeKeys[entry.mode]}`);
-      const time = new Date(entry.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-      return {
-        id: entry.id,
-        mode: entry.mode,
-        icon: icons[entry.mode],
-        name: entry.name || game.i18n.localize("SIMPLYSF2E.Recent.Unnamed"),
-        detail: Number.isFinite(entry.level)
-          ? game.i18n.format("SIMPLYSF2E.Recent.Detail", { mode, level: entry.level, time })
-          : game.i18n.format("SIMPLYSF2E.Recent.DetailNoLevel", { mode, time })
-      };
-    });
+    return buildRecentContext(this.#recent);
   }
 
   /** Bring an earlier preview back on screen; the current one takes its place in the list. */
