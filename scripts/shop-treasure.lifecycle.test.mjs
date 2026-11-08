@@ -171,6 +171,30 @@ for (const [label, App, controls, createdKey, survivorKey] of [
     createdName = "Merchant";
   }
 
+  // (a3) A thrown non-Error (no .message) still gets the survivor note; nothing throws.
+  app = instance(App, controls);
+  await generate.call(app);
+  createdName = "Survivor Three";
+  verifyFailure = "plain string failure";
+  deleteFailure = new Error("delete refused");
+  await create.call(app);
+  const plain = (await app._prepareContext()).error;
+  assert.ok(plain?.startsWith("plain string failure. ") && plain.includes(survivorKey), `${label}: a plain-string throw keeps the survivor note (got ${plain})`);
+  assert.ok(plain.includes("Survivor Three"), `${label}: the survivor name is in the note`);
+  verifyFailure = null;
+  deleteFailure = null;
+  createdName = "Merchant";
+
+  // (a4) A plain-string throw with a successful rollback still shows that string as the error.
+  app = instance(App, controls);
+  await generate.call(app);
+  verifyFailure = "plain string, clean rollback";
+  deleteFailure = null;
+  await create.call(app);
+  const cleanPlain = (await app._prepareContext()).error;
+  assert.equal(cleanPlain, "plain string, clean rollback", `${label}: the plain-string message is the error text (got ${cleanPlain})`);
+  verifyFailure = null;
+
   // (b) Starting progress throws once: Generate is not left busy.
   app = instance(App, controls);
   beginFailure = new Error("progress setup failed");

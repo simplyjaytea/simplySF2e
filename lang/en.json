@@ -204,6 +204,10 @@
       "Disable": "Don't show for updates",
       "Earlier": "Earlier changes ({count})",
       "Note": {
+        "RunGuards": {
+          "Title": "Fewer ways to lose work",
+          "Body": "Create All is disabled when every encounter member is set to 0. If a created merchant or hoard cannot be verified and cannot be removed, the message names it and the draft is discarded so a retry does not make a duplicate. AI Provider Setup asks before switching, creating or deleting a connection with unsaved edits, keeps edits when loading models, and refuses to switch connections while a run is in progress."
+        },
         "OneScreenWelcome": {
           "Title": "Set up in one screen",
           "Body": "The Welcome window now connects your AI in one step: pick a provider, paste your key and press Connect. It loads the model list, tests the model and offers a sample monster. A failed connect leaves your previous setup untouched."
