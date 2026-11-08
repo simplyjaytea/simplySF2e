@@ -768,5 +768,7 @@ Generate a level 7 NPC with a limited cone breath (name "Frost Breath", cold), a
 
 ## 12ae. Provider Setup: edits and busy switch (T-BUG-PROV)
 
+| # | Step | Expected | Where to look | Result | Evidence |
+| --- | --- | --- | --- | --- | --- |
 | 12ae.1 | Provider Setup: change the Jev source or type a Jev endpoint, then press Load models. | The Jev field keeps the value you set; the model list fills in; nothing was reset. | Provider Setup | | |
 | 12ae.2 | Start a Generator run, then in Provider Setup pick another Saved connection. | The switch is refused with "A run is in progress. Wait for it to finish before switching connections."; the select shows the connection still in use. | Provider Setup, Generator | | |

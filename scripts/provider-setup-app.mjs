@@ -608,6 +608,20 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
     if (option) option.textContent = state.connectionName;
     const summary = this.element?.querySelector("details[data-section='prices'] .spf-fold-state");
     if (summary && this.#priceError == null) summary.textContent = pricesSummaryText(getActiveProviderPrices());
+    // The key field and the clear-key box follow hasApiKey, as provider-setup.hbs renders them.
+    const keyInput = this.element?.querySelector("[name='apiKey']");
+    if (keyInput) {
+      keyInput.placeholder = game.i18n.localize(state.hasConfiguredApiKey
+        ? "SIMPLYSF2E.ProviderSetup.ApiKeySaved" : "SIMPLYSF2E.ProviderSetup.ApiKeyOptional");
+      keyInput.value = "";
+    }
+    const clearBox = this.element?.querySelector(".spf-provider-clear-key");
+    const privacy = this.element?.querySelector(".spf-provider-privacy");
+    if (state.hasConfiguredApiKey && !clearBox) {
+      privacy?.insertAdjacentHTML("beforebegin", `<label class="spf-provider-clear-key"><input type="checkbox" name="clearApiKey"> ${esc(game.i18n.localize("SIMPLYSF2E.ProviderSetup.ClearApiKey"))}</label>`);
+    } else if (!state.hasConfiguredApiKey && clearBox) {
+      clearBox.remove();
+    }
   }
 
   /** Save/bind the displayed endpoint first, then populate model suggestions. */

@@ -25,6 +25,7 @@ let listModels;
 let saveCalls;
 let selectCalls;
 let createCalls;
+let deleteCalls;
 let confirmAnswer;
 let confirmCalls;
 let lastConfirm;
@@ -45,6 +46,7 @@ const resetState = () => {
   saveCalls = 0;
   selectCalls = [];
   createCalls = 0;
+  deleteCalls = 0;
   confirmAnswer = true;
   confirmCalls = 0;
   lastConfirm = null;
@@ -92,6 +94,10 @@ function standardForm() {
   form.control("[name='inputPerM']", { value: "" });
   form.control("[name='outputPerM']", { value: "" });
   form.control("#spf-provider-model-list", { innerHTML: "" });
+  form.control(".spf-provider-privacy", {
+    inserted: [],
+    insertAdjacentHTML(position, html) { this.inserted.push([position, html]); }
+  });
   form.control("[data-action='saveAndTest']");
   return form;
 }
@@ -137,7 +143,7 @@ const mocks = {
   MODULE_ID: "simplysf2e",
   SETTINGS: { apiBaseUrl: "apiBaseUrl", model: "model", apiKey: "apiKey", apiKeyBaseUrl: "apiKeyBaseUrl", providerBank: "providerBank" },
   createProviderConnection: async (data) => { createCalls += 1; return data; },
-  deleteProviderConnection: async () => {},
+  deleteProviderConnection: async () => { deleteCalls += 1; },
   ensureProviderBank: async () => {},
   getActiveProviderPrices: () => activePrices,
   getJevRequestConfig: () => jevStored,
@@ -150,7 +156,13 @@ const mocks = {
   connectionFormValues: connect.connectionFormValues,
   savedConnectionForDirty: connect.savedConnectionForDirty,
   snapshotProviderConnection: () => connect.snapshotProviderConnection((key) => storedSetting(key)),
-  saveProviderConnection: async () => { saveCalls += 1; return { state: providerState, provider: providerState.provider, model: providerState.model }; },
+  saveProviderConnection: async (data = {}) => {
+    saveCalls += 1;
+    // A typed key is stored; a clear request removes it. The returned state reflects that, as the real save does.
+    if (data.enteredApiKey) providerState.hasConfiguredApiKey = true;
+    if (data.clearApiKey) providerState.hasConfiguredApiKey = false;
+    return { state: providerState, provider: providerState.provider, model: providerState.model };
+  },
   listProviderModels: async () => listModels(),
   testProviderConnection: async () => ({ total: 1 }),
   JEV_SOURCES: { openrouter: { id: "openrouter", label: "OpenRouter" }, typesafe: { id: "typesafe", label: "TypeSafe AI" } },
@@ -280,6 +292,49 @@ const newApp = (form) => {
   assert.equal(options.localize, true, "localized key");
   assert.equal(options.escape, true, "values are escaped");
   assert.equal(options.format.message, "<b>x</b>", "the provider text is a format value");
+}
+
+// (f) Load models that stores a typed key: the key field reads as saved, the clear-key box appears unchecked,
+// and the unsaved Jev source is untouched.
+{
+  resetState();
+  providerState.hasConfiguredApiKey = false;
+  const form = standardForm();
+  form.querySelector("[name='apiKey']").value = "sk-new-secret";
+  form.querySelector("[name='jevSource']").value = "typesafe";
+  const privacy = form.querySelector(".spf-provider-privacy");
+  const app = newApp(form);
+  await actions.loadModels.call(app, null, { querySelector: () => null });
+  assert.equal(form.querySelector("[name='apiKey']").value, "", "the typed key was stored and the field is cleared");
+  assert.equal(form.querySelector("[name='apiKey']").placeholder, "SIMPLYSF2E.ProviderSetup.ApiKeySaved", "the field reads as a saved key");
+  assert.equal(privacy.inserted.length, 1, "the clear-key box is added once");
+  assert.equal(privacy.inserted[0][0], "beforebegin", "the box goes before the privacy note, as in the template");
+  assert.match(privacy.inserted[0][1], /name="clearApiKey"/, "the box is the clear-key checkbox");
+  assert.doesNotMatch(privacy.inserted[0][1], /checked/, "the box is unchecked");
+  assert.equal(form.querySelector("[name='jevSource']").value, "typesafe", "the unsaved Jev source is intact");
+}
+
+// (g) Delete and switch with unsaved edits each ask with their own label.
+{
+  resetState();
+  const deleteForm = standardForm();
+  deleteForm.querySelector("[name='jevApiKey']").value = "typed";
+  const deleteApp = newApp(deleteForm);
+  confirmAnswer = true;
+  await actions.deleteConnection.call(deleteApp, null, {});
+  assert.equal(lastConfirm.yes.label, "SIMPLYSF2E.ProviderSetup.UnsavedContinue", "Delete with unsaved edits asks to Continue");
+  assert.equal(deleteCalls, 1, "Continue deletes the connection");
+
+  resetState();
+  const switchForm = standardForm();
+  switchForm.querySelector("[name='model']").value = "unsaved-model";
+  newApp(switchForm);
+  const select = switchForm.querySelector("[name='activeConnection']");
+  select.value = "conn-2";
+  for (const { type, fn } of select.listeners) if (type === "change") fn({ currentTarget: select });
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(lastConfirm.yes.label, "SIMPLYSF2E.ProviderSetup.UnsavedSwitch", "a switch with unsaved edits asks with Switch");
+  assert.deepEqual(selectCalls, ["conn-2"], "Switch anyway switches");
 }
 
 // (e) Create asks before a render would drop unsaved Jev edits; Stay keeps the connection list as it was.
