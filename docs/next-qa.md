@@ -11,3 +11,4 @@ Appended by the coordinator when a batch lands on `next`; copied into the PR bod
 | BATCH-5 (2026-11-08) | 12ae.1, 12ae.2 | 2026-11-08-run-guards (lands with T-NOTES) |
 | BATCH-6 (2026-11-08) | none | 2026-11-08-run-guards |
 | BATCH-7 (2026-11-08) | 14a.1-14a.10, 14b.1-14b.7, 14c.1-14c.6 | 2026-11-08-shell-consistency |
+| BATCH-8 (2026-11-08) | none | none (P2 short candidate ids; ABC id-or-name validation) |
