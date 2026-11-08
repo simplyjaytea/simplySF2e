@@ -1,6 +1,6 @@
 # Shop and Treasure bench: findings
 
-Hand-written analysis of `tools/pipeline-bench/market.mjs` against sf2e 1.6.1 (`foundryvtt/pf2e` v14-dev `be4ab21`, the pin in `tools/class-bench/cache/SOURCE.txt`). The bench changes no production file. Rerun it after a fix and compare the matrix; this report is not regenerated.
+Hand-written analysis of `tools/pipeline-bench/market.mjs` against sf2e 1.6.1 (`foundryvtt/pf2e` v14-dev `be4ab21`, the pin in `tools/class-bench/cache/SOURCE.txt`). The bench changes no production file. Rerun it after a fix and compare the matrix; this report is not regenerated. Re-run 2026-11-08 on sf2e 1.7.0 (`52dfeee`) at the 5,000,000 cap: 240 of 240 PASS, 24 Credstick rows, max 1 per hoard.
 
 Run: `node tools/class-bench/fetch.mjs` once, then `node tools/pipeline-bench/market.mjs`. It covers 240 runs in under a second. Per-run detail is in `tools/pipeline-bench/out/market.json`.
 
@@ -127,4 +127,4 @@ Unverified live: that the 15 items really have no price in the running sf2e 1.6.
 
 ## Live check for JT
 
-Run `docs/qa-checklist.md` 12z.2 and 13h.3. At an armor shop, level 3, confirm no row shows 0 cr and the console shows the dropped-item warning. Then create one whole-level level-20 hoard and confirm it holds 49 Credsticks that sum to the leftover (the bench's count for that hoard).
+Run `docs/qa-checklist.md` 12z.2 and 13h.3. At an armor shop, level 3, confirm no row shows 0 cr and the console shows the dropped-item warning. Then create one whole-level level-20 hoard and confirm it holds 49 Credsticks that sum to the leftover (the bench's count for that hoard) (written at the 100,000 cap; since 2026-11-08 it is one Credstick, QA 13h.6).
