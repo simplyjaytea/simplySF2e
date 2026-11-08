@@ -138,6 +138,9 @@
 .simplysf2e .spf-price-field input {
   width: 100%;
   min-width: 0;
+  /* Prices are numbers the GM compares: tabular figures, right-aligned (S8). */
+  font-variant-numeric: tabular-nums;
+  text-align: end;
 }
 
 .simplysf2e .spf-provider-privacy,
