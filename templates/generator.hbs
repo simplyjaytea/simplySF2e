@@ -669,7 +669,7 @@
       </details>
     {{/if}}
     <footer class="spf-actions">
-      <button type="button" class="spf-primary" data-action="createActor" {{#if busy}}disabled{{/if}}>
+      <button type="button" class="spf-primary" data-action="createActor" {{#if busy}}disabled{{else if encounterPreview.allSkipped}}disabled{{/if}}>
         <i aria-hidden="true" class="fa-solid fa-users"></i> {{localize "SIMPLYSF2E.Generator.CreateAll"}}
       </button>
       <button type="button" data-action="discard" {{#if busy}}disabled{{/if}}>

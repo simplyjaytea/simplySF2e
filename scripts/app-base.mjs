@@ -254,9 +254,11 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
       }));
     } catch (err) {
       console.error("simplysf2e | provider connection test failed", err);
-      ui.notifications.error(game.i18n.format("SIMPLYSF2E.ProviderSetup.TestFailed", {
-        message: err?.message ?? String(err)
-      }));
+      ui.notifications.error("SIMPLYSF2E.ProviderSetup.TestFailed", {
+        localize: true,
+        format: { message: err?.message ?? String(err) },
+        escape: true
+      });
     } finally {
       target.disabled = false;
       if (icon && originalClass) icon.className = originalClass;

@@ -98,6 +98,7 @@ Use one prompt at level 5. The goal is to prove the adjustment is applied once (
 | 4.6 | Count actors in the folder. | Count equals the sum of member counts in the plan. Duplicates are named "Name 1", "Name 2". Each has bestiary-borrowed art and a plausible level. | Actor folder | | |
 | 4.7 | Rollback: Compendium Sources → Bestiary Actors, uncheck every pack, Save. Generate an encounter preview and click **Create All Actors**. | Creation fails with "No usable NPC actor was available in the enabled Bestiary Actor sources…". No folder from this attempt remains and no stray actors remain (all-or-nothing). | Actors directory, console | | |
 | 4.8 | Restore defaults (Compendium Sources → **Reset to defaults** → Save). | Sources ready again. | Sources window | | |
+| 4.9 | Generate an encounter preview, then press "Remove one" on every member until each count is 0. Try to click **Create All Actors**. | The button is disabled. No folder is created and no "Created 0 actors" notice appears. Raising any member back to 1 enables it again. | Encounter preview, Actors sidebar | | |
 
 ## 5. Reskin
 
@@ -770,3 +771,4 @@ Generate a level 7 NPC with a limited cone breath (name "Frost Breath", cold), a
 | 12ac.10 | Shop/Treasure narrow windows. | Tables readable. | Shop/Treasure | | |
 | 12ac.11 | Polish nits. | API-key warning order, Welcome note, divider. | Various | | |
 | 12ac.12 | Unsaved edits guard. Edit the endpoint of a saved connection, then pick another connection in Saved connections. | Dialog "Unsaved changes" names the endpoint field and the connection. Stay keeps the edit and puts the select back on the current connection. Switch loads the other connection. | Provider Setup | | |
+| 12ad.1 | Hard to force on a live world: a shop or hoard create where the actor is written, verification fails, and the rollback delete is refused (for example, the actor is locked by another user's permission change mid-create). | The error names the surviving actor (for example "Merchant \"X\" still exists ... remove it manually") and the preview is cleared; Create again does not make a second actor. | Shop, Treasure | | |
