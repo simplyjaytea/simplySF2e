@@ -1,0 +1,1600 @@
+{
+  "creatureNone": null,
+  "creatureFull": {
+    "concept": {
+      "name": "Rift-Scarred Vanguard",
+      "blurb": "A mercenary half-fused with a failing warp lattice.",
+      "description": "Its armor hums where it meets the lattice.",
+      "readAloud": "",
+      "recallKnowledge": "",
+      "level": 4,
+      "adjustment": null,
+      "rarity": "uncommon",
+      "size": "med",
+      "traits": [
+        "humanoid",
+        "human"
+      ],
+      "languages": [
+        "common",
+        "kalo"
+      ],
+      "abilityScales": {
+        "str": "high",
+        "dex": "moderate",
+        "con": "high",
+        "int": "low",
+        "wis": "moderate",
+        "cha": "low"
+      },
+      "acScale": "high",
+      "hpScale": "high",
+      "perceptionScale": "moderate",
+      "saveScales": {
+        "fortitude": "high",
+        "reflex": "moderate",
+        "will": "low"
+      },
+      "speeds": [
+        {
+          "type": "land",
+          "value": 25
+        }
+      ],
+      "senses": [
+        {
+          "type": "darkvision"
+        }
+      ],
+      "skills": [
+        {
+          "name": "Athletics",
+          "scale": "high"
+        }
+      ],
+      "strikes": [
+        {
+          "name": "Lattice Blade",
+          "type": "melee",
+          "attackScale": "high",
+          "damageScale": "high",
+          "damageType": "slashing",
+          "traits": [],
+          "range": null,
+          "attackEffects": []
+        },
+        {
+          "name": "Rail Pistol",
+          "type": "ranged",
+          "attackScale": "moderate",
+          "damageScale": "moderate",
+          "damageType": "piercing",
+          "traits": [],
+          "range": null,
+          "attackEffects": []
+        }
+      ],
+      "specialAbilities": [
+        {
+          "name": "Surge",
+          "glossary": null,
+          "candidate": null,
+          "narrative": false,
+          "actionType": "passive",
+          "actions": null,
+          "areaBlast": null,
+          "aura": null,
+          "description": "",
+          "abilityDcScale": null,
+          "damageType": null,
+          "traits": []
+        }
+      ],
+      "spellcasting": {
+        "tradition": "arcane",
+        "maxRank": 2,
+        "spells": [
+          {
+            "name": "Shock",
+            "rank": 1
+          },
+          {
+            "name": "Haste",
+            "rank": 2
+          }
+        ]
+      },
+      "focusSpells": [],
+      "feats": [
+        "Sudden Charge"
+      ],
+      "equipment": [],
+      "loot": [],
+      "resistances": [
+        "fire"
+      ],
+      "weaknesses": [
+        "cold-iron"
+      ],
+      "immunities": []
+    },
+    "stats": {
+      "abilities": {
+        "str": 5,
+        "dex": 3,
+        "con": 5,
+        "int": 2,
+        "wis": 3,
+        "cha": 2
+      },
+      "ac": 21,
+      "hp": 75,
+      "perception": 11,
+      "saves": {
+        "fortitude": 14,
+        "reflex": 11,
+        "will": 8
+      },
+      "skills": [
+        {
+          "name": "Athletics",
+          "scale": "high",
+          "mod": 12
+        }
+      ],
+      "strikes": [
+        {
+          "name": "Lattice Blade",
+          "type": "melee",
+          "attackScale": "high",
+          "damageScale": "high",
+          "damageType": "slashing",
+          "traits": [],
+          "range": null,
+          "attackEffects": [],
+          "bonus": 14,
+          "damage": "2d8+5",
+          "average": 14
+        },
+        {
+          "name": "Rail Pistol",
+          "type": "ranged",
+          "attackScale": "moderate",
+          "damageScale": "moderate",
+          "damageType": "piercing",
+          "traits": [],
+          "range": null,
+          "attackEffects": [],
+          "bonus": 12,
+          "damage": "2d6+5",
+          "average": 12
+        }
+      ],
+      "spellDC": 21,
+      "spellAttack": 13,
+      "resistanceValue": 4,
+      "classDC": {
+        "extreme": 25,
+        "high": 21,
+        "moderate": 18
+      },
+      "level": 4
+    },
+    "display": {
+      "perception": "+11",
+      "skills": [
+        {
+          "name": "Athletics",
+          "mod": "+12"
+        }
+      ],
+      "saves": {
+        "fortitude": "+14",
+        "reflex": "+11",
+        "will": "+8"
+      },
+      "strikes": [
+        {
+          "name": "Lattice Blade",
+          "type": "melee",
+          "attackScale": "high",
+          "damageScale": "high",
+          "damageType": "slashing",
+          "traits": [],
+          "range": null,
+          "attackEffects": [],
+          "bonus": 14,
+          "damage": "2d8+5",
+          "average": 14,
+          "bonusText": "+14"
+        },
+        {
+          "name": "Rail Pistol",
+          "type": "ranged",
+          "attackScale": "moderate",
+          "damageScale": "moderate",
+          "damageType": "piercing",
+          "traits": [],
+          "range": null,
+          "attackEffects": [],
+          "bonus": 12,
+          "damage": "2d6+5",
+          "average": 12,
+          "bonusText": "+12"
+        }
+      ],
+      "spellAttack": "+13"
+    },
+    "traits": [
+      "uncommon",
+      "med",
+      "humanoid",
+      "human"
+    ],
+    "speeds": "land 25 ft.",
+    "senses": "darkvision",
+    "languages": "common, kalo",
+    "abilities": [
+      {
+        "name": "Rally",
+        "fromGlossary": true,
+        "glossaryName": "Rally the Line",
+        "narrative": false,
+        "moduleBuilt": false,
+        "description": "x",
+        "index": 0,
+        "rerollable": true
+      },
+      {
+        "name": "Frost Breath",
+        "fromGlossary": false,
+        "glossaryName": null,
+        "narrative": false,
+        "moduleBuilt": true,
+        "description": "Frost pours.",
+        "index": 1,
+        "rerollable": false
+      },
+      {
+        "name": "Hums",
+        "fromGlossary": false,
+        "glossaryName": null,
+        "narrative": true,
+        "moduleBuilt": false,
+        "description": "Flavor only.",
+        "index": 2,
+        "rerollable": false
+      },
+      {
+        "name": "Stench",
+        "fromGlossary": false,
+        "glossaryName": null,
+        "narrative": false,
+        "moduleBuilt": true,
+        "index": 3,
+        "rerollable": false
+      }
+    ],
+    "spells": [
+      {
+        "name": "Shock",
+        "rank": 1,
+        "signature": true,
+        "found": true,
+        "index": 0,
+        "rerollable": true
+      },
+      {
+        "name": "Haste",
+        "rank": 2,
+        "signature": false,
+        "found": false,
+        "index": 1,
+        "rerollable": true
+      }
+    ],
+    "feats": [
+      {
+        "name": "Sudden Charge",
+        "found": true,
+        "index": 0,
+        "rerollable": true
+      },
+      {
+        "name": "Lattice Reflex",
+        "found": false,
+        "index": 1,
+        "rerollable": false
+      }
+    ],
+    "equipment": [
+      {
+        "name": "Plasma Rifle",
+        "found": true
+      },
+      {
+        "name": "Tactical Plate Armor ×2",
+        "found": true
+      },
+      {
+        "name": "Spell Gem of Fireball (Rank 3)",
+        "found": true
+      },
+      {
+        "name": "Chitin Shell ×3",
+        "found": false
+      }
+    ],
+    "loot": [
+      {
+        "name": "Credstick ×120",
+        "found": true
+      },
+      {
+        "name": "Oddity",
+        "found": false
+      }
+    ],
+    "matchSummary": {
+      "matched": 7,
+      "total": 11,
+      "text": "SIMPLYSF2E.Preview.MatchSummary:{\"matched\":7,\"total\":11}"
+    },
+    "iwr": {
+      "immunities": "",
+      "resistances": "fire 4",
+      "weaknesses": "cold-iron 4"
+    }
+  },
+  "creatureNoResolved": {
+    "concept": {
+      "name": "Rift-Scarred Vanguard",
+      "blurb": "A mercenary half-fused with a failing warp lattice.",
+      "description": "Its armor hums where it meets the lattice.",
+      "readAloud": "",
+      "recallKnowledge": "",
+      "level": 4,
+      "adjustment": null,
+      "rarity": "uncommon",
+      "size": "med",
+      "traits": [
+        "humanoid",
+        "human"
+      ],
+      "languages": [
+        "common",
+        "kalo"
+      ],
+      "abilityScales": {
+        "str": "high",
+        "dex": "moderate",
+        "con": "high",
+        "int": "low",
+        "wis": "moderate",
+        "cha": "low"
+      },
+      "acScale": "high",
+      "hpScale": "high",
+      "perceptionScale": "moderate",
+      "saveScales": {
+        "fortitude": "high",
+        "reflex": "moderate",
+        "will": "low"
+      },
+      "speeds": [
+        {
+          "type": "land",
+          "value": 25
+        }
+      ],
+      "senses": [
+        {
+          "type": "darkvision"
+        }
+      ],
+      "skills": [
+        {
+          "name": "Athletics",
+          "scale": "high"
+        }
+      ],
+      "strikes": [
+        {
+          "name": "Lattice Blade",
+          "type": "melee",
+          "attackScale": "high",
+          "damageScale": "high",
+          "damageType": "slashing",
+          "traits": [],
+          "range": null,
+          "attackEffects": []
+        },
+        {
+          "name": "Rail Pistol",
+          "type": "ranged",
+          "attackScale": "moderate",
+          "damageScale": "moderate",
+          "damageType": "piercing",
+          "traits": [],
+          "range": null,
+          "attackEffects": []
+        }
+      ],
+      "specialAbilities": [
+        {
+          "name": "Surge",
+          "glossary": null,
+          "candidate": null,
+          "narrative": false,
+          "actionType": "passive",
+          "actions": null,
+          "areaBlast": null,
+          "aura": null,
+          "description": "",
+          "abilityDcScale": null,
+          "damageType": null,
+          "traits": []
+        }
+      ],
+      "spellcasting": {
+        "tradition": "arcane",
+        "maxRank": 2,
+        "spells": [
+          {
+            "name": "Shock",
+            "rank": 1
+          },
+          {
+            "name": "Haste",
+            "rank": 2
+          }
+        ]
+      },
+      "focusSpells": [],
+      "feats": [
+        "Sudden Charge"
+      ],
+      "equipment": [],
+      "loot": [],
+      "resistances": [
+        "fire"
+      ],
+      "weaknesses": [
+        "cold-iron"
+      ],
+      "immunities": []
+    },
+    "stats": {
+      "abilities": {
+        "str": 5,
+        "dex": 3,
+        "con": 5,
+        "int": 2,
+        "wis": 3,
+        "cha": 2
+      },
+      "ac": 21,
+      "hp": 75,
+      "perception": 11,
+      "saves": {
+        "fortitude": 14,
+        "reflex": 11,
+        "will": 8
+      },
+      "skills": [
+        {
+          "name": "Athletics",
+          "scale": "high",
+          "mod": 12
+        }
+      ],
+      "strikes": [
+        {
+          "name": "Lattice Blade",
+          "type": "melee",
+          "attackScale": "high",
+          "damageScale": "high",
+          "damageType": "slashing",
+          "traits": [],
+          "range": null,
+          "attackEffects": [],
+          "bonus": 14,
+          "damage": "2d8+5",
+          "average": 14
+        },
+        {
+          "name": "Rail Pistol",
+          "type": "ranged",
+          "attackScale": "moderate",
+          "damageScale": "moderate",
+          "damageType": "piercing",
+          "traits": [],
+          "range": null,
+          "attackEffects": [],
+          "bonus": 12,
+          "damage": "2d6+5",
+          "average": 12
+        }
+      ],
+      "spellDC": 21,
+      "spellAttack": 13,
+      "resistanceValue": 4,
+      "classDC": {
+        "extreme": 25,
+        "high": 21,
+        "moderate": 18
+      },
+      "level": 4
+    },
+    "display": {
+      "perception": "+11",
+      "skills": [
+        {
+          "name": "Athletics",
+          "mod": "+12"
+        }
+      ],
+      "saves": {
+        "fortitude": "+14",
+        "reflex": "+11",
+        "will": "+8"
+      },
+      "strikes": [
+        {
+          "name": "Lattice Blade",
+          "type": "melee",
+          "attackScale": "high",
+          "damageScale": "high",
+          "damageType": "slashing",
+          "traits": [],
+          "range": null,
+          "attackEffects": [],
+          "bonus": 14,
+          "damage": "2d8+5",
+          "average": 14,
+          "bonusText": "+14"
+        },
+        {
+          "name": "Rail Pistol",
+          "type": "ranged",
+          "attackScale": "moderate",
+          "damageScale": "moderate",
+          "damageType": "piercing",
+          "traits": [],
+          "range": null,
+          "attackEffects": [],
+          "bonus": 12,
+          "damage": "2d6+5",
+          "average": 12,
+          "bonusText": "+12"
+        }
+      ],
+      "spellAttack": "+13"
+    },
+    "traits": [
+      "uncommon",
+      "med",
+      "humanoid",
+      "human"
+    ],
+    "speeds": "land 25 ft.",
+    "senses": "darkvision",
+    "languages": "common, kalo",
+    "abilities": [],
+    "spells": [],
+    "feats": [],
+    "equipment": [],
+    "loot": [],
+    "matchSummary": null,
+    "iwr": {
+      "immunities": "",
+      "resistances": "fire 4",
+      "weaknesses": "cold-iron 4"
+    }
+  },
+  "creatureElite": {
+    "concept": {
+      "name": "Rift-Scarred Vanguard",
+      "blurb": "A mercenary half-fused with a failing warp lattice.",
+      "description": "Its armor hums where it meets the lattice.",
+      "readAloud": "",
+      "recallKnowledge": "",
+      "level": 4,
+      "adjustment": "elite",
+      "rarity": "rare",
+      "size": "med",
+      "traits": [
+        "humanoid",
+        "human"
+      ],
+      "languages": [
+        "common",
+        "kalo"
+      ],
+      "abilityScales": {
+        "str": "high",
+        "dex": "moderate",
+        "con": "high",
+        "int": "low",
+        "wis": "moderate",
+        "cha": "low"
+      },
+      "acScale": "high",
+      "hpScale": "high",
+      "perceptionScale": "moderate",
+      "saveScales": {
+        "fortitude": "high",
+        "reflex": "moderate",
+        "will": "low"
+      },
+      "speeds": [
+        {
+          "type": "land",
+          "value": 25
+        }
+      ],
+      "senses": [
+        {
+          "type": "darkvision"
+        }
+      ],
+      "skills": [
+        {
+          "name": "Athletics",
+          "scale": "high"
+        }
+      ],
+      "strikes": [
+        {
+          "name": "Lattice Blade",
+          "type": "melee",
+          "attackScale": "high",
+          "damageScale": "high",
+          "damageType": "slashing",
+          "traits": [],
+          "range": null,
+          "attackEffects": []
+        },
+        {
+          "name": "Rail Pistol",
+          "type": "ranged",
+          "attackScale": "moderate",
+          "damageScale": "moderate",
+          "damageType": "piercing",
+          "traits": [],
+          "range": null,
+          "attackEffects": []
+        }
+      ],
+      "specialAbilities": [],
+      "spellcasting": null,
+      "focusSpells": [],
+      "feats": [],
+      "equipment": [],
+      "loot": [],
+      "resistances": [],
+      "weaknesses": [],
+      "immunities": []
+    },
+    "stats": {
+      "abilities": {
+        "str": 5,
+        "dex": 3,
+        "con": 5,
+        "int": 2,
+        "wis": 3,
+        "cha": 2
+      },
+      "ac": 23,
+      "hp": 90,
+      "perception": 13,
+      "saves": {
+        "fortitude": 16,
+        "reflex": 13,
+        "will": 10
+      },
+      "skills": [
+        {
+          "name": "Athletics",
+          "scale": "high",
+          "mod": 14
+        }
+      ],
+      "strikes": [
+        {
+          "name": "Lattice Blade",
+          "type": "melee",
+          "attackScale": "high",
+          "damageScale": "high",
+          "damageType": "slashing",
+          "traits": [],
+          "range": null,
+          "attackEffects": [],
+          "bonus": 16,
+          "damage": "2d8+7",
+          "average": 16
+        },
+        {
+          "name": "Rail Pistol",
+          "type": "ranged",
+          "attackScale": "moderate",
+          "damageScale": "moderate",
+          "damageType": "piercing",
+          "traits": [],
+          "range": null,
+          "attackEffects": [],
+          "bonus": 14,
+          "damage": "2d6+7",
+          "average": 14
+        }
+      ],
+      "spellDC": null,
+      "spellAttack": null,
+      "resistanceValue": 4,
+      "classDC": {
+        "extreme": 25,
+        "high": 21,
+        "moderate": 18
+      },
+      "level": 5
+    },
+    "display": {
+      "perception": "+13",
+      "skills": [
+        {
+          "name": "Athletics",
+          "mod": "+14"
+        }
+      ],
+      "saves": {
+        "fortitude": "+16",
+        "reflex": "+13",
+        "will": "+10"
+      },
+      "strikes": [
+        {
+          "name": "Lattice Blade",
+          "type": "melee",
+          "attackScale": "high",
+          "damageScale": "high",
+          "damageType": "slashing",
+          "traits": [],
+          "range": null,
+          "attackEffects": [],
+          "bonus": 16,
+          "damage": "2d8+7",
+          "average": 16,
+          "bonusText": "+16"
+        },
+        {
+          "name": "Rail Pistol",
+          "type": "ranged",
+          "attackScale": "moderate",
+          "damageScale": "moderate",
+          "damageType": "piercing",
+          "traits": [],
+          "range": null,
+          "attackEffects": [],
+          "bonus": 14,
+          "damage": "2d6+7",
+          "average": 14,
+          "bonusText": "+14"
+        }
+      ],
+      "spellAttack": ""
+    },
+    "traits": [
+      "rare",
+      "med",
+      "humanoid",
+      "human"
+    ],
+    "speeds": "land 25 ft.",
+    "senses": "darkvision",
+    "languages": "common, kalo",
+    "abilities": [],
+    "spells": [],
+    "feats": [],
+    "equipment": [],
+    "loot": [],
+    "matchSummary": null,
+    "iwr": {
+      "immunities": "",
+      "resistances": "",
+      "weaknesses": ""
+    }
+  },
+  "encounterNone": null,
+  "encounterMixed": {
+    "name": "Ambush at the Failing Lattice",
+    "budget": "120",
+    "spent": "135",
+    "overBudget": true,
+    "allSkipped": false,
+    "treasureBudget": "2,800",
+    "treasureSpent": "1,204",
+    "treasureOverBudget": false,
+    "members": [
+      {
+        "index": 0,
+        "count": 1,
+        "skipped": false,
+        "role": "SIMPLYSF2E.Role.Boss",
+        "name": "Member 1",
+        "level": 3,
+        "blurb": "A mercenary half-fused with a failing warp lattice.",
+        "stats": {
+          "ac": 19,
+          "hp": 56,
+          "perception": "+9",
+          "fort": "+12",
+          "ref": "+9",
+          "will": "+6",
+          "strike": {
+            "name": "Lattice Blade",
+            "bonus": "+12",
+            "damage": "1d10+6"
+          },
+          "spellDC": null
+        }
+      },
+      {
+        "index": 1,
+        "count": 3,
+        "skipped": false,
+        "role": "SIMPLYSF2E.Role.Minion",
+        "name": "Member 2",
+        "level": 4,
+        "blurb": "A mercenary half-fused with a failing warp lattice.",
+        "stats": {
+          "ac": 21,
+          "hp": 75,
+          "perception": "+11",
+          "fort": "+14",
+          "ref": "+11",
+          "will": "+8",
+          "strike": {
+            "name": "Lattice Blade",
+            "bonus": "+14",
+            "damage": "2d8+5"
+          },
+          "spellDC": null
+        }
+      },
+      {
+        "index": 2,
+        "count": 0,
+        "skipped": true,
+        "role": "SIMPLYSF2E.Role.Minion",
+        "name": "Member 3",
+        "level": 5,
+        "blurb": "A mercenary half-fused with a failing warp lattice.",
+        "stats": {
+          "ac": 22,
+          "hp": 94,
+          "perception": "+12",
+          "fort": "+15",
+          "ref": "+12",
+          "will": "+9",
+          "strike": {
+            "name": "Lattice Blade",
+            "bonus": "+15",
+            "damage": "2d8+7"
+          },
+          "spellDC": null
+        }
+      }
+    ]
+  },
+  "encounterAllSkipped": {
+    "name": "Ambush at the Failing Lattice",
+    "budget": "120",
+    "spent": "135",
+    "overBudget": true,
+    "allSkipped": true,
+    "treasureBudget": "2,800",
+    "treasureSpent": "1,204",
+    "treasureOverBudget": false,
+    "members": [
+      {
+        "index": 0,
+        "count": 0,
+        "skipped": true,
+        "role": "SIMPLYSF2E.Role.Boss",
+        "name": "Member 1",
+        "level": 3,
+        "blurb": "A mercenary half-fused with a failing warp lattice.",
+        "stats": {
+          "ac": 19,
+          "hp": 56,
+          "perception": "+9",
+          "fort": "+12",
+          "ref": "+9",
+          "will": "+6",
+          "strike": {
+            "name": "Lattice Blade",
+            "bonus": "+12",
+            "damage": "1d10+6"
+          },
+          "spellDC": null
+        }
+      },
+      {
+        "index": 1,
+        "count": 0,
+        "skipped": true,
+        "role": "SIMPLYSF2E.Role.Minion",
+        "name": "Member 2",
+        "level": 4,
+        "blurb": "A mercenary half-fused with a failing warp lattice.",
+        "stats": {
+          "ac": 21,
+          "hp": 75,
+          "perception": "+11",
+          "fort": "+14",
+          "ref": "+11",
+          "will": "+8",
+          "strike": {
+            "name": "Lattice Blade",
+            "bonus": "+14",
+            "damage": "2d8+5"
+          },
+          "spellDC": null
+        }
+      }
+    ]
+  },
+  "encounterUnder": {
+    "name": "Ambush at the Failing Lattice",
+    "budget": "120",
+    "spent": "80",
+    "overBudget": false,
+    "allSkipped": false,
+    "treasureBudget": "5,000",
+    "treasureSpent": "100",
+    "treasureOverBudget": false,
+    "members": [
+      {
+        "index": 0,
+        "count": 2,
+        "skipped": false,
+        "role": "SIMPLYSF2E.Role.Boss",
+        "name": "Member 1",
+        "level": 3,
+        "blurb": "A mercenary half-fused with a failing warp lattice.",
+        "stats": {
+          "ac": 19,
+          "hp": 56,
+          "perception": "+9",
+          "fort": "+12",
+          "ref": "+9",
+          "will": "+6",
+          "strike": {
+            "name": "Lattice Blade",
+            "bonus": "+12",
+            "damage": "1d10+6"
+          },
+          "spellDC": null
+        }
+      },
+      {
+        "index": 1,
+        "count": 2,
+        "skipped": false,
+        "role": "SIMPLYSF2E.Role.Minion",
+        "name": "Member 2",
+        "level": 4,
+        "blurb": "A mercenary half-fused with a failing warp lattice.",
+        "stats": {
+          "ac": 21,
+          "hp": 75,
+          "perception": "+11",
+          "fort": "+14",
+          "ref": "+11",
+          "will": "+8",
+          "strike": {
+            "name": "Lattice Blade",
+            "bonus": "+14",
+            "damage": "2d8+5"
+          },
+          "spellDC": null
+        }
+      }
+    ]
+  },
+  "pcNone": null,
+  "pcFull": {
+    "concept": {
+      "name": "Kess Vandrel",
+      "ancestry": "Vesk",
+      "heritage": "Armored",
+      "background": "Guard",
+      "class": "Soldier",
+      "keyAbility": "str",
+      "level": 3,
+      "skillPriorities": [
+        "athletics",
+        "acrobatics"
+      ],
+      "spellcasting": {
+        "signatureRanks": [
+          1,
+          2
+        ]
+      },
+      "spellcastingNoticeKey": "SIMPLYSF2E.Notice.Test",
+      "multiclass": "mystic"
+    },
+    "multiclass": {
+      "name": "Mystic",
+      "dedication": "Mystic Dedication"
+    },
+    "ancestry": {
+      "name": "Vesk",
+      "found": true
+    },
+    "heritage": {
+      "name": "Armored",
+      "found": false
+    },
+    "background": {
+      "name": "Guard",
+      "found": true
+    },
+    "class": {
+      "name": "Soldier",
+      "found": true
+    },
+    "skillPriorities": [
+      {
+        "name": "Athletics"
+      },
+      {
+        "name": "Acrobatics"
+      },
+      {
+        "name": "arcana"
+      },
+      {
+        "name": "computers"
+      },
+      {
+        "name": "crafting"
+      },
+      {
+        "name": "deception"
+      },
+      {
+        "name": "diplomacy"
+      },
+      {
+        "name": "intimidation"
+      },
+      {
+        "name": "medicine"
+      },
+      {
+        "name": "nature"
+      },
+      {
+        "name": "occultism"
+      },
+      {
+        "name": "performance"
+      },
+      {
+        "name": "piloting"
+      },
+      {
+        "name": "religion"
+      },
+      {
+        "name": "society"
+      },
+      {
+        "name": "stealth"
+      },
+      {
+        "name": "survival"
+      },
+      {
+        "name": "thievery"
+      }
+    ],
+    "automaticSkills": false,
+    "spellcastingNotice": "SIMPLYSF2E.Notice.Test",
+    "signatureSummary": "SIMPLYSF2E.Preview.PCSignaturePlan:{\"selected\":1,\"total\":2}",
+    "feats": [
+      {
+        "name": "Power Strike",
+        "found": true
+      },
+      {
+        "name": "general 3",
+        "found": false,
+        "empty": true
+      },
+      {
+        "name": "Mystic Dedication",
+        "found": true
+      },
+      {
+        "name": "skill 2",
+        "found": false,
+        "empty": false
+      }
+    ],
+    "emptyFeatNotice": "SIMPLYSF2E.PC.EmptyFeatSlots:{\"count\":1,\"slots\":\"general 3\"}",
+    "spells": [
+      {
+        "name": "Shock",
+        "rank": 1,
+        "signature": true,
+        "found": true
+      },
+      {
+        "name": "Haste",
+        "rank": 2,
+        "signature": true,
+        "found": false
+      }
+    ],
+    "equipment": [
+      {
+        "name": "Rifle",
+        "found": true
+      },
+      {
+        "name": "Chitin ×2",
+        "found": false
+      }
+    ],
+    "loot": [
+      {
+        "name": "Credstick ×5",
+        "found": true
+      }
+    ],
+    "matchSummary": {
+      "matched": 8,
+      "total": 12,
+      "text": "SIMPLYSF2E.Preview.MatchSummary:{\"matched\":8,\"total\":12}"
+    }
+  },
+  "pcSparse": {
+    "concept": {
+      "name": "Kess Vandrel",
+      "ancestry": "Vesk",
+      "heritage": null,
+      "background": "Guard",
+      "class": "Soldier",
+      "keyAbility": "str",
+      "level": 3,
+      "skillPriorities": [],
+      "spellcasting": null,
+      "spellcastingNoticeKey": null,
+      "multiclass": null
+    },
+    "multiclass": null,
+    "ancestry": {
+      "name": "Vesk",
+      "found": false
+    },
+    "heritage": null,
+    "background": {
+      "name": "Guard",
+      "found": false
+    },
+    "class": {
+      "name": "Soldier",
+      "found": false
+    },
+    "skillPriorities": [
+      {
+        "name": "Athletics"
+      },
+      {
+        "name": "Acrobatics"
+      },
+      {
+        "name": "arcana"
+      },
+      {
+        "name": "computers"
+      },
+      {
+        "name": "crafting"
+      },
+      {
+        "name": "deception"
+      },
+      {
+        "name": "diplomacy"
+      },
+      {
+        "name": "intimidation"
+      },
+      {
+        "name": "medicine"
+      },
+      {
+        "name": "nature"
+      },
+      {
+        "name": "occultism"
+      },
+      {
+        "name": "performance"
+      },
+      {
+        "name": "piloting"
+      },
+      {
+        "name": "religion"
+      },
+      {
+        "name": "society"
+      },
+      {
+        "name": "stealth"
+      },
+      {
+        "name": "survival"
+      },
+      {
+        "name": "thievery"
+      }
+    ],
+    "automaticSkills": true,
+    "spellcastingNotice": null,
+    "signatureSummary": null,
+    "feats": [],
+    "emptyFeatNotice": null,
+    "spells": [],
+    "equipment": [
+      {
+        "name": "Rifle",
+        "found": true
+      }
+    ],
+    "loot": [
+      {
+        "name": "Credstick ×5",
+        "found": true
+      }
+    ],
+    "matchSummary": {
+      "matched": 2,
+      "total": 5,
+      "text": "SIMPLYSF2E.Preview.MatchSummary:{\"matched\":2,\"total\":5}"
+    }
+  },
+  "multiclassPicker": {
+    "options": [
+      {
+        "value": "none",
+        "label": "SIMPLYSF2E.Generator.MulticlassNone",
+        "selected": false
+      },
+      {
+        "value": "ai",
+        "label": "SIMPLYSF2E.Generator.MulticlassAI",
+        "selected": false
+      },
+      {
+        "value": "envoy",
+        "label": "Envoy",
+        "selected": false
+      },
+      {
+        "value": "mechanic",
+        "label": "Mechanic",
+        "selected": false
+      },
+      {
+        "value": "mystic",
+        "label": "Mystic",
+        "selected": true
+      },
+      {
+        "value": "operative",
+        "label": "Operative",
+        "selected": false
+      },
+      {
+        "value": "solarian",
+        "label": "Solarian",
+        "selected": false
+      },
+      {
+        "value": "soldier",
+        "label": "Soldier",
+        "selected": false
+      },
+      {
+        "value": "technomancer",
+        "label": "Technomancer",
+        "selected": false
+      },
+      {
+        "value": "witchwarper",
+        "label": "Witchwarper",
+        "selected": false
+      }
+    ]
+  },
+  "archetypePlacement": {
+    "level": 3,
+    "names": {},
+    "skills": {
+      "acrobatics": 1,
+      "arcana": 1,
+      "athletics": 2,
+      "crafting": 1,
+      "stealth": 1,
+      "computers": 1,
+      "guard-lore": 1
+    },
+    "abilities": {
+      "str": 2,
+      "dex": 1,
+      "con": 1,
+      "int": 1,
+      "wis": 0,
+      "cha": 0
+    },
+    "allowedSkillFeats": null
+  },
+  "archetypePlacementNoHeritage": {
+    "level": 3,
+    "names": {},
+    "skills": {
+      "acrobatics": 1,
+      "arcana": 1,
+      "athletics": 2,
+      "crafting": 1,
+      "computers": 1,
+      "guard-lore": 1
+    },
+    "abilities": {
+      "str": 2,
+      "dex": 1,
+      "con": 1,
+      "int": 1,
+      "wis": 0,
+      "cha": 0
+    },
+    "allowedSkillFeats": null
+  },
+  "skillReport": {
+    "rows": [
+      {
+        "name": "Athletics",
+        "rank": "SIMPLYSF2E.Skills.Rank2"
+      },
+      {
+        "name": "Custom Lore",
+        "rank": "SIMPLYSF2E.Skills.Rank1"
+      }
+    ],
+    "automatic": false,
+    "budget": "SIMPLYSF2E.Skills.Budget:{\"spent\":5,\"total\":6}",
+    "warnings": [
+      {
+        "title": "SIMPLYSF2E.Skills.UnspentTrainingTitle:{\"count\":1}",
+        "detail": "SIMPLYSF2E.Skills.UnspentTraining:{\"count\":1}"
+      },
+      {
+        "title": "SIMPLYSF2E.Skills.GrantTimingTitle:{\"count\":2}",
+        "detail": "SIMPLYSF2E.Skills.GrantTiming:{\"count\":2}"
+      },
+      {
+        "title": "SIMPLYSF2E.Skills.NativeDataTitle:{\"count\":2}",
+        "detail": "SIMPLYSF2E.Skills.NativeData:{\"count\":2}"
+      }
+    ],
+    "loadoutWarnings": [
+      {
+        "title": "SIMPLYSF2E.Loadout.UntrainedArmorTitle",
+        "detail": "SIMPLYSF2E.Loadout.UntrainedArmor"
+      },
+      {
+        "title": "SIMPLYSF2E.Loadout.MissingAmmoTitle",
+        "detail": "SIMPLYSF2E.Loadout.MissingAmmo"
+      },
+      {
+        "title": "SIMPLYSF2E.Loadout.NativeDataTitle",
+        "detail": "SIMPLYSF2E.Loadout.NativeData"
+      }
+    ]
+  },
+  "skillReportNone": null,
+  "skillReportAuto": {
+    "rows": [],
+    "automatic": true,
+    "budget": null,
+    "warnings": [],
+    "loadoutWarnings": []
+  },
+  "completion": {
+    "total": 15,
+    "rows": [
+      {
+        "text": "SIMPLYSF2E.Generator.CompletionCompendium:{\"count\":6}"
+      },
+      {
+        "text": "SIMPLYSF2E.Generator.CompletionModuleBuilt:{\"count\":2}"
+      },
+      {
+        "text": "SIMPLYSF2E.Generator.CompletionCustomNarrative:{\"count\":3}"
+      },
+      {
+        "text": "SIMPLYSF2E.Generator.CompletionSkipped:{\"count\":2}"
+      }
+    ]
+  },
+  "completionEmpty": {
+    "total": 0,
+    "rows": []
+  },
+  "reskinNone": null,
+  "relevelNone": null,
+  "reskinSame": {
+    "name": "Captain Voss",
+    "level": 5,
+    "releveled": false,
+    "sourceName": "Source Creature",
+    "blurb": "b",
+    "readAloud": "r",
+    "paragraphs": [
+      "First paragraph.",
+      "Second paragraph.",
+      "Third."
+    ],
+    "recallKnowledge": "rk",
+    "renames": [
+      {
+        "id": "a1",
+        "name": "Void Blade"
+      }
+    ]
+  },
+  "relevelSame": {
+    "from": 5,
+    "level": 5,
+    "min": -1,
+    "max": 24,
+    "changed": false,
+    "rows": [],
+    "strikes": [],
+    "hasRows": false,
+    "abilities": []
+  },
+  "reskinReleveled": {
+    "name": "Captain Voss",
+    "level": 8,
+    "releveled": true,
+    "sourceName": "Source Creature",
+    "blurb": "b",
+    "readAloud": "r",
+    "paragraphs": [
+      "First paragraph.",
+      "Second paragraph.",
+      "Third."
+    ],
+    "recallKnowledge": "rk",
+    "renames": [
+      {
+        "id": "a1",
+        "name": "Void Blade"
+      }
+    ]
+  },
+  "relevelUp": {
+    "from": 5,
+    "level": 8,
+    "min": -1,
+    "max": 24,
+    "changed": true,
+    "rows": [
+      {
+        "label": "SIMPLYSF2E.StatCheck.AC",
+        "scale": "SIMPLYSF2E.StatCheck.BandModerate",
+        "from": 21,
+        "to": 26
+      },
+      {
+        "label": "SIMPLYSF2E.StatCheck.HP",
+        "scale": "SIMPLYSF2E.StatCheck.BandHigh",
+        "from": 90,
+        "to": 162
+      },
+      {
+        "label": "SIMPLYSF2E.StatCheck.Perception",
+        "scale": "SIMPLYSF2E.StatCheck.BandModerate",
+        "from": 11,
+        "to": 15
+      },
+      {
+        "label": "SIMPLYSF2E.StatCheck.Fortitude",
+        "scale": "SIMPLYSF2E.StatCheck.BandModerate",
+        "from": 12,
+        "to": 16
+      },
+      {
+        "label": "SIMPLYSF2E.StatCheck.Reflex",
+        "scale": "SIMPLYSF2E.StatCheck.BandLow",
+        "from": 9,
+        "to": 13
+      },
+      {
+        "label": "SIMPLYSF2E.StatCheck.Will",
+        "scale": "SIMPLYSF2E.StatCheck.BandLow",
+        "from": 8,
+        "to": 12
+      }
+    ],
+    "strikes": [
+      {
+        "name": "Claw",
+        "attack": {
+          "scale": "SIMPLYSF2E.StatCheck.BandModerate",
+          "from": 13,
+          "to": 18
+        },
+        "damage": {
+          "scale": "SIMPLYSF2E.StatCheck.BandHigh",
+          "from": "2d8+6",
+          "to": "2d10+10"
+        }
+      }
+    ],
+    "hasRows": true,
+    "abilities": []
+  },
+  "reskinBare": {
+    "name": "Source Creature",
+    "level": 8,
+    "releveled": true,
+    "sourceName": "Source Creature",
+    "paragraphs": []
+  },
+  "recentNone": null,
+  "recent": [
+    {
+      "id": "r5",
+      "mode": "character",
+      "icon": "fa-user-astronaut",
+      "name": "Kess Vandrel",
+      "detail": "SIMPLYSF2E.Recent.Detail:{\"mode\":\"SIMPLYSF2E.Mode.Character\",\"level\":3,\"time\":\"T1000\"}"
+    },
+    {
+      "id": "r4",
+      "mode": "encounter",
+      "icon": "fa-crosshairs",
+      "name": "SIMPLYSF2E.Recent.Unnamed",
+      "detail": "SIMPLYSF2E.Recent.Detail:{\"mode\":\"SIMPLYSF2E.Mode.Encounter\",\"level\":4,\"time\":\"T2000\"}"
+    },
+    {
+      "id": "r3",
+      "mode": "reskin",
+      "icon": "fa-masks-theater",
+      "name": "Captain Voss",
+      "detail": "SIMPLYSF2E.Recent.DetailNoLevel:{\"mode\":\"SIMPLYSF2E.Mode.Reskin\",\"time\":\"T3000\"}"
+    },
+    {
+      "id": "r2",
+      "mode": "npc",
+      "icon": "fa-id-badge",
+      "name": "Quartermaster",
+      "detail": "SIMPLYSF2E.Recent.Detail:{\"mode\":\"SIMPLYSF2E.Mode.Npc\",\"level\":2,\"time\":\"T4000\"}"
+    },
+    {
+      "id": "r1",
+      "mode": "monster",
+      "icon": "fa-dna",
+      "name": "Vanguard",
+      "detail": "SIMPLYSF2E.Recent.Detail:{\"mode\":\"SIMPLYSF2E.Mode.Monster\",\"level\":4,\"time\":\"T5000\"}"
+    }
+  ]
+}
