@@ -489,6 +489,7 @@
 
 .simplysf2e .spf-last-run {
   font-size: var(--spf-text-xs);
+  font-variant-numeric: tabular-nums;
   color: var(--spf-text-muted);
   white-space: nowrap;
   min-width: 0;
@@ -945,6 +946,16 @@
   display: none;
 }
 
+/* Number cells the GM compares (level, price, quantity, old/new value):
+   right-aligned tabular figures, never wrapped. Window stylesheets keep
+   only their column widths (S8). */
+.simplysf2e .spf-num {
+  text-align: end;
+  font-family: var(--spf-font-mono);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 .simplysf2e .spf-item-name {
   overflow-wrap: break-word;
   hyphens: manual;
@@ -1023,6 +1034,7 @@
 /* Token usage: collapsed run summary (total + cost) above the actions. */
 .simplysf2e .spf-token-report {
   margin-top: var(--spf-space-md);
+  font-variant-numeric: tabular-nums;
   padding-top: var(--spf-space-xs);
   border-top: 1px solid var(--spf-border);
   font-size: var(--spf-text-sm);
