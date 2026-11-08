@@ -1,6 +1,6 @@
 # Consumer-ready plan (after 1.0)
 
-Progress (2026-11-07): M5 landed (#73, #75, #76); M6 one-screen Welcome and run cost landed in v0.1.13 (#80); M7 listing fields, CHANGELOG, Open-issue button, settings schema and rollback docs landed (#80). M8 is not built (D1 and D7 declined). M9 is open: no stable 1.0.0 yet.
+Progress (2026-11-08): M5 landed (#73, #75, #76); M6 one-screen Welcome and run cost landed in v0.1.13 (#80); M7 listing fields, CHANGELOG, Open-issue button, settings schema and rollback docs landed (#80). v0.1.15 (#81) shipped the UI polish and the beta pass document (`docs/beta-pass.md`). M8 is not built (D1 and D7 declined). M9 is open: no stable 1.0.0 yet.
 
 Planned by Fable on 2026-10-25. Status: **accepted with JT's decisions (2026-10-25), recorded in §4.** This builds on `docs/roadmap-1.0.md` (M0-M4) and adds M5-M9. The goal, in JT's words: "other people can use it ... no bugs, it just works flawlessly. We just give it the API key and it just goes to town."
 
