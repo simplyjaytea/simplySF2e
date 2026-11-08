@@ -2,7 +2,7 @@
 
 Planned by Fable on 2026-10-25 against branch `batch/class-fixes` (stacked on PR #70). JT's answers to §4 go here as they are made. Update this file when a milestone lands.
 
-**Status (2026-11-07):** code for P1-P8 is merged (PRs #70-#80; stable v0.1.11, beta v0.1.14). No bar is live-logged yet: `docs/live-log.md` has no per-row PASS. P9 needs a live-log entry for the release candidate.
+**Status (2026-11-08):** code for P1-P8 is merged (PRs #70-#81; stable v0.1.11, beta v0.1.15). No bar is live-logged yet: `docs/live-log.md` has no per-row PASS. P9 needs a live-log entry for the release candidate. Further batches accumulate on `next` and reach `main` as one milestone PR (PLAYBOOK §3.6).
 
 ## 1. What "playable" means
 
