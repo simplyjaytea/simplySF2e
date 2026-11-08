@@ -23,6 +23,21 @@ assert.equal(
   }),
   null
 );
+// ABC: the prompt asks for ids; names are accepted too. Each slot needs one non-empty id or name.
+assert.equal(taskResponseProblem(AI_TASK.ABC_SELECTION, {
+  ancestryId: "C1", heritageId: null, backgroundId: "C3", classId: "C4", keyAbility: "dex"
+}), null, "an id-only reply is valid");
+assert.equal(taskResponseProblem(AI_TASK.ABC_SELECTION, {
+  ancestryId: "C1", background: "Guard", classId: "C4", keyAbility: "dex"
+}), null, "ids and names may be mixed per slot");
+assert.match(taskResponseProblem(AI_TASK.ABC_SELECTION, {
+  ancestryId: "C1", backgroundId: "C3", keyAbility: "dex"
+}), /fields must be non-empty strings: classId or class/, "a slot with neither id nor name fails");
+assert.match(taskResponseProblem(AI_TASK.ABC_SELECTION, {
+  ancestryId: "", ancestry: " ", backgroundId: "C3", classId: "C4", keyAbility: "dex"
+}), /ancestryId or ancestry/, "blank ids and names do not count");
+assert.match(taskResponseProblem(AI_TASK.ABC_SELECTION, {}), /missing required fields: keyAbility/);
+assert.match(taskResponseProblem(AI_TASK.ABC_SELECTION, { ancestryId: "C1", backgroundId: "C3", classId: "C4" }), /missing required fields: keyAbility/);
 assert.match(taskResponseProblem("unknown", {}), /unknown task/);
 assert.equal(taskResponseProblem(AI_TASK.CHARACTER_CHOICES, { picks: [] }), null);
 assert.match(taskResponseProblem(AI_TASK.CHARACTER_CHOICES, {}), /missing required fields: picks/);
