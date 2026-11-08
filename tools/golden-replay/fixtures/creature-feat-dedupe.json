@@ -20,7 +20,7 @@
     {
       "choices": [
         {
-          "message": { "content": "{\"featIds\":[\"f1\",\"f1\",\"f2\"]}" },
+          "message": { "content": "{\"featIds\":[\"F1\",\"F1\",\"F2\"]}" },
           "finish_reason": "stop"
         }
       ],

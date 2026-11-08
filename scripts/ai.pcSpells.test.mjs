@@ -61,14 +61,16 @@ try {
     { id: "focus-fire", name: "Fire Ray", rank: 1, ref: { packId: "pf2e.spells", _id: "fire" } },
     { id: "focus-healing", name: "Lay on Hands", rank: 1, ref: { packId: "pf2e.spells", _id: "healing" } }
   ];
-  replies.push({ spells: [], focusSpellIds: ["focus-healing", "invented", "focus-healing", "focus-fire"] });
+  replies.push({ spells: [], focusSpellIds: ["S2", "invented", "S2", "S1", "focus-fire"] });
   const focus = await selectSpells({ ...args, focusCandidates });
   assert.deepEqual(focus.focusSpells, [
     { name: "Lay on Hands", candidate: { packId: "pf2e.spells", _id: "healing" } },
     { name: "Fire Ray", candidate: { packId: "pf2e.spells", _id: "fire" } }
   ], "focus spell selections retain only exact offered candidate references");
-  assert.match(requests.at(-1).messages.map((message) => message.content).join("\n"), /Available focus spells: focus-fire \| Fire Ray/,
-    "the model must receive opaque focus IDs rather than unrestricted focus names");
+  assert.match(requests.at(-1).messages.map((message) => message.content).join("\n"), /Available focus spells: S1 \| Fire Ray/,
+    "the model must receive short per-request focus IDs rather than unrestricted focus names");
+  assert.doesNotMatch(requests.at(-1).messages.map((message) => message.content).join("\n"), /focus-fire|focus-healing/,
+    "the catalog ids never reach the model; the issued id typed back (focus-fire) resolved nothing above");
 
   replies.push({ spells: modelPicks });
   const spontaneous = await selectSpells({ ...args, preparationMode: "spontaneous" });

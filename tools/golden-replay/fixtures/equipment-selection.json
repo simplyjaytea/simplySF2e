@@ -26,7 +26,7 @@
       "choices": [
         {
           "message": {
-            "content": "{\"equipment\":[{\"id\":\"e1\",\"quantity\":99},{\"id\":\"e3\",\"quantity\":0},{\"id\":\"e2\",\"quantity\":-3},{\"id\":\"e-bogus\",\"quantity\":9}]}"
+            "content": "{\"equipment\":[{\"id\":\"E1\",\"quantity\":99},{\"id\":\"E3\",\"quantity\":0},{\"id\":\"E2\",\"quantity\":-3},{\"id\":\"e-bogus\",\"quantity\":9}]}"
           },
           "finish_reason": "stop"
         }
@@ -47,6 +47,7 @@
       "equipment.2.name": "Baton",
       "equipment.2.quantity": 1
     },
-    "bodyContains": ["weapon: e1 | Assault Rifle (L3)", "consumable: e3 | Medpatch (L2)"]
+    "bodyExcludes": ["e1 | "],
+    "bodyContains": ["weapon: E1 | Assault Rifle (L3)", "consumable: E3 | Medpatch (L2)"]
   }
 }

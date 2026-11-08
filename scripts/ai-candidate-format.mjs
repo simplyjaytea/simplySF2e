@@ -59,3 +59,63 @@ export function resolveEncodedFeatPicks(encoded, picks) {
   }
   return resolved;
 }
+
+/**
+ * Per-request short ids for issued compendium candidates. The model sees
+ * `E1`, `E2`, ... instead of the opaque `c-<base64 pack+doc>` id; the module
+ * maps an answer back to the exact issued candidate. Each id is bound to the
+ * list it was issued with, so an id outside the map (a forged `c-` id, a
+ * stale id, a made-up one) decodes to null and the pick is dropped.
+ *
+ * `encode(list)` returns shallow copies of the candidates whose `id` is the
+ * short id. They share the same `ref` object (so `isIssuedCandidate` still
+ * holds) and every other field. A candidate without an id keeps none (callers
+ * without issued ids keep their name-only path). The same candidate in two
+ * lists of one encoder gets the same short id; the counter runs on across
+ * lists so ids never repeat inside one request.
+ * @param {string} [prefix] one letter or short word naming the list family
+ */
+export function createCandidateEncoder(prefix = "E") {
+  let next = 1;
+  const shortByOriginal = new Map();
+  const map = new Map();
+  const originals = new WeakMap();
+  return {
+    prefix,
+    map,
+    encode(list) {
+      return (Array.isArray(list) ? list : []).map((candidate) => {
+        if (!candidate?.id) return candidate;
+        let id = shortByOriginal.get(candidate.id);
+        if (!id) {
+          id = `${prefix}${next}`;
+          next += 1;
+          shortByOriginal.set(candidate.id, id);
+          map.set(id.toUpperCase(), candidate);
+        }
+        const shown = { ...candidate, id };
+        originals.set(shown, candidate);
+        return shown;
+      });
+    },
+    /** The issued candidate a shown copy was made from (identity-preserving). */
+    original(shown) {
+      return shown ? originals.get(shown) ?? null : null;
+    },
+    decode(id) {
+      return decodeCandidatePick(id, map);
+    }
+  };
+}
+
+/** Encode one list: `{ candidates, map, decode, original }` (see createCandidateEncoder). */
+export function encodeCandidates(list, { prefix = "E" } = {}) {
+  const encoder = createCandidateEncoder(prefix);
+  return { candidates: encoder.encode(list), map: encoder.map, decode: encoder.decode, original: encoder.original };
+}
+
+/** The issued candidate behind a short id, or null for anything not in the map. */
+export function decodeCandidatePick(id, map) {
+  const key = String(id ?? "").trim().toUpperCase();
+  return key && map instanceof Map ? map.get(key) ?? null : null;
+}

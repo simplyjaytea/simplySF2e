@@ -37,9 +37,12 @@ const RULES = Object.freeze({
   [AI_TASK.LOOT_SELECTION]: { required: ["loot"], arrays: ["loot"] },
   [AI_TASK.ABILITY_SELECTION]: { required: ["abilityIds"], arrays: ["abilityIds"] },
   [AI_TASK.CREATURE_FEAT_SELECTION]: { required: ["featIds"], arrays: ["featIds"] },
+  // The prompt asks for ids (ancestryId, ...); a model may answer with names instead. Each slot
+  // needs a non-empty id or name; what resolves is decided by the issued catalog, not here.
   [AI_TASK.ABC_SELECTION]: {
-    required: ["ancestry", "heritage", "background", "class", "keyAbility"],
-    nonEmptyStrings: ["ancestry", "background", "class", "keyAbility"]
+    required: ["keyAbility"],
+    nonEmptyStrings: ["keyAbility"],
+    eitherStrings: [["ancestryId", "ancestry"], ["backgroundId", "background"], ["classId", "class"]]
   },
   [AI_TASK.FEAT_SELECTION]: { required: ["picks"], arrays: ["picks"] },
   [AI_TASK.CHARACTER_CHOICES]: { required: ["picks"], arrays: ["picks"] },
@@ -111,6 +114,9 @@ export function taskResponseProblem(task, data) {
   const emptyStrings = (rule.nonEmptyStrings ?? [])
     .filter((key) => typeof data[key] !== "string" || !data[key].trim());
   if (emptyStrings.length) return `fields must be non-empty strings: ${emptyStrings.join(", ")}`;
+  const filled = (key) => typeof data[key] === "string" && data[key].trim() !== "";
+  const noEither = (rule.eitherStrings ?? []).filter((keys) => !keys.some(filled)).map((keys) => keys.join(" or "));
+  if (noEither.length) return `fields must be non-empty strings: ${noEither.join(", ")}`;
   const wrongEnums = Object.entries(rule.enums ?? {})
     .filter(([key, allowed]) => !allowed.includes(data[key]))
     .map(([key]) => key);

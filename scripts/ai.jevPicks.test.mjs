@@ -38,9 +38,10 @@ const concept = {
   name: "Guard", level: 2, rarity: "common", blurb: "", description: "", traits: [], strikes: [],
   equipment: [{ name: "med kit", quantity: 1 }], loot: [{ name: "med kit", quantity: 2 }]
 };
-const jevAnswer = (key, confidence) => ({
+// Jev sees the same short per-request ids the chat model does: equipment E1, loot L1, creature feats F1, abilities A1, spells S1, S2.
+const jevAnswer = (key, confidence, choice = key.startsWith("loot") ? "L1" : "E1") => ({
   model: "typesafe/jev-1.13",
-  answers: { [key]: { type: "choice", choice: "E0", confidence, probabilities: { E0: confidence } } },
+  answers: { [key]: { type: "choice", choice, confidence, probabilities: { [choice]: confidence } } },
   usage: { input_tokens: 50, output_tokens: 2 }
 });
 
@@ -55,7 +56,7 @@ assert.equal(out.usage.total, 52);
 
 // Low confidence: falls back to the chat model, which keeps its own behavior.
 jevReplies.push(jevAnswer("draft0", 0.3));
-llmReplies.push({ equipment: [{ id: "E0", quantity: 1 }] });
+llmReplies.push({ equipment: [{ id: "E1", quantity: 1 }] });
 out = await selectEquipment({ concept, candidates, jevConfig });
 assert.deepEqual(seen, { jev: 2, llm: 1 });
 assert.equal(out.equipment[0].name, "Medkit");
@@ -72,7 +73,7 @@ assert.equal(out.timing.source, "llm");
 assert.ok("jevMs" in out.timing, "errored Jev call time is recorded");
 
 // No Jev config (local provider): chat model only.
-llmReplies.push({ equipment: [{ id: "E0", quantity: 1 }] });
+llmReplies.push({ equipment: [{ id: "E1", quantity: 1 }] });
 const before = seen.jev;
 await selectEquipment({ concept, candidates });
 assert.equal(seen.jev, before);
@@ -85,7 +86,7 @@ assert.equal(out.omitted, false);
 
 // Loot with a spell gem goes to the chat model without asking Jev.
 const jevBefore = seen.jev;
-llmReplies.push({ loot: [{ id: "E0", quantity: 1 }] });
+llmReplies.push({ loot: [{ id: "L1", quantity: 1 }] });
 out = await selectLoot({
   concept: { ...concept, loot: [{ name: "Spell Gem of Fireball (Rank 3)", quantity: 1 }] }, candidates, jevConfig
 });
@@ -100,7 +101,7 @@ const entry = (choice, confidence = 0.9) => ({
   usage: { input_tokens: 40, output_tokens: 2 }
 });
 const jevBeforeFeats = seen.jev;
-jevReplies.push(entry("F0"));
+jevReplies.push(entry("F1"));
 out = await selectCreatureFeats({ concept: grounded, candidates: featCandidates, jevConfig });
 assert.deepEqual(out.feats, [{ name: "Reactive Shield", candidate: featCandidates[0].ref }]);
 assert.equal(out.timing.source, "jev");
@@ -111,14 +112,14 @@ out = await selectCreatureFeats({ concept: grounded, candidates: featCandidates,
 assert.deepEqual([out.feats, out.omitted, out.timing.source], [[], true, "jev"]);
 
 jevReplies.push(new Error("offline"));
-llmReplies.push({ featIds: ["F0"] });
+llmReplies.push({ featIds: ["F1"] });
 out = await selectCreatureFeats({ concept: grounded, candidates: featCandidates, jevConfig });
 assert.equal(out.feats[0].name, "Reactive Shield");
 assert.equal(out.timing.source, "llm");
 assert.ok("jevMs" in out.timing);
 
 const abilityCandidates = [{ id: "A0", name: "Grab", ref: { packId: "sf2e.glossary", _id: "grab" } }];
-jevReplies.push(entry("A0"));
+jevReplies.push(entry("A1"));
 out = await selectCreatureAbilities({ concept: grounded, candidates: abilityCandidates, jevConfig });
 assert.equal(out.abilities[0].name, "Grab");
 assert.equal(out.timing.source, "jev");
@@ -126,7 +127,7 @@ jevReplies.push(entry("none"));
 out = await selectCreatureAbilities({ concept: grounded, candidates: abilityCandidates, jevConfig });
 assert.deepEqual(out.abilities, []);
 jevReplies.push(new Error("offline"));
-llmReplies.push({ abilityIds: ["A0"] });
+llmReplies.push({ abilityIds: ["A1"] });
 out = await selectCreatureAbilities({ concept: grounded, candidates: abilityCandidates, jevConfig });
 assert.equal(out.timing.source, "llm");
 
@@ -205,14 +206,14 @@ assert.deepEqual(out.spells, [
 ]);
 assert.equal(out.timing.source, "jev");
 jevReplies.push({ model: "typesafe/jev-1.13", answers: { spell_0: spellScore(2, 0.2), spell_1: spellScore(3) }, usage: null });
-llmReplies.push({ spells: [{ id: "S0", rank: "cantrip", signature: "regular" }, { id: "S1", rank: "rank-one", signature: "regular" }], focusSpellIds: [] });
+llmReplies.push({ spells: [{ id: "S1", rank: "cantrip", signature: "regular" }, { id: "S2", rank: "rank-one", signature: "regular" }], focusSpellIds: [] });
 out = await selectSpells(pcSpellArgs);
 assert.deepEqual(out.spells.map((s) => s.name), ["Detect Magic", "Force Barrage"]);
 assert.equal(out.timing.source, "llm");
 assert.ok("jevMs" in out.timing);
 // Creature (no slot plan) never asks Jev.
 const spellJevBefore = seen.jev;
-llmReplies.push({ spells: [{ id: "S1", rank: 1 }], focusSpellIds: [] });
+llmReplies.push({ spells: [{ id: "S2", rank: 1 }], focusSpellIds: [] });
 out = await selectSpells({ concept: pcSpellArgs.concept, candidates: spellCandidates, maxRank: 1, jevConfig });
 assert.equal(seen.jev, spellJevBefore);
 assert.equal(out.timing, undefined);

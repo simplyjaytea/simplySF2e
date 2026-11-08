@@ -1,7 +1,7 @@
 {
   "id": "negative-forged-candidates",
   "task": "abilitySelection",
-  "note": "A reply that names only ids the module never issued resolves to nothing: the ability list stays empty and no forged reference is invented. Fail closed, not fail open.",
+  "note": "A reply that names only ids the model was never shown resolves to nothing: invented ids, an out-of-range short id (A99) and the real c- catalog ids typed back all fail closed. The ability list stays empty and no forged reference is invented.",
   "args": {
     "concept": {
       "name": "Vesk Siege Marshal",
@@ -12,15 +12,15 @@
       "specialAbilities": [{ "name": "Rally the Line" }]
     },
     "candidates": [
-      { "id": "a1", "name": "Rally" },
-      { "id": "a2", "name": "Shield Block" }
+      { "id": "c-c2YyZS5iZXN0aWFyeS1hYmlsaXR5LWdsb3NzYXJ5LXNyZAByYWxseQ", "name": "Rally" },
+      { "id": "c-c2YyZS5iZXN0aWFyeS1hYmlsaXR5LWdsb3NzYXJ5LXNyZABzaGllbGRibG9jaw", "name": "Shield Block" }
     ]
   },
   "responses": [
     {
       "choices": [
         {
-          "message": { "content": "{\"abilityIds\":[\"forged-one\",\"forged-two\"]}" },
+          "message": { "content": "{\"abilityIds\":[\"forged-one\",\"forged-two\",\"A99\",\"c-c2YyZS5iZXN0aWFyeS1hYmlsaXR5LWdsb3NzYXJ5LXNyZAByYWxseQ\",\"c-c2YyZS5iZXN0aWFyeS1hYmlsaXR5LWdsb3NzYXJ5LXNyZABzaGllbGRibG9jaw\"]}" },
           "finish_reason": "stop"
         }
       ],
@@ -32,6 +32,12 @@
     "requestCount": 1,
     "nothingPicked": true,
     "excludes": ["forged", "Rally", "Shield Block"],
-    "lengths": { "abilities": 0 }
+    "lengths": { "abilities": 0 },
+    "bodyContains": ["A1 | Rally", "A2 | Shield Block"],
+    "bodyExcludes": [
+      "c-c2YyZS5iZXN0aWFyeS1hYmlsaXR5LWdsb3NzYXJ5LXNyZAByYWxseQ",
+      "c-c2YyZS5iZXN0aWFyeS1hYmlsaXR5LWdsb3NzYXJ5LXNyZABzaGllbGRibG9jaw",
+      "c-c2YyZS5"
+    ]
   }
 }
