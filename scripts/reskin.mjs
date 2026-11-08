@@ -150,22 +150,33 @@ export function applyReskin(actorData, flavor = {}, { recallSkill = null, recall
     const built = item.flags?.simplysf2e?.built;
     if (item.type !== "action" || built?.kind !== "glossary-fill" || built?.spec?.slug !== "trample") continue;
     if (typeof item.system?.description?.value !== "string") continue;
-    for (const strike of renamedStrikes) {
-      item.system.description.value = renameTrampleText(item.system.description.value, strike.from, strike.to);
-    }
+    item.system.description.value = renameTrampleText(item.system.description.value, renamedStrikes);
   }
   return data;
 }
 
+/** Escape a string for use as a literal inside a RegExp. */
+const escapeRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 /**
  * The module-filled Trample sentence names the melee Strike it was built from
- * (ability-fill.mjs R6, escAi(best.name)). Replaces every escaped occurrence of
- * the old Strike name with the escaped new one. Other text is unchanged.
+ * (ability-fill.mjs R6 writes escAi(best.name) into the slot `, <name>, @Check[`).
+ * `renames` is every renamed melee Strike `[{from, to}]`, applied in one pass so a
+ * new name that equals another renamed Strike's old name is not replaced again.
+ * Only that slot is rewritten, so a Strike named like a word in the check (e.g. "dc")
+ * leaves `@Check[reflex|dc:25|basic]` intact. Other text is unchanged.
  */
-export function renameTrampleText(description, oldStrikeName, newStrikeName) {
-  const oldEscaped = escAi(String(oldStrikeName ?? ""));
-  if (!oldEscaped) return description;
-  return description.split(oldEscaped).join(escAi(String(newStrikeName ?? "")));
+export function renameTrampleText(description, renames) {
+  if (typeof description !== "string") return description;
+  const map = new Map();
+  for (const { from, to } of Array.isArray(renames) ? renames : []) {
+    const oldEscaped = escAi(String(from ?? ""));
+    if (oldEscaped) map.set(oldEscaped, escAi(String(to ?? "")));
+  }
+  if (!map.size) return description;
+  const alternation = [...map.keys()].map(escapeRegExp).join("|");
+  const slot = new RegExp(`, (${alternation}), @Check\\[`, "g");
+  return description.replace(slot, (_match, name) => `, ${map.get(name)}, @Check[`);
 }
 
 /**

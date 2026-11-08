@@ -161,3 +161,48 @@ console.log("reskin.test.mjs: reskin changes fiction and display names only");
   const roared = applyReskin(actor, { renames: [{ id: "roar", name: "Bellow" }] });
   assert.equal(byId(roared, "tr").system.description.value, originalText, "renaming a non-melee item changes no trample text");
 }
+
+// Trample rename edge cases, each with the production fill: chained renames in one Reskin,
+// and a short Strike name that is a substring of the check.
+{
+  const TRAMPLE = "<p>[Size], [Listed Strike], @Check[reflex|dc:|basic]</p>\n<hr />\n<p>@Localize[PF2E.NPC.Abilities.Glossary.Trample]</p>";
+  const trampleItem = { name: "Trample", type: "action", system: { description: { value: TRAMPLE }, rules: [] } };
+  const built = { kind: "glossary-fill", spec: { slug: "trample", abilityDcScale: null, damageType: null }, name: "Trample", source: null };
+  const fillFor = (strikes) => fillPlaceholderAbility(trampleItem, { level: 7, size: "lg", strikes });
+  const actorWith = (strikes, filled) => ({
+    name: "Mammoth", type: "npc",
+    items: [
+      ...strikes.map((s) => ({ _id: s.id, name: s.name, type: "melee", system: { slug: null, attackEffects: { value: [] } } })),
+      { ...structuredClone(filled), _id: "tr", flags: { simplysf2e: { built } } },
+      { ...structuredClone(filled), _id: "tr-published" }
+    ]
+  });
+  const byId = (data, id) => data.items.find((item) => item._id === id);
+  const HOOF = { name: "Hoof", damage: "2d12+6", type: "melee" };
+  const TUSK = { name: "Tusk", damage: "1d8+2", type: "melee" };
+
+  // (a) Hoof -> Tusk and Tusk -> Horn in one Reskin: the Trample names the Strike that was Hoof, once.
+  const hoofFilled = fillFor([HOOF, TUSK]);
+  const hoofOriginal = hoofFilled.system.description.value;
+  const chainActor = actorWith([{ id: "hoof", ...HOOF }, { id: "tusk", ...TUSK }], hoofFilled);
+  const chained = applyReskin(chainActor, { renames: [{ id: "hoof", name: "Tusk" }, { id: "tusk", name: "Horn" }] });
+  const chainedText = byId(chained, "tr").system.description.value;
+  assert.equal(chainedText, fillFor([{ ...HOOF, name: "Tusk" }, { ...TUSK, name: "Horn" }]).system.description.value,
+    "chained renames name the Strike once: Tusk, not Horn");
+  assert.ok(chainedText.includes(escAi("Tusk")), "trample names Tusk");
+  assert.ok(!chainedText.includes(escAi("Horn")), "trample does not name Horn");
+  assert.equal(byId(chained, "tr-published").system.description.value, hoofOriginal, "unflagged trample is unchanged");
+
+  // (b) A melee Strike named "dc" renamed to "Spur": only the Strike slot changes, the check stays intact.
+  const DC = { name: "dc", damage: "2d12+6", type: "melee" };
+  const dcFilled = fillFor([DC, TUSK]);
+  const dcOriginal = dcFilled.system.description.value;
+  const check = dcOriginal.match(/@Check\[[^\]]*\]/)[0];
+  const dcActor = actorWith([{ id: "dc", ...DC }, { id: "tusk", ...TUSK }], dcFilled);
+  const spurred = applyReskin(dcActor, { renames: [{ id: "dc", name: "Spur" }] });
+  const spurText = byId(spurred, "tr").system.description.value;
+  assert.ok(spurText.includes(check), "the @Check text keeps its dc value");
+  assert.equal(spurText, fillFor([{ ...DC, name: "Spur" }, TUSK]).system.description.value, "trample names Spur exactly as a fresh fill");
+  assert.equal(spurText, dcOriginal.replace(`, ${escAi("dc")}, @Check[`, `, ${escAi("Spur")}, @Check[`), "only the Strike slot is rewritten");
+  assert.equal(byId(spurred, "tr-published").system.description.value, dcOriginal, "unflagged trample is unchanged");
+}
