@@ -81,8 +81,8 @@
    buttons keep one aligned column. */
 /* Dense stock rows: the remove button takes the small icon token and less padding. */
 .simplysf2e .spf-shop-stock .spf-icon-btn {
-  min-width: var(--spf-icon-btn-sm);
-  min-height: var(--spf-icon-btn-sm);
+  width: var(--spf-icon-btn-sm, var(--spf-icon-btn));
+  height: var(--spf-icon-btn-sm, var(--spf-icon-btn));
   padding-block: var(--spf-space-xs);
 }
 

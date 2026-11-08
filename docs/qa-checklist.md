@@ -782,11 +782,11 @@ Generate a level 7 NPC with a limited cone breath (name "Frost Breath", cold), a
 
 ## 14b. U2 Forge, Shop and Treasure polish (docs/ui-audit-2026-11-08.md)
 
-| # | Do | Expect | Where | Pass | Notes |
+| # | Step | Expected | Where to look | Result | Evidence |
 | --- | --- | --- | --- | --- | --- |
 | 14b.1 | Open Item Forge, Shop or Treasure with a preview. | Discard is red, at the far end of the footer, apart from Create. | Preview footer | | |
 | 14b.2 | Open Shop with Compendium Sources configured. | Compendium and Jev show on one line; expanding it shows the Compendium row with its gear, which opens Compendium Sources. It stays open after a re-render. | Shop, Treasure, Item Forge | | |
-| 14b.3 | Turn off every equipment pack in Compendium Sources, then open Treasure. | Compendium shows as a warning, expanded, naming Equipment; its gear opens Compendium Sources. | Treasure | | |
+| 14b.3 | Turn off every equipment pack in Compendium Sources, then open Treasure. | Compendium shows as a warning, expanded, naming Equipment; its gear opens Compendium Sources. | Treasure | | fixture shop/treasure/itemforge-sources-missing viewed by eye; harness has no string assert |
 | 14b.4 | Open Shop at normal width with a stock preview. | The column reads Quantity; at narrow width it reads Qty. | Shop | | |
 | 14b.5 | Create a shop with ten or more stock rows. | Rows are compact; the remove buttons are small. Needs the U2-SHELL tokens. | Shop, Treasure | | |
 | 14b.6 | Create a hoard. | The budget line is in the body font. The per-character line reads about N credits per character (count). | Treasure | | |
