@@ -2,6 +2,9 @@
 // (T-BUG-GEN, bug hunt rows 1, 2, 4, 5, 6). The real scripts/generator-app.mjs
 // is loaded in a vm module with its imports mocked; private names are made
 // public with a _test_ prefix, the same seam generator-app.rerollPick.test.mjs uses.
+// The context builders (scripts/generator-context/*.mjs) are the real modules, so the encounter
+// preview in the all-skipped case runs the real stat helpers and currency conversion; the test
+// therefore builds real normalized concepts instead of mocking computeStats/adjustedStats/gpToCredits.
 // Run: node scripts/generator-app.races.test.mjs
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
