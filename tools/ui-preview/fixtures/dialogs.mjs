@@ -56,6 +56,7 @@ function providerSetup(selected, patch = {}) {
     // Contract (docs/ui-contract.md, item 2): fold state and summaries.
     pricesOpen: false,
     priceError: null,
+    priceErrorField: null,
     pricesSummary: null,
     jevOpen: false,
     showLocalHint: ["ollama", "lmstudio", "custom"].includes(selected),
@@ -145,7 +146,8 @@ export default [
     context: providerSetup("deepseek", {
       connectionName: "DeepSeek", apiBaseUrl: "https://api.deepseek.com/v1", model: "deepseek-v4-flash",
       inputPerM: -2, outputPerM: 1.1, pricesOpen: true,
-      priceError: localize("SIMPLYSF2E.ProviderSetup.PriceInputInvalid")
+      priceError: localize("SIMPLYSF2E.ProviderSetup.PriceInputInvalid"),
+      priceErrorField: "input"
     })
   },
   {

@@ -206,3 +206,14 @@ Templates: `templates/itemforge.hbs`, `shop.hbs`, `treasure.hbs` (the status bar
 | `readinessOpen` (new) | boolean | Open state of the one-line disclosure; kept per window through a `toggle` listener in `_onRender`. | `false` |
 
 Scope note: these windows draw only from equipment packs, so readiness checks the equipment category alone. The Generator checks its creature categories.
+
+## U5 setup wiring (W4, W12, W13)
+
+Templates: `templates/welcome.hbs`, `templates/provider-setup.hbs`. Supply in: `WelcomeApp._prepareContext()` (`scripts/welcome-app.mjs`) and `ProviderSetupApp._prepareContext()` (`scripts/provider-setup-app.mjs`).
+
+| Field | Type | Meaning | Example (fixture) |
+| --- | --- | --- | --- |
+| `sourcesMissing` (new) | boolean | True when the readiness warning is the missing-compendium case (`issue === "sources"`). Renders the "Configure compendium sources" button (`data-action="openSources"`) inside the warning. | `welcome-readiness-warning`: `true`; `welcome-fresh`: `false` |
+| `priceErrorField` (new) | `"input"` \| `"output"` \| `null` | The manual price the last validation rejected. Marks that input `aria-invalid="true"` and points its `aria-describedby` at `#spf-price-error`. Reset at the start of each save. | `provider-setup-price-error`: `"input"`; others: `null` |
+
+Not new fields: the saved-key hints (W12) use the existing `hasApiKey` and `hasJevKey` booleans. The footer hint (W11) is static text.

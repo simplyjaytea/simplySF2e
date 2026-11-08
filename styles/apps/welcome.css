@@ -255,3 +255,8 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* The sources button sits under the warning text, aligned with it. */
+.simplysf2e .spf-welcome-readiness p {
+  margin: var(--spf-space-xs) 0 0;
+}

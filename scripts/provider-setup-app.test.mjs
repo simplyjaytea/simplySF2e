@@ -353,4 +353,21 @@ const newApp = (form) => {
   assert.equal(createCalls, 1, "Switch anyway: the connection is created");
 }
 
+// (h) A rejected manual price names its field, so the template can mark that input invalid and link the message.
+{
+  resetState();
+  const form = standardForm();
+  form.querySelector("[name='inputPerM']").value = "-1";
+  const app = newApp(form);
+  await actions.saveAndTest.call(app, null, { querySelector: () => null });
+  const context = await app._prepareContext();
+  assert.equal(context.priceErrorField, "input", "the input price is the invalid field");
+  assert.equal(context.priceError, "SIMPLYSF2E.ProviderSetup.PriceInputInvalid", "its message is in the context");
+  form.querySelector("[name='inputPerM']").value = "0.5";
+  form.querySelector("[name='outputPerM']").value = "-2";
+  await actions.saveAndTest.call(app, null, { querySelector: () => null });
+  const outputContext = await app._prepareContext();
+  assert.equal(outputContext.priceErrorField, "output", "a rejected output price names the output field");
+}
+
 console.log("provider-setup-app.test.mjs: ok");
