@@ -24,8 +24,6 @@ const WELCOME_PROVIDER_IDS = ["openrouter", "openai", "deepseek", "google", "oll
 export class WelcomeApp extends HandlebarsApplicationMixin(ApplicationV2) {
   #openGenerator;
   #selectedId = "openrouter";
-  /** Gate: the Connect section stays inert until the GM picks a provider tile. */
-  #providerChosen = false;
   #anthropicOnly = false;
   #apiKey = "";
   #baseUrl = null;
@@ -87,7 +85,7 @@ export class WelcomeApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   #connectDisabled() {
-    if (this.#busy || !this.#providerChosen) return true;
+    if (this.#busy) return true;
     const { baseUrl, model } = this.#draft();
     if (this.#modelChoice) return !String(model ?? "").trim();
     if (isLikelyKeylessLocalEndpoint(baseUrl)) return false;
@@ -119,12 +117,11 @@ export class WelcomeApp extends HandlebarsApplicationMixin(ApplicationV2) {
         const provider = this.#preset(id);
         return {
           ...provider,
-          selected: this.#providerChosen && id === this.#selectedId,
+          selected: id === this.#selectedId,
           recommended: id === "openrouter",
           note: id === "google" ? game.i18n.localize("SIMPLYSF2E.Welcome.LiveCheckPending") : ""
         };
       }),
-      providerChosen: this.#providerChosen,
       selectedProvider: preset.label,
       apiKey: this.#apiKey,
       keyless,
@@ -195,7 +192,6 @@ export class WelcomeApp extends HandlebarsApplicationMixin(ApplicationV2) {
       normalizeApiBaseUrl(this.#preset(id).baseUrl) === normalizeApiBaseUrl(current.baseUrl)
     );
     if (match) this.#selectedId = match;
-    this.#providerChosen = true;
     this.#anthropicOnly = false;
     this.#apiKey = "";
     this.#baseUrl = current.baseUrl;
@@ -214,7 +210,6 @@ export class WelcomeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const preset = this.#preset(target.dataset.provider);
     if (!preset || preset.id !== target.dataset.provider) return;
     this.#selectedId = preset.id;
-    this.#providerChosen = true;
     this.#anthropicOnly = target.dataset.anthropic === "true";
     this.#apiKey = "";
     this.#baseUrl = preset.baseUrl;

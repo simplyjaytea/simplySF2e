@@ -68,27 +68,6 @@
   font-weight: 700;
 }
 
-/* The Connect body carries the section's column rhythm; it is a wrapper so
-   the gate (inert + aria-disabled) can cover the controls and leave the
-   legend and the gate hint readable. */
-.simplysf2e .spf-welcome-connect-body {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spf-space-md);
-  min-width: 0;
-}
-
-/* Gated: no provider picked yet. The order is carried by layout, not by
-   numbered legends: the section is dimmed like a disabled control until a
-   provider tile is chosen. */
-.simplysf2e .spf-welcome-gated .spf-welcome-connect-body {
-  opacity: 0.55;
-}
-
-.simplysf2e .spf-welcome-gate-hint {
-  margin: 0;
-}
-
 .simplysf2e .spf-welcome-connect .form-group {
   margin: 0;
 }
