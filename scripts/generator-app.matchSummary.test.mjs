@@ -8,16 +8,19 @@ import { spawnSync } from "node:child_process";
 import vm from "node:vm";
 import { signed } from "./text.mjs";
 import { rerollTarget } from "./reroll.mjs";
+import * as rows from "./generator-context/rows.mjs";
 
 if (!vm.SourceTextModule) {
   const run = spawnSync(process.execPath, ["--experimental-vm-modules", import.meta.filename], { stdio: "inherit" });
   process.exit(run.status ?? 1);
 }
 const source = (await readFile(new URL("./generator-app.mjs", import.meta.url), "utf8"))
-  .replace(/#(concept|resolved|buildPreviewContext|matchSummary)\b/g, "_test_$1");
+  .replace(/#(concept|resolved|buildPreviewContext)\b/g, "_test_$1");
 const context = vm.createContext({ console, game: { i18n: { format: (_key, { matched, total }) => `${matched}/${total}` } } });
 let fakeStats = {};
-const mocks = { signed, SpfApp: class {}, MODULE_ID: "simplysf2e", computeStats: () => fakeStats, adjustedStats: (stats) => stats, rerollTarget };
+// matchSummary and the row mappers moved to generator-context/rows.mjs (T-P4); the real module runs outside the vm, so it reads the `game` global.
+globalThis.game = context.game;
+const mocks = { ...rows, signed, SpfApp: class {}, MODULE_ID: "simplysf2e", computeStats: () => fakeStats, adjustedStats: (stats) => stats, rerollTarget };
 const module = new vm.SourceTextModule(source, { context });
 await module.link((specifier) => {
   const imports = [...source.matchAll(/import\s*\{([^}]+)\}\s*from\s*"([^"]+)"/g)]
@@ -30,7 +33,7 @@ await module.link((specifier) => {
 await module.evaluate();
 const app = new module.namespace.GeneratorApp();
 function matchSummary(...groups) {
-  const result = app._test_matchSummary(...groups);
+  const result = rows.matchSummary(...groups);
   return result && { matched: result.matched, total: result.total };
 }
 assert.deepEqual(matchSummary([{ found: true }], [{ found: false }, { found: true }], [{ found: true }]), { matched: 3, total: 4 });

@@ -6,6 +6,7 @@ import { readFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import vm from "node:vm";
 import * as recentGenerations from "./recent-generations.mjs";
+import * as generatorRows from "./generator-context/rows.mjs";
 import { reviewUnresolvedChoices } from "./choice-set.mjs";
 import { normalizeSkillPriorities, skillPriorityOrder } from "./pc-skills.mjs";
 import { assertComplete, completionManifest, completionSummary } from "./completion.mjs";
@@ -64,9 +65,13 @@ const context = vm.createContext({
   ChatMessage: { create: async (data) => { whispers.push(data); return data; } },
   ui: { notifications: Object.fromEntries(["info", "warn"].map((kind) => [kind, (text) => notices.push([kind, text])])) }
 });
+// The row mappers (generator-context/rows.mjs) run outside the vm and read the `game` global.
+globalThis.game = context.game;
 const resolved = () => ({ ancestryDoc: { name: "Dwarf" }, classDoc: { name: mainClass },
   backgroundDoc: { name: "Warrior" }, featSlots: previewFeats.map(({ type, level, archetype }) => ({ type, level, archetype, candidates: [] })), feats: previewFeats, spells: [], equipment: [], loot: previewLoot });
 const mocks = {
+  // Row mappers moved out of generator-app.mjs (T-P4): the real ones, so the preview still builds.
+  ...generatorRows,
   ...recentGenerations,
   isCompletePCClass, COMPLETE_PC_CLASS_SLUGS, getMulticlassDedicationSlug, capitalized, stagedActorContext,
   ABILITY_KEYS: ["str", "dex", "con", "int", "wis", "cha"], initialSkillTraining: () => ({ ranks: {} }),
