@@ -204,3 +204,48 @@ Existing keys changed, by item: S6 7 (Shop.Title and Treasure.Title already have
 New keys: ItemForge.Kind*Placeholder (Weapon, Armor, Augmentation, Crystal: 4), Presets.DuplicateRowTooltip and Presets.DeleteRowTooltip (2), Welcome.RecommendedWhy (1), ProviderSetup.FooterHint (1), Welcome.LmStudio and Welcome.JevTypeSafe (2). Total 10. Each new key needs JT's OK under the no-new-keys rule (see least sure, item 4).
 
 Layout re-shoots (distinct fixtures): generator-monster-preview, itemforge-wondrous-no-effects, shop-empty, treasure-empty, welcome-fresh, welcome-advanced, provider-setup-fresh, sources-no-packs.
+
+---
+
+## Applied in U3 (status per row)
+
+Applied: the worksheet text as written, except where a note below says otherwise. Skipped rows give the reason.
+
+| item | key(s) | status | reason or change |
+|---|---|---|---|
+| S6 | Generator.CompendiumContent, ItemForge.CreateItem, Presets.New, Presets.ExportAll, Presets.ManageTitle | applied | as proposed |
+| S6 | Generator.Title, ItemForge.Title | applied | as proposed; ui.layout.test.mjs title pattern now "SimplySF2e " (dash removed) |
+| S6 | Shop.Title, Treasure.Title | no change | already the target form |
+| S7 | Shop.Dropped, Treasure.Dropped | skipped | both carry {count}; sweep rule: no string carrying a number |
+| S14 | Generator.Busy | applied | as proposed |
+| G8 | Mode.Character, Mode.Encounter | applied | as proposed |
+| G9 | Mode.MonsterHint | applied | "One creature with stats and abilities" (mode builds a combat-ready creature, ai.mjs generateConcept) |
+| G9 | Mode.NpcHint | applied, corrected | "One NPC with stats and abilities", not "with a personality": NPC mode uses the same combat-ready concept as Monster; personality and backstory are in the character schema (ai.mjs ~:436-446) |
+| G9 | Mode.EncounterHint, Mode.CharacterHint, Mode.ReskinHint | applied | "A group of creatures sized to the party", "One playable character", "Copy an existing creature with new names and fiction" (no trailing period, to match the other hints) |
+| G9 | Generator.RandomTooltip | applied | as proposed (filler sentence dropped) |
+| G12 | Generator.SourcesReady | skipped | carries {packCount} (number) |
+| F2 | ItemForge.NoEffects | applied, changed | kept "flavor-only" (worksheet had "flavour-only"; repo spelling kept); "Press Generate another version" |
+| F2 | Shop.AllRemoved, Shop.NoStock | applied | "Press Generate another shop" (the Shop button is "Generate another shop") |
+| F2 | Treasure.NoItems | applied | "Press Generate another hoard" |
+| F3 | Shop.NoCandidates, Treasure.NoCandidates | applied | Rarest stock / Shop level; Rarest item (labels verified in lang) |
+| F4 | ItemForge.KindsUnavailable | applied | keeps {kinds} |
+| F5 | Presets.ManageEmpty | applied | as proposed |
+| F11 | all rows | skipped | U5 wiring; new per-kind keys (instruction) |
+| F13 | all rows | skipped | U5 wiring; new keys (instruction) |
+| W3 | Welcome.LiveCheckPending | applied | "Not yet tested" |
+| W3 | Welcome.Recommended | no change | as the worksheet says |
+| W3 | Welcome.RecommendedWhy | skipped | no reason checkable in provider-connect.mjs or settings.mjs. The one flag is welcome-app.mjs:120 (recommended: id === "openrouter"); the reason text in lang (ProviderSetup.PricesHint, OpenRouter reports cost) is not the worksheet's claim |
+| W5 | Welcome.ErrorTitle | applied | "Connection failed" |
+| W6 | Welcome.FastPicks | applied | "Fast picks" (was "Optional fast picks") |
+| W6 | Welcome.LmStudio, Welcome.JevTypeSafe | applied | new keys; welcome.hbs:91 and :94 now call localize |
+| W8 | Welcome.ChooseProvider, Welcome.ConnectLegend | skipped | numbering kept (instruction); the current text is already sentence case, so there is no casing fix to make |
+| W10 | Welcome.ChooseProvider as visible label | skipped | needs a template change (visible label, aria-labelledby) outside the sweep's file list; key shared with W8 |
+| W11 | ProviderSetup.FooterHint | skipped | drafted text checked against both handlers: Save & Test (provider-setup-app.mjs #onSaveAndTest) saves, sends one test request, closes; Save & Authorize (form submit, #onSubmit) saves and authorizes the key without a test request, closes. The hint needs a line in provider-setup.hbs, which is outside the sweep's file list, so no key was added (an unrendered key would be dead) |
+| W12 | ProviderSetup.JevKeySaved, ProviderSetup.ApiKeySaved | skipped | the new visible hint needs a template change; the placeholder text stays |
+| W16 | Sources.NonePacksFound | applied | next step added |
+| Hard-coded | welcome.hbs:91 LM Studio, welcome.hbs:94 Jev · TypeSafe | applied | Welcome.LmStudio, Welcome.JevTypeSafe (new keys) |
+| S15 | Shop.EmptyHint, Treasure.EmptyHint, ItemForge.EmptyHint | applied, rewritten | one sentence each, naming Generate shop / Generate hoard / Generate; texture kept |
+
+Counts: 31 existing keys changed, 2 new keys (Welcome.LmStudio, Welcome.JevTypeSafe). Skipped rows: S7 (2 keys), G12 (1), F11 (all), F13 (all), W3 RecommendedWhy, W8 (2), W10, W11, W12 (2).
+
+Layout check (harness, baseline on the same branch before the sweep, compared at 720 and 460): generator-monster-preview: tiles now read ENCOUNTER and CHARACTER on one line at 720 (was PLAYER CHARACTER on two lines); CHARACTER wraps at 460 (was PLAYER CHARACTER). welcome-fresh and welcome-advanced: "Not yet tested" and "Fast picks" fit; "LM Studio" and "Jev · TypeSafe" same text (width not measured). shop-empty, treasure-empty: the new hints fit in 2 to 3 lines at 460. itemforge-wondrous-no-effects: the warning wraps to 3 lines at 460, no clipping. sources-no-packs@460: the empty-state text goes from 2 lines to 3, no clipping. The readiness row label "Compendium" is clipped in the collapsed row in both runs (pre-existing; the word "content" is inside the collapsed details).

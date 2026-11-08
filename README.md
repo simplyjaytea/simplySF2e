@@ -114,7 +114,7 @@ All launchers are GM-only and only appear in an `sf2e` world.
 
 | Where | What opens |
 | --- | --- |
-| **SimplySF2e** button in the **Actors** sidebar header | The generator (Monster, NPC, Encounters, Player Character, Reskin) |
+| **SimplySF2e** button in the **Actors** sidebar header | The generator (Monster, NPC, Encounter, Character, Reskin) |
 | Right-click an NPC in the **Actors** sidebar, then **Reskin with SimplySF2e** | The generator's Reskin mode with that NPC loaded |
 | **Item Forge** button on its own row just below the **Items** sidebar header | The Item Forge |
 | **Shop** button in the **Actors** sidebar header | The shop generator |
@@ -134,7 +134,7 @@ The chat command is not case-sensitive. A description starts a preview right awa
 
 The window header shows the active connection and model, and one compact readiness row for **Compendium** and **Fast picks: Jev** (open it for details). When a compendium category is missing, the row opens by itself and says which categories. The Jev line says whether fast picks are on (see [Fast picks (Jev)](#fast-picks-jev)).
 
-Choose a mode with the buttons at the top: **Monster**, **NPC**, **Encounters**, **Player Character**, **Reskin**.
+Choose a mode with the buttons at the top: **Monster**, **NPC**, **Encounter**, **Character**, **Reskin**.
 
 Every mode except Reskin has three ways to start:
 
@@ -151,11 +151,11 @@ AI-written prose is shown as text, not as Foundry commands. It cannot add links,
 **Advanced options** (a fold-out under the description) holds:
 
 - **Preset**: a flavor guide for the AI. It offers the eight Standard classes (Envoy, Mechanic, Mystic, Operative, Solarian, Soldier, Technomancer, Witchwarper), four Starfinder Archetypes (Corp Enforcer, Free Captain (Pirate), Street Cyberdoc, Bounty Hunter), and your own custom presets. **Manage Presets** lets you create, edit, duplicate, delete, export and import custom presets as JSON. Custom presets are saved in the world.
-- **Rarity**: the creature's rarity. In Player Character mode this becomes **Rarity cap**, which excludes ancestries, backgrounds and heritages rarer than the cap.
-- **Monster Adjustment**: **Normal**, **Elite (+1 Level)** or **Weak (-1 Level)** (not shown in Player Character or Encounter mode). It applies to single Monster and NPC generation.
+- **Rarity**: the creature's rarity. In Character mode this becomes **Rarity cap**, which excludes ancestries, backgrounds and heritages rarer than the cap.
+- **Monster Adjustment**: **Normal**, **Elite (+1 Level)** or **Weak (-1 Level)** (not shown in Character or Encounter mode). It applies to single Monster and NPC generation.
 - **Treasure amount**: **Stingy**, **Standard** or **Generous**.
 - **Allow spellcasting**: untick it to keep spells off the result.
-- In Encounters mode: **Party size** (1–8) and **Threat** (**Trivial**, **Low**, **Moderate**, **Severe**, **Extreme**).
+- In Encounter mode: **Party size** (1–8) and **Threat** (**Trivial**, **Low**, **Moderate**, **Severe**, **Extreme**).
 
 ### Monster and NPC
 
@@ -175,13 +175,13 @@ If the creature carries loot, **Reroll Loot** generates different loot without c
 
 After **Create Actor** (and **Create All Actors** for an encounter), a **Stat check** reads the new sheet and compares its AC, max HP, Perception, saves, strike attack bonuses and spell DC with the preview and with the *Starfinder GM Core* range for the creature's level. Each number shows its GM Core scale (for example "AC 21 (moderate)"). A number that differs from the preview, sits outside the GM Core range, or cannot be read is marked, and the GM also gets a chat whisper listing it so it is still there after the window closes. The check only reports; it never changes the actor. Player Characters are not checked, because the system computes their numbers.
 
-### Encounters
+### Encounter
 
 Set **Party level**, **Party size** and **Threat**, and optionally fill **Describe the encounter theme (optional)**. The AI designs a theme and a set of roles, and SimplySF2e then builds each member through the full creature pipeline. That means one AI round per creature, so encounters cost more tokens than a single monster. Up to three creatures are built at the same time, which cuts the wait for bigger encounters. A local provider (Ollama, LM Studio, or another address on your home network) still builds them one at a time, because most local servers answer one request at a time. If one creature fails, the others stop and nothing is kept.
 
 The preview shows each member's level, role (**Boss**, **Minion**) and key statistics in a small grid, with **Add one** / **Remove one (0 skips this creature)** counters. The header chips show **XP** and **Credits** spent against the encounter's budgets. **Create All Actors** creates every member inside a new Actors folder named after the encounter. If any member fails, the whole batch and its folder are rolled back.
 
-### Player Character
+### Character
 
 Fill **Describe the character** and set **Level** (1–20). Character generation is **complete-only**: it supports only the eight published Starfinder 2e classes (Envoy, Mechanic, Mystic, Operative, Solarian, Soldier, Technomancer, Witchwarper). If none of them is available in your enabled packs, the generator says so.
 
