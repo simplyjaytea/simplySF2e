@@ -7,7 +7,7 @@ import { fetchWithBackoff } from "./ai-transport.mjs";
 import { estimateTokens, normalizeUsage } from "./tokens.mjs";
 import { combineUsage } from "./cost.mjs";
 import { runBudgetProblem, spendRunTokens, remainingDeadlineMs, getRunBudget } from "./run-budget.mjs";
-import { encodeFeatCandidateSlots, resolveEncodedFeatPicks } from "./ai-candidate-format.mjs";
+import { createCandidateEncoder, encodeFeatCandidateSlots, resolveEncodedFeatPicks } from "./ai-candidate-format.mjs";
 import { normalizeMulticlassPick, taskResponseProblem } from "./ai-response-validation.mjs";
 import { validateChoicePicks } from "./choice-set.mjs";
 import { CORE_SKILLS } from "./pc-skills.mjs";
@@ -96,8 +96,9 @@ export async function listProviderModels() {
  * prefixes are a PF2e-era happy path. v14-dev Migration942EquipmentGrade maps
  * potency/striking onto `system.grade` and zeros runes; sf2e.equipment has no
  * Weapon Potency / Striking / Resilient documents. Fail closed: copy listed
- * names exactly, including a grade word when the catalog already has one. */
-const GRADE_NAME_NOTE = `Copy each listed name EXACTLY. When a published name already includes a grade (Commercial, Tactical, Advanced, Superior, Elite, Ultimate, Paragon), keep that grade word. Do not invent a grade suffix, and do not add a fundamental-rune prefix such as "+1 striking".`;
+ * names exactly, including a grade word when the catalog already has one. The model
+ * answers with the short ID beside each name, so it never writes a name itself. */
+const GRADE_NAME_NOTE = `Answer with the ID listed beside each item; never write a name. A published name may already include a grade (Commercial, Tactical, Advanced, Superior, Elite, Ultimate, Paragon): that grade belongs to that item, so do not invent a grade suffix, and do not add a fundamental-rune prefix such as "+1 striking".`;
 
 /* How the GM's Treasure amount setting (Stingy/Standard/Generous — see
  * TREASURE_AMOUNT_MULTIPLIER in tables.mjs) should bend the item COUNT and
@@ -569,6 +570,24 @@ function candidateForPick(candidates, pick) {
   return byName.get(name) ?? null;
 }
 
+/**
+ * Shop and Treasure hand the module's own resolver raw ids (shop.mjs / treasure.mjs match
+ * them against the issued catalog). Turn each short id the model answered into that
+ * catalog id; anything else (a forged `c-` id, a stale or made-up id) is marked so it
+ * can never match an issued candidate and is counted as dropped.
+ */
+function decodeIssuedIds(ids, encoder, issued) {
+  const issuedIds = new Set(issued.map((candidate) => candidate?.id));
+  return (Array.isArray(ids) ? ids : []).map((pick) => {
+    const raw = pick && typeof pick === "object" ? pick.id : pick;
+    const candidate = encoder.decode(raw);
+    if (candidate) return candidate.id;
+    const text = String(raw ?? "").trim();
+    // An issued catalog id typed back by the model was never shown to it: refuse it.
+    return issuedIds.has(text) ? `unissued:${text}` : raw;
+  });
+}
+
 /** Decode an equipment/loot pick. Catalog names are copied exactly;
  * unpublished rune prefixes are not a valid match. */
 function physicalCandidateForPick(candidates, pick) {
@@ -602,6 +621,10 @@ export async function selectSpells({ concept, candidates, focusCandidates = [], 
       && Number.isInteger(rank) && rank > 0 && rank <= maxRank && plannedPicks[rank] > 0))) {
     throw new TypeError("Invalid character spell slot plan");
   }
+  // Short per-request ids: the model and Jev see S1, S2, ...; picks decode to the issued candidates.
+  const encoder = createCandidateEncoder("S");
+  candidates = encoder.encode(candidates);
+  focusCandidates = encoder.encode(focusCandidates);
   // PC slot plans: Jev scores every candidate and the module takes the top picks per rank; any doubt runs the chat model below.
   // Jev takes exactly `plannedPicks[rank]` per rank. A spell database's caps are
   // maximums, so only the model fills it.
@@ -627,7 +650,7 @@ export async function selectSpells({ concept, candidates, focusCandidates = [], 
     .join("\n");
   const focusList = focusCandidates.map((candidate) => `${candidate.id} | ${candidate.name} (Rank ${candidate.rank})`).join("; ");
 
-  const system = `${GM_CONCEPT_PRIORITY}\n\nYou are selecting spells for a Starfinder 2e ${pcPlan ? "player character" : "creature"}. Choose ONLY from the provided list, copying each name EXACTLY as written (the list is already ${REMASTER_NOTE}). Respond with a single JSON object and nothing else:
+  const system = `${GM_CONCEPT_PRIORITY}\n\nYou are selecting spells for a Starfinder 2e ${pcPlan ? "player character" : "creature"}. Choose ONLY IDs from the provided list (the list is already ${REMASTER_NOTE}). Respond with a single JSON object and nothing else:
 { "spells": [ { "id": string, "rank": ${pcPlan ? 'string, "signature": "regular" | "signature"' : "number"} } ], "focusSpellIds": string[] }
 ${pcPlan
     ? `"rank" must be one of these enum slugs, never a number: ${PC_SPELL_RANKS.slice(0, maxRank + 1).join(", ")}. Use cantrip only for cantrips; ranked spells use their listed rank or a higher allowed rank to heighten.`
@@ -738,6 +761,7 @@ ${focusCandidates.length ? "Choose up to three focusSpellIds only from the provi
  * @returns {Promise<{equipment: {name: string, quantity: number, value: number}[], usage: object}>}
  */
 export async function selectEquipment({ concept, candidates, onProgress, signal, jevConfig = resolveJevConfig() }) {
+  candidates = createCandidateEncoder("E").encode(candidates);
   // Jev first (fast typed picks over the same issued candidates); any doubt falls through to the chat model below.
   const jev = await jevPickEquipment({ concept, candidates, jevConfig, signal });
   if (jev.equipment) {
@@ -756,7 +780,7 @@ export async function selectEquipment({ concept, candidates, onProgress, signal,
     .map(([type, names]) => `${type}: ${names.join("; ")}`)
     .join("\n");
 
-  const system = `${GM_CONCEPT_PRIORITY}\n\nYou are selecting carried equipment for a Starfinder 2e creature. Choose ONLY from the provided list, copying each name EXACTLY as written. Respond with a single JSON object and nothing else:
+  const system = `${GM_CONCEPT_PRIORITY}\n\nYou are selecting carried equipment for a Starfinder 2e creature. Choose ONLY IDs from the provided list. Respond with a single JSON object and nothing else:
 { "equipment": [ { "id": string, "quantity": number } ] }
 ${GRADE_NAME_NOTE}
 Pick the logical items the creature would carry: the weapons it wields (match its strikes), sensible consumables, and everyday adventuring gear it would plausibly use. Include armor only when the creature would plausibly wear it (skip beasts, oozes, mindless and naturally-armored creatures), and pick armor that roughly fits its role and level. Pick each DISTINCT item at most once — a smaller focused set is fine; never repeat an item or add filler to reach a count. NO coins or currency. "quantity" is usually 1; use 2-5 only for ammunition and stackable consumables.`;
@@ -811,6 +835,9 @@ Pick the logical items the creature would carry: the weapons it wields (match it
  * @returns {Promise<{loot: {name: string, quantity: number, value: number}[], usage: object}>}
  */
 export async function selectLoot({ concept, candidates, scrollCandidates = [], onProgress, signal, jevConfig = resolveJevConfig() }) {
+  const encoder = createCandidateEncoder("L");
+  candidates = encoder.encode(candidates);
+  scrollCandidates = encoder.encode(scrollCandidates);
   // Jev handles plain-item hauls only; coins and spell gems keep the chat-model path (see jevPickLoot).
   const jev = await jevPickLoot({ concept, candidates, jevConfig, signal });
   if (jev.loot) {
@@ -891,6 +918,11 @@ Recreate the first-draft haul: replace each non-coin entry with the closest vali
 export async function selectAncestryBackgroundClass({
   concept, ancestryCandidates, backgroundCandidates, classCandidates, heritageCandidates = [], onProgress, signal
 }) {
+  const encoder = createCandidateEncoder("C");
+  ancestryCandidates = encoder.encode(ancestryCandidates);
+  heritageCandidates = encoder.encode(heritageCandidates);
+  backgroundCandidates = encoder.encode(backgroundCandidates);
+  classCandidates = encoder.encode(classCandidates);
   const system = `You are choosing a Starfinder 2e character's ancestry, heritage, background and class. Choose ONLY IDs from the provided lists. Respond with a single JSON object and nothing else:
 { "ancestryId": string, "heritageId": string|null, "backgroundId": string, "classId": string, "keyAbility": "str"|"dex"|"con"|"int"|"wis"|"cha" }
 "heritage" must belong to the chosen ancestry, or null if none fits well. "keyAbility" must be a legal key ability for the chosen class.`;
@@ -987,6 +1019,7 @@ Include exactly one entry per slot number (1 to ${slots.length}). Never use an I
 export async function selectCreatureFeats({ concept, candidates, onProgress, signal, jevConfig = resolveJevConfig() }) {
   const maximum = Math.min(Math.max(concept?.feats?.length ?? 0, 0), 3);
   if (!maximum || !candidates.length) return { feats: [], omitted: false, usage: null };
+  candidates = createCandidateEncoder("F").encode(candidates);
   // Jev first; transport/shape failure or any doubt falls through to the chat model below.
   const jev = await jevPickCreatureFeats({ concept, candidates, jevConfig, signal });
   if (jev.feats) {
@@ -1034,6 +1067,7 @@ Choose feats that fit the creature's role and tactics. Do not choose a feat more
 export async function selectCreatureAbilities({ concept, candidates, onProgress, signal, jevConfig = resolveJevConfig() }) {
   const maximum = Math.min(Math.max(concept?.specialAbilities?.length ?? 0, 0), 6);
   if (!maximum || !candidates.length) return { abilities: [], usage: null };
+  candidates = createCandidateEncoder("A").encode(candidates);
   const jev = await jevPickCreatureAbilities({ concept, candidates, jevConfig, signal });
   if (jev.abilities) {
     return { abilities: jev.abilities, usage: jev.usage ?? NO_TOKENS, timing: { source: "jev", ms: jev.ms } };
@@ -1093,6 +1127,9 @@ const REROLL_LABELS = Object.freeze({
 export async function selectRerollPick({ concept, kind, current, candidates, onProgress, signal }) {
   const label = REROLL_LABELS[kind];
   if (!label || !Array.isArray(candidates) || !candidates.length) throw new TypeError("Invalid reroll request");
+  const encoder = createCandidateEncoder("R");
+  const issued = candidates;
+  candidates = encoder.encode(candidates);
   const others = (kind === "spell" ? concept.spellcasting?.spells ?? []
     : kind === "feat" ? concept.feats ?? [] : concept.specialAbilities ?? [])
     .map((pick) => (typeof pick === "string" ? pick : pick?.name))
@@ -1117,7 +1154,9 @@ Choose the option that best fits the creature's role, theme and tactics and does
     catalog
   ].filter((line) => line !== null).join("\n");
   const { data: parsed, usage } = await requestJSON({ task: AI_TASK.REROLL_PICK, system, user, onProgress, signal });
-  return { candidate: candidateForPick(candidates, { id: parsed.id }), usage };
+  // The caller gets the issued candidate back, not the short-id copy.
+  const picked = candidateForPick(candidates, { id: parsed.id });
+  return { candidate: picked ? encoder.original(picked) ?? issued.find((c) => c === picked) ?? null : null, usage };
 }
 
 /** Select only opaque IDs from the builder's bounded, static choice catalog.
@@ -1459,6 +1498,9 @@ JSON schema (all keys required):
  * @returns {Promise<{ids: unknown[], usage: object}>}
  */
 export async function selectShopStock({ concept, candidates, count, gmPrompt = "", onProgress, signal }) {
+  const encoder = createCandidateEncoder("S");
+  const issued = candidates;
+  candidates = encoder.encode(candidates);
   const byType = new Map();
   for (const c of candidates) {
     if (!byType.has(c.type)) byType.set(c.type, []);
@@ -1482,7 +1524,7 @@ Pick exactly ${count} DISTINCT items (fewer only if the list is shorter) that th
   const { data, usage } = await requestJSON({
     task: AI_TASK.SHOP_SELECTION, system, user, onProgress, signal
   });
-  return { ids: Array.isArray(data.ids) ? data.ids : [], usage };
+  return { ids: decodeIssuedIds(data.ids, encoder, issued), usage };
 }
 
 /**
@@ -1529,6 +1571,9 @@ JSON schema (all keys required):
  * @returns {Promise<{ids: unknown[], usage: object}>}
  */
 export async function selectTreasureItems({ concept, candidates, count, amount = "encounter", gmPrompt = "", onProgress, signal }) {
+  const encoder = createCandidateEncoder("T");
+  const issued = candidates;
+  candidates = encoder.encode(candidates);
   const byType = new Map();
   for (const c of candidates) {
     if (!byType.has(c.type)) byType.set(c.type, []);
@@ -1553,7 +1598,7 @@ Pick up to ${count} DISTINCT items this hoard would plausibly contain, matching 
   const { data, usage } = await requestJSON({
     task: AI_TASK.TREASURE_SELECTION, system, user, onProgress, signal
   });
-  return { ids: Array.isArray(data.ids) ? data.ids : [], usage };
+  return { ids: decodeIssuedIds(data.ids, encoder, issued), usage };
 }
 
 /**

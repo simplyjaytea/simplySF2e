@@ -129,6 +129,10 @@ for (const fixture of [...raw.values()]) {
     assert.ok(bodyText.includes(fragment), `${id}: request body is missing "${fragment}"`);
   }
 
+  for (const fragment of expect.bodyExcludes ?? []) {
+    assert.ok(!bodyText.includes(fragment), `${id}: request body must not contain "${fragment}"`);
+  }
+
   passed += 1;
   console.log(`PASS ${id}`);
 }

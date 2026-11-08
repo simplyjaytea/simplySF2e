@@ -2,6 +2,7 @@
 // This catches task-profile/schema drift before it can spend two failed live calls.
 import assert from "node:assert/strict";
 import { SETTINGS } from "./settings.mjs";
+import { candidateId } from "./compendium.mjs";
 
 const settings = new Map([
   [SETTINGS.apiBaseUrl, "http://localhost:11434/v1"], [SETTINGS.apiKey, ""],
@@ -32,20 +33,20 @@ try {
     specialAbilities: [{ name: "Grasping Tendrils", glossary: "Grab" }], feats: ["Reactive Shield"]
   };
   const abilityCandidates = [
-    { id: "A0", name: "Grab", ref: { packId: "pf2e.bestiary-ability-glossary-srd", _id: "grab" } },
-    { id: "A1", name: "Knockdown", ref: { packId: "pf2e.bestiary-ability-glossary-srd", _id: "knockdown" } }
+    { id: candidateId({ packId: "pf2e.bestiary-ability-glossary-srd", _id: "grab" }), name: "Grab", ref: { packId: "pf2e.bestiary-ability-glossary-srd", _id: "grab" } },
+    { id: candidateId({ packId: "pf2e.bestiary-ability-glossary-srd", _id: "knockdown" }), name: "Knockdown", ref: { packId: "pf2e.bestiary-ability-glossary-srd", _id: "knockdown" } }
   ];
-  replies.push({ abilityIds: ["A0", "invented", "A0"] });
+  replies.push({ abilityIds: ["A1", "invented", "A1"] });
   const abilities = await selectCreatureAbilities({ concept, candidates: abilityCandidates });
   assert.deepEqual(abilities.abilities, [{
     name: "Grab", candidate: { packId: "pf2e.bestiary-ability-glossary-srd", _id: "grab" }
   }]);
 
   const featCandidates = [
-    { id: "F0", name: "Reactive Shield", ref: { packId: "pf2e.feats-srd", _id: "shield" } },
-    { id: "F1", name: "Sudden Charge", ref: { packId: "pf2e.feats-srd", _id: "charge" } }
+    { id: candidateId({ packId: "pf2e.feats-srd", _id: "shield" }), name: "Reactive Shield", ref: { packId: "pf2e.feats-srd", _id: "shield" } },
+    { id: candidateId({ packId: "pf2e.feats-srd", _id: "charge" }), name: "Sudden Charge", ref: { packId: "pf2e.feats-srd", _id: "charge" } }
   ];
-  replies.push({ featIds: ["F0", "invented", "F0"] });
+  replies.push({ featIds: ["F1", "invented", "F1"] });
   const feats = await selectCreatureFeats({ concept, candidates: featCandidates });
   assert.deepEqual(feats.feats, [{
     name: "Reactive Shield", candidate: { packId: "pf2e.feats-srd", _id: "shield" }
@@ -61,9 +62,9 @@ try {
   }]);
 
   const equipmentCandidates = [
-    { id: "E0", name: "Repeating Heavy Crossbow", type: "weapon", level: 1,
+    { id: candidateId({ packId: "pf2e.equipment-srd", _id: "crossbow" }), name: "Repeating Heavy Crossbow", type: "weapon", level: 1,
       ref: { packId: "pf2e.equipment-srd", _id: "crossbow" } },
-    { id: "E1", name: "Thieves' Tools", type: "equipment", level: 0,
+    { id: candidateId({ packId: "pf2e.equipment-srd", _id: "tools" }), name: "Thieves' Tools", type: "equipment", level: 0,
       ref: { packId: "pf2e.equipment-srd", _id: "tools" } }
   ];
   replies.push({ equipment: [
@@ -101,6 +102,11 @@ try {
     assert.deepEqual(invalid.feats, []);
     assert.equal(invalid.omitted, false, "unresolvable nonempty replies are not intentional omission");
   }
+  // A c- id the model was never shown (the issued long id) resolves nothing.
+  replies.push({ featIds: [featCandidates[0].id] });
+  const forgedLong = await selectCreatureFeats({ concept, candidates: featCandidates });
+  assert.deepEqual(forgedLong.feats, [], "the opaque catalog id is not accepted: only the short ids shown to the model are");
+  assert.doesNotMatch(JSON.stringify(requests.at(-1)), /\bc-[A-Za-z0-9+/]{6,}/, "no opaque c- id reaches the model");
   const beforeSkip = requests.length;
   const unavailable = await selectCreatureFeats({ concept, candidates: [] });
   assert.equal(unavailable.omitted, false, "an unavailable catalog does not decline draft requirements");
