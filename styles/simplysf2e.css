@@ -155,9 +155,14 @@
   color: var(--spf-text);
 }
 
+/* Scan lines mean "standby": every empty-state panel wears them (the
+   window empty hints, no saved presets, no packs found, an empty Sources
+   category, no filter match) and nothing else in a window body does. */
 .simplysf2e .spf-empty,
 .simplysf2e .spf-hud-empty,
-.simplysf2e .spf-source-empty {
+.simplysf2e .spf-source-empty,
+.simplysf2e .spf-source-no-match,
+.simplysf2e .spf-source-category > .spf-hint {
   background:
     repeating-linear-gradient(0deg, transparent 0 3px, var(--spf-scan) 3px 4px),
     repeating-linear-gradient(90deg, transparent 0 3px, var(--spf-grid-line) 3px 4px),

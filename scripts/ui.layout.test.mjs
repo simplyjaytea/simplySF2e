@@ -584,7 +584,7 @@ assert.match(
 );
 assert.match(
   css,
-  /\.simplysf2e \.spf-empty,\s*\.simplysf2e \.spf-hud-empty,\s*\.simplysf2e \.spf-source-empty\s*\{[^}]*repeating-linear-gradient/s,
+  /\.simplysf2e \.spf-empty,\s*\.simplysf2e \.spf-hud-empty,\s*\.simplysf2e \.spf-source-empty,\s*\.simplysf2e \.spf-source-no-match,\s*\.simplysf2e \.spf-source-category > \.spf-hint\s*\{[^}]*repeating-linear-gradient/s,
   "decorative empty-state panels must retain the HUD texture"
 );
 assert.doesNotMatch(
