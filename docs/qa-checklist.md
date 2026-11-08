@@ -112,6 +112,7 @@ Use one prompt at level 5. The goal is to prove the adjustment is applied once (
 | 5.9 | On a renamed strike with attack effects, open its item Rules tab and make the attack. | Same rules, damage and traits as the original; the item's slug is pinned to the original slug. Effects still apply. | Item sheet, chat | | |
 | 5.10 | Repeat 5.3-5.8 dragging a creature straight from a **bestiary compendium** (e.g. `sf2e.alien-core-bestiary`). | Same behavior; copy lands in the world, compendium untouched. | Compendium, Actors | | |
 | 5.11 | Check the copy's description for injected HTML. | Any `<` or `&` from the AI shows as text, not live markup. | Sheet description | | |
+| 5.12 | Generate a creature whose concept includes Trample and a named melee Strike (the module fills Trample from its strongest melee Strike). Reskin it with a theme that renames that Strike, then create the copy. | The copy's Trample text names the new Strike. The original's Trample is unchanged. The `@Check[...]` in the Trample text still rolls. | Both sheets | | |
 
 ## 6. Item Forge
 

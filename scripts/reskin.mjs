@@ -131,9 +131,11 @@ export function applyReskin(actorData, flavor = {}, { recallSkill = null, recall
   if (notes.length) data.system.details.publicNotes = notes.join("\n");
 
   const renames = new Map((flavor.renames ?? []).map((rename) => [rename.id, rename.name]));
+  const renamedStrikes = [];
   for (const item of data.items ?? []) {
     const name = renames.get(item._id);
     if (!name || !RENAMEABLE_TYPES.includes(item.type)) continue;
+    const oldName = item.name;
     // A renamed area blast keeps its own recharge sentence and #Recharge label in step with the new name.
     if (item.type === "action" && typeof item.system?.description?.value === "string") {
       item.system.description.value = renameRechargeText(item.system.description.value, item.name, name);
@@ -141,8 +143,40 @@ export function applyReskin(actorData, flavor = {}, { recallSkill = null, recall
     item.system ??= {};
     item.system.slug ||= pf2eSluggify(item.name);
     item.name = name;
+    if (item.type === "melee") renamedStrikes.push({ from: oldName, to: name });
+  }
+  // A module-filled Trample names the melee Strike it was built from; keep that sentence in step.
+  for (const item of data.items ?? []) {
+    const built = item.flags?.simplysf2e?.built;
+    if (item.type !== "action" || built?.kind !== "glossary-fill" || built?.spec?.slug !== "trample") continue;
+    if (typeof item.system?.description?.value !== "string") continue;
+    item.system.description.value = renameTrampleText(item.system.description.value, renamedStrikes);
   }
   return data;
+}
+
+/** Escape a string for use as a literal inside a RegExp. */
+const escapeRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/**
+ * The module-filled Trample sentence names the melee Strike it was built from
+ * (ability-fill.mjs R6 writes escAi(best.name) into the slot `, <name>, @Check[`).
+ * `renames` is every renamed melee Strike `[{from, to}]`, applied in one pass so a
+ * new name that equals another renamed Strike's old name is not replaced again.
+ * Only that slot is rewritten, so a Strike named like a word in the check (e.g. "dc")
+ * leaves `@Check[reflex|dc:25|basic]` intact. Other text is unchanged.
+ */
+export function renameTrampleText(description, renames) {
+  if (typeof description !== "string") return description;
+  const map = new Map();
+  for (const { from, to } of Array.isArray(renames) ? renames : []) {
+    const oldEscaped = escAi(String(from ?? ""));
+    if (oldEscaped) map.set(oldEscaped, escAi(String(to ?? "")));
+  }
+  if (!map.size) return description;
+  const alternation = [...map.keys()].map(escapeRegExp).join("|");
+  const slot = new RegExp(`, (${alternation}), @Check\\[`, "g");
+  return description.replace(slot, (_match, name) => `, ${map.get(name)}, @Check[`);
 }
 
 /**
