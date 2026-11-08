@@ -767,3 +767,4 @@ Generate a level 7 NPC with a limited cone breath (name "Frost Breath", cold), a
 | 12ac.9 | What's new manual view. | Newest release day open, earlier collapsed. | What's new | | |
 | 12ac.10 | Shop/Treasure narrow windows. | Tables readable. | Shop/Treasure | | |
 | 12ac.11 | Polish nits. | API-key warning order, Welcome note, divider. | Various | | |
+| 12ac.12 | Unsaved edits guard. Edit the endpoint of a saved connection, then pick another connection in Saved connections. | Dialog "Unsaved changes" names the endpoint field and the connection. Stay keeps the edit and puts the select back on the current connection. Switch loads the other connection. | Provider Setup | | |
