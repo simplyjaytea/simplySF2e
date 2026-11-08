@@ -257,6 +257,35 @@
   box-shadow: var(--spf-glow);
 }
 
+/* Destructive action (Discard, Delete, Reset): flat, red text and edge,
+   never a glow. Templates also carry an icon so colour is not the only cue,
+   and place the button last in its row (see .spf-actions .spf-danger).
+   Follows the secondary and generic hover rules so it wins at equal
+   specificity when a button carries both classes. */
+.simplysf2e button.spf-danger {
+  background: var(--spf-surface);
+  border: 1px solid color-mix(in srgb, var(--spf-danger-fg) 70%, var(--spf-control-border));
+  color: var(--spf-danger-fg);
+  box-shadow: none;
+  text-shadow: none;
+}
+
+.simplysf2e button.spf-danger:not(:disabled):hover {
+  background: color-mix(in srgb, var(--spf-danger) 22%, var(--spf-surface));
+  border-color: var(--spf-danger-fg);
+  color: var(--spf-danger-fg);
+}
+
+.simplysf2e button.spf-danger:focus-visible {
+  outline-color: var(--spf-danger-fg);
+  box-shadow: none;
+}
+
+.simplysf2e .spf-danger i {
+  margin-inline-end: var(--spf-space-xs);
+  vertical-align: -0.05em;
+}
+
 /* The notched clip-path would cut the outline off, so a focused primary
    button squares its corner for the duration of the focus. */
 .simplysf2e button.spf-primary:focus-visible {
@@ -1157,6 +1186,13 @@
 /* The one primary action claims the most room so its label never wraps. */
 .simplysf2e .spf-actions button.spf-primary {
   flex: 2 1 auto;
+}
+
+/* The destructive action keeps its natural width and sits apart at the
+   far end of the row, on its own line when the row wraps. */
+.simplysf2e .spf-actions .spf-danger {
+  flex: 0 0 auto;
+  margin-inline-start: auto;
 }
 
 /* --------------------------------------------------------------------------
