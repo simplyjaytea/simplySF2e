@@ -4,7 +4,7 @@ What "AI slop" looks like in a Foundry module, and the check that catches it. Ru
 
 ## 1. It must look like Foundry and sf2e, not like a SaaS landing page
 
-- [ ] No gradients (purple/pink/blue/violet especially), no glassmorphism blur panels, no glowing or animated borders, no drop shadows on flat controls, no sparkle or rocket motifs, no emoji anywhere in the UI.
+- [ ] The module's deliberate look is JT's **Neon Drift HUD** (decision 2026-11-08): cyan and magenta on the dark sf2e surface, glow on the primary action and the active state, sheen/pulse/blink motion only while a run works. That is the idiom, not slop. Slop is the generic version: gradients or glow on things that are not the primary action or the active state, glassmorphism blur, emoji, sparkle or rocket motifs, motion while idle, SaaS hero layout. Apply the theme's rules (`docs/ui-overhaul-plan.md` §1) the same way in every window.
 - [ ] Controls are Foundry's native elements styled by core CSS (`button`, `select`, `input`, `<details>`), not re-drawn pills and toggles. Customise only through `--spf-*` tokens in `styles/simplysf2e.css`.
 - [ ] Radius, border and spacing come from tokens. No raw hex, no raw px in `styles/apps/*.css`. One accent colour; the rest is the sf2e dark surface scale.
 - [ ] Compare the PNG against a published sf2e NPC sheet at the same width. If the window would look foreign dropped next to that sheet, it is wrong.
@@ -34,7 +34,7 @@ What "AI slop" looks like in a Foundry module, and the check that catches it. Ru
 - [ ] Text contrast at least 4.5:1 and control boundaries at least 3:1 on the dark surface. Check with a picker on the PNG, do not assume.
 - [ ] Visible focus ring on every interactive element; tab order matches visual order; icon-only buttons carry `aria-label`; decorative icons beside text carry `aria-hidden="true"`.
 - [ ] Colour is never the only signal: a warning has an icon or a word; a selected state has a non-colour cue.
-- [ ] No motion beyond Foundry's own. If something must animate, respect `prefers-reduced-motion` and reserve its space so nothing shifts.
+- [ ] Motion only from the module's vocabulary (sheen = working, pulse = awaiting the GM, blink = active step) and only while a run works or a GM action is awaited; nothing animates idle. Respect `prefers-reduced-motion` and reserve space so nothing shifts.
 
 ## 6. Icons
 
