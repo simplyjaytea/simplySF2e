@@ -60,6 +60,19 @@ Also considered, lower value: a batch queue (several concepts run back to back t
 
 Functionality must not change. Each candidate names how to measure it; only measured wins get built, each with its own tests and the golden replay suite as the guard. Investigation task T-PERF (Sonnet) produces the numbers.
 
+**Measured 2026-11-08** (full report: `docs/archive/ui-audit-2026-11-08/perf-measurements.md`; estimator tokens, offline benches, no live Foundry):
+
+| # | Verdict | Measurement | Next step |
+| --- | --- | --- | --- |
+| P5 harness | **do first** (tools only) | serial run 175.6 s for 376 PNGs with 25% CPU; a 4-worker page pool 52 s, 8 workers 35 s; same file set, same problems. Animated fixtures are not pixel-stable even serially. | task: page pool in `tools/ui-preview/shoot.mjs` (+ optional animation freeze for pixel diffs); guard = exit 0, same 376 names, same problem list |
+| P2 prompt size | **do** (own task, full ladder) | one L5 NPC run = 7 requests, 41,201 chars (~10,600 est. tokens); opaque `c-<base64 pack+doc>` ids are 32% of the body, their constant per-pack prefix alone 18%; shop/treasure selectors the same ratio; an encounter pays it per member | short per-request ids (`E1..`) with a local map, as `encodeFeatCandidateSlots` already does; touches `jev-picks.mjs` and `isIssuedCandidate`; guard = golden replay incl. forged-candidate negatives, fuzz, creature bench 35/2/0, new "no base64 id in the body" assertion. Also fix stale "copy each name EXACTLY" wording (`ai.mjs:100, 630, 759`) and confirm the NPC `equipment[].value` schema line is dead before cutting |
+| P4 generator-app split | **do later**, staged | 2,451 lines, 90 methods; context builders ~700 lines share three row mappers and `adjustedStats`; 13 test files read the file as source text and must move in the same PR | after U2/U3 land; extract `scripts/generator-context/*.mjs` as pure functions; guard = 27 generator fixtures, 9 generator-app tests, golden replay, plus before/after deep-equal on each builder |
+| P6 CSS dedupe | fold into U4 | 36 duplicated declaration sets over 89 rules (3.2 KB of 94 KB); 40 raw colour literals outside the tokens | part of the S9 token pass, not its own task |
+| P1 indexes | not worth it | `getIndex`/`getEquipmentIndex` caches persist for the process; 4 indexes built once (69-81 ms); per-run candidate scans 60-90 ms, under 1% of one provider call | none |
+| P3 pool width | not reachable | `composeEncounter` yields at most 2 members, so width 3 never saturates | revisit only with cost profiles (feature 5) |
+| P7 per-render work | not worth it | no clones in any `_prepareContext`; about 60 localize calls per render, none in a candidate loop | none |
+| P8 resolve/build | not worth it | the dry run is PLAYBOOK §8 by design; 17-46 µs per fill; under 0.5 ms per creature | none |
+
 | # | Candidate | Where | How to measure | Guard |
 | --- | --- | --- | --- | --- |
 | P1 | Compendium index and candidate lists rebuilt per run | `compendium.mjs` (`findEntry`, pack indexes, `get*Candidates`) | time one NPC run's index phase in the pipeline bench with the pinned packs; count index loads per run | bench output identical |
