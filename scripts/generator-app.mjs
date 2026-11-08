@@ -1169,7 +1169,7 @@ export class GeneratorApp extends SpfApp {
       return;
     }
     this.#stashPreview();
-    this.#busy = true;
+    this.#beginBusy();
     this.#error = null;
     this.#created = null;
     this.#manifest = null;
@@ -1234,7 +1234,7 @@ export class GeneratorApp extends SpfApp {
    */
   async #generateEncounter(isRandom = false) {
     this.#stashPreview();
-    this.#busy = true;
+    this.#beginBusy();
     this.#error = null;
     this.#created = null;
     this.#manifest = null;
@@ -1300,7 +1300,7 @@ export class GeneratorApp extends SpfApp {
       return;
     }
     this.#stashPreview();
-    this.#busy = true;
+    this.#beginBusy();
     this.#error = null;
     this.#created = null;
     this.#manifest = null;
@@ -1721,7 +1721,7 @@ export class GeneratorApp extends SpfApp {
     if (this.#encounter) return this.#createEncounterActors();
     if (this.#pcConcept) return this.#createCharacterActor();
     if (!this.#concept) return;
-    this.#busy = true;
+    this.#beginBusy();
     this.#error = null;
     await this.render();
     let actor = null;
@@ -1789,7 +1789,7 @@ export class GeneratorApp extends SpfApp {
    * creature-specific) — the character gets the default portrait. */
   async #createCharacterActor() {
     if (this.#busy || !this.#pcConcept) return;
-    this.#busy = true;
+    this.#beginBusy();
     this.#error = null;
     const applyingMessage = game.i18n.localize("SIMPLYSF2E.Progress.ApplyingCharacter");
     const applyLabel = game.i18n.localize("SIMPLYSF2E.Progress.Apply");
@@ -1954,12 +1954,15 @@ export class GeneratorApp extends SpfApp {
 
   /** Create every encounter member, each with closest-match bestiary art. */
   async #createEncounterActors() {
-    if (this.#busy || !this.#encounter) return;
+    if (this.#busy || this.#createPending || !this.#encounter) return;
+    // Let a queued +/- loot fit land first, so the actors embed loot fitted to the final count.
+    await this.#stepQueue;
+    if (this.#busy || this.#createPending || !this.#encounter) return;
     if (this.#encounter.members.every((m) => !(m.count > 0))) {
       ui.notifications.warn(game.i18n.localize("SIMPLYSF2E.Generator.NoMembers"));
       return;
     }
-    this.#busy = true;
+    this.#beginBusy();
     this.#error = null;
     await this.render();
     let folder = null;
@@ -2136,7 +2139,7 @@ export class GeneratorApp extends SpfApp {
       return;
     }
     this.#stashPreview();
-    this.#busy = true;
+    this.#beginBusy();
     this.#error = null;
     this.#created = null;
     this.#reskinFlavor = null;
@@ -2175,7 +2178,7 @@ export class GeneratorApp extends SpfApp {
   async #createReskinActor() {
     if (this.#busy || !this.#reskinFlavor) return;
     const flavor = this.#reskinFlavor;
-    this.#busy = true;
+    this.#beginBusy();
     this.#error = null;
     await this.render();
     try {
@@ -2204,7 +2207,7 @@ export class GeneratorApp extends SpfApp {
 
   static async #onRerollLoot() {
     if (this.#busy || !this.#concept) return;
-    this.#busy = true;
+    this.#beginBusy();
     this.#error = null;
     let signal;
     try {
@@ -2261,7 +2264,7 @@ export class GeneratorApp extends SpfApp {
     if (!current) return;
     const currentName = typeof current === "string" ? current : current.name;
     const slot = `${kind}:${index}`;
-    this.#busy = true;
+    this.#beginBusy();
     this.#error = null;
     const label = game.i18n.localize("SIMPLYSF2E.Progress.PickReroll");
     let signal;
@@ -2399,6 +2402,13 @@ export class GeneratorApp extends SpfApp {
   }
 
   /** Move the on-screen preview into Recent generations before anything replaces it. */
+  /** Mark the window busy and invalidate any in-flight preview load: a load
+   * that resumes after this run finished must not wipe what the run produced. */
+  #beginBusy() {
+    this.#busy = true;
+    this.#previewEpoch += 1;
+  }
+
   #stashPreview() {
     const entry = this.#capturePreview();
     if (entry) this.#recent = rememberRecent(this.#recent, entry);

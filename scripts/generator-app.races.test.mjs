@@ -40,6 +40,7 @@ const context = vm.createContext({
 
 let beginFails = 0;
 let treasureCalls = [];
+const createdWith = [];
 let reskinReply = { flavor: { blurb: "x" }, usage: { total: 1 } };
 const featRef = (id) => ({ packId: "sf2e.feats", _id: id });
 const mocks = {
@@ -76,6 +77,20 @@ const mocks = {
   gpToCredits: (gp) => Math.round(gp * 10),
   generatedFolderId: async () => null,
   completionManifest: () => ({ complete: true }),
+  completionSummary: () => ({ total: 0 }),
+  statCheckForActor: () => ({}),
+  describeStatCheck: () => ({ problems: 0, total: 0 }),
+  hasSpellEntry: () => false,
+  findBestiaryScaffold: async () => ({}),
+  scaffoldArt: () => null,
+  createActor: async (concept, resolved) => {
+    createdWith.push({ name: concept.name, loot: resolved.loot });
+    const actor = { id: `A${createdWith.length}`, name: concept.name, update: async () => {}, sheet: { render: async () => {} } };
+    return { actor, expectedItems: [] };
+  },
+  verifyCreatedActor: () => {},
+  rollbackActor: async () => null,
+  moveToGeneratedFolder: async () => {},
   assertComplete: () => {}
 };
 const module = new vm.SourceTextModule(source, { context });
@@ -227,6 +242,50 @@ const npc = (uuid) => ({
   assert.deepEqual(JSON.parse(JSON.stringify(notice.options)), { localize: true, format: { name: evil }, escape: true },
     "the AI name travels as an escaped format value, not pre-formatted into the message");
   assert.ok(!notice.message.includes(evil), "the raw name is not in the message string");
+}
+
+// --- Epoch: a manual create that finishes during a reskin load keeps its created card ---
+{
+  const app = makeApp();
+  const gate = deferred();
+  let calls = 0;
+  fromUuidImpl = async () => {
+    calls += 1;
+    if (calls === 1) await gate.promise;
+    return npc("Actor.src");
+  };
+  const load = app._test_loadReskinActor(npc("Actor.src"));
+  await tick();
+  app._test_concept = { name: "Made", level: 1, traits: [], feats: [], specialAbilities: [], equipment: [], loot: [] };
+  app._test_resolved = { spells: [], feats: [], abilities: [], focusSpells: [], equipment: [], loot: [], skippedGear: [] };
+  app._test_manifest = { complete: true };
+  await App._test_onCreateActor.call(app);   // a whole manual create, started and finished during the load
+  assert.equal(app._test_created?.name, "Made", `the create produced its card (${app._test_error})`);
+  gate.resolve();
+  await load;
+  assert.equal(app._test_created?.name, "Made", "the late load leaves the created card alone");
+}
+
+// --- Create All waits for a queued +/- fit and embeds loot fitted to the final count ---
+{
+  const app = makeApp();
+  const member = {
+    count: 1, xpEach: 10, treasureGroupBudget: 90, treasureBudgetEach: 90, treasureEach: 90,
+    concept: { name: "Grunt" }, manifest: {}, resolved: { loot: { target: 90 } }
+  };
+  app._test_encounter = { name: "Fight", members: [member], spent: 10, budget: 100 };
+  const fit = deferred();
+  treasureCalls = [(loot, target) => fit.promise.then(() => ({ target }))];
+  createdWith.length = 0;
+  const step = app._test_stepMemberCount(0, 1);   // count 2, fit still in flight
+  const create = app._test_createEncounterActors();
+  await tick();
+  assert.equal(createdWith.length, 0, "no actor is built while the fit is pending");
+  fit.resolve();
+  await step;
+  await create;
+  assert.equal(createdWith.length, 2);
+  assert.ok(createdWith.every((c) => c.loot.target === 45), "both actors carry loot fitted to the final count (90 / 2)");
 }
 
 console.log("generator-app.races.test.mjs: reskin load, member steps, empty encounter, busy reset and notice escaping passed");
