@@ -3,27 +3,12 @@
    Loaded after styles/simplysf2e.css; tokens and shared kit live there.
    ========================================================================== */
 
-.simplysf2e .simplysf2e-sources {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spf-space-md);
-  padding: var(--spf-space-xs);
-}
-
-/* HUD readout legends: console chips with a neon edge. */
+/* Category legends: the shared console chip (.spf-card > legend) with a
+   tighter tracking and pad and a neon edge. */
 .simplysf2e .spf-source-category legend {
-  font-family: var(--spf-font-display);
-  font-weight: bold;
-  font-variant: normal;
   letter-spacing: 0.06em;
-  text-transform: uppercase;
-  font-size: var(--spf-text-sm);
   padding: 0 var(--spf-space-xs);
-  background: color-mix(in srgb, var(--spf-brand-dark) 85%, var(--spf-window-bg));
   border: 1px solid color-mix(in srgb, var(--spf-neon) 40%, var(--spf-border));
-  border-radius: var(--spf-radius-sm);
-  box-shadow: var(--spf-inset-glow);
-  color: var(--spf-brand-accent);
 }
 
 .simplysf2e .spf-pack {

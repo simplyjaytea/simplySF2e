@@ -300,7 +300,10 @@
   border-color: var(--spf-brand-accent);
 }
 
-.simplysf2e :is(button, input, select, textarea, summary):focus-visible {
+/* One focus ring for every control, including the Generator's mode tiles
+   (a label around a visually hidden radio). */
+.simplysf2e :is(button, input, select, textarea, summary):focus-visible,
+.simplysf2e .spf-mode-toggle label:focus-within {
   outline: 2px solid var(--spf-focus);
   outline-offset: 1px;
 }
@@ -452,13 +455,30 @@
 }
 
 /* --------------------------------------------------------------------------
-   Generator + item forge body (both roots carry .simplysf2e-generator)
+   Window roots: one flex column. Generator, Item Forge, Shop and Treasure
+   all carry .simplysf2e-generator; Provider Setup and Welcome widen the gap
+   and padding in their own stylesheets.
    -------------------------------------------------------------------------- */
-.simplysf2e .simplysf2e-generator {
+.simplysf2e .simplysf2e-generator,
+.simplysf2e .simplysf2e-manage-presets,
+.simplysf2e .simplysf2e-sources,
+.simplysf2e .simplysf2e-whats-new,
+.simplysf2e .simplysf2e-provider-setup,
+.simplysf2e .simplysf2e-welcome {
   display: flex;
   flex-direction: column;
   gap: var(--spf-space-md);
   padding: var(--spf-space-xs);
+}
+
+/* Muted small text: secondary detail lines in every window. */
+.simplysf2e .spf-recent-detail,
+.simplysf2e .spf-relevel-unchanged > summary,
+.simplysf2e .spf-fold-state,
+.simplysf2e .spf-treasure-each,
+.simplysf2e .spf-whats-new-body {
+  color: var(--spf-text-muted);
+  font-size: var(--spf-text-sm);
 }
 
 /* --------------------------------------------------------------------------
@@ -715,8 +735,9 @@
 /* --------------------------------------------------------------------------
    Input form (shared by generator + item forge)
    -------------------------------------------------------------------------- */
-/* HUD readout legends: console chips instead of bare text. */
-.simplysf2e .spf-inputs legend {
+/* HUD readout legends: console chips instead of bare text, on every card
+   fieldset (input forms, Provider Setup, Welcome, Sources categories). */
+.simplysf2e .spf-card > legend {
   font-family: var(--spf-font-display);
   font-variant: normal;
   font-weight: 700;
@@ -996,6 +1017,100 @@
 .simplysf2e .spf-col-short,
 .simplysf2e .spf-item-sub {
   display: none;
+}
+
+/* Shop stock and Treasure items share one table: the wrap scrolls sideways
+   inside its own box on a narrow window, so the window body never does.
+   Window stylesheets keep only their column widths and extra rows. */
+.simplysf2e .spf-table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--spf-border);
+  border-radius: var(--spf-radius);
+}
+
+.simplysf2e .spf-table {
+  width: 100%;
+  margin: 0;
+  border-collapse: collapse;
+  font-size: var(--spf-text-sm);
+  background: var(--spf-surface);
+}
+
+.simplysf2e .spf-table th,
+.simplysf2e .spf-table td {
+  padding: var(--spf-space-sm) var(--spf-space-md);
+  text-align: left;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--spf-grid-line);
+}
+
+.simplysf2e .spf-table thead th {
+  color: var(--spf-text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: var(--spf-text-xs);
+  background: var(--spf-surface-raised);
+  border-bottom: 1px solid var(--spf-border);
+  white-space: nowrap;
+}
+
+.simplysf2e .spf-table tbody th {
+  font-weight: 600;
+  color: var(--spf-text);
+}
+
+.simplysf2e .spf-table tbody tr:hover {
+  background: var(--spf-brand-soft);
+}
+
+/* The cell rule above left-aligns; number cells stay right-aligned. */
+.simplysf2e .spf-table .spf-num {
+  text-align: right;
+}
+
+.simplysf2e .spf-table td:last-child {
+  width: calc(var(--spf-icon-btn) + var(--spf-space-md) * 2);
+  text-align: right;
+}
+
+/* Rarity tag beside an item name. */
+.simplysf2e .spf-table .spf-trait {
+  margin-left: var(--spf-space-xs);
+}
+
+/* Dense rows: the remove button takes the small icon token and less padding. */
+.simplysf2e .spf-table .spf-icon-btn {
+  width: var(--spf-icon-btn-sm, var(--spf-icon-btn));
+  height: var(--spf-icon-btn-sm, var(--spf-icon-btn));
+  padding-block: var(--spf-space-xs);
+}
+
+/* Narrow: item names wrap by word, fixed numeric and remove columns keep
+   the buttons aligned (column widths live in shop.css and treasure.css). */
+@container spf-window (max-width: 520px) {
+  .simplysf2e .spf-table {
+    table-layout: fixed;
+  }
+
+  .simplysf2e .spf-table th,
+  .simplysf2e .spf-table td {
+    box-sizing: border-box;
+    padding-inline: var(--spf-space-xs);
+  }
+
+  .simplysf2e .spf-table tbody th {
+    padding-left: var(--spf-space-sm);
+  }
+
+  .simplysf2e .spf-table thead th:first-child { width: auto; padding-left: var(--spf-space-sm); }
+  .simplysf2e .spf-table thead th:last-child { width: calc(var(--spf-icon-btn) + var(--spf-space-xs) * 2); }
+
+  .simplysf2e .spf-table td:last-child {
+    width: auto;
+    text-align: center;
+  }
 }
 
 /* Number cells the GM compares (level, price, quantity, old/new value):

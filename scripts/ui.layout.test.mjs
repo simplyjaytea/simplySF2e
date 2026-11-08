@@ -347,7 +347,7 @@ for (const rule of ["spf-card", "spf-icon-btn", "spf-empty"]) {
 assert.match(css, /\.simplysf2e button\.spf-primary\s*\{/, "the primary button treatment must be defined");
 assert.match(
   css,
-  /\.simplysf2e :is\(button, input, select, textarea, summary\):focus-visible\s*\{[^}]*outline:/s,
+  /\.simplysf2e :is\(button, input, select, textarea, summary\):focus-visible[^{]*\{[^}]*outline:/s,
   "every control must have a visible focus state"
 );
 assert.match(css, /\.simplysf2e button:disabled\s*\{[^}]*opacity/s, "disabled controls must read as disabled");
@@ -653,13 +653,13 @@ assert.match(
 );
 assert.match(
   css,
-  /\.simplysf2e \.spf-inputs legend\s*\{[^}]*background:/s,
-  "generator legends must render as HUD readout chips"
+  /\.simplysf2e \.spf-card > legend\s*\{[^}]*background:/s,
+  "card fieldset legends render as HUD readout chips"
 );
 assert.match(
   css,
-  /\.simplysf2e \.spf-source-category legend\s*\{[^}]*box-shadow/s,
-  "source legends must render as HUD readout chips"
+  /\.simplysf2e \.spf-card > legend\s*\{[^}]*box-shadow/s,
+  "source legends share the card legend chip (.spf-card > legend)"
 );
 assert.match(css, /caret-color:\s*var\(--spf-brand-accent\)/, "console inputs must carry a cyan caret");
 assert.match(

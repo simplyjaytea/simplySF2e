@@ -3,13 +3,6 @@
    Loaded after styles/simplysf2e.css; tokens and shared kit live there.
    ========================================================================== */
 
-.simplysf2e .simplysf2e-manage-presets {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spf-space-md);
-  padding: var(--spf-space-xs);
-}
-
 .simplysf2e .spf-manage-list {
   list-style: none;
   margin: 0;

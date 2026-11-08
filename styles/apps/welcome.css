@@ -4,9 +4,8 @@
    colors reuse the shared Neon Drift kit.
    ========================================================================== */
 
+/* Root flex column from simplysf2e.css; this window spaces its cards wider. */
 .simplysf2e .simplysf2e-welcome {
-  display: flex;
-  flex-direction: column;
   gap: var(--spf-space-lg);
   padding: var(--spf-space-sm);
 }
@@ -22,20 +21,6 @@
   min-width: 0;
   margin: 0;
   padding: var(--spf-space-md) var(--spf-space-lg) var(--spf-space-lg);
-}
-
-.simplysf2e .spf-welcome-section legend {
-  padding: 0 var(--spf-space-sm);
-  border: 1px solid var(--spf-border);
-  border-radius: var(--spf-radius-sm);
-  background: color-mix(in srgb, var(--spf-brand-dark) 85%, var(--spf-window-bg));
-  box-shadow: var(--spf-inset-glow);
-  color: var(--spf-brand-accent);
-  font-family: var(--spf-font-display);
-  font-size: var(--spf-text-sm);
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
 }
 
 .simplysf2e .spf-welcome-providers {

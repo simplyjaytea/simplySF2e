@@ -52,11 +52,6 @@
   border-color: var(--spf-border);
 }
 
-.simplysf2e .spf-kind-choice:focus-visible {
-  outline: 2px solid var(--spf-focus);
-  outline-offset: 1px;
-}
-
 .simplysf2e .spf-kind-label {
   min-width: 0;
   overflow: hidden;

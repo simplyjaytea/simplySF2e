@@ -3,13 +3,6 @@
    Loaded after styles/simplysf2e.css, like welcome.css.
    ========================================================================== */
 
-.simplysf2e .simplysf2e-whats-new {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spf-space-md);
-  padding: var(--spf-space-xs);
-}
-
 .simplysf2e .spf-whats-new-list {
   list-style: none;
   margin: 0;
@@ -28,11 +21,6 @@
   border-left: 3px solid var(--spf-brand-accent);
   background: var(--spf-note-bg);
   overflow-wrap: anywhere;
-}
-
-.simplysf2e .spf-whats-new-body {
-  color: var(--spf-text-muted);
-  font-size: var(--spf-text-sm);
 }
 
 .simplysf2e .spf-whats-new-broke {
