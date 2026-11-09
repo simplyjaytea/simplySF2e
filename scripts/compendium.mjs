@@ -85,6 +85,14 @@ export function priceToGp(price) {
     + (Number(price.cp) || 0) / 100;
 }
 
+/**
+ * Gp per unit of a document's price: a pack price (`price.per`, for example ten
+ * arrows) is divided by its count, as v14-dev `Coins.fromPrice` does (coins.ts:144-145).
+ */
+export function unitPriceGp(doc) {
+  return priceToGp(doc?.system?.price?.value) / Math.max(1, Number(doc?.system?.price?.per) || 1);
+}
+
 /* Ordered common < uncommon < rare < unique. Single source of truth for every
    rarity comparison in the module (the GM's rarity cap, the item forge's
    base-item-vs-requested-rarity pick). */

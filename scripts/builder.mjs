@@ -1,5 +1,5 @@
 import * as T from "./tables.mjs";
-import { getPacksFor, findEntry, getDocument, toItemData, priceToGp, isIssuedCandidate, placeholderState, placeholderDocFor } from "./compendium.mjs";
+import { getPacksFor, findEntry, getDocument, toItemData, priceToGp, unitPriceGp, isIssuedCandidate, placeholderState, placeholderDocFor } from "./compendium.mjs";
 import { ABILITY_DAMAGE_TYPES, ABILITY_DC_SCALES, fillBlocker, fillPlaceholderAbility, fillableSlug, hasPlaceholderValues, isFillableEntry } from "./ability-fill.mjs";
 import { buildModuleTemplate, isModuleTemplate, normalizeAreaBlast, normalizeAura } from "./ability-templates.mjs";
 import { slugify, capitalized, esc, escAi, toHtml } from "./text.mjs";
@@ -1183,11 +1183,6 @@ export async function equipmentValueGp(equipment) {
     total += unitGp * (Number(quantity) || 1);
   }
   return total;
-}
-
-/** PF2e prices may describe a pack (for example, ten arrows), not one unit. */
-function unitPriceGp(doc) {
-  return priceToGp(doc?.system?.price?.value) / Math.max(1, Number(doc?.system?.price?.per) || 1);
 }
 
 /** Resolved loot/equipment line's total gp value (per-unit resolvedValue/value × quantity). */
