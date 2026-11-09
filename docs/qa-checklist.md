@@ -116,6 +116,8 @@ Use one prompt at level 5. The goal is to prove the adjustment is applied once (
 | 5.10 | Repeat 5.3-5.8 dragging a creature straight from a **bestiary compendium** (e.g. `sf2e.alien-core-bestiary`). | Same behavior; copy lands in the world, compendium untouched. | Compendium, Actors | | |
 | 5.11 | Check the copy's description for injected HTML. | Any `<` or `&` from the AI shows as text, not live markup. | Sheet description | | |
 | 5.12 | Generate a creature whose concept includes Trample and a named melee Strike (the module fills Trample from its strongest melee Strike). Reskin it with a theme that renames that Strike, then create the copy. | The copy's Trample text names the new Strike. The original's Trample is unchanged. The `@Check[...]` in the Trample text still rolls. | Both sheets | | |
+| 5.13 | Reskin a level 10 creature whose highest ability modifier is the Extreme value for level 10, then re-level the copy to 0. | Every ability modifier on the copy drops; none keeps its level 10 number. | Copy's sheet | | |
+| 5.14 | Reskin a module-built creature that has Trample, a melee Strike and a stronger ranged Strike, then change its level. | Trample's text still names the melee Strike, never the ranged one. | Copy's sheet | | |
 
 ## 6. Item Forge
 
