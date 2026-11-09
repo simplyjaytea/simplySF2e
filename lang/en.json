@@ -635,6 +635,8 @@
       "StepActive": "(in progress)",
       "StepPending": "(waiting)",
       "Running": "running",
+      "UnitSeconds": "s",
+      "UnitMinutes": "m",
       "Concept": "Creature concept",
       "SpellFocus": "Spell focus",
       "Spells": "Spell selection",

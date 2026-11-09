@@ -34,6 +34,7 @@ const context = vm.createContext({
   } }
 });
 class MockSpfApp {
+  _elapsedUnits() { return { seconds: "s", minutes: "m" }; }
   _tokenUsage = [];
   _progress = null;
   _formatLastRunCost() { return null; }

@@ -28,6 +28,7 @@ let previewLoot = [], previewFeats = [];
 let budgetPending = null, budgetStarted = null;
 const notices = [];
 class App {
+  _elapsedUnits() { return { seconds: "s", minutes: "m" }; }
   element = { querySelector: (selector) => selector.includes('name="mode"') ? { value: "character" }
     : selector.includes('name="level"') ? { value: String(generatorLevel) }
       : selector.includes('name="prompt"') ? { value: "A dwarf fighter" }

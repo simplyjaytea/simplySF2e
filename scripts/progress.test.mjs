@@ -245,4 +245,36 @@ assert.equal("elapsed" in timed.steps[0], false, "the live progress object gets 
 assert.equal(progressView(createProgress([["concept", "Concept"]])).totalElapsed, "",
   "no finished step: empty total");
 
+// Elapsed unit letters: defaults unchanged, custom units threaded through.
+assert.equal(formatElapsed(4200), "4.2 s", "default seconds letter");
+assert.equal(formatElapsed(42000), "42 s", "default seconds letter, whole");
+assert.equal(formatElapsed(65000), "1 m 05 s", "default minutes letter");
+assert.equal(formatElapsed(65000, { seconds: "sek", minutes: "min" }), "1 min 05 sek");
+assert.equal(formatElapsed(4200, { seconds: "sek", minutes: "min" }), "4.2 sek");
+assert.equal(formatElapsed(42000, { seconds: "sek", minutes: "min" }), "42 sek");
+assert.equal(formatElapsed(65000, { seconds: "", minutes: "" }), "1 m 05 s",
+  "empty unit strings fall back to the default letters");
+assert.equal(formatElapsed(65000, { seconds: "sek" }), "1 m 05 sek",
+  "missing minutes falls back to the default minutes letter");
+assert.equal(formatElapsed(4200, {}), "4.2 s", "missing seconds falls back to the default");
+assert.equal(formatElapsed(4200, { seconds: 7 }), "4.2 s", "non-string unit falls back to the default");
+assert.equal(stepElapsed({ state: "done", elapsedMs: 4200 }, { seconds: "sek" }), "4.2 sek");
+assert.equal(stepElapsed({ state: "active", elapsedMs: 4200 }, { seconds: "sek" }), "");
+
+// progressView passes units to each step's elapsed and to totalElapsed.
+const unitTimed = progressView(
+  createProgress([["concept", "Concept"], ["spells", "Spells"]]),
+  { seconds: "sek", minutes: "min" }
+);
+assert.equal(unitTimed.totalElapsed, "", "no finished step: empty total with units");
+const finished = createProgress([["concept", "Concept"], ["spells", "Spells"]]);
+finished.steps[0].state = "done";
+finished.steps[0].elapsedMs = 4200;
+finished.steps[1].state = "done";
+finished.steps[1].elapsedMs = 65000;
+const withUnits = progressView(finished, { seconds: "sek", minutes: "min" });
+assert.deepEqual(withUnits.steps.map((s) => s.elapsed), ["4.2 sek", "1 min 05 sek"]);
+assert.equal(withUnits.totalElapsed, "1 min 09 sek", "total uses the units too");
+assert.equal(progressView(finished).totalElapsed, "1 m 09 s", "no units argument keeps defaults");
+
 console.log("progress.test.mjs: weighted monotonic progress assertions passed");

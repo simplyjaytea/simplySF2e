@@ -199,6 +199,14 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
   /** Subclasses that keep unsaved form drafts override this before a provider switch. */
   _preserveForm() {}
 
+  /** Localized unit letters for the progress card's elapsed times. */
+  _elapsedUnits() {
+    return {
+      seconds: game.i18n.localize("SIMPLYSF2E.Progress.UnitSeconds"),
+      minutes: game.i18n.localize("SIMPLYSF2E.Progress.UnitMinutes")
+    };
+  }
+
   /**
    * Activate a saved connection from the compact header switch. The live
    * request config follows that profile; unknown ids fail closed.
