@@ -78,6 +78,7 @@ const packMatches = (pack, { query, selectedOnly }) => {
 };
 
 function sources(patch = {}) {
+  // `emptyCategory` (a CATEGORY_LABELS key) gets no packs; the others keep theirs.
   const filter = { query: "", selectedOnly: false, ...(patch.filter ?? {}) };
   const active = Boolean(filter.query.trim()) || filter.selectedOnly;
   const categories = Object.entries(CATEGORY_LABELS).map(([key, label]) => {
@@ -91,7 +92,7 @@ function sources(patch = {}) {
       hidden: active && packs.every((p) => p.hidden)
     };
   });
-  const emptied = patch.noPacks ? categories.map((c) => ({ ...c, packs: [], selectedCount: 0, hidden: false })) : categories;
+  const emptied = categories.map((c) => (patch.noPacks || c.key === patch.emptyCategory ? { ...c, packs: [], selectedCount: 0, hidden: false } : c));
   const all = emptied.flatMap((c) => c.packs);
   const shown = all.filter((p) => !p.hidden).length;
   return {
@@ -168,6 +169,7 @@ export default [
   },
   { id: "sources-default", app: "sources", height: 640, context: sources() },
   { id: "sources-no-packs", app: "sources", context: sources({ noPacks: true }) },
+  { id: "sources-empty-category", app: "sources", height: 640, context: sources({ emptyCategory: "heritages" }) },
   { id: "sources-filtered", app: "sources", height: 640, context: sources({ filter: { query: "spell" } }) },
   { id: "sources-selected-only", app: "sources", height: 640, context: sources({ filter: { query: "homebrew", selectedOnly: true } }) },
   { id: "sources-no-match", app: "sources", height: 640, context: sources({ filter: { query: "pathfinder" } }) },
