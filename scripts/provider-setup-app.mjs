@@ -403,7 +403,12 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
 
   static async #onCreateConnection() {
     if (this.#busy) return;
-    if (!(await this.#confirmDropEdits({ continuing: true })) || this.#busy) return;
+    // Create makes the new connection active: refuse while a run in another window reads the current one.
+    if (anotherRunInProgress(this)) {
+      ui.notifications.warn("SIMPLYSF2E.ProviderSetup.BusySwitch", { localize: true });
+      return;
+    }
+    if (!(await this.#confirmDropEdits({ continuing: true })) || this.#busy || anotherRunInProgress(this)) return;
     const inferred = getProviderRequestConfig().provider.id;
     const selected = this.#selectedPreset
       ?? (PROVIDER_PRESETS.some((provider) => provider.id === inferred) ? inferred : "custom");
@@ -422,6 +427,11 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
 
   static async #onDeleteConnection() {
     if (this.#busy) return;
+    // Delete activates another connection: refuse while a run in another window reads the current one.
+    if (anotherRunInProgress(this)) {
+      ui.notifications.warn("SIMPLYSF2E.ProviderSetup.BusySwitch", { localize: true });
+      return;
+    }
     const state = getProviderRequestConfig();
     if (!state.connectionId || state.connections.length < 2) return;
     const unsaved = this.#unsavedEditsHtml({ continuing: true, deleting: true });
@@ -433,7 +443,7 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
       })}</p>${unsaved}`,
       rejectClose: false
     });
-    if (!confirmed || this.#busy) return;
+    if (!confirmed || this.#busy || anotherRunInProgress(this)) return;
     // The GM may have switched connection while the dialog was open: delete nothing then.
     if (getProviderRequestConfig().connectionId !== state.connectionId) return;
     await deleteProviderConnection(state.connectionId);
@@ -694,6 +704,9 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
     } else if (!state.hasConfiguredApiKey && clearBox) {
       clearBox.remove();
     }
+    // The form now shows what is stored: re-take the snapshot _prepareContext takes, or a later
+    // connection-change refresh would count these saved values as unsaved edits.
+    this.#renderedSaved = savedConnectionForDirty(snapshotProviderConnection(), { connectionName: state.connectionName, prices: getActiveProviderPrices() });
   }
 
   /** Save/bind the displayed endpoint first, then populate model suggestions. */
