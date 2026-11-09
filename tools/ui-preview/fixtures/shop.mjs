@@ -112,6 +112,14 @@ export default [
     })
   },
   {
+    id: "shop-no-stock",
+    app: "shop",
+    context: shopContext({
+      input: { prompt: PROMPT }, showEmptyState: false, canReportBug: true,
+      error: localize("SIMPLYSF2E.Shop.NoStock")
+    })
+  },
+  {
     id: "shop-preview",
     app: "shop",
     context: shopContext({
