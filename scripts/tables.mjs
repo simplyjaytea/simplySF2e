@@ -154,7 +154,12 @@ export const RARITY_DC_ADJUSTMENT = { common: 0, uncommon: 2, rare: 5, unique: 1
  * pg 54); SF2e journal is a superset (adds Robot row). The DC to
  * identify/recall knowledge about a creature of this level+rarity. */
 export function identificationDC(level, rarity = "common") {
-  return lookup(LEVEL_DC, level, "dc", []) + (RARITY_DC_ADJUSTMENT[rarity] ?? 0);
+  // LEVEL_DC stops at 24, but an Elite level-24 creature is adjusted level 25.
+  // pf2e src/module/dc.ts (v14-dev) line 63: `[25, 50],`; above 25 clamps to it.
+  // Below -1 the table's clamp keeps 13; dc.ts has no -2 entry and falls back to 14
+  // (dc.ts:124), left as is for JT.
+  const base = level >= 25 ? 50 : lookup(LEVEL_DC, level, "dc", []);
+  return base + (RARITY_DC_ADJUSTMENT[rarity] ?? 0);
 }
 
 /* CITED SF2e (Starfinder GM Core pg. 123 "Resistances and Weaknesses") — Resistance benchmarks. */

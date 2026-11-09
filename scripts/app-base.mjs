@@ -27,6 +27,14 @@ import { formatCost, runCost } from "./cost.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
+/** Another open window runs a generation (its progress or run budget is live); the connection must not change under it. */
+export function anotherRunInProgress(self) {
+  for (const app of foundry.applications.instances?.values?.() ?? []) {
+    if (app !== self && (app?._progress || app?._generationAbort)) return true;
+  }
+  return false;
+}
+
 /**
  * Buttons for the bug-report dialogs. The issue URL carries no report text:
  * the GM pastes the copied report into the new issue.
@@ -41,6 +49,28 @@ function issueButtons() {
     },
     { action: "close", label: "SIMPLYSF2E.BugReport.ManualClose", default: true }
   ];
+}
+
+/**
+ * After the active connection changed, re-render every OTHER open window that
+ * shows connection state: the four tool windows (their drafts are kept by
+ * `_preserveForm`) and Provider Setup (which keeps unsaved edits and guards
+ * its own Save). `self` already rendered itself.
+ */
+export async function refreshOtherConnectionViews(self) {
+  for (const app of [...(foundry.applications.instances?.values?.() ?? [])]) {
+    if (app === self) continue;
+    try {
+      if (app instanceof SpfApp) {
+        app._preserveForm();
+        await app.render();
+      } else if (app instanceof ProviderSetupApp) {
+        await app._refreshForConnectionChange();
+      }
+    } catch (err) {
+      console.warn(`${MODULE_ID} | could not refresh a window after the connection changed`, err);
+    }
+  }
 }
 
 /**
@@ -214,9 +244,17 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
   async _switchActiveConnection(id) {
     const current = getProviderRequestConfig().connectionId;
     if (!id || id === current) return;
+    // A run in this window or in another one reads the connection per request: refuse, do not switch under it.
+    if (this._progress || this._generationAbort || anotherRunInProgress(this)) {
+      ui.notifications.warn("SIMPLYSF2E.ProviderSetup.BusySwitch", { localize: true });
+      const select = this.element?.querySelector?.("[name='activeConnection']");
+      if (select) select.value = current;
+      return;
+    }
     this._preserveForm();
     await selectProviderConnection(id);
     await this.render();
+    await refreshOtherConnectionViews(this);
   }
 
   _onRender(context, options) {

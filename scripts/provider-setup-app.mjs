@@ -12,6 +12,7 @@ import {
 } from "./jev.mjs";
 import { esc } from "./text.mjs";
 import { parsePrice } from "./cost.mjs";
+import { anotherRunInProgress, refreshOtherConnectionViews } from "./app-base.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -38,14 +39,6 @@ const UNSAVED_FIELD_LABELS = Object.freeze({
   jevApiKey: "SIMPLYSF2E.ProviderSetup.JevKeyLabel",
   clearJevApiKey: "SIMPLYSF2E.ProviderSetup.ClearJevKey"
 });
-
-/** Another open window runs a generation (its progress or run budget is live); the connection must not change under it. */
-function anotherRunInProgress(self) {
-  for (const app of foundry.applications.instances?.values?.() ?? []) {
-    if (app !== self && (app?._progress || app?._generationAbort)) return true;
-  }
-  return false;
-}
 
 /** Prices as the summary line shows them, as used after a save. */
 function pricesSummaryText(prices) {
@@ -95,6 +88,9 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
   /** Which manual price the last validation rejected: "input", "output" or null. */
   #priceErrorField = null;
   #jevOpen = false;
+  /** The connection the open form was rendered for, and its saved values then (to tell edits from the original). */
+  #renderedConnectionId = null;
+  #renderedSaved = null;
 
   constructor(options = {}, onSaved = null) {
     if (typeof options === "function") {
@@ -148,6 +144,8 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
       : "custom";
     const selected = this.#selectedPreset ?? inferred;
     const prices = getActiveProviderPrices();
+    this.#renderedConnectionId = state.connectionId;
+    this.#renderedSaved = savedConnectionForDirty(snapshotProviderConnection(), { connectionName: state.connectionName, prices });
     const jev = ProviderSetupApp.#jevContext();
     const pricesSummary = (prices.inputPerM == null && prices.outputPerM == null)
       ? null
@@ -247,6 +245,35 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
     this.element.querySelector("[name='activeConnection']")?.addEventListener("change", (event) =>
       ProviderSetupApp.#switchConnection.call(this, event.currentTarget.value)
     );
+  }
+
+  /** True when the active connection is no longer the one this form was rendered for. */
+  #formIsStale() {
+    return this.#renderedConnectionId != null && getProviderRequestConfig().connectionId !== this.#renderedConnectionId;
+  }
+
+  /** Reload the form from the active connection, dropping model suggestions of the old one. */
+  async #reloadForm() {
+    this.#selectedPreset = null;
+    this.#availableModels = [];
+    this.#modelsBaseUrl = "";
+    await this.render();
+  }
+
+  /**
+   * Another window changed the active connection. A clean form reloads at once.
+   * A form with unsaved edits stays as it is (a render would drop them); its
+   * Save then refuses and reloads (see #saveSettings).
+   */
+  async _refreshForConnectionChange() {
+    if (this.#busy || !this.#formIsStale()) return;
+    const form = connectionFormValues((name) => {
+      const control = this.element?.querySelector(`[name='${name}']`);
+      return name === "clearApiKey" ? Boolean(control?.checked) : control?.value;
+    });
+    const edited = connectionFormDirty(this.#renderedSaved ?? {}, form).length + this.#jevDirtyFields().length;
+    if (edited) return;
+    await this.#reloadForm();
   }
 
   #clearModelSuggestions() {
@@ -370,10 +397,8 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
       return;
     }
     await selectProviderConnection(id);
-    this.#selectedPreset = null;
-    this.#availableModels = [];
-    this.#modelsBaseUrl = "";
-    await this.render();
+    await this.#reloadForm();
+    await refreshOtherConnectionViews(this);
   }
 
   static async #onCreateConnection() {
@@ -392,6 +417,7 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
     this.#availableModels = [];
     this.#modelsBaseUrl = "";
     await this.render();
+    await refreshOtherConnectionViews(this);
   }
 
   static async #onDeleteConnection() {
@@ -411,10 +437,8 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
     // The GM may have switched connection while the dialog was open: delete nothing then.
     if (getProviderRequestConfig().connectionId !== state.connectionId) return;
     await deleteProviderConnection(state.connectionId);
-    this.#selectedPreset = null;
-    this.#availableModels = [];
-    this.#modelsBaseUrl = "";
-    await this.render();
+    await this.#reloadForm();
+    await refreshOtherConnectionViews(this);
   }
 
   static async #onChooseProvider(_event, target) {
@@ -438,7 +462,18 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
     }
   }
 
+  /**
+   * Save the chat connection form. Returns null, writing nothing, when the active
+   * connection changed in another window since this form was rendered: the edits
+   * belong to a connection that is no longer active, so the form reloads instead.
+   * Callers stop on null.
+   */
   static async #saveSettings({ notify = true, requireModel = true } = {}) {
+    if (this.#formIsStale()) {
+      ui.notifications.warn("SIMPLYSF2E.ProviderSetup.StaleConnection", { localize: true });
+      await this.#reloadForm();
+      return null;
+    }
     // Validate the price fields first: a bad value blocks the whole save with a field error.
     const priceInputs = {
       inputPerM: this.element.querySelector("[name='inputPerM']"),
@@ -461,6 +496,12 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
       priceInputs[field]?.reportValidity?.();
       throw new Error(message);
     }
+    // saveProviderConnection clears manual prices when the base URL changes. Prices the GM left
+    // untouched are the old provider's: re-applying them would put those rates on the new endpoint.
+    const savedPrices = getActiveProviderPrices();
+    const baseChanged = normalizeApiBaseUrl(this.element.querySelector("[name='apiBaseUrl']")?.value)
+      !== normalizeApiBaseUrl(getProviderRequestConfig().baseUrl);
+    const pricesEdited = ["inputPerM", "outputPerM"].some((field) => parsePrice(prices[field]).value !== parsePrice(savedPrices?.[field]).value);
     const result = await saveProviderConnection({
       baseUrl: this.element.querySelector("[name='apiBaseUrl']")?.value,
       model: this.element.querySelector("[name='model']")?.value,
@@ -471,7 +512,7 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
       requireModel
     });
     // After the connection save, so the prices land on the connection just saved.
-    if (priceInputs.inputPerM && priceInputs.outputPerM) await setActiveProviderPrices(prices);
+    if (priceInputs.inputPerM && priceInputs.outputPerM && !(baseChanged && !pricesEdited)) await setActiveProviderPrices(prices);
     await this.#onSaved?.();
     return result;
   }
@@ -611,7 +652,7 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
     try {
       // First, so a Jev key typed before Save is kept even if the chat save throws.
       ProviderSetupApp.#notifyJevSaved(await ProviderSetupApp.#saveJevKey.call(this));
-      await ProviderSetupApp.#saveSettings.call(this);
+      if (!(await ProviderSetupApp.#saveSettings.call(this))) return;
       await this.close();
     } catch (err) {
       // closeOnSubmit is off so a failed save keeps the form open with its edits.
@@ -631,7 +672,13 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
     const option = this.element?.querySelector(`[name='activeConnection'] option[value='${state.connectionId}']`);
     if (option) option.textContent = state.connectionName;
     const summary = this.element?.querySelector("details[data-section='prices'] .spf-fold-state");
-    if (summary && this.#priceError == null) summary.textContent = pricesSummaryText(getActiveProviderPrices());
+    const prices = getActiveProviderPrices();
+    if (summary && this.#priceError == null) summary.textContent = pricesSummaryText(prices);
+    // The price boxes show what is stored (a save may have cleared them with the base URL).
+    for (const field of ["inputPerM", "outputPerM"]) {
+      const box = this.element?.querySelector(`[name='${field}']`);
+      if (box && this.#priceError == null && parsePrice(box.value).value !== (prices[field] ?? null)) box.value = prices[field] ?? "";
+    }
     // The key field and the clear-key box follow hasApiKey, as provider-setup.hbs renders them.
     const keyInput = this.element?.querySelector("[name='apiKey']");
     if (keyInput) {
@@ -654,10 +701,12 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
     const busy = this.#beginBusy(target);
     if (!busy) return;
     try {
-      const { state } = await ProviderSetupApp.#saveSettings.call(this, {
+      const saved = await ProviderSetupApp.#saveSettings.call(this, {
         notify: false,
         requireModel: false
       });
+      if (!saved) return;
+      const { state } = saved;
       const warningKey = getProviderAuthWarningKey(
         state, globalThis.location?.protocol, false
       );
@@ -687,7 +736,9 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
       const jev = await ProviderSetupApp.#saveJevKey.call(this);
       ProviderSetupApp.#notifyJevSaved(jev);
       if (jev) this.#syncJevControls(Boolean(getJevRequestConfig().apiKey));
-      const { provider, model, state } = await ProviderSetupApp.#saveSettings.call(this, { notify: false });
+      const saved = await ProviderSetupApp.#saveSettings.call(this, { notify: false });
+      if (!saved) return;
+      const { provider, model, state } = saved;
       const warningKey = getProviderAuthWarningKey(state);
       if (warningKey) throw new Error(game.i18n.localize(warningKey));
       const usage = await testProviderConnection();

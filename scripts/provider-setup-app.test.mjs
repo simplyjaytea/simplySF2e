@@ -30,6 +30,8 @@ let confirmAnswer;
 let confirmCalls;
 let lastConfirm;
 let confirmHook = null;
+let refreshCalls = [];
+let priceWrites = [];
 const errors = [];
 const warnings = [];
 const runningApps = new Map();
@@ -55,6 +57,8 @@ const resetState = () => {
   errors.length = 0;
   warnings.length = 0;
   runningApps.clear();
+  refreshCalls = [];
+  priceWrites = [];
 };
 resetState();
 
@@ -161,14 +165,25 @@ const mocks = {
   getProviderAuthWarningKey: () => null,
   getProviderRequestConfig: () => providerState,
   normalizeApiBaseUrl: (value) => String(value ?? "").trim().replace(/\/+$/, ""),
+  anotherRunInProgress: (self) => [...runningApps.values()].some((app) => app !== self && (app?._progress || app?._generationAbort)),
+  refreshOtherConnectionViews: async (self) => { refreshCalls.push(self); },
   selectProviderConnection: async (id) => { selectCalls.push(id); },
-  setActiveProviderPrices: async () => {},
+  // Writes the active prices, as the real one does (cleared by `{}`).
+  setActiveProviderPrices: async (prices = {}) => {
+    priceWrites.push(prices);
+    activePrices = { inputPerM: parsePrice(prices.inputPerM).value, outputPerM: parsePrice(prices.outputPerM).value };
+  },
   connectionFormDirty: connect.connectionFormDirty,
   connectionFormValues: connect.connectionFormValues,
   savedConnectionForDirty: connect.savedConnectionForDirty,
   snapshotProviderConnection: () => connect.snapshotProviderConnection((key) => storedSetting(key)),
   saveProviderConnection: async (data = {}) => {
     saveCalls += 1;
+    // As the real save: a changed base URL moves the endpoint and clears the manual prices.
+    if (data.baseUrl !== undefined && mocks.normalizeApiBaseUrl(data.baseUrl) !== providerState.baseUrl) {
+      providerState.baseUrl = mocks.normalizeApiBaseUrl(data.baseUrl);
+      activePrices = { inputPerM: null, outputPerM: null };
+    }
     // A typed key is stored; a clear request removes it. The returned state reflects that, as the real save does.
     if (data.enteredApiKey) providerState.hasConfiguredApiKey = true;
     if (data.clearApiKey) providerState.hasConfiguredApiKey = false;
@@ -428,6 +443,129 @@ const newApp = (form) => {
   await actions.saveAndTest.call(app, null, { querySelector: () => null });
   const outputContext = await app._prepareContext();
   assert.equal(outputContext.priceErrorField, "output", "a rejected output price names the output field");
+}
+
+// (i) The active connection changes in another window while this form shows connection A.
+// Save, Save & Test, Load models and the form submit write nothing, warn, and reload the form.
+{
+  const switchedAway = () => {
+    // A real switch replaces the state object, as in (g2).
+    providerState = {
+      ...providerState, connectionId: "conn-2", connectionName: "OpenRouter",
+      baseUrl: "https://openrouter.ai/api/v1", model: "or-model"
+    };
+  };
+  const submit = App.DEFAULT_OPTIONS.form.handler;
+  const entries = {
+    saveAndTest: (app) => actions.saveAndTest.call(app, null, { querySelector: () => null }),
+    loadModels: (app) => actions.loadModels.call(app, null, { querySelector: () => null }),
+    submit: (app) => submit.call(app, null, null, null)
+  };
+  for (const [name, run] of Object.entries(entries)) {
+    resetState();
+    const form = standardForm();
+    form.control("button[type='submit']");
+    const app = newApp(form);
+    await app._prepareContext();
+    switchedAway();
+    form.querySelector("[name='model']").value = "typed-for-A";
+    const rendersBefore = app.renders;
+    await run(app);
+    assert.equal(saveCalls, 0, `${name}: nothing is written to the new active connection`);
+    assert.equal(providerState.model, "or-model", `${name}: the new connection keeps its model`);
+    assert.equal(warnings.at(-1)?.[0], "SIMPLYSF2E.ProviderSetup.StaleConnection", `${name}: the stale-connection notice shows`);
+    assert.equal(warnings.at(-1)?.[1]?.localize, true, `${name}: notice is localized by key`);
+    assert.equal(app.renders, rendersBefore + 1, `${name}: the form is reloaded`);
+    assert.equal(app.closed, 0, `${name}: the window stays open`);
+    assert.equal(errors.length, 0, `${name}: no error toast`);
+  }
+  // The form rendered for the connection that is still active saves as before.
+  resetState();
+  const okApp = newApp(standardForm());
+  await okApp._prepareContext();
+  await actions.loadModels.call(okApp, null, { querySelector: () => null });
+  assert.equal(saveCalls, 1, "an up-to-date form still saves");
+  assert.equal(warnings.length, 0, "and warns nothing");
+}
+
+// (j) Another window's switch: a clean Provider Setup reloads; one with edits stays as it is.
+{
+  resetState();
+  const clean = newApp(standardForm());
+  await clean._prepareContext();
+  await clean._refreshForConnectionChange();
+  assert.equal(clean.renders, 0, "connection unchanged: nothing to reload");
+  providerState = { ...providerState, connectionId: "conn-2", connectionName: "OpenRouter", baseUrl: "https://openrouter.ai/api/v1" };
+  await clean._refreshForConnectionChange();
+  assert.equal(clean.renders, 1, "a clean form reloads after another window switched");
+
+  resetState();
+  const dirtyForm = standardForm();
+  const dirty = newApp(dirtyForm);
+  await dirty._prepareContext();
+  dirtyForm.querySelector("[name='model']").value = "typed";
+  providerState = { ...providerState, connectionId: "conn-2", connectionName: "OpenRouter", baseUrl: "https://openrouter.ai/api/v1" };
+  await dirty._refreshForConnectionChange();
+  assert.equal(dirty.renders, 0, "a form with unsaved edits is not re-rendered");
+  assert.equal(dirtyForm.querySelector("[name='model']").value, "typed", "and keeps the typed text");
+}
+
+// (k) Its own switch, create and delete refresh the other windows.
+{
+  resetState();
+  const form = standardForm();
+  const app = newApp(form);
+  const select = form.querySelector("[name='activeConnection']");
+  select.value = "conn-2";
+  for (const { type, fn } of select.listeners) if (type === "change") fn({ currentTarget: select });
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.deepEqual(refreshCalls, [app], "a switch refreshes the other windows");
+  await actions.createConnection.call(app, null, {});
+  assert.equal(refreshCalls.length, 2, "create refreshes the other windows");
+  await actions.deleteConnection.call(app, null, {});
+  assert.equal(refreshCalls.length, 3, "delete refreshes the other windows");
+}
+
+// (l) Manual prices after the base URL changed: untouched price fields are not re-applied; edited ones are.
+{
+  const priceForm = () => {
+    resetState();
+    activePrices = { inputPerM: 0.27, outputPerM: 1.1 };
+    const form = standardForm();
+    form.querySelector("[name='inputPerM']").value = "0.27";
+    form.querySelector("[name='outputPerM']").value = "1.10";
+    form.control("details[data-section='prices'] .spf-fold-state", { textContent: "old summary" });
+    // The OpenAI tile fills only the endpoint (and model); the price boxes keep their values.
+    form.querySelector("[name='apiBaseUrl']").value = "https://api.openai.com/v1";
+    return form;
+  };
+  // Untouched prices, endpoint changed.
+  let form = priceForm();
+  let app = newApp(form);
+  await app._prepareContext();
+  await actions.loadModels.call(app, null, { querySelector: () => null });
+  assert.deepEqual(activePrices, { inputPerM: null, outputPerM: null }, "base URL changed, prices untouched: active prices end cleared");
+  assert.equal(priceWrites.some((p) => p.inputPerM !== undefined), false, "the old prices are not written back");
+  assert.equal(form.querySelector("[name='inputPerM']").value, "", "the input price box shows the cleared state");
+  assert.equal(form.querySelector("[name='outputPerM']").value, "", "the output price box shows the cleared state");
+  assert.equal(form.querySelector("details[data-section='prices'] .spf-fold-state").textContent,
+    "SIMPLYSF2E.ProviderSetup.CostNotSet", "the price summary shows the cleared state");
+  // The GM typed new prices in the same save.
+  form = priceForm();
+  form.querySelector("[name='inputPerM']").value = "2.5";
+  form.querySelector("[name='outputPerM']").value = "10";
+  app = newApp(form);
+  await app._prepareContext();
+  await actions.loadModels.call(app, null, { querySelector: () => null });
+  assert.deepEqual(activePrices, { inputPerM: 2.5, outputPerM: 10 }, "edited prices are applied with the new endpoint");
+  assert.equal(form.querySelector("[name='inputPerM']").value, "2.5", "an applied price stays in its box");
+  // Endpoint unchanged: the same prices are applied as before (no behaviour change).
+  form = priceForm();
+  form.querySelector("[name='apiBaseUrl']").value = providerState.baseUrl;
+  app = newApp(form);
+  await app._prepareContext();
+  await actions.loadModels.call(app, null, { querySelector: () => null });
+  assert.deepEqual(activePrices, { inputPerM: 0.27, outputPerM: 1.1 }, "endpoint unchanged: prices kept");
 }
 
 console.log("provider-setup-app.test.mjs: ok");

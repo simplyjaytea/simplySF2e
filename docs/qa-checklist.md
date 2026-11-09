@@ -64,6 +64,7 @@ Repeat 2.1-2.7 for **Level 1**, **Level 5** and **Level 12**. Use the same promp
 | 2.13 | Same level 8 creature, prompt: "a glowing reactor core that burns everything within ten feet each turn". Create Actor. Place the token on the canvas. | A passive 10-foot aura visible on the canvas around the token. The ability text has a clickable `@Damage[4d6[fire]]` link (4d6 is the unlimited column at level 6, level 8 minus 2) and a clickable `@Check[fortitude\|dc:23\|basic]`. The module applies no damage: the GM rolls and applies it. | Canvas, Actions tab, chat | | |
 | 2.14 | Generator → mode **NPC**, level 14, rarity Unique, Treasure amount Generous, any prompt that gives it loot. Create the actor and open its inventory. | The Credstick in its inventory brings the loot value to about the Credits budget chip in the preview (175,200 for a single level 14 creature, about 17,520 gp), not 10,000 gp. | Preview, NPC inventory | | |
 | 2.15 | Generate and Create a monster or NPC. | After Create only Open Sheet is highlighted as the primary button; Generate Another is secondary. | Generator | | |
+| 2.16 | Clear the Level field and press Generate. | Level 1 is used, not 0. | Generator | | |
 
 | Level | Result | Evidence |
 |-------|--------|----------|
@@ -99,6 +100,7 @@ Use one prompt at level 5. The goal is to prove the adjustment is applied once (
 | 4.7 | Rollback: Compendium Sources → Bestiary Actors, uncheck every pack, Save. Generate an encounter preview and click **Create All Actors**. | Creation fails with "No usable NPC actor was available in the enabled Bestiary Actor sources…". No folder from this attempt remains and no stray actors remain (all-or-nothing). | Actors directory, console | | |
 | 4.8 | Restore defaults (Compendium Sources → **Reset to defaults** → Save). | Sources ready again. | Sources window | | |
 | 4.9 | Generate an encounter preview, then press "Remove one" on every member until each count is 0. Try to click **Create All Actors**. | The button is disabled. No folder is created and no "Created 0 actors" notice appears. Raising any member back to 1 enables it again. | Encounter preview, Actors sidebar | | |
+| 4.10 | Encounter mode, press **Generate** (not Preview). | The folder and every member actor are created in one go, with no extra click on Create All Actors. | Encounter preview, Actors sidebar | | |
 
 ## 5. Reskin
 
@@ -116,6 +118,8 @@ Use one prompt at level 5. The goal is to prove the adjustment is applied once (
 | 5.10 | Repeat 5.3-5.8 dragging a creature straight from a **bestiary compendium** (e.g. `sf2e.alien-core-bestiary`). | Same behavior; copy lands in the world, compendium untouched. | Compendium, Actors | | |
 | 5.11 | Check the copy's description for injected HTML. | Any `<` or `&` from the AI shows as text, not live markup. | Sheet description | | |
 | 5.12 | Generate a creature whose concept includes Trample and a named melee Strike (the module fills Trample from its strongest melee Strike). Reskin it with a theme that renames that Strike, then create the copy. | The copy's Trample text names the new Strike. The original's Trample is unchanged. The `@Check[...]` in the Trample text still rolls. | Both sheets | | |
+| 5.13 | Reskin a level 10 creature whose highest ability modifier is the Extreme value for level 10, then re-level the copy to 0. | Every ability modifier on the copy drops; none keeps its level 10 number. | Copy's sheet | | |
+| 5.14 | Reskin a module-built creature that has Trample, a melee Strike and a stronger ranged Strike, then change its level. | Trample's text still names the melee Strike, never the ranged one. | Copy's sheet | | |
 
 ## 6. Item Forge
 
@@ -203,6 +207,8 @@ Per class and level:
 | 7.8 | Equipment. | Gear priced in credits; armor/weapon readied only if trained, else a Loadout note (e.g. "An untrained armor item was left stowed."). | Inventory | | |
 | 7.9 | Class path items: Operative specialization skill feat and Sniper bonus feat chosen without a native prompt; Solarian has Solar Manifestations. | Cited L1 choices closed before creation; none blank. | Feats, Actions | | |
 | 7.10 | Level 18 character, Treasure amount Standard, no named loot picks. Create it, then add up the prices of all inventory items except the Credstick. | Credstick credits plus that sum is about 450,000 credits (45,000 gp), not about 100,000 credits plus the gear. | Character inventory | | |
+| 7.11 | Character preview on screen, clear the prompt, press **Generate another version**. | Only the "enter a prompt" warning appears. No actor is created and the old preview stays. | Character preview, Actors sidebar | | |
+| 7.12 | Level 1 character whose gear costs more than 150 credits (generate, then add up the equipment prices). | The sheet has no Credstick from loot. The browser console shows one warning that the drafted coin was dropped. | Character inventory, console | | |
 
 ### 7a. Mystic and Witchwarper spellcasting (both levels)
 
@@ -586,6 +592,7 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 | 12z.4 | Drag the merchant onto a scene and have a player buy an item. | The native merchant buy flow works and deducts the player's credits. | Scene, player sheet | | |
 | 12z.5 | Generate at level 0 with Rarest stock Rare, then Large. | Only level 0 items; uncommon/rare items appear with a rarity tag; up to 24 rows. | Preview | | |
 | 12z.6 | Press Stop mid-run, and separately close the window mid-run. | Nothing is created; the usual cancelled notice appears. | Preview, Actors sidebar | | |
+| 12z.7 | Shop, category Weapons, level 10; find an ammunition row (for example Flashbang Ammunition) and compare its price with the item's own sheet. | The row price is the sheet's price divided by its "per" count (a 10-round pack priced 5,000 shows 500 each); the stock total uses the same unit price. | Shop | | |
 
 ## 12aa. Per-run token budget and run deadline
 
@@ -780,6 +787,9 @@ Generate a level 7 NPC with a limited cone breath (name "Frost Breath", cold), a
 | 12ae.1 | Provider Setup: change the Jev source or type a Jev endpoint, then press Load models. | The Jev field keeps the value you set; the model list fills in; nothing was reset. | Provider Setup | | |
 | 12ae.2 | Start a Generator run, then in Provider Setup pick another Saved connection. | The switch is refused with "A run is in progress. Wait for it to finish before switching connections."; the select shows the connection still in use. | Provider Setup, Generator | | |
 | 12ae.3 | Provider Setup with two saved connections: change the Model field without saving, then press Delete connection. | One dialog: it names the connection and, in a second sentence, the changed field. Delete removes the connection with no second question; Cancel keeps the connection and the unsaved edit. With no unsaved edits the dialog shows only the delete question. | Provider Setup | | |
+| 12ae.4 | Provider Setup open on connection A. In the Generator header pick connection B. | Back in Provider Setup the form shows B (or, if you had typed in it, pressing Save shows "The active connection changed in another window..." and B keeps its endpoint, model and key). | Provider Setup | | |
+| 12ae.5 | Start a Generator run, then change the connection from the Shop window's header. | The change is refused with "A run is in progress..." and the select returns to the connection in use. | Shop, Generator | | |
+| 12ae.6 | A connection with manual prices: press another provider tile so the endpoint changes, then Save without touching the prices. | The prices are cleared (boxes and summary show none) and cost lines stop using the old rates. | Provider Setup | | |
 
 ## 14a. Shell consistency, Generator (U2-GEN)
 

@@ -59,7 +59,9 @@ export const CREDIT_UNIT_GP = DENOMINATION_RATES.credits / DENOMINATION_RATES.gp
 export function gpToCredits(gp) {
   const n = Number(gp);
   if (!Number.isFinite(n) || n <= 0) return 0;
-  return Math.max(Math.ceil((n * DENOMINATION_RATES.gp) / DENOMINATION_RATES.credits), 1);
+  const credits = (n * DENOMINATION_RATES.gp) / DENOMINATION_RATES.credits;
+  // Round to 1e-6 first: 1.1 gp is 11.000000000000002 credits in floats, and a bare ceil makes it 12.
+  return Math.max(Math.ceil(Math.round(credits * 1e6) / 1e6), 1);
 }
 
 /**

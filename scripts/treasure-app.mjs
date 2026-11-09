@@ -3,7 +3,7 @@ import {
   authorizeApiKeyForCurrentBaseUrl
 } from "./settings.mjs";
 import { generateTreasureConcept, selectTreasureItems } from "./ai.mjs";
-import { getShopCandidates, getCandidateDocument, getPacksFor, toItemData, priceToGp, describeMissingSources } from "./compendium.mjs";
+import { getShopCandidates, getCandidateDocument, getPacksFor, toItemData, unitPriceGp, describeMissingSources } from "./compendium.mjs";
 import { SHOP_CATEGORIES, shopTypesFor } from "./shop.mjs";
 import {
   TREASURE_AMOUNTS, TREASURE_PICKS, TREASURE_RARITIES, TREASURE_MIN_LEVEL, TREASURE_MAX_LEVEL,
@@ -284,7 +284,7 @@ export class TreasureApp extends SpfApp {
       this._recordTokens(game.i18n.localize("SIMPLYSF2E.Treasure.ProgressPicks"), pickUsage);
 
       // 4. Exact documents: the price is the compendium document's own, read
-      // the way the shop does (priceToGp, then gpToCredits).
+      // the way the shop does (unitPriceGp, then gpToCredits).
       await this._setStep("prices");
       const { issued } = resolveIssuedPicks(ids, candidates);
       const priced = [];
@@ -297,7 +297,7 @@ export class TreasureApp extends SpfApp {
           continue;
         }
         docs.set(candidate.id, doc);
-        priced.push({ ...candidate, credits: gpToCredits(priceToGp(doc.system?.price?.value)) });
+        priced.push({ ...candidate, credits: gpToCredits(unitPriceGp(doc)) });
       }
       const hoard = fillHoard(ids, priced, budget);
       const offered = new Set(issued.map((candidate) => candidate.id));
