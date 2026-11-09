@@ -90,6 +90,16 @@ export function priceToGp(price) {
    base-item-vs-requested-rarity pick). */
 export const RARITY_RANK = { common: 0, uncommon: 1, rare: 2, unique: 3 };
 
+/* Messages already printed by getPacksFor, so each warning shows once per session
+   instead of on every render of the apps that call it. */
+const warnedPacks = new Set();
+
+function warnOnce(message) {
+  if (warnedPacks.has(message)) return;
+  warnedPacks.add(message);
+  console.warn(message);
+}
+
 /**
  * Pack ids a category draws from: the GM's Compendium Sources selection, or
  * the system defaults when the category is unset/empty. Missing packs (e.g.
@@ -104,14 +114,17 @@ export function getPacksFor(category) {
   const ids = configured ? stored[category] : DEFAULT_PACKS[category];
   if (configured) {
     for (const id of ids) {
-      if (!game.packs.get(id)) console.warn(`simplysf2e | configured ${category} pack "${id}" is not available (uninstalled/disabled?) — skipping`);
+      if (!game.packs.get(id)) warnOnce(`simplysf2e | configured ${category} pack "${id}" is not available (uninstalled/disabled?) — skipping`);
     }
   }
   const packs = ids.filter((id) => game.packs.get(id));
   if (packs.length || !DEFAULT_PACKS[category]) return packs;
-  console.warn(`simplysf2e | no configured ${category} packs are available, falling back to system defaults`);
+  warnOnce(`simplysf2e | no configured ${category} packs are available, falling back to system defaults`);
   return DEFAULT_PACKS[category].filter((id) => game.packs.get(id));
 }
+
+/** Forget which pack warnings were printed. For tests only. */
+export function resetPackWarnings() { warnedPacks.clear(); }
 
 /** Report the enabled packs required before a generation may spend tokens. */
 export function sourceReadiness(mode, { allowSpellcasting = true } = {}) {
