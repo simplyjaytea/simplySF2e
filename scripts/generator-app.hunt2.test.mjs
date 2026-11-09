@@ -266,7 +266,7 @@ const coinNames = (app) => app._test_pcResolved.loot.filter((l) => builder.parse
   assert.equal(pcLootCalls, 1, "only the first loot draft is requested; no extra purchase pass");
   const dropped = warnings.filter((w) => /dropped .*(coin|credit)/i.test(w) && /starting wealth|loot budget/i.test(w));
   assert.equal(dropped.length, 1, `one warning names the dropped credits (${warnings.join(" || ")})`);
-  assert.match(dropped[0], /400/);
+  assert.match(dropped[0], /dropped 400 credits \(credits\/UPB\) of drafted coin: the PC's gear already uses up the starting wealth/);
 }
 {
   reset();

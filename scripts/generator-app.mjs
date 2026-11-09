@@ -1147,7 +1147,7 @@ export class GeneratorApp extends SpfApp {
         const coinLines = resolved.loot.filter((l) => parseCoins(l.name));
         if (coinLines.length) {
           resolved.loot = resolved.loot.filter((l) => !parseCoins(l.name));
-          console.warn(`${MODULE_ID} | dropped ${gpToCredits(lootValueGp(coinLines))} credits of drafted coin: the PC's gear already uses up the starting wealth`);
+          console.warn(`${MODULE_ID} | dropped ${gpToCredits(lootValueGp(coinLines))} credits (credits/UPB) of drafted coin: the PC's gear already uses up the starting wealth`);
         }
       }
       resolved.loot = await applyTreasureBudget(resolved.loot, lootBudget);
