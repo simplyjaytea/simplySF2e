@@ -184,6 +184,8 @@ const mocks = {
       providerState.baseUrl = mocks.normalizeApiBaseUrl(data.baseUrl);
       activePrices = { inputPerM: null, outputPerM: null };
     }
+    // The model in the form is stored, as the real save does.
+    if (data.model) providerState.model = data.model;
     // A typed key is stored; a clear request removes it. The returned state reflects that, as the real save does.
     if (data.enteredApiKey) providerState.hasConfiguredApiKey = true;
     if (data.clearApiKey) providerState.hasConfiguredApiKey = false;
@@ -566,6 +568,79 @@ const newApp = (form) => {
   await app._prepareContext();
   await actions.loadModels.call(app, null, { querySelector: () => null });
   assert.deepEqual(activePrices, { inputPerM: 0.27, outputPerM: 1.1 }, "endpoint unchanged: prices kept");
+}
+
+// (m) Create and Delete change the active connection, so they are refused while another window runs
+// a generation: no dialog, nothing created or deleted, the BusySwitch notice. A run that starts while the
+// dialog is open stops the write as well.
+{
+  resetState();
+  runningApps.set("generator", { _generationAbort: new AbortController() });
+  const deleteApp = newApp(standardForm());
+  await actions.deleteConnection.call(deleteApp, null, {});
+  assert.equal(confirmCalls, 0, "another run: Delete opens no dialog");
+  assert.equal(deleteCalls, 0, "another run: nothing is deleted");
+  assert.equal(warnings.at(-1)?.[0], "SIMPLYSF2E.ProviderSetup.BusySwitch", "another run: Delete warns BusySwitch");
+
+  resetState();
+  runningApps.set("generator", { _generationAbort: new AbortController() });
+  const createApp = newApp(standardForm());
+  await actions.createConnection.call(createApp, null, {});
+  assert.equal(confirmCalls, 0, "another run: Create opens no dialog");
+  assert.equal(createCalls, 0, "another run: nothing is created");
+  assert.equal(warnings.at(-1)?.[0], "SIMPLYSF2E.ProviderSetup.BusySwitch", "another run: Create warns BusySwitch");
+
+  resetState();
+  const deleteDuringDialog = newApp(standardForm());
+  confirmHook = () => runningApps.set("generator", { _progress: { steps: [] } });
+  await actions.deleteConnection.call(deleteDuringDialog, null, {});
+  confirmHook = null;
+  assert.equal(confirmCalls, 1, "a run started during Delete: the dialog was shown once");
+  assert.equal(deleteCalls, 0, "a run started during Delete: nothing is deleted");
+  runningApps.clear();
+
+  resetState();
+  const createForm = standardForm();
+  createForm.querySelector("[name='jevApiKey']").value = "typed";
+  const createDuringDialog = newApp(createForm);
+  confirmHook = () => runningApps.set("generator", { _progress: { steps: [] } });
+  await actions.createConnection.call(createDuringDialog, null, {});
+  confirmHook = null;
+  assert.equal(confirmCalls, 1, "a run started during Create: the unsaved-edits dialog was shown once");
+  assert.equal(createCalls, 0, "a run started during Create: nothing is created");
+  runningApps.clear();
+}
+
+// (n) Load models saves a changed model and then refreshes the saved snapshot: the form now matches what is
+// stored, so another window's switch reloads it. A real edit typed after the save still keeps the form.
+{
+  const otherWindowSwitch = () => {
+    providerState = { ...providerState, connectionId: "conn-2", connectionName: "OpenRouter", baseUrl: "https://openrouter.ai/api/v1", model: "or-model" };
+  };
+  resetState();
+  const form = standardForm();
+  const app = newApp(form);
+  await app._prepareContext();
+  form.querySelector("[name='model']").value = "model-saved-now";
+  await actions.loadModels.call(app, null, { querySelector: () => null });
+  assert.equal(providerState.model, "model-saved-now", "Load models stored the new model");
+  const rendersAfterSave = app.renders;
+  otherWindowSwitch();
+  await app._refreshForConnectionChange();
+  assert.equal(app.renders, rendersAfterSave + 1, "after a save, another window's switch reloads the clean form");
+
+  resetState();
+  const editedForm = standardForm();
+  const editedApp = newApp(editedForm);
+  await editedApp._prepareContext();
+  editedForm.querySelector("[name='model']").value = "model-saved-now";
+  await actions.loadModels.call(editedApp, null, { querySelector: () => null });
+  editedForm.querySelector("[name='model']").value = "typed-after-save";
+  const rendersBeforeSwitch = editedApp.renders;
+  otherWindowSwitch();
+  await editedApp._refreshForConnectionChange();
+  assert.equal(editedApp.renders, rendersBeforeSwitch, "a real edit typed after the save: no reload");
+  assert.equal(editedForm.querySelector("[name='model']").value, "typed-after-save", "and the typed text is kept");
 }
 
 console.log("provider-setup-app.test.mjs: ok");
