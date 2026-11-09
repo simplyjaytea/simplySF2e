@@ -32,12 +32,14 @@ let activePrices = { inputPerM: null, outputPerM: null };
 const notifications = [];
 let confirmAnswer = true;
 let confirmCalls = 0;
+// Unit letters the localize stub returns for the two elapsed-time keys.
+const unitLabels = { "SIMPLYSF2E.Progress.UnitSeconds": "s", "SIMPLYSF2E.Progress.UnitMinutes": "m" };
 const context = vm.createContext({
   AbortController,
   console: { log() {}, warn() {}, error() {}, debug() {} },
   game: {
     i18n: {
-      localize: (key) => key,
+      localize: (key) => (key in unitLabels ? unitLabels[key] : key),
       format: (key, data) => `${key}:${JSON.stringify(data)}`
     }
   },
@@ -293,6 +295,13 @@ assert.equal(domSteps[0].className, "spf-step-done");
 assert.equal(domSteps[1].className, "spf-step-active");
 assert.match(domElapsed[0].textContent, /^\d+\.\d s$/, "a finished step paints its elapsed time in place");
 assert.equal(domElapsed[1].textContent, "SIMPLYSF2E.Progress.Running");
+
+// A live repaint uses the app's localized unit letters, not the defaults.
+unitLabels["SIMPLYSF2E.Progress.UnitSeconds"] = "sek";
+unitLabels["SIMPLYSF2E.Progress.UnitMinutes"] = "min";
+app._paintStepList();
+assert.match(domElapsed[0].textContent, /^\d+\.\d sek$/, "the in-place repaint ends with the localized seconds letter");
+assert.equal(domElapsed[1].textContent, "SIMPLYSF2E.Progress.Running", "the active step still paints the running label");
 
 // 4. Provider switching & testing
 app.rendered = false;

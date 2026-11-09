@@ -519,7 +519,7 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
       if (elapsed) {
         elapsed.textContent = step.state === "active"
           ? game.i18n.localize("SIMPLYSF2E.Progress.Running")
-          : stepElapsed(step);
+          : stepElapsed(step, this._elapsedUnits());
       }
       const icon = li.querySelector("i");
       if (!icon) return;
