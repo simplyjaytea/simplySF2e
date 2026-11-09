@@ -252,4 +252,31 @@ const goodPC = async (prompt) => {
   assert.equal(app._test_created?.name, "Reskinned", `reskin with a prompt creates once (${app._test_error})`);
 }
 
+// --- C. A PC whose gear exceeds starting wealth keeps no drafted coin ---
+const coinNames = (app) => app._test_pcResolved.loot.filter((l) => builder.parseCoins(l.name)).map((l) => l.name);
+{
+  reset();
+  equipmentGp = 40;   // wealth 15 gp: loot budget floors at 0
+  pcLootDraft = [{ name: "Credstick", quantity: 400 }];   // the production normalizer folds this onto a Credstick line
+  const app = await goodPC("a brave pilot");
+  await app._test_runGeneration(false, { create: false });
+  assert.equal(app._test_error, null, `no error (${app._test_error})`);
+  assert.ok(app._test_pcResolved, "the preview exists");
+  assert.deepEqual(coinNames(app), [], "no coin line survives a zero loot budget");
+  assert.equal(pcLootCalls, 1, "only the first loot draft is requested; no extra purchase pass");
+  const dropped = warnings.filter((w) => /dropped .*(coin|credit)/i.test(w) && /starting wealth|loot budget/i.test(w));
+  assert.equal(dropped.length, 1, `one warning names the dropped credits (${warnings.join(" || ")})`);
+  assert.match(dropped[0], /400/);
+}
+{
+  reset();
+  equipmentGp = 5;   // loot budget 10 gp = 100 credits; a 100-credit stick sits inside the 20% band
+  pcLootDraft = [{ name: "Credstick", quantity: 100 }];
+  const app = await goodPC("a brave pilot");
+  await app._test_runGeneration(false, { create: false });
+  assert.deepEqual(coinNames(app), ["Credstick"], "a positive budget keeps the coin line");
+  assert.equal(app._test_pcResolved.loot[0].quantity, 100);
+  assert.equal(pcLootCalls, 2, "coin above a quarter of the budget still triggers the extra pass (unchanged)");
+}
+
 console.log("generator-app.hunt2.test.mjs: passed");

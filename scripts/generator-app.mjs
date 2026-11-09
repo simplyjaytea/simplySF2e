@@ -1140,6 +1140,16 @@ export class GeneratorApp extends SpfApp {
       // applyTreasureBudget do its usual coin-only pad/trim against whatever
       // value remains.
       resolved.loot = enforceNamedLootBudget(resolved.loot, lootBudget);
+      // applyTreasureBudget() returns the loot unchanged for a budget of 0
+      // (creature callers rely on that), so a PC whose gear already uses up
+      // the starting wealth would keep every drafted coin line. Drop them here.
+      if (lootBudget <= 0) {
+        const coinLines = resolved.loot.filter((l) => parseCoins(l.name));
+        if (coinLines.length) {
+          resolved.loot = resolved.loot.filter((l) => !parseCoins(l.name));
+          console.warn(`${MODULE_ID} | dropped ${gpToCredits(lootValueGp(coinLines))} credits of drafted coin: the PC's gear already uses up the starting wealth`);
+        }
+      }
       resolved.loot = await applyTreasureBudget(resolved.loot, lootBudget);
 
       // If most of the (equipment-adjusted) loot budget still sits as coin
@@ -1147,7 +1157,7 @@ export class GeneratorApp extends SpfApp {
       // real items (issue #64 item 6: PCs were leaving too much unspent
       // gold). Bounded to a single retry.
       const coinGp = lootValueGp(resolved.loot.filter((l) => parseCoins(l.name)));
-      if (coinGp > lootBudget * 0.25) {
+      if (lootBudget > 0 && coinGp > lootBudget * 0.25) {
         try {
           const { loot: draft, usage: extraUsage } = await generatePCLoot({
             concept, amount: this.#input.treasureAmount, onProgress: (p) => this._onAIProgress(p), signal
