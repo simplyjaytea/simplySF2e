@@ -789,7 +789,7 @@ Generate a level 7 NPC with a limited cone breath (name "Frost Breath", cold), a
 | 12ae.3 | Provider Setup with two saved connections: change the Model field without saving, then press Delete connection. | One dialog: it names the connection and, in a second sentence, the changed field. Delete removes the connection with no second question; Cancel keeps the connection and the unsaved edit. With no unsaved edits the dialog shows only the delete question. | Provider Setup | | |
 | 12ae.4 | Provider Setup open on connection A. In the Generator header pick connection B. | Back in Provider Setup the form shows B (or, if you had typed in it, pressing Save shows "The active connection changed in another window..." and B keeps its endpoint, model and key). | Provider Setup | | |
 | 12ae.5 | Start a Generator run, then change the connection from the Shop window's header. | The change is refused with "A run is in progress..." and the select returns to the connection in use. | Shop, Generator | | |
-| 12ae.6 | A connection with manual prices: press another provider tile so the endpoint changes, then Save without touching the prices. | The prices are cleared (boxes and summary show none) and cost lines stop using the old rates. | Provider Setup | | |
+| 12ae.6 | A connection with manual prices: press another provider tile so the endpoint changes, then press Save & Test without touching the prices (Save alone closes the window; reopen Provider Setup to look). | The prices are cleared (boxes and summary show none) and cost lines stop using the old rates. | Provider Setup | | |
 
 ## 14a. Shell consistency, Generator (U2-GEN)
 
