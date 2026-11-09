@@ -96,7 +96,10 @@ export function shiftStat(table, value, from, to, { keepBelowFloor = false } = {
   if (keepBelowFloor && value < floorAt(table, from)) return null;
   const scale = nearestScale(table, from, value);
   const before = scale && cell(table, scale, from);
-  const after = scale && cell(table, scale, to);
+  // The printed cell can be missing at the new level (Extreme ability modifier
+  // below level 1). tables.lookup documents the fallback, so use it: the next
+  // printed scale at that level, keeping the same offset from the source scale.
+  const after = scale && (cell(table, scale, to) ?? T.lookup(table, to, scale));
   if (!isNumber(before) || !isNumber(after)) return null;
   return { value: value + (after - before), scale };
 }
