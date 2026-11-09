@@ -49,10 +49,15 @@ const pack = {
   async getIndex() { return [{ _id: "trample", name: "Trample", type: "action", system: { slug: "trample", traits: { value: [] }, actionType: { value: "action" } } }]; },
   async getDocument(id) { return id === "trample" ? { ...trampleDoc, uuid: trampleUuid, toObject: () => structuredClone(trampleDoc) } : null; }
 };
-const equipmentPack = { documents: {}, async getIndex() { return Object.values(this.documents).map((d) => ({ _id: d._id, name: d.name, type: d.type, system: d.system })); }, async getDocument(id) { const d = this.documents[id]; return d ? { ...d, uuid: `Compendium.sf2e.equipment-srd.Item.${id}`, toObject: () => structuredClone(d) } : null; } };
+// Real v14-dev shape of a published ranged weapon (builder.compendiumFirst.test.mjs: Laser Pistol).
+const pistolDoc = { _id: "pistol", name: "Laser Pistol", type: "weapon", system: { slug: "laser-pistol", level: { value: 0 }, damage: { damageType: "fire", dice: 1, die: "d6" }, traits: { value: ["tech"] }, range: 40, description: { value: "" }, rules: [] } };
+const equipmentPack = {
+  async getIndex() { return [{ _id: "pistol", name: "Laser Pistol", type: "weapon", system: { slug: "laser-pistol", level: { value: 0 }, traits: { value: ["tech"] } } }]; },
+  async getDocument(id) { return id === "pistol" ? { ...pistolDoc, uuid: "Compendium.sf2e.equipment.Item.pistol", toObject: () => structuredClone(pistolDoc) } : null; }
+};
 globalThis.game = {
   settings: { get: () => ({}) },
-  packs: new Map([[PACK, pack], ["sf2e.equipment-srd", equipmentPack]]),
+  packs: new Map([[PACK, pack], ["sf2e.equipment", equipmentPack]]),
   i18n: { localize: (k) => k, format: (k) => k }
 };
 globalThis.CONFIG = { PF2E: { damageTypes: {}, npcAttackTraits: {}, attackEffects: {} } };
@@ -100,6 +105,22 @@ const TRAMPLE_PICK = [{ name: "Trample", glossary: "Trample", description: "It t
   assert.equal(report.status, "kept", "ranged-only re-level keeps Trample");
   assert.equal(report.reason, "no melee Strike", "and reports the no melee Strike reason");
   assert.equal(trample(kept.data).system.description.value, trample(flagged).system.description.value, "text untouched");
+}
+
+// 3. Resolve-time Trample dry run sees the strikes aligned to carried weapons: a strike
+// the AI typed melee but named for a carried ranged weapon is ranged by build time.
+{
+  const PISTOL = { name: "Laser Pistol", type: "melee", attackScale: "high", damageScale: "high", damageType: "fire", traits: [], attackEffects: [] };
+  const raw = { strikes: [PISTOL], equipment: [{ name: "Laser Pistol", quantity: 1 }], specialAbilities: TRAMPLE_PICK };
+  warnings.length = 0;
+  const { concept, resolved, actor } = await build(raw);
+  assert.equal(concept.strikes[0].type, "ranged", "resolve aligned the strike to the carried ranged weapon");
+  const resolvedTrample = resolved.abilities.some((a) => a.ability.name === "Trample" && a.entry);
+  const createdTrample = Boolean(trample(actor));
+  assert.equal(resolvedTrample, createdTrample, "resolve and create agree on Trample (never resolved at preview, dropped at create)");
+  assert.equal(resolvedTrample, false, "no melee Strike after alignment: Trample is not kept");
+  assert.ok(warnings.some((w) => /"Trample" cannot be filled for this creature: no melee Strike/.test(w)), "the resolve-time warning names the reason");
+  assert.ok(!warnings.some((w) => /dropped "Trample"/.test(w)), "no late drop at create");
 }
 
 console.log("creature.hunt2 tests passed");

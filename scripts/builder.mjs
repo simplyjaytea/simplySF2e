@@ -1050,6 +1050,19 @@ export async function rerollAbilityInto(concept, resolved, { index, candidate })
  * the preview can show what was found and what will become a custom ability.
  */
 export async function resolveConcept(concept, { exactContent = false } = {}) {
+  // Carried weapons first: aligning strikes to them can flip a strike melee <-> ranged,
+  // and the Trample dry run below must see the strikes createActor will build
+  // (neither equipment nor weapon lookup reads strikes or abilities).
+  const skippedGear = [];
+  const equipment = await resolveEquipment(concept, { exactContent, skipped: skippedGear });
+  const weapons = [];
+  for (const line of equipment) {
+    if (!line.entry) continue;
+    const doc = await getDocument(line.entry);
+    if (doc?.type === "weapon") weapons.push({ names: [doc.name, line.name], weapon: doc });
+  }
+  if (weapons.length) concept.strikes = alignStrikesToWeapons(concept.strikes, weapons);
+
   const abilities = [];
   for (const [slot, ability] of concept.specialAbilities.entries()) {
     const picked = await resolveAbilityPick(ability, concept, { exactContent });
@@ -1091,17 +1104,7 @@ export async function resolveConcept(concept, { exactContent = false } = {}) {
   const focusSpells = concept.spellcasting
     ? await resolveFocusSpells(concept.focusSpells ?? [], { exactContent }) : [];
 
-  const skippedGear = [];
-  const equipment = await resolveEquipment(concept, { exactContent, skipped: skippedGear });
   const loot = await resolveLoot(concept, { exactContent, skipped: skippedGear });
-
-  const weapons = [];
-  for (const line of equipment) {
-    if (!line.entry) continue;
-    const doc = await getDocument(line.entry);
-    if (doc?.type === "weapon") weapons.push({ names: [doc.name, line.name], weapon: doc });
-  }
-  if (weapons.length) concept.strikes = alignStrikesToWeapons(concept.strikes, weapons);
 
   return { abilities, spells, feats, focusSpells, equipment, loot, skippedGear };
 }
