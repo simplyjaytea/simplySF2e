@@ -18,4 +18,5 @@ Appended by the coordinator when a batch lands on `next`; copied into the PR bod
 | BATCH-12 (2026-11-08) | 14e.1-14e.14 | 2026-11-08-theme-system |
 | BATCH-13 (2026-11-08) | 14h.1-14h.7 | 2026-11-08-progress-telemetry |
 | BATCH-14 (2026-11-08) | none | none (P4 stage 1: generator context builders in scripts/generator-context/) |
-| BATCH-15 (2026-11-09) | 12ae.3 | pending (lands with BATCH-16) |
+| BATCH-15 (2026-11-09) | 12ae.3 | 2026-11-09-hunt-fixes (BATCH-16) |
+| BATCH-16 (2026-11-09) | 2.16, 4.10, 5.13, 5.14, 7.11, 7.12, 12ae.4, 12ae.5, 12ae.6, 12z.7 | 2026-11-09-hunt-fixes |

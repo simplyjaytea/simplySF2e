@@ -216,7 +216,7 @@ The AI writes a new name, a read-aloud description and Recall Knowledge text, an
 
 Area Blasts, Auras and glossary abilities built or filled by the module are rebuilt for the new level. Their reskin names are kept. Published abilities that the module did not fill keep their text. If an ability cannot be rebuilt, it stays at the old level and the preview gives the reason.
 
-Spells and their ranks, DCs or damage written into published ability text, the ritual DC, gear, and Elite/Weak stay as they are, so check those on the new sheet. An attribute or skill lower than every GM Core scale (such as a mindless creature's Int −5) also stays as it is. An Elite or Weak creature is re-leveled from its base level.
+Spells and their ranks, DCs or damage written into published ability text, the ritual DC, gear, and Elite/Weak stay as they are, so check those on the new sheet. An attribute or skill lower than every GM Core scale (such as a mindless creature's Int −5) also stays as it is. An Elite or Weak creature is re-leveled from its base level. An Extreme attribute modifier has no printed value at level 0 or below, so it becomes the High value there and stays High if you re-level back up.
 
 ## Using the Item Forge
 
