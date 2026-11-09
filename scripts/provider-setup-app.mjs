@@ -12,6 +12,7 @@ import {
 } from "./jev.mjs";
 import { esc } from "./text.mjs";
 import { parsePrice } from "./cost.mjs";
+import { anotherRunInProgress } from "./app-base.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -38,14 +39,6 @@ const UNSAVED_FIELD_LABELS = Object.freeze({
   jevApiKey: "SIMPLYSF2E.ProviderSetup.JevKeyLabel",
   clearJevApiKey: "SIMPLYSF2E.ProviderSetup.ClearJevKey"
 });
-
-/** Another open window runs a generation (its progress or run budget is live); the connection must not change under it. */
-function anotherRunInProgress(self) {
-  for (const app of foundry.applications.instances?.values?.() ?? []) {
-    if (app !== self && (app?._progress || app?._generationAbort)) return true;
-  }
-  return false;
-}
 
 /** Prices as the summary line shows them, as used after a save. */
 function pricesSummaryText(prices) {

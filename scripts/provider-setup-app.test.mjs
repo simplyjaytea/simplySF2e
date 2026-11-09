@@ -161,6 +161,7 @@ const mocks = {
   getProviderAuthWarningKey: () => null,
   getProviderRequestConfig: () => providerState,
   normalizeApiBaseUrl: (value) => String(value ?? "").trim().replace(/\/+$/, ""),
+  anotherRunInProgress: (self) => [...runningApps.values()].some((app) => app !== self && (app?._progress || app?._generationAbort)),
   selectProviderConnection: async (id) => { selectCalls.push(id); },
   setActiveProviderPrices: async () => {},
   connectionFormDirty: connect.connectionFormDirty,
