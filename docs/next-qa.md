@@ -20,3 +20,4 @@ Appended by the coordinator when a batch lands on `next`; copied into the PR bod
 | BATCH-14 (2026-11-08) | none | none (P4 stage 1: generator context builders in scripts/generator-context/) |
 | BATCH-15 (2026-11-09) | 12ae.3 | 2026-11-09-hunt-fixes (BATCH-16) |
 | BATCH-16 (2026-11-09) | 2.16, 4.10, 5.13, 5.14, 7.11, 7.12, 12ae.4, 12ae.5, 12ae.6, 12z.7 | 2026-11-09-hunt-fixes |
+| BATCH-17 (2026-11-09) | none new (12ae.6 reworded; Create/Delete refusal is checked with 12ae.5) | 2026-11-09-hunt-fixes |
