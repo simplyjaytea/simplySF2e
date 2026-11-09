@@ -437,7 +437,7 @@ export class GeneratorApp extends SpfApp {
     // Reskin mode renders no level control; keep the GM's level for the
     // other modes instead of resetting it.
     const levelEl = form.querySelector('[name="level"]');
-    const rawLevel = Number(levelEl?.value);
+    const rawLevel = String(levelEl?.value ?? "").trim() === "" ? NaN : Number(levelEl.value);
     const level = !levelEl ? this.#input.level
       : Math.min(levelMax, Math.max(levelMin, Number.isNaN(rawLevel) ? 1 : Math.round(rawLevel)));
     const rarity = form.querySelector('[name="rarity"]')?.value ?? this.#input.rarity;
@@ -448,7 +448,7 @@ export class GeneratorApp extends SpfApp {
     // to the prior #input value like every other optional field here, not a
     // literal default that would silently discard the GM's saved party size.
     const partySizeEl = form.querySelector('[name="partySize"]');
-    const rawPartySize = partySizeEl ? Number(partySizeEl.value) : NaN;
+    const rawPartySize = partySizeEl && String(partySizeEl.value ?? "").trim() !== "" ? Number(partySizeEl.value) : NaN;
     const partySize = partySizeEl
       ? Math.min(8, Math.max(1, Number.isNaN(rawPartySize) ? this.#input.partySize : Math.round(rawPartySize)))
       : this.#input.partySize;
