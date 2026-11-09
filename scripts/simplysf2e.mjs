@@ -334,7 +334,7 @@ Hooks.on("chatMessage", (_chatLog, message, _chatData) => {
   }
 
   // Parse optional mode and level: e.g. "npc 5 cyberdoc with stolen cyberware"
-  const match = /^(monster|npc|character|encounter)?\s*(-?\d+)?\s*(.*)$/i.exec(args);
+  const match = /^(?:(monster|npc|character|encounter)(?=\s|$))?\s*(-?\d+)?\s*(.*)$/i.exec(args);
   const mode = match?.[1]?.toLowerCase();
   const level = match?.[2] ? Number(match[2]) : null;
   const prompt = match?.[3]?.trim();

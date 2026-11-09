@@ -129,6 +129,20 @@ assert.equal(handleChat("/sf2e npc 5"), false, "/sf2e npc 5 intercepted");
 assert.deepEqual(generatorCalls.setInput, [{ mode: "npc", level: 5 }], "/sf2e npc 5 fills the form");
 assert.deepEqual(generatorCalls.runFromChat, [], "/sf2e npc 5 does not start a preview");
 
+// 9b. The mode word must be whole: a word that only starts with a mode keeps its full text as the prompt.
+for (const text of ["monsters that haunt a derelict station", "npcs who run a noodle bar", "characterful bartender"]) {
+  resetGeneratorCalls();
+  assert.equal(handleChat(`/sf2e ${text}`), false, `/sf2e ${text} intercepted`);
+  assert.deepEqual(generatorCalls.runFromChat, [{ prompt: text }],
+    `/sf2e ${text} keeps the full text as the prompt and sets no mode`);
+  assert.deepEqual(generatorCalls.setInput, [], `/sf2e ${text} does not call setInput`);
+}
+
+// 9c. A mode needs a space before the level: "monster5" is prompt text, not monster level 5 (old regex gave mode monster, level 5, prompt "x").
+resetGeneratorCalls();
+assert.equal(handleChat("/sf2e monster5 x"), false, "/sf2e monster5 x intercepted");
+assert.deepEqual(generatorCalls.runFromChat, [{ prompt: "monster5 x" }], "/sf2e monster5 x has no mode and no level");
+
 // 10. Actors sidebar context menu: "Reskin with SimplySF2e" (GM, sf2e, NPC only).
 const actors = new Map([
   ["npc1", { id: "npc1", uuid: "Actor.npc1", type: "npc" }],
