@@ -31,6 +31,7 @@ let confirmCalls;
 let lastConfirm;
 let confirmHook = null;
 let refreshCalls = [];
+let priceWrites = [];
 const errors = [];
 const warnings = [];
 const runningApps = new Map();
@@ -57,6 +58,7 @@ const resetState = () => {
   warnings.length = 0;
   runningApps.clear();
   refreshCalls = [];
+  priceWrites = [];
 };
 resetState();
 
@@ -166,13 +168,22 @@ const mocks = {
   anotherRunInProgress: (self) => [...runningApps.values()].some((app) => app !== self && (app?._progress || app?._generationAbort)),
   refreshOtherConnectionViews: async (self) => { refreshCalls.push(self); },
   selectProviderConnection: async (id) => { selectCalls.push(id); },
-  setActiveProviderPrices: async () => {},
+  // Writes the active prices, as the real one does (cleared by `{}`).
+  setActiveProviderPrices: async (prices = {}) => {
+    priceWrites.push(prices);
+    activePrices = { inputPerM: parsePrice(prices.inputPerM).value, outputPerM: parsePrice(prices.outputPerM).value };
+  },
   connectionFormDirty: connect.connectionFormDirty,
   connectionFormValues: connect.connectionFormValues,
   savedConnectionForDirty: connect.savedConnectionForDirty,
   snapshotProviderConnection: () => connect.snapshotProviderConnection((key) => storedSetting(key)),
   saveProviderConnection: async (data = {}) => {
     saveCalls += 1;
+    // As the real save: a changed base URL moves the endpoint and clears the manual prices.
+    if (data.baseUrl !== undefined && mocks.normalizeApiBaseUrl(data.baseUrl) !== providerState.baseUrl) {
+      providerState.baseUrl = mocks.normalizeApiBaseUrl(data.baseUrl);
+      activePrices = { inputPerM: null, outputPerM: null };
+    }
     // A typed key is stored; a clear request removes it. The returned state reflects that, as the real save does.
     if (data.enteredApiKey) providerState.hasConfiguredApiKey = true;
     if (data.clearApiKey) providerState.hasConfiguredApiKey = false;
@@ -513,6 +524,48 @@ const newApp = (form) => {
   assert.equal(refreshCalls.length, 2, "create refreshes the other windows");
   await actions.deleteConnection.call(app, null, {});
   assert.equal(refreshCalls.length, 3, "delete refreshes the other windows");
+}
+
+// (l) Manual prices after the base URL changed: untouched price fields are not re-applied; edited ones are.
+{
+  const priceForm = () => {
+    resetState();
+    activePrices = { inputPerM: 0.27, outputPerM: 1.1 };
+    const form = standardForm();
+    form.querySelector("[name='inputPerM']").value = "0.27";
+    form.querySelector("[name='outputPerM']").value = "1.10";
+    form.control("details[data-section='prices'] .spf-fold-state", { textContent: "old summary" });
+    // The OpenAI tile fills only the endpoint (and model); the price boxes keep their values.
+    form.querySelector("[name='apiBaseUrl']").value = "https://api.openai.com/v1";
+    return form;
+  };
+  // Untouched prices, endpoint changed.
+  let form = priceForm();
+  let app = newApp(form);
+  await app._prepareContext();
+  await actions.loadModels.call(app, null, { querySelector: () => null });
+  assert.deepEqual(activePrices, { inputPerM: null, outputPerM: null }, "base URL changed, prices untouched: active prices end cleared");
+  assert.equal(priceWrites.some((p) => p.inputPerM !== undefined), false, "the old prices are not written back");
+  assert.equal(form.querySelector("[name='inputPerM']").value, "", "the input price box shows the cleared state");
+  assert.equal(form.querySelector("[name='outputPerM']").value, "", "the output price box shows the cleared state");
+  assert.equal(form.querySelector("details[data-section='prices'] .spf-fold-state").textContent,
+    "SIMPLYSF2E.ProviderSetup.CostNotSet", "the price summary shows the cleared state");
+  // The GM typed new prices in the same save.
+  form = priceForm();
+  form.querySelector("[name='inputPerM']").value = "2.5";
+  form.querySelector("[name='outputPerM']").value = "10";
+  app = newApp(form);
+  await app._prepareContext();
+  await actions.loadModels.call(app, null, { querySelector: () => null });
+  assert.deepEqual(activePrices, { inputPerM: 2.5, outputPerM: 10 }, "edited prices are applied with the new endpoint");
+  assert.equal(form.querySelector("[name='inputPerM']").value, "2.5", "an applied price stays in its box");
+  // Endpoint unchanged: the same prices are applied as before (no behaviour change).
+  form = priceForm();
+  form.querySelector("[name='apiBaseUrl']").value = providerState.baseUrl;
+  app = newApp(form);
+  await app._prepareContext();
+  await actions.loadModels.call(app, null, { querySelector: () => null });
+  assert.deepEqual(activePrices, { inputPerM: 0.27, outputPerM: 1.1 }, "endpoint unchanged: prices kept");
 }
 
 console.log("provider-setup-app.test.mjs: ok");

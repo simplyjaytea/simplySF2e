@@ -496,6 +496,12 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
       priceInputs[field]?.reportValidity?.();
       throw new Error(message);
     }
+    // saveProviderConnection clears manual prices when the base URL changes. Prices the GM left
+    // untouched are the old provider's: re-applying them would put those rates on the new endpoint.
+    const savedPrices = getActiveProviderPrices();
+    const baseChanged = normalizeApiBaseUrl(this.element.querySelector("[name='apiBaseUrl']")?.value)
+      !== normalizeApiBaseUrl(getProviderRequestConfig().baseUrl);
+    const pricesEdited = ["inputPerM", "outputPerM"].some((field) => parsePrice(prices[field]).value !== parsePrice(savedPrices?.[field]).value);
     const result = await saveProviderConnection({
       baseUrl: this.element.querySelector("[name='apiBaseUrl']")?.value,
       model: this.element.querySelector("[name='model']")?.value,
@@ -506,7 +512,7 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
       requireModel
     });
     // After the connection save, so the prices land on the connection just saved.
-    if (priceInputs.inputPerM && priceInputs.outputPerM) await setActiveProviderPrices(prices);
+    if (priceInputs.inputPerM && priceInputs.outputPerM && !(baseChanged && !pricesEdited)) await setActiveProviderPrices(prices);
     await this.#onSaved?.();
     return result;
   }
@@ -666,7 +672,13 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
     const option = this.element?.querySelector(`[name='activeConnection'] option[value='${state.connectionId}']`);
     if (option) option.textContent = state.connectionName;
     const summary = this.element?.querySelector("details[data-section='prices'] .spf-fold-state");
-    if (summary && this.#priceError == null) summary.textContent = pricesSummaryText(getActiveProviderPrices());
+    const prices = getActiveProviderPrices();
+    if (summary && this.#priceError == null) summary.textContent = pricesSummaryText(prices);
+    // The price boxes show what is stored (a save may have cleared them with the base URL).
+    for (const field of ["inputPerM", "outputPerM"]) {
+      const box = this.element?.querySelector(`[name='${field}']`);
+      if (box && this.#priceError == null && parsePrice(box.value).value !== (prices[field] ?? null)) box.value = prices[field] ?? "";
+    }
     // The key field and the clear-key box follow hasApiKey, as provider-setup.hbs renders them.
     const keyInput = this.element?.querySelector("[name='apiKey']");
     if (keyInput) {
