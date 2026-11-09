@@ -3,7 +3,7 @@ import {
   authorizeApiKeyForCurrentBaseUrl
 } from "./settings.mjs";
 import { generateShopConcept, selectShopStock } from "./ai.mjs";
-import { getShopCandidates, getCandidateDocument, getPacksFor, toItemData, priceToGp, describeMissingSources } from "./compendium.mjs";
+import { getShopCandidates, getCandidateDocument, getPacksFor, toItemData, unitPriceGp, describeMissingSources } from "./compendium.mjs";
 import {
   SHOP_SIZES, SHOP_CATEGORIES, SHOP_RARITIES, SHOP_MIN_LEVEL, SHOP_MAX_LEVEL,
   clampShopLevel, normalizeShopConcept, shopTypesFor, pickShopStock, shopStockValue, shopActorData
@@ -276,7 +276,7 @@ export class ShopApp extends SpfApp {
           type: doc.type,
           level: doc.system?.level?.value ?? pick.level,
           rarity: doc.system?.traits?.rarity ?? pick.rarity ?? "common",
-          credits: gpToCredits(priceToGp(doc.system?.price?.value)),
+          credits: gpToCredits(unitPriceGp(doc)),
           quantity: pick.quantity,
           itemData
         });

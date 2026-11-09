@@ -586,6 +586,7 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 | 12z.4 | Drag the merchant onto a scene and have a player buy an item. | The native merchant buy flow works and deducts the player's credits. | Scene, player sheet | | |
 | 12z.5 | Generate at level 0 with Rarest stock Rare, then Large. | Only level 0 items; uncommon/rare items appear with a rarity tag; up to 24 rows. | Preview | | |
 | 12z.6 | Press Stop mid-run, and separately close the window mid-run. | Nothing is created; the usual cancelled notice appears. | Preview, Actors sidebar | | |
+| 12z.7 | Shop, category Weapons, level 10; find an ammunition row (for example Flashbang Ammunition) and compare its price with the item's own sheet. | The row price is the sheet's price divided by its "per" count (a 10-round pack priced 5,000 shows 500 each); the stock total uses the same unit price. | Shop | | |
 
 ## 12aa. Per-run token budget and run deadline
 

@@ -4,6 +4,8 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import vm from "node:vm";
+import { priceToGp as realPriceToGp, unitPriceGp as realUnitPriceGp } from "./compendium.mjs";
+import { gpToCredits as realGpToCredits } from "./currency.mjs";
 
 if (!vm.SourceTextModule) {
   const run = spawnSync(process.execPath, ["--experimental-vm-modules", import.meta.filename], { stdio: "inherit" });
@@ -19,6 +21,9 @@ let generationCalls = 0;
 let createCalls = 0;
 const CANDIDATE = { id: "item-1", name: "Kit", type: "equipment", level: 1, rarity: "common", quantity: 1 };
 const DOC = { name: "Kit", type: "equipment", system: { level: { value: 1 }, price: { value: 1 } } };
+let currentDoc = DOC;
+let hoardBudget = 680;
+let lastHoard = null;
 const context = vm.createContext({
   console: { log() {}, debug() {}, warn() {}, error() {} },
   game: { i18n: { localize: (key) => key, format: (key, data) => (data ? `${key}:${JSON.stringify(data)}` : key) }, packs: { get: () => ({}) } },
@@ -62,10 +67,11 @@ const mocks = {
   authorizeApiKeyForCurrentBaseUrl: async () => true,
   getPacksFor: () => ["sf2e.equipment"],
   getShopCandidates: async () => [CANDIDATE],
-  getCandidateDocument: async () => DOC,
+  getCandidateDocument: async () => currentDoc,
   toItemData: () => ({ name: "Kit", type: "equipment", system: {} }),
-  priceToGp: () => 1,
-  gpToCredits: (gp) => gp * 10,
+  priceToGp: realPriceToGp,
+  unitPriceGp: realUnitPriceGp,
+  gpToCredits: realGpToCredits,
   verifyCreatedActor: () => { if (verifyFailure) throw verifyFailure; },
   moveToGeneratedFolder: async () => {},
   SourcesConfigApp: class {},
@@ -88,11 +94,14 @@ const mocks = {
   TREASURE_MIN_LEVEL: 0, TREASURE_MAX_LEVEL: 20, TREASURE_MIN_PARTY: 1, TREASURE_MAX_PARTY: 8,
   clampTreasureLevel: (value, fallback) => Number(value) || fallback,
   clampPartySize: (value) => Number(value) || 4,
-  treasureBudgetCredits: () => 680,
+  treasureBudgetCredits: () => hoardBudget,
   creditsEach: () => 170,
   normalizeTreasureConcept: () => ({ categories: ["armor"], keywords: [] }),
   resolveIssuedPicks: (ids, candidates) => ({ issued: candidates }),
-  fillHoard: (ids, priced) => ({ items: priced, unknown: [], overBudget: [], unpriced: [] }),
+  fillHoard: (ids, priced, budget) => {
+    lastHoard = { priced, budget };
+    return { items: priced, unknown: [], overBudget: [], unpriced: [] };
+  },
   hoardLeftover: () => 0,
   splitCurrency: () => [],
   assembleCurrency: () => null,
@@ -217,4 +226,26 @@ for (const [label, App, controls, createdKey, survivorKey] of [
   assert.equal(created[2].format.name, "<b>x</b>", `${label}: the raw name is a format value`);
   createdName = "Merchant";
 }
-console.log("shop-treasure.lifecycle.test.mjs: survivor report, progress-start recovery and escaped names passed");
+// (d) Pack-priced ammo (price.per 10): the shop row and the hoard pick use the unit price.
+const packAmmo = { name: "Ammo", type: "ammo", system: { level: { value: 1 }, price: { value: { sp: 5000 }, per: 10 }, quantity: 1 } };
+const unpricedPer = { name: "Ammo", type: "ammo", system: { level: { value: 1 }, price: { value: { sp: 5000 } }, quantity: 1 } };
+const zeroPer = { name: "Ammo", type: "ammo", system: { level: { value: 1 }, price: { value: { sp: 5000 }, per: 0 }, quantity: 1 } };
+const shopPrice = async (doc) => {
+  currentDoc = doc;
+  const shop = instance(ShopApp, shopControls);
+  await ShopApp.DEFAULT_OPTIONS.actions.generate.call(shop);
+  return (await shop._prepareContext()).preview.rows[0].price;
+};
+assert.equal(await shopPrice(packAmmo), "500", "a 10-round pack priced 5,000 sp shows 500 credits per round");
+assert.equal(await shopPrice(unpricedPer), (5000).toLocaleString(), "no per: the row price is unchanged");
+assert.equal(await shopPrice(zeroPer), (5000).toLocaleString(), "per 0 counts as one: the row price is unchanged");
+
+currentDoc = packAmmo;
+hoardBudget = 4000;
+const hoard = instance(TreasureApp, hoardControls);
+await TreasureApp.DEFAULT_OPTIONS.actions.generate.call(hoard);
+assert.equal(lastHoard.budget, 4000, "the hoard budget is the 4000-credit budget");
+assert.equal(lastHoard.priced[0].credits, 500, "the hoard prices the ammo pick at its unit price (500 credits)");
+hoardBudget = 680;
+
+console.log("shop-treasure.lifecycle.test.mjs: survivor report, progress-start recovery, escaped names and unit pricing passed");

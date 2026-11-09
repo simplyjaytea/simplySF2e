@@ -20,6 +20,11 @@ assert.equal(gpToCredits(0.05), 1, "a sub-credit amount rounds up to one credit,
 assert.equal(gpToCredits(0.1), 1, "one credit of gp stays one credit");
 assert.equal(gpToCredits(1.5), 15, "fractional gp converts at 10 credits per gp");
 assert.equal(gpToCredits(15), 150, "Table 10-10 level-1 lump sum surfaces as 150 credits");
+assert.equal(gpToCredits(0.14), 2, "a real fraction above a whole credit still rounds up");
+// Every sp price converts back to its own credit count: float error must not add one.
+for (let sp = 1; sp <= 20000; sp++) {
+  assert.equal(gpToCredits(sp / 10), sp, `${sp} sp is ${sp} credits, not one more`);
+}
 
 /* ---------------------------------------------------------------------- *
  * creditsToGp(): the ÷10 inverse, used at the custom-item fallback edge and
