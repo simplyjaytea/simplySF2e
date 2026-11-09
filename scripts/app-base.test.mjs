@@ -86,8 +86,9 @@ const mocks = {
     currentConnection = id;
   },
   ProviderSetupApp: class FakeProviderSetupApp {
-    constructor(callback) { this.callback = callback; }
+    constructor(callback) { this.callback = callback; this.refreshed = 0; }
     render() { return this; }
+    async _refreshForConnectionChange() { this.refreshed += 1; }
   },
   PHASE_FILL,
   applyStep,
@@ -356,6 +357,36 @@ assert.equal(app.preserved, false, "Same connection does not preserve form or re
   openApps.set("idle", idle);
   await idle._switchActiveConnection("other-conn");
   assert.equal(activeConnectionSelected, "other-conn", "idle: the switch goes through");
+  openApps.clear();
+  currentConnection = "conn-2";
+}
+
+// After a successful switch every OTHER module window that shows the connection re-renders;
+// foreign windows and the switching window itself are left alone.
+{
+  const first = new TestApp();
+  const second = new TestApp();
+  const third = new TestApp();
+  const setup = new mocks.ProviderSetupApp();
+  let foreignRenders = 0;
+  const foreign = { render() { foreignRenders += 1; } };
+  first.element = { querySelector: () => ({ value: "" }) };
+  for (const [name, a] of Object.entries({ first, second, third, setup, foreign })) openApps.set(name, a);
+  let firstRenders = 0;
+  first.render = async () => { firstRenders += 1; };
+  currentConnection = "conn-a";
+  await first._switchActiveConnection("conn-b");
+  assert.equal(firstRenders, 1, "the switching window renders itself once");
+  assert.equal(second.rendered, true, "an open tool window re-renders after the switch");
+  assert.equal(second.preserved, true, "its unsaved form text is kept first (_preserveForm)");
+  assert.equal(third.rendered, true, "every other tool window re-renders");
+  assert.equal(setup.refreshed, 1, "an open Provider Setup is asked to refresh (it keeps unsaved edits itself)");
+  assert.equal(foreignRenders, 0, "a window that is not the module's is not rendered");
+  // A refused switch refreshes nothing.
+  second.rendered = false;
+  first._generationAbort = new AbortController();
+  await third._switchActiveConnection("conn-c");
+  assert.equal(second.rendered, false, "a refused switch re-renders no window");
   openApps.clear();
   currentConnection = "conn-2";
 }

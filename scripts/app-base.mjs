@@ -52,6 +52,28 @@ function issueButtons() {
 }
 
 /**
+ * After the active connection changed, re-render every OTHER open window that
+ * shows connection state: the four tool windows (their drafts are kept by
+ * `_preserveForm`) and Provider Setup (which keeps unsaved edits and guards
+ * its own Save). `self` already rendered itself.
+ */
+export async function refreshOtherConnectionViews(self) {
+  for (const app of [...(foundry.applications.instances?.values?.() ?? [])]) {
+    if (app === self) continue;
+    try {
+      if (app instanceof SpfApp) {
+        app._preserveForm();
+        await app.render();
+      } else if (app instanceof ProviderSetupApp) {
+        await app._refreshForConnectionChange();
+      }
+    } catch (err) {
+      console.warn(`${MODULE_ID} | could not refresh a window after the connection changed`, err);
+    }
+  }
+}
+
+/**
  * Shared base for the generator and item-forge dialogs: token-usage tracking
  * and the generate-progress step machinery, identical across both apps.
  * Subclasses use `_tokenUsage`/`_progress` and the `_`-prefixed helpers.
@@ -232,6 +254,7 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._preserveForm();
     await selectProviderConnection(id);
     await this.render();
+    await refreshOtherConnectionViews(this);
   }
 
   _onRender(context, options) {
