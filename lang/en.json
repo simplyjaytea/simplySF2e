@@ -208,6 +208,10 @@
       "Disable": "Don't show for updates",
       "Earlier": "Earlier changes ({count})",
       "Note": {
+        "HuntFixes": {
+          "Title": "Fixes from a full code review",
+          "Body": "Generate in Encounter mode now creates the actors in one go. An empty prompt no longer creates the previous preview. Shop and Treasure price ammunition per round, and credit prices no longer gain a stray credit. Re-level handles very low levels and Trample correctly. Switching connection is refused while another window is generating, and Provider Setup's Delete asks once."
+        },
         "ProgressTelemetry": {
           "Title": "Step times and a simpler Welcome",
           "Body": "The progress card now shows how long each finished step took, and the current step says \"running\". Welcome no longer numbers its sections, and the connection check lists its steps one per line."
