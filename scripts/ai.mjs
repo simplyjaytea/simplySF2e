@@ -1691,6 +1691,12 @@ async function requestCompletion({ task, system, user, onProgress, signal, retry
     clearTimeout(idleTimer);
     idleTimer = setTimeout(() => controller.abort(), idleSeconds * 1000);
   };
+  // A deliberate Retry-After/backoff sleep produces no chunks: do not let the
+  // idle timer fire during it, and re-arm it when the next attempt is sent.
+  const onBackoff = (waiting) => {
+    if (waiting) clearTimeout(idleTimer);
+    else resetIdle();
+  };
   // The run deadline is an absolute wall-clock limit, so it is armed once per
   // request and deliberately NOT reset by streaming chunks: a provider that
   // keeps sending tokens must still stop when the run's time is up.
@@ -1704,7 +1710,7 @@ async function requestCompletion({ task, system, user, onProgress, signal, retry
 
   try {
     resetIdle();
-    let response = await postChatCompletion(baseUrl, apiKey, body, controller.signal, retryBudget);
+    let response = await postChatCompletion(baseUrl, apiKey, body, controller.signal, retryBudget, onBackoff);
     const rejectedParameters = new Set();
     // Some OpenAI-compatible providers reject stream_options, response_format
     // or streaming. Retry without a parameter ONLY when a 400/422 body actually
@@ -1726,7 +1732,7 @@ async function requestCompletion({ task, system, user, onProgress, signal, retry
         body.messages[0].role = "system";
         rejectedParameters.add("developer_role");
         resetIdle();
-        response = await postChatCompletion(baseUrl, apiKey, body, controller.signal, retryBudget);
+        response = await postChatCompletion(baseUrl, apiKey, body, controller.signal, retryBudget, onBackoff);
         continue;
       }
       const offending = [
@@ -1747,7 +1753,7 @@ async function requestCompletion({ task, system, user, onProgress, signal, retry
         if (!rejectedParameters.has(alternate)) body[alternate] = value;
       }
       resetIdle();
-      response = await postChatCompletion(baseUrl, apiKey, body, controller.signal, retryBudget);
+      response = await postChatCompletion(baseUrl, apiKey, body, controller.signal, retryBudget, onBackoff);
     }
     if (!response.ok) {
       throw await providerApiError(response, controller.signal);
@@ -1932,7 +1938,7 @@ async function readEventStream(response, { onProgress, resetIdle }) {
   return { content, finishReason, usage, reasoningChars };
 }
 
-async function postChatCompletion(baseUrl, apiKey, body, signal, retryBudget = null) {
+async function postChatCompletion(baseUrl, apiKey, body, signal, retryBudget = null, onWait = null) {
   const headers = { "Content-Type": "application/json" };
   if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
   try {
@@ -1941,7 +1947,7 @@ async function postChatCompletion(baseUrl, apiKey, body, signal, retryBudget = n
       headers,
       body: JSON.stringify(body),
       signal
-    }, { retryBudget });
+    }, { retryBudget, onWait });
   } catch (err) {
     if (err.name === "AbortError") throw err;
     // fetch throws on network/CORS failures before we get a Response

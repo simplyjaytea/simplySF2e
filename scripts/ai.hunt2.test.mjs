@@ -178,4 +178,41 @@ for (const status of [200, 500]) {
   assert.match(failed.error.message, /ApiError/, "a non-abort error-body failure stays ApiError");
 }
 
+// --- 4. Retry-After wait is not charged to the idle timer ---------------------
+const rateLimited = (seconds) => new Response("slow down", { status: 429, headers: { "retry-after": String(seconds) } });
+
+const retryRun = async (retryAfter, { cancelAt = null, deadlineMs = 0 } = {}) => {
+  const ac = new AbortController();
+  const sentAt = [];
+  let clockRef = null;
+  const replies = [() => rateLimited(retryAfter), () => sse(['{"keywords":["fire"]}'])];
+  globalThis.fetch = async () => { sentAt.push(clockRef.now()); return replies.shift()(); };
+  const outcome = await withFakeTime((clock) => {
+    clockRef = clock;
+    if (cancelAt != null) clock.at(cancelAt, () => ac.abort());
+    if (deadlineMs) beginRunBudget(ac.signal, { tokenBudget: 0, deadlineMs, now: clock.now });
+    return chooseSpellFocus({ concept, tradition: "arcane", signal: ac.signal });
+  });
+  return { ...outcome, sentAt };
+};
+
+for (const seconds of [5, 20]) {
+  const run = await retryRun(seconds);
+  assert.equal(run.error, undefined, `Retry-After ${seconds}s with a 10s timeout: no error`);
+  assert.deepEqual(run.value.keywords, ["fire"], "the retried request answers");
+  assert.deepEqual(run.sentAt, [0, seconds * 1000], "the second request is sent after the provider's delay");
+}
+{
+  const run = await retryRun(20, { cancelAt: 3000 });
+  assert.equal(run.error?.cancelled, true, "cancel during the wait interrupts it");
+  assert.equal(run.sentAt.length, 1, "no second request after the cancel");
+  assert.equal(run.elapsed, 3000, "the sleep ended at the cancel, not later");
+}
+{
+  const run = await retryRun(20, { deadlineMs: 4000 });
+  assert.equal(run.error?.runLimit, true, "the run deadline during the wait interrupts it");
+  assert.equal(run.sentAt.length, 1, "no second request after the deadline");
+  assert.equal(run.elapsed, 4000);
+}
+
 console.log("ai.hunt2.test.mjs: ok");
