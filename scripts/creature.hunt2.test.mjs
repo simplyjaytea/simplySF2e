@@ -134,4 +134,14 @@ assert.equal(clampRelevel(0, 4), 0);
 assert.equal(clampRelevel("7", 4), 7);
 assert.equal(clampRelevel(99, 4), T.MAX_LEVEL);
 
+// 5. Recall Knowledge DC at prepared level 25 (Elite level 24) is 50 (dc.ts:63).
+assert.equal(T.identificationDC(25), 50);
+assert.equal(T.identificationDC(24), 48);
+assert.equal(T.identificationDC(26), 50);
+assert.equal(T.identificationDC(-1), 13);
+assert.equal(T.identificationDC(-2), 13);
+assert.equal(T.identificationDC(25, "uncommon"), 52, "rarity adjustment is still added");
+assert.equal(T.identificationDC(25, "unique"), 60);
+assert.equal(T.identificationDC(10), T.LEVEL_DC.dc[11], "levels -1..24 come from the table");
+
 console.log("creature.hunt2 tests passed");
