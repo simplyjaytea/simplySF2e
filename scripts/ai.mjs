@@ -2045,8 +2045,11 @@ export function parseConceptJSON(content) {
       details
     });
   }
-  const text = fencedJsonText(visible);
-  const parsed = tryParseJsonObject(text) ?? extractFirstJsonObject(text);
+  // Whole reply first: a valid object may hold ``` inside a string value. Only
+  // when it is not one object look for a fence around it.
+  const whole = tryParseJsonObject(visible);
+  const text = whole ? visible : fencedJsonText(visible);
+  const parsed = whole ?? tryParseJsonObject(text) ?? extractFirstJsonObject(text);
   if (parsed) return parsed;
   const details = responseDiagnostic({ content: text });
   console.warn("simplysf2e | Failed to parse AI response:", details);

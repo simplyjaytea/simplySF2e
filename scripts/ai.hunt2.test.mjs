@@ -105,4 +105,16 @@ async function withFakeTime(start) {
   assert.deepEqual(result.keywords, ["fire"], "the stream answer comes from after </think>");
 }
 
+// --- 2. ``` inside a JSON string --------------------------------------------
+{
+  const object = { name: "X", description: "Use ```code``` here", traits: [] };
+  assert.deepEqual(parseConceptJSON(JSON.stringify(object)), object, "valid JSON with ``` in a string parses to the same object");
+  assert.deepEqual(parseConceptJSON(`  ${JSON.stringify(object, null, 2)}\n`), object, "pretty-printed, padded: same");
+  // Shapes that parsed on `next` still parse the same.
+  const plain = { name: "Y", description: "d" };
+  assert.deepEqual(parseConceptJSON("```json\n" + JSON.stringify(plain) + "\n```"), plain, "fenced object");
+  assert.deepEqual(parseConceptJSON("Sure!\n```\n" + JSON.stringify(plain) + "\n```\nHope it helps."), plain, "fenced object with prose around it");
+  assert.deepEqual(parseConceptJSON("Here you go: " + JSON.stringify(plain)), plain, "prose then a bare object");
+}
+
 console.log("ai.hunt2.test.mjs: ok");
