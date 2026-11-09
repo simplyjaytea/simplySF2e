@@ -49,6 +49,8 @@ const column = (level) => Math.min(Math.max(Math.round(level), T.MIN_LEVEL), T.M
 
 /** Clamp a requested level to the tables' range; non-numbers fall back. */
 export function clampRelevel(value, fallback = 1) {
+  // A cleared number field is "" (Number("") is 0, not NaN), and Number(null) is 0.
+  if (value === null || (typeof value === "string" && value.trim() === "")) return fallback;
   const level = Math.round(Number(value));
   if (!Number.isFinite(level)) return fallback;
   return Math.min(RELEVEL_MAX, Math.max(RELEVEL_MIN, level));

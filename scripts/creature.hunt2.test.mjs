@@ -2,7 +2,7 @@
 // Run: node scripts/creature.hunt2.test.mjs
 import assert from "node:assert/strict";
 import * as T from "./tables.mjs";
-import { relevelActorData } from "./relevel.mjs";
+import { relevelActorData, clampRelevel } from "./relevel.mjs";
 
 const abilityMods = (actor) => Object.fromEntries(Object.entries(actor.system.abilities).map(([key, entry]) => [key, entry.mod]));
 const npc = (level, abilities) => ({
@@ -122,5 +122,16 @@ const TRAMPLE_PICK = [{ name: "Trample", glossary: "Trample", description: "It t
   assert.ok(warnings.some((w) => /"Trample" cannot be filled for this creature: no melee Strike/.test(w)), "the resolve-time warning names the reason");
   assert.ok(!warnings.some((w) => /dropped "Trample"/.test(w)), "no late drop at create");
 }
+
+// 4. A blank number is not level 0: it takes the fallback.
+assert.equal(clampRelevel("", 4), 4);
+assert.equal(clampRelevel(null, 4), 4);
+assert.equal(clampRelevel("  ", 4), 4);
+assert.equal(clampRelevel(undefined, 4), 4);
+assert.equal(clampRelevel("abc", 4), 4);
+assert.equal(clampRelevel("0", 4), 0);
+assert.equal(clampRelevel(0, 4), 0);
+assert.equal(clampRelevel("7", 4), 7);
+assert.equal(clampRelevel(99, 4), T.MAX_LEVEL);
 
 console.log("creature.hunt2 tests passed");
