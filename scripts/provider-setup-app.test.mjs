@@ -29,6 +29,7 @@ let deleteCalls;
 let confirmAnswer;
 let confirmCalls;
 let lastConfirm;
+let confirmHook = null;
 const errors = [];
 const warnings = [];
 const runningApps = new Map();
@@ -50,6 +51,7 @@ const resetState = () => {
   confirmAnswer = true;
   confirmCalls = 0;
   lastConfirm = null;
+  confirmHook = null;
   errors.length = 0;
   warnings.length = 0;
   runningApps.clear();
@@ -120,7 +122,7 @@ class ApplicationV2 {
 
 const context = vm.createContext({
   console: { log() {}, debug() {}, warn() {}, error() {} },
-  game: { i18n: { localize: (key) => key, format: (key) => key } },
+  game: { i18n: { localize: (key) => key, format: (key, data = {}) => key + "|" + Object.values(data).join("|") } },
   ui: {
     notifications: {
       info() {},
@@ -133,7 +135,7 @@ const context = vm.createContext({
       api: {
         ApplicationV2,
         HandlebarsApplicationMixin: (Base) => Base,
-        DialogV2: { confirm: async (options) => { confirmCalls += 1; lastConfirm = options; return confirmAnswer; } }
+        DialogV2: { confirm: async (options) => { confirmCalls += 1; lastConfirm = options; if (confirmHook) confirmHook(); return confirmAnswer; } }
       },
       instances: { values: () => runningApps.values() }
     }
@@ -340,7 +342,8 @@ const newApp = (form) => {
   await actions.deleteConnection.call(deleteApp, null, {});
   assert.equal(confirmCalls, 1, "Delete with unsaved edits asks once");
   assert.equal(lastConfirm.window.title, "SIMPLYSF2E.ProviderSetup.DeleteTitle", "the one dialog is the delete dialog");
-  assert.ok(lastConfirm.content.includes("SIMPLYSF2E.ProviderSetup.UnsavedBodyContinue"), "it carries the unsaved-edits sentence");
+  assert.ok(lastConfirm.content.includes("SIMPLYSF2E.ProviderSetup.UnsavedBodyDelete"), "it carries the delete unsaved-edits sentence");
+  assert.ok(!lastConfirm.content.includes("UnsavedBodyContinue"), "and not the Continue sentence");
   assert.equal(deleteCalls, 1, "confirming deletes with no further question");
 
   resetState();
@@ -367,11 +370,29 @@ const newApp = (form) => {
   const body = source.slice(start, source.indexOf("\n  }\n", start));
   assert.equal(body.split("DialogV2.confirm(").length - 1, 1, "exactly one DialogV2.confirm in #onDeleteConnection");
   assert.ok(!body.includes("#confirmDropEdits"), "#onDeleteConnection no longer calls #confirmDropEdits");
-  const unsavedAt = body.indexOf("#unsavedEditsHtml({ continuing: true })");
+  const unsavedAt = body.indexOf("#unsavedEditsHtml({ continuing: true, deleting: true })");
   assert.ok(unsavedAt !== -1 && unsavedAt < body.indexOf("DialogV2.confirm("), "unsaved text is built before the dialog");
   assert.ok(body.slice(body.indexOf("DialogV2.confirm(")).includes("this.#busy"), "#busy is re-checked after the dialog");
   assert.ok(source.includes("async #confirmDropEdits("), "#confirmDropEdits still exists");
   assert.equal(source.split("#confirmDropEdits").length - 1, 3, "definition plus switch and create callers");
+}
+
+// (g2) Delete escapes the connection name in its dialog; a switch while the dialog is open deletes nothing.
+{
+  resetState();
+  providerState.connectionName = "<img src=x onerror=1>";
+  const escapeApp = newApp(standardForm());
+  await actions.deleteConnection.call(escapeApp, null, {});
+  assert.ok(lastConfirm.content.includes("&lt;img"), "the delete dialog escapes the connection name");
+  assert.ok(!lastConfirm.content.includes("<img"), "no raw <img> tag reaches the delete dialog");
+
+  resetState();
+  const switchingApp = newApp(standardForm());
+  // A real switch replaces the state object; the handler's `state` still holds the old one.
+  confirmHook = () => { providerState = { ...providerState, connectionId: "conn-2" }; };
+  await actions.deleteConnection.call(switchingApp, null, {});
+  confirmHook = null;
+  assert.equal(deleteCalls, 0, "a connection switch while the delete dialog is open deletes nothing");
 }
 
 // (e) Create asks before a render would drop unsaved Jev edits; Stay keeps the connection list as it was.
@@ -384,6 +405,8 @@ const newApp = (form) => {
   await actions.createConnection.call(app, null, {});
   assert.equal(confirmCalls, 1, "the unsaved-edits dialog is shown");
   assert.equal(lastConfirm.yes.label, "SIMPLYSF2E.ProviderSetup.UnsavedContinue", "Create asks to Continue, not Switch");
+  assert.ok(lastConfirm.content.includes("SIMPLYSF2E.ProviderSetup.UnsavedBodyContinue"), "Create carries the Continue sentence");
+  assert.ok(!lastConfirm.content.includes("UnsavedBodyDelete"), "and not the delete sentence");
   assert.equal(createCalls, 0, "Stay: no connection is created");
   confirmAnswer = true;
   await actions.createConnection.call(app, null, {});
