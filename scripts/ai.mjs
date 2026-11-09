@@ -2035,7 +2035,17 @@ async function providerApiError(response) {
  * produce a valid-looking concept with required fields missing.
  */
 export function parseConceptJSON(content) {
-  const text = fencedJsonText(visibleTextContent(content).trim());
+  const visible = dropLeadingThink(visibleTextContent(content).trim());
+  if (visible == null) {
+    // The reply opened a <think> block and never closed it: the answer never started.
+    const details = responseDiagnostic({ content });
+    console.warn("simplysf2e | AI response is an unclosed <think> block:", details);
+    throw new AIRequestError(game.i18n.localize("SIMPLYSF2E.Errors.ReasoningWithoutJson"), {
+      retryable: true,
+      details
+    });
+  }
+  const text = fencedJsonText(visible);
   const parsed = tryParseJsonObject(text) ?? extractFirstJsonObject(text);
   if (parsed) return parsed;
   const details = responseDiagnostic({ content: text });
@@ -2072,6 +2082,22 @@ function responseDiagnostic({ content, finishReason = null, reasoningChars = 0 }
     reasoningChars: Number(reasoningChars) || 0,
     preview: text.length > JSON_DIAGNOSTIC_PREVIEW ? `${text.slice(0, JSON_DIAGNOSTIC_PREVIEW)}…` : text
   };
+}
+
+/**
+ * Some local servers leave the model's reasoning inline as `<think>...</think>`
+ * at the start of the visible text. Drop leading blocks (and only leading ones:
+ * a `<think>` inside the answer is the model's own text). Returns null when a
+ * leading `<think>` never closes.
+ */
+function dropLeadingThink(text) {
+  let rest = text;
+  while (/^<think>/i.test(rest)) {
+    const close = /<\/think>/i.exec(rest);
+    if (!close) return null;
+    rest = rest.slice(close.index + close[0].length).trimStart();
+  }
+  return rest;
 }
 
 function fencedJsonText(text) {
