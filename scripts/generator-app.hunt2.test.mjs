@@ -39,7 +39,8 @@ const context = vm.createContext({
     }
   },
   Folder: { create: async (data) => { folders.push(data); return { id: "F", name: data.name, delete: async () => {} }; } },
-  fromUuid: async () => null
+  fromUuid: async () => ({ name: "Source", system: {}, toObject: () => ({ name: "Source", system: {} }) }),
+  Actor: { create: async (data) => ({ id: "R1", name: data.name, sheet: { render: async () => {} } }) }
 });
 
 const generatorContext = Object.assign({}, ...await Promise.all(readdirSync(new URL("./generator-context/", import.meta.url))
@@ -199,6 +200,56 @@ const reset = () => {
   assert.equal(createdWith.length, 0, "a preview-only run creates nothing");
   await App._test_onCreateActor.call(app);
   assert.equal(createdWith.length, 2, "Create All after a preview creates every member");
+}
+
+// --- B. Generate with an empty prompt never creates the previous preview ---
+const goodPC = async (prompt) => {
+  const app = makeApp();
+  app._test_input.mode = "character";
+  app._test_input.prompt = prompt;
+  app._test_input.allowSpellcasting = false;
+  return app;
+};
+{
+  reset();
+  const app = await goodPC("");
+  app._test_pcConcept = { name: "Old PC", level: 1, loot: [] };
+  app._test_pcResolved = { loot: [], equipment: [] };
+  await app._test_runGeneration(false, { create: true });
+  assert.deepEqual(pcCreated, [], "empty prompt creates no character from the old preview");
+  assert.deepEqual(notices.map((n) => n.message), ["SIMPLYSF2E.Errors.NoPrompt"], "only the NoPrompt notice");
+  assert.equal(app._test_pcConcept?.name, "Old PC", "the old preview is left alone");
+}
+{
+  reset();
+  const app = await goodPC("a brave pilot");
+  await app._test_runGeneration(false, { create: true });
+  assert.equal(app._test_error, null, `no error (${app._test_error})`);
+  assert.deepEqual(pcCreated, ["Pat"], "a normal Generate creates exactly one character");
+}
+{
+  reset();
+  const app = makeApp();
+  app._test_input.mode = "reskin";
+  app._test_input.prompt = "";
+  app._test_reskinSource = { uuid: "Actor.src", name: "Source", level: 3 };
+  app._test_reskinData = { name: "Source", system: {} };
+  app._test_reskinFlavor = { name: "Old flavor" };
+  const before = app._test_reskinFlavor;
+  await app._test_runGeneration(false, { create: true });
+  assert.deepEqual(notices.map((n) => n.message), ["SIMPLYSF2E.Errors.NoPrompt"], "reskin: only the NoPrompt notice");
+  assert.equal(app._test_created, null, "reskin: nothing created");
+  assert.equal(app._test_reskinFlavor, before, "reskin: old preview untouched");
+}
+{
+  reset();
+  const app = makeApp();
+  app._test_input.mode = "reskin";
+  app._test_input.prompt = "swamp";
+  app._test_reskinSource = { uuid: "Actor.src", name: "Source", level: 3 };
+  app._test_reskinData = { name: "Source", system: {} };
+  await app._test_runGeneration(false, { create: true });
+  assert.equal(app._test_created?.name, "Reskinned", `reskin with a prompt creates once (${app._test_error})`);
 }
 
 console.log("generator-app.hunt2.test.mjs: passed");

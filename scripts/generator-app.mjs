@@ -753,13 +753,13 @@ export class GeneratorApp extends SpfApp {
     this.#readForm();
     if (!this.#assertGenerationReady()) return;
     if (this.#input.mode === "reskin") {
-      await this.#generateReskin();
-      if (create && this.#reskinFlavor && !this.#error) await this.#createReskinActor();
+      const fresh = await this.#generateReskin();
+      if (create && fresh && this.#reskinFlavor && !this.#error) await this.#createReskinActor();
       return;
     }
     if (this.#input.mode === "character") {
-      await this.#generatePC(isRandom);
-      if (create && this.#pcConcept && !this.#error) await this.#createCharacterActor();
+      const fresh = await this.#generatePC(isRandom);
+      if (create && fresh && this.#pcConcept && !this.#error) await this.#createCharacterActor();
       return;
     }
     if (this.#input.mode === "encounter") {
@@ -896,11 +896,12 @@ export class GeneratorApp extends SpfApp {
    * single-creature shape, with an extra "abc"/"feats" step. Unlike NPCs, no
    * stats are computed here: the PF2e system derives AC/HP/saves/
    * proficiencies/spell slots itself from the real items this assembles.
+   * @returns {Promise<boolean>} true only when this call stored a new preview
    */
   async #generatePC(isRandom) {
     if (!isRandom && !this.#input.prompt.trim()) {
       ui.notifications.warn(game.i18n.localize("SIMPLYSF2E.Errors.NoPrompt"));
-      return;
+      return false;
     }
     this.#stashPreview();
     this.#beginBusy();
@@ -914,6 +915,7 @@ export class GeneratorApp extends SpfApp {
     this.#pcResolved = null;
     this._tokenUsage = [];
     let signal;
+    let fresh = false;
     try {
       signal = this._beginProgress([
         ["concept", game.i18n.localize("SIMPLYSF2E.Progress.PCConcept")],
@@ -1173,6 +1175,7 @@ export class GeneratorApp extends SpfApp {
       this.#pcResolved = resolved;
       this.#markPreview();
       console.debug(`${MODULE_ID} | token usage`, this._tokenUsage);
+      fresh = true;
     } catch (err) {
       this.#noteGenerationFailure(err, "character generation");
       this.#pcConcept = null;
@@ -1183,6 +1186,7 @@ export class GeneratorApp extends SpfApp {
       this._finishRun();
       await this.render();
     }
+    return fresh;
   }
 
   /**
@@ -1737,14 +1741,15 @@ export class GeneratorApp extends SpfApp {
     return actor.pack ? game.actors.fromCompendium(actor) : actor.toObject();
   }
 
+  /** @returns {Promise<boolean>} true only when this call stored a new preview */
   async #generateReskin() {
     if (!this.#reskinSource) {
       ui.notifications.warn(game.i18n.localize("SIMPLYSF2E.Generator.ReskinNoSource"));
-      return;
+      return false;
     }
     if (!this.#input.prompt.trim()) {
       ui.notifications.warn(game.i18n.localize("SIMPLYSF2E.Errors.NoPrompt"));
-      return;
+      return false;
     }
     this.#stashPreview();
     this.#beginBusy();
@@ -1753,6 +1758,7 @@ export class GeneratorApp extends SpfApp {
     this.#reskinFlavor = null;
     this._tokenUsage = [];
     let signal;
+    let fresh = false;
     try {
       signal = this._beginProgress([["reskin", game.i18n.localize("SIMPLYSF2E.Progress.Reskin")]]);
       await this._setStep("reskin");
@@ -1773,6 +1779,7 @@ export class GeneratorApp extends SpfApp {
       this._throwIfCancelled();
       this.#reskinFlavor = normalizeReskin(flavor, source);
       this.#markPreview();
+      fresh = true;
     } catch (err) {
       this.#noteGenerationFailure(err, "reskin");
       this.#reskinFlavor = null;
@@ -1781,6 +1788,7 @@ export class GeneratorApp extends SpfApp {
       this._finishRun();
       await this.render();
     }
+    return fresh;
   }
 
   async #createReskinActor() {
