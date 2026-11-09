@@ -1714,7 +1714,7 @@ async function requestCompletion({ task, system, user, onProgress, signal, retry
       // Keep enough provider text to find a named compatibility field even
       // after a verbose gateway preamble. The user-facing formatter below
       // still caps the detail to a compact notification.
-      const detail = await safeErrorDetail(response, 4096);
+      const detail = await safeErrorDetail(response, 4096, controller.signal);
       const normalizedDetail = detail.toLowerCase();
       if (
         body.messages[0]?.role === "developer"
@@ -1750,7 +1750,7 @@ async function requestCompletion({ task, system, user, onProgress, signal, retry
       response = await postChatCompletion(baseUrl, apiKey, body, controller.signal, retryBudget);
     }
     if (!response.ok) {
-      throw await providerApiError(response);
+      throw await providerApiError(response, controller.signal);
     }
 
     const contentType = response.headers.get("content-type") ?? "";
@@ -1766,7 +1766,9 @@ async function requestCompletion({ task, system, user, onProgress, signal, retry
       resetIdle();
       let data;
       try { data = await response.json(); }
-      catch {
+      catch (err) {
+        // An abort during the body read goes to the abort branch below (Cancelled, run deadline, idle timeout).
+        if (err?.name === "AbortError" || controller.signal.aborted) throw err;
         throw new AIRequestError(game.i18n.localize("SIMPLYSF2E.Errors.InvalidResponse"));
       }
       if (isRealProviderError(data?.error)) throw providerStreamError(data.error);
@@ -1947,7 +1949,7 @@ async function postChatCompletion(baseUrl, apiKey, body, signal, retryBudget = n
   }
 }
 
-async function safeErrorDetail(response, maxLength = 240) {
+async function safeErrorDetail(response, maxLength = 240, signal = null) {
   try {
     const text = await response.text();
     try {
@@ -1956,7 +1958,9 @@ async function safeErrorDetail(response, maxLength = 240) {
     } catch {
       return compactErrorDetail(text || response.statusText, maxLength);
     }
-  } catch {
+  } catch (err) {
+    // An abort while the body is read is not a body failure: let the caller's abort branch classify it.
+    if (signal?.aborted) throw err;
     return compactErrorDetail(response.statusText, maxLength);
   }
 }
@@ -2025,8 +2029,8 @@ function providerApiErrorFromDetail(response, detail) {
   }));
 }
 
-async function providerApiError(response) {
-  return providerApiErrorFromDetail(response, await safeErrorDetail(response));
+async function providerApiError(response, signal = null) {
+  return providerApiErrorFromDetail(response, await safeErrorDetail(response, 240, signal));
 }
 
 /**

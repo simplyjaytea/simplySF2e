@@ -117,4 +117,65 @@ async function withFakeTime(start) {
   assert.deepEqual(parseConceptJSON("Here you go: " + JSON.stringify(plain)), plain, "prose then a bare object");
 }
 
+// --- 3. Abort during a response-body read ------------------------------------
+// A body read that is pending when the request signal aborts rejects with an
+// AbortError, as a real fetch Response does.
+function pendingBodyResponse(init, { status, body }) {
+  const pending = () => new Promise((_resolve, reject) => {
+    const abort = () => reject(new DOMException("The operation was aborted.", "AbortError"));
+    if (init.signal.aborted) abort();
+    else init.signal.addEventListener("abort", abort, { once: true });
+  });
+  return {
+    ok: status >= 200 && status < 300,
+    status,
+    statusText: "stub",
+    headers: new Headers({ "content-type": body === "json" ? "application/json" : "text/plain" }),
+    body: null,
+    json: () => pending(),
+    text: () => pending()
+  };
+}
+
+const classify = async (status, trigger) => {
+  const ac = new AbortController();
+  globalThis.fetch = async (_url, init) => pendingBodyResponse(init, { status, body: status === 200 ? "json" : "text" });
+  const outcome = await withFakeTime((clock) => {
+    if (trigger === "cancel") clock.at(20, () => ac.abort());
+    if (trigger === "deadline") beginRunBudget(ac.signal, { tokenBudget: 0, deadlineMs: 50, now: clock.now });
+    return chooseSpellFocus({ concept, tradition: "arcane", signal: ac.signal });
+  });
+  assert.ok(outcome.error, `${status}/${trigger}: the call must fail`);
+  return outcome.error;
+};
+
+for (const status of [200, 500]) {
+  const cancelled = await classify(status, "cancel");
+  assert.equal(cancelled.cancelled, true, `${status} body read, user cancel: cancelled`);
+  assert.match(cancelled.message, /Cancelled/);
+  const limited = await classify(status, "deadline");
+  assert.equal(limited.runLimit, true, `${status} body read, run deadline: runLimit`);
+  assert.match(limited.message, /RunDeadline/);
+  const idle = await classify(status, "idle");
+  assert.match(idle.message, /Timeout:\{"seconds":10\}/, `${status} body read, idle timer: Timeout`);
+  assert.notEqual(idle.cancelled, true);
+  assert.notEqual(idle.runLimit, true);
+}
+
+// A body read that fails for another reason keeps today's errors.
+{
+  globalThis.fetch = async () => ({
+    ok: true, status: 200, statusText: "OK", headers: new Headers({ "content-type": "application/json" }),
+    body: null, json: async () => { throw new SyntaxError("Unexpected token"); }, text: async () => ""
+  });
+  const outcome = await withFakeTime(() => chooseSpellFocus({ concept, tradition: "arcane", signal: new AbortController().signal }));
+  assert.match(outcome.error.message, /InvalidResponse/, "a non-abort JSON body failure stays InvalidResponse");
+  globalThis.fetch = async () => ({
+    ok: false, status: 500, statusText: "Boom", headers: new Headers(), body: null,
+    json: async () => ({}), text: async () => { throw new TypeError("network"); }
+  });
+  const failed = await withFakeTime(() => chooseSpellFocus({ concept, tradition: "arcane", signal: new AbortController().signal }));
+  assert.match(failed.error.message, /ApiError/, "a non-abort error-body failure stays ApiError");
+}
+
 console.log("ai.hunt2.test.mjs: ok");
