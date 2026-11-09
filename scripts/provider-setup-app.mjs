@@ -704,6 +704,9 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
     } else if (!state.hasConfiguredApiKey && clearBox) {
       clearBox.remove();
     }
+    // The form now shows what is stored: re-take the snapshot _prepareContext takes, or a later
+    // connection-change refresh would count these saved values as unsaved edits.
+    this.#renderedSaved = savedConnectionForDirty(snapshotProviderConnection(), { connectionName: state.connectionName, prices: getActiveProviderPrices() });
   }
 
   /** Save/bind the displayed endpoint first, then populate model suggestions. */

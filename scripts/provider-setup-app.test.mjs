@@ -184,6 +184,8 @@ const mocks = {
       providerState.baseUrl = mocks.normalizeApiBaseUrl(data.baseUrl);
       activePrices = { inputPerM: null, outputPerM: null };
     }
+    // The model in the form is stored, as the real save does.
+    if (data.model) providerState.model = data.model;
     // A typed key is stored; a clear request removes it. The returned state reflects that, as the real save does.
     if (data.enteredApiKey) providerState.hasConfiguredApiKey = true;
     if (data.clearApiKey) providerState.hasConfiguredApiKey = false;
@@ -607,6 +609,38 @@ const newApp = (form) => {
   assert.equal(confirmCalls, 1, "a run started during Create: the unsaved-edits dialog was shown once");
   assert.equal(createCalls, 0, "a run started during Create: nothing is created");
   runningApps.clear();
+}
+
+// (n) Load models saves a changed model and then refreshes the saved snapshot: the form now matches what is
+// stored, so another window's switch reloads it. A real edit typed after the save still keeps the form.
+{
+  const otherWindowSwitch = () => {
+    providerState = { ...providerState, connectionId: "conn-2", connectionName: "OpenRouter", baseUrl: "https://openrouter.ai/api/v1", model: "or-model" };
+  };
+  resetState();
+  const form = standardForm();
+  const app = newApp(form);
+  await app._prepareContext();
+  form.querySelector("[name='model']").value = "model-saved-now";
+  await actions.loadModels.call(app, null, { querySelector: () => null });
+  assert.equal(providerState.model, "model-saved-now", "Load models stored the new model");
+  const rendersAfterSave = app.renders;
+  otherWindowSwitch();
+  await app._refreshForConnectionChange();
+  assert.equal(app.renders, rendersAfterSave + 1, "after a save, another window's switch reloads the clean form");
+
+  resetState();
+  const editedForm = standardForm();
+  const editedApp = newApp(editedForm);
+  await editedApp._prepareContext();
+  editedForm.querySelector("[name='model']").value = "model-saved-now";
+  await actions.loadModels.call(editedApp, null, { querySelector: () => null });
+  editedForm.querySelector("[name='model']").value = "typed-after-save";
+  const rendersBeforeSwitch = editedApp.renders;
+  otherWindowSwitch();
+  await editedApp._refreshForConnectionChange();
+  assert.equal(editedApp.renders, rendersBeforeSwitch, "a real edit typed after the save: no reload");
+  assert.equal(editedForm.querySelector("[name='model']").value, "typed-after-save", "and the typed text is kept");
 }
 
 console.log("provider-setup-app.test.mjs: ok");
