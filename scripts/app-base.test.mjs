@@ -30,6 +30,7 @@ let activeConnectionSelected = null;
 let currentConnection = "default-conn";
 let activePrices = { inputPerM: null, outputPerM: null };
 const notifications = [];
+const openApps = new Map();
 let confirmAnswer = true;
 let confirmCalls = 0;
 // Unit letters the localize stub returns for the two elapsed-time keys.
@@ -46,12 +47,13 @@ const context = vm.createContext({
   ui: {
     notifications: {
       info(msg) { notifications.push({ type: "info", msg }); },
-      warn(msg) { notifications.push({ type: "warn", msg }); },
+      warn(msg, opts) { notifications.push({ type: "warn", msg, opts }); },
       error(msg) { notifications.push({ type: "error", msg }); }
     }
   },
   foundry: {
     applications: {
+      instances: { values: () => openApps.values() },
       api: {
         ApplicationV2: class FakeApplicationV2 {
           constructor(options = {}) { this.options = options; }
@@ -84,8 +86,9 @@ const mocks = {
     currentConnection = id;
   },
   ProviderSetupApp: class FakeProviderSetupApp {
-    constructor(callback) { this.callback = callback; }
+    constructor(callback) { this.callback = callback; this.refreshed = 0; }
     render() { return this; }
+    async _refreshForConnectionChange() { this.refreshed += 1; }
   },
   PHASE_FILL,
   applyStep,
@@ -303,7 +306,9 @@ app._paintStepList();
 assert.match(domElapsed[0].textContent, /^\d+\.\d sek$/, "the in-place repaint ends with the localized seconds letter");
 assert.equal(domElapsed[1].textContent, "SIMPLYSF2E.Progress.Running", "the active step still paints the running label");
 
-// 4. Provider switching & testing
+// 4. Provider switching & testing (the progress tests above left a run open on this window)
+app._progress = null;
+app._generationAbort = null;
 app.rendered = false;
 await app._switchActiveConnection("conn-2");
 assert.equal(activeConnectionSelected, "conn-2");
@@ -315,6 +320,76 @@ app.rendered = false;
 app.preserved = false;
 await app._switchActiveConnection("conn-2");
 assert.equal(app.preserved, false, "Same connection does not preserve form or re-render");
+
+// A run in another window, or in this one, refuses the header switch and puts the select back.
+{
+  const framed = (app, select) => { app.element = { querySelector: (sel) => (sel === "[name='activeConnection']" ? select : null) }; };
+  const idle = new TestApp();
+  const running = new TestApp();
+  running._generationAbort = new AbortController();
+  openApps.set("idle", idle);
+  openApps.set("running", running);
+  const before = notifications.length;
+  const select = { value: "other-conn" };
+  framed(idle, select);
+  idle.rendered = false;
+  idle.preserved = false;
+  const selectedBefore = activeConnectionSelected;
+  await idle._switchActiveConnection("other-conn");
+  assert.equal(activeConnectionSelected, selectedBefore, "another window runs: selectProviderConnection is not called");
+  assert.equal(select.value, currentConnection, "another window runs: the select shows the connection in use");
+  assert.equal(idle.rendered, false, "refused switch does not render");
+  assert.equal(idle.preserved, false, "refused switch keeps the form as it is");
+  const warned = notifications.slice(before).filter((n) => n.type === "warn");
+  assert.equal(warned.length, 1, "one warning");
+  assert.equal(warned[0].msg, "SIMPLYSF2E.ProviderSetup.BusySwitch");
+  assert.equal(warned[0].opts.localize, true, "warning is localized by key");
+  // This window's own run: refused too (nobody else is running).
+  openApps.clear();
+  const own = new TestApp();
+  own._progress = { steps: [] };
+  const ownSelect = { value: "other-conn" };
+  framed(own, ownSelect);
+  await own._switchActiveConnection("other-conn");
+  assert.equal(activeConnectionSelected, selectedBefore, "own run: no switch");
+  assert.equal(ownSelect.value, currentConnection, "own run: select goes back");
+  // Idle everywhere: goes through.
+  openApps.set("idle", idle);
+  await idle._switchActiveConnection("other-conn");
+  assert.equal(activeConnectionSelected, "other-conn", "idle: the switch goes through");
+  openApps.clear();
+  currentConnection = "conn-2";
+}
+
+// After a successful switch every OTHER module window that shows the connection re-renders;
+// foreign windows and the switching window itself are left alone.
+{
+  const first = new TestApp();
+  const second = new TestApp();
+  const third = new TestApp();
+  const setup = new mocks.ProviderSetupApp();
+  let foreignRenders = 0;
+  const foreign = { render() { foreignRenders += 1; } };
+  first.element = { querySelector: () => ({ value: "" }) };
+  for (const [name, a] of Object.entries({ first, second, third, setup, foreign })) openApps.set(name, a);
+  let firstRenders = 0;
+  first.render = async () => { firstRenders += 1; };
+  currentConnection = "conn-a";
+  await first._switchActiveConnection("conn-b");
+  assert.equal(firstRenders, 1, "the switching window renders itself once");
+  assert.equal(second.rendered, true, "an open tool window re-renders after the switch");
+  assert.equal(second.preserved, true, "its unsaved form text is kept first (_preserveForm)");
+  assert.equal(third.rendered, true, "every other tool window re-renders");
+  assert.equal(setup.refreshed, 1, "an open Provider Setup is asked to refresh (it keeps unsaved edits itself)");
+  assert.equal(foreignRenders, 0, "a window that is not the module's is not rendered");
+  // A refused switch refreshes nothing.
+  second.rendered = false;
+  first._generationAbort = new AbortController();
+  await third._switchActiveConnection("conn-c");
+  assert.equal(second.rendered, false, "a refused switch re-renders no window");
+  openApps.clear();
+  currentConnection = "conn-2";
+}
 
 // Testing provider success
 const testBtn = {

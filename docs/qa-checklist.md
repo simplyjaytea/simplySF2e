@@ -64,6 +64,7 @@ Repeat 2.1-2.7 for **Level 1**, **Level 5** and **Level 12**. Use the same promp
 | 2.13 | Same level 8 creature, prompt: "a glowing reactor core that burns everything within ten feet each turn". Create Actor. Place the token on the canvas. | A passive 10-foot aura visible on the canvas around the token. The ability text has a clickable `@Damage[4d6[fire]]` link (4d6 is the unlimited column at level 6, level 8 minus 2) and a clickable `@Check[fortitude\|dc:23\|basic]`. The module applies no damage: the GM rolls and applies it. | Canvas, Actions tab, chat | | |
 | 2.14 | Generator → mode **NPC**, level 14, rarity Unique, Treasure amount Generous, any prompt that gives it loot. Create the actor and open its inventory. | The Credstick in its inventory brings the loot value to about the Credits budget chip in the preview (175,200 for a single level 14 creature, about 17,520 gp), not 10,000 gp. | Preview, NPC inventory | | |
 | 2.15 | Generate and Create a monster or NPC. | After Create only Open Sheet is highlighted as the primary button; Generate Another is secondary. | Generator | | |
+| 2.16 | Clear the Level field and press Generate. | Level 1 is used, not 0. | Generator | | |
 
 | Level | Result | Evidence |
 |-------|--------|----------|
@@ -786,6 +787,9 @@ Generate a level 7 NPC with a limited cone breath (name "Frost Breath", cold), a
 | 12ae.1 | Provider Setup: change the Jev source or type a Jev endpoint, then press Load models. | The Jev field keeps the value you set; the model list fills in; nothing was reset. | Provider Setup | | |
 | 12ae.2 | Start a Generator run, then in Provider Setup pick another Saved connection. | The switch is refused with "A run is in progress. Wait for it to finish before switching connections."; the select shows the connection still in use. | Provider Setup, Generator | | |
 | 12ae.3 | Provider Setup with two saved connections: change the Model field without saving, then press Delete connection. | One dialog: it names the connection and, in a second sentence, the changed field. Delete removes the connection with no second question; Cancel keeps the connection and the unsaved edit. With no unsaved edits the dialog shows only the delete question. | Provider Setup | | |
+| 12ae.4 | Provider Setup open on connection A. In the Generator header pick connection B. | Back in Provider Setup the form shows B (or, if you had typed in it, pressing Save shows "The active connection changed in another window..." and B keeps its endpoint, model and key). | Provider Setup | | |
+| 12ae.5 | Start a Generator run, then change the connection from the Shop window's header. | The change is refused with "A run is in progress..." and the select returns to the connection in use. | Shop, Generator | | |
+| 12ae.6 | A connection with manual prices: press another provider tile so the endpoint changes, then Save without touching the prices. | The prices are cleared (boxes and summary show none) and cost lines stop using the old rates. | Provider Setup | | |
 
 ## 14a. Shell consistency, Generator (U2-GEN)
 
