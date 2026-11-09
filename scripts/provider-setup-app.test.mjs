@@ -338,8 +338,16 @@ const newApp = (form) => {
   const deleteApp = newApp(deleteForm);
   confirmAnswer = true;
   await actions.deleteConnection.call(deleteApp, null, {});
-  assert.equal(lastConfirm.yes.label, "SIMPLYSF2E.ProviderSetup.UnsavedContinue", "Delete with unsaved edits asks to Continue");
-  assert.equal(deleteCalls, 1, "Continue deletes the connection");
+  assert.equal(confirmCalls, 1, "Delete with unsaved edits asks once");
+  assert.equal(lastConfirm.window.title, "SIMPLYSF2E.ProviderSetup.DeleteTitle", "the one dialog is the delete dialog");
+  assert.ok(lastConfirm.content.includes("SIMPLYSF2E.ProviderSetup.UnsavedBodyContinue"), "it carries the unsaved-edits sentence");
+  assert.equal(deleteCalls, 1, "confirming deletes with no further question");
+
+  resetState();
+  const cleanApp = newApp(standardForm());
+  await actions.deleteConnection.call(cleanApp, null, {});
+  assert.equal(confirmCalls, 1, "Delete without unsaved edits asks once");
+  assert.ok(!lastConfirm.content.includes("UnsavedBody"), "and shows only the delete question");
 
   resetState();
   const switchForm = standardForm();
@@ -351,6 +359,19 @@ const newApp = (form) => {
   await new Promise((resolve) => setImmediate(resolve));
   assert.equal(lastConfirm.yes.label, "SIMPLYSF2E.ProviderSetup.UnsavedSwitch", "a switch with unsaved edits asks with Switch");
   assert.deepEqual(selectCalls, ["conn-2"], "Switch anyway switches");
+}
+
+// Source scan: #onDeleteConnection opens one dialog; #confirmDropEdits had 4 mentions on next, now 3.
+{
+  const start = source.indexOf("static async #onDeleteConnection()");
+  const body = source.slice(start, source.indexOf("\n  }\n", start));
+  assert.equal(body.split("DialogV2.confirm(").length - 1, 1, "exactly one DialogV2.confirm in #onDeleteConnection");
+  assert.ok(!body.includes("#confirmDropEdits"), "#onDeleteConnection no longer calls #confirmDropEdits");
+  const unsavedAt = body.indexOf("#unsavedEditsHtml({ continuing: true })");
+  assert.ok(unsavedAt !== -1 && unsavedAt < body.indexOf("DialogV2.confirm("), "unsaved text is built before the dialog");
+  assert.ok(body.slice(body.indexOf("DialogV2.confirm(")).includes("this.#busy"), "#busy is re-checked after the dialog");
+  assert.ok(source.includes("async #confirmDropEdits("), "#confirmDropEdits still exists");
+  assert.equal(source.split("#confirmDropEdits").length - 1, 3, "definition plus switch and create callers");
 }
 
 // (e) Create asks before a render would drop unsaved Jev edits; Stay keeps the connection list as it was.
