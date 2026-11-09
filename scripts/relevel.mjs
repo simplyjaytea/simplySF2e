@@ -148,6 +148,9 @@ export function rebuildModuleAbilities(data, to, { sources = {} } = {}) {
   const size = data.system?.traits?.size?.value;
   const melee = (data.items ?? [])
     .filter((item) => item?.type === "melee")
+    // A ranged NPC strike is a melee-type item with system.range {increment, max}
+    // (createActor writes it, builder.mjs); create never offers it to Trample.
+    .filter((item) => item.system?.range?.increment == null && item.system?.range?.max == null)
     .map((item) => ({ name: item.name, type: "melee", damage: Object.values(item.system?.damageRolls ?? {})[0]?.damage ?? "" }))
     .filter((strike) => strike.damage);
   const report = [];
