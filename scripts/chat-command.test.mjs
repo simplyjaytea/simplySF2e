@@ -129,6 +129,37 @@ assert.equal(handleChat("/sf2e npc 5"), false, "/sf2e npc 5 intercepted");
 assert.deepEqual(generatorCalls.setInput, [{ mode: "npc", level: 5 }], "/sf2e npc 5 fills the form");
 assert.deepEqual(generatorCalls.runFromChat, [], "/sf2e npc 5 does not start a preview");
 
+// 9b. The mode word must be whole: a word that only starts with a mode keeps its full text as the prompt.
+for (const text of ["monsters that haunt a derelict station", "npcs who run a noodle bar", "characterful bartender"]) {
+  resetGeneratorCalls();
+  assert.equal(handleChat(`/sf2e ${text}`), false, `/sf2e ${text} intercepted`);
+  assert.deepEqual(generatorCalls.runFromChat, [{ prompt: text }],
+    `/sf2e ${text} keeps the full text as the prompt and sets no mode`);
+  assert.deepEqual(generatorCalls.setInput, [], `/sf2e ${text} does not call setInput`);
+}
+
+// 9c. A mode needs a space before the level: "monster5" is prompt text, not monster level 5 (old regex gave mode monster, level 5, prompt "x").
+resetGeneratorCalls();
+assert.equal(handleChat("/sf2e monster5 x"), false, "/sf2e monster5 x intercepted");
+assert.deepEqual(generatorCalls.runFromChat, [{ prompt: "monster5 x" }], "/sf2e monster5 x has no mode and no level");
+
+// 9d. Hyphen forms: "-" is not a word boundary, so a mode word followed by "-" is prompt text.
+resetGeneratorCalls();
+assert.equal(handleChat("/sf2e npc-like drone"), false, "/sf2e npc-like drone intercepted");
+assert.deepEqual(generatorCalls.runFromChat, [{ prompt: "npc-like drone" }], "/sf2e npc-like drone keeps the full text as the prompt and sets no mode");
+assert.deepEqual(generatorCalls.setInput, [], "/sf2e npc-like drone does not call setInput");
+
+resetGeneratorCalls();
+assert.equal(handleChat("/sf2e monster-5 x"), false, "/sf2e monster-5 x intercepted");
+assert.deepEqual(generatorCalls.runFromChat, [{ prompt: "monster-5 x" }], "/sf2e monster-5 x has no mode and no level");
+
+// 9e. Unchanged neighbour: a mode word, a space, then a negative level. The parser passes -5 through;
+// GeneratorApp.setInput clamps it to the mode's range (generator-app.mjs:204), which this test stubs out.
+resetGeneratorCalls();
+assert.equal(handleChat("/sf2e monster -5 x"), false, "/sf2e monster -5 x intercepted");
+assert.deepEqual(generatorCalls.runFromChat, [{ mode: "monster", level: -5, prompt: "x" }],
+  "/sf2e monster -5 x passes level -5 through the parser unchanged");
+
 // 10. Actors sidebar context menu: "Reskin with SimplySF2e" (GM, sf2e, NPC only).
 const actors = new Map([
   ["npc1", { id: "npc1", uuid: "Actor.npc1", type: "npc" }],

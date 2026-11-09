@@ -779,6 +779,7 @@ Generate a level 7 NPC with a limited cone breath (name "Frost Breath", cold), a
 | --- | --- | --- | --- | --- | --- |
 | 12ae.1 | Provider Setup: change the Jev source or type a Jev endpoint, then press Load models. | The Jev field keeps the value you set; the model list fills in; nothing was reset. | Provider Setup | | |
 | 12ae.2 | Start a Generator run, then in Provider Setup pick another Saved connection. | The switch is refused with "A run is in progress. Wait for it to finish before switching connections."; the select shows the connection still in use. | Provider Setup, Generator | | |
+| 12ae.3 | Provider Setup with two saved connections: change the Model field without saving, then press Delete connection. | One dialog: it names the connection and, in a second sentence, the changed field. Delete removes the connection with no second question; Cancel keeps the connection and the unsaved edit. With no unsaved edits the dialog shows only the delete question. | Provider Setup | | |
 
 ## 14a. Shell consistency, Generator (U2-GEN)
 
