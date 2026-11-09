@@ -320,20 +320,26 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
    * Ask before a render would drop unsaved chat or Jev edits. True when there
    * are none, or the GM chooses to go on. Same dialog for every action that renders.
    */
-  async #confirmDropEdits({ continuing = false } = {}) {
+  #unsavedEditsHtml({ continuing = false, deleting = false } = {}) {
     const dirty = [...this.#dirtyFields(), ...this.#jevDirtyFields()];
-    if (!dirty.length) return true;
-    const { DialogV2 } = foundry.applications.api;
+    if (!dirty.length) return "";
     const name = esc(getProviderRequestConfig().connectionName);
     const labels = dirty.map((field) => game.i18n.localize(UNSAVED_FIELD_LABELS[field]));
-    // Create and Delete are not a switch: their dialog says Continue, not Switch.
-    const body = continuing ? "SIMPLYSF2E.ProviderSetup.UnsavedBodyContinue" : "SIMPLYSF2E.ProviderSetup.UnsavedBody";
+    // Create is not a switch: its dialog says Continue, not Switch. Delete names no connection (its own question names it).
+    const body = deleting ? "SIMPLYSF2E.ProviderSetup.UnsavedBodyDelete"
+      : continuing ? "SIMPLYSF2E.ProviderSetup.UnsavedBodyContinue" : "SIMPLYSF2E.ProviderSetup.UnsavedBody";
+    const fields = esc(labels.join(", "));
+    return `<p>${game.i18n.format(body, deleting ? { fields } : { fields, name })}</p>`;
+  }
+
+  async #confirmDropEdits({ continuing = false } = {}) {
+    const content = this.#unsavedEditsHtml({ continuing });
+    if (!content) return true;
+    const { DialogV2 } = foundry.applications.api;
     const yes = continuing ? "SIMPLYSF2E.ProviderSetup.UnsavedContinue" : "SIMPLYSF2E.ProviderSetup.UnsavedSwitch";
     return DialogV2.confirm({
       window: { title: "SIMPLYSF2E.ProviderSetup.UnsavedTitle" },
-      content: `<p>${game.i18n.format(body, {
-        fields: esc(labels.join(", ")), name
-      })}</p>`,
+      content,
       yes: { label: yes },
       no: { label: "SIMPLYSF2E.ProviderSetup.UnsavedStay" },
       rejectClose: false
@@ -392,16 +398,18 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
     if (this.#busy) return;
     const state = getProviderRequestConfig();
     if (!state.connectionId || state.connections.length < 2) return;
+    const unsaved = this.#unsavedEditsHtml({ continuing: true, deleting: true });
     const { DialogV2 } = foundry.applications.api;
     const confirmed = await DialogV2.confirm({
       window: { title: "SIMPLYSF2E.ProviderSetup.DeleteTitle" },
       content: `<p>${game.i18n.format("SIMPLYSF2E.ProviderSetup.DeleteConfirm", {
         name: esc(state.connectionName)
-      })}</p>`,
+      })}</p>${unsaved}`,
       rejectClose: false
     });
-    if (!confirmed) return;
-    if (!(await this.#confirmDropEdits({ continuing: true })) || this.#busy) return;
+    if (!confirmed || this.#busy) return;
+    // The GM may have switched connection while the dialog was open: delete nothing then.
+    if (getProviderRequestConfig().connectionId !== state.connectionId) return;
     await deleteProviderConnection(state.connectionId);
     this.#selectedPreset = null;
     this.#availableModels = [];
