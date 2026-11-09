@@ -19,6 +19,7 @@ const context = vm.createContext({
 });
 
 class MockSpfApp {
+  _elapsedUnits() { return { seconds: "s", minutes: "m" }; }
   renders = 0;
   _progress = null;
   get _canCancel() { return false; }

@@ -126,26 +126,38 @@ export function applyStep(steps, key, { now } = {}) {
   return true;
 }
 
+/** Unit letters for elapsed time: seconds and minutes. */
+export const DEFAULT_ELAPSED_UNITS = Object.freeze({ seconds: "s", minutes: "m" });
+
+/** A unit letter from `units[key]`, or the default when it is missing or not a non-empty string. */
+function elapsedUnit(units, key) {
+  const value = units?.[key];
+  return typeof value === "string" && value.length > 0 ? value : DEFAULT_ELAPSED_UNITS[key];
+}
+
 /**
  * Elapsed time as a short status value: tenths below 10 s ("0.8 s"), whole
  * seconds below a minute ("12 s"), then minutes and padded seconds
  * ("1 m 05 s"). Rounds first, so 9.96 s reads "10 s" and 59.6 s "1 m 00 s".
- * A missing or negative value is "".
+ * `units` overrides the unit letters (`seconds`, `minutes`); a missing or
+ * empty one falls back to the default. A missing or negative value is "".
  */
-export function formatElapsed(ms) {
+export function formatElapsed(ms, units = DEFAULT_ELAPSED_UNITS) {
   if (ms === null || ms === undefined || ms === "") return "";
   const value = Number(ms);
   if (!Number.isFinite(value) || value < 0) return "";
+  const secondsUnit = elapsedUnit(units, "seconds");
+  const minutesUnit = elapsedUnit(units, "minutes");
   const tenths = Math.round(value / 100);
-  if (tenths < 100) return `${(tenths / 10).toFixed(1)} s`;
+  if (tenths < 100) return `${(tenths / 10).toFixed(1)} ${secondsUnit}`;
   const seconds = Math.round(value / 1000);
-  if (seconds < 60) return `${seconds} s`;
-  return `${Math.floor(seconds / 60)} m ${String(seconds % 60).padStart(2, "0")} s`;
+  if (seconds < 60) return `${seconds} ${secondsUnit}`;
+  return `${Math.floor(seconds / 60)} ${minutesUnit} ${String(seconds % 60).padStart(2, "0")} ${secondsUnit}`;
 }
 
 /** The status value a finished step shows: its elapsed time, or "" when it has none. */
-export function stepElapsed(step) {
-  return step?.state === "done" ? formatElapsed(step.elapsedMs) : "";
+export function stepElapsed(step, units = DEFAULT_ELAPSED_UNITS) {
+  return step?.state === "done" ? formatElapsed(step.elapsedMs, units) : "";
 }
 
 /**
@@ -155,15 +167,15 @@ export function stepElapsed(step) {
  * The active step shows the `Progress.Running` label, not a time: nothing
  * re-renders the card on a timer. Returns null for no progress.
  */
-export function progressView(progress) {
+export function progressView(progress, units = DEFAULT_ELAPSED_UNITS) {
   if (!progress) return null;
   const steps = Array.isArray(progress.steps) ? progress.steps : [];
   const timed = steps.filter((step) => step.state === "done" && Number.isFinite(step.elapsedMs));
   const total = timed.reduce((sum, step) => sum + step.elapsedMs, 0);
   return {
     ...progress,
-    steps: steps.map((step) => ({ ...step, elapsed: stepElapsed(step) })),
-    totalElapsed: timed.length ? formatElapsed(total) : ""
+    steps: steps.map((step) => ({ ...step, elapsed: stepElapsed(step, units) })),
+    totalElapsed: timed.length ? formatElapsed(total, units) : ""
   };
 }
 
