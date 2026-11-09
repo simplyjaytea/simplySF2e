@@ -753,18 +753,18 @@ export class GeneratorApp extends SpfApp {
     this.#readForm();
     if (!this.#assertGenerationReady()) return;
     if (this.#input.mode === "reskin") {
-      await this.#generateReskin();
-      if (create && this.#reskinFlavor && !this.#error) await this.#createReskinActor();
+      const fresh = await this.#generateReskin();
+      if (create && fresh && this.#reskinFlavor && !this.#error) await this.#createReskinActor();
       return;
     }
     if (this.#input.mode === "character") {
-      await this.#generatePC(isRandom);
-      if (create && this.#pcConcept && !this.#error) await this.#createCharacterActor();
+      const fresh = await this.#generatePC(isRandom);
+      if (create && fresh && this.#pcConcept && !this.#error) await this.#createCharacterActor();
       return;
     }
     if (this.#input.mode === "encounter") {
       await this.#generateEncounter(isRandom);
-      if (create && this.#encounter && !this.#error) await this.#createEncounterActors();
+      if (create && this.#encounter && !this.#error) await this.#createEncounterActors({ fromRun: true });
       return;
     }
     if (!isRandom && !this.#input.prompt.trim()) {
@@ -896,11 +896,12 @@ export class GeneratorApp extends SpfApp {
    * single-creature shape, with an extra "abc"/"feats" step. Unlike NPCs, no
    * stats are computed here: the PF2e system derives AC/HP/saves/
    * proficiencies/spell slots itself from the real items this assembles.
+   * @returns {Promise<boolean>} true only when this call stored a new preview
    */
   async #generatePC(isRandom) {
     if (!isRandom && !this.#input.prompt.trim()) {
       ui.notifications.warn(game.i18n.localize("SIMPLYSF2E.Errors.NoPrompt"));
-      return;
+      return false;
     }
     this.#stashPreview();
     this.#beginBusy();
@@ -914,6 +915,7 @@ export class GeneratorApp extends SpfApp {
     this.#pcResolved = null;
     this._tokenUsage = [];
     let signal;
+    let fresh = false;
     try {
       signal = this._beginProgress([
         ["concept", game.i18n.localize("SIMPLYSF2E.Progress.PCConcept")],
@@ -1138,6 +1140,16 @@ export class GeneratorApp extends SpfApp {
       // applyTreasureBudget do its usual coin-only pad/trim against whatever
       // value remains.
       resolved.loot = enforceNamedLootBudget(resolved.loot, lootBudget);
+      // applyTreasureBudget() returns the loot unchanged for a budget of 0
+      // (creature callers rely on that), so a PC whose gear already uses up
+      // the starting wealth would keep every drafted coin line. Drop them here.
+      if (lootBudget <= 0) {
+        const coinLines = resolved.loot.filter((l) => parseCoins(l.name));
+        if (coinLines.length) {
+          resolved.loot = resolved.loot.filter((l) => !parseCoins(l.name));
+          console.warn(`${MODULE_ID} | dropped ${gpToCredits(lootValueGp(coinLines))} credits (credits/UPB) of drafted coin: the PC's gear already uses up the starting wealth`);
+        }
+      }
       resolved.loot = await applyTreasureBudget(resolved.loot, lootBudget);
 
       // If most of the (equipment-adjusted) loot budget still sits as coin
@@ -1145,7 +1157,7 @@ export class GeneratorApp extends SpfApp {
       // real items (issue #64 item 6: PCs were leaving too much unspent
       // gold). Bounded to a single retry.
       const coinGp = lootValueGp(resolved.loot.filter((l) => parseCoins(l.name)));
-      if (coinGp > lootBudget * 0.25) {
+      if (lootBudget > 0 && coinGp > lootBudget * 0.25) {
         try {
           const { loot: draft, usage: extraUsage } = await generatePCLoot({
             concept, amount: this.#input.treasureAmount, onProgress: (p) => this._onAIProgress(p), signal
@@ -1173,6 +1185,7 @@ export class GeneratorApp extends SpfApp {
       this.#pcResolved = resolved;
       this.#markPreview();
       console.debug(`${MODULE_ID} | token usage`, this._tokenUsage);
+      fresh = true;
     } catch (err) {
       this.#noteGenerationFailure(err, "character generation");
       this.#pcConcept = null;
@@ -1183,6 +1196,7 @@ export class GeneratorApp extends SpfApp {
       this._finishRun();
       await this.render();
     }
+    return fresh;
   }
 
   /**
@@ -1555,12 +1569,17 @@ export class GeneratorApp extends SpfApp {
     await this.render();
   }
 
-  /** Create every encounter member, each with closest-match bestiary art. */
-  async #createEncounterActors() {
-    if (this.#busy || this.#createPending || !this.#encounter) return;
+  /**
+   * Create every encounter member, each with closest-match bestiary art.
+   * `fromRun` is set only by the one-click Generate chain, which owns the
+   * `#createPending` lock itself; a GM click on Create All never passes it.
+   */
+  async #createEncounterActors({ fromRun = false } = {}) {
+    const locked = () => this.#busy || (this.#createPending && !fromRun) || !this.#encounter;
+    if (locked()) return;
     // Let a queued +/- loot fit land first, so the actors embed loot fitted to the final count.
     await this.#stepQueue;
-    if (this.#busy || this.#createPending || !this.#encounter) return;
+    if (locked()) return;
     if (this.#encounter.members.every((m) => !(m.count > 0))) {
       ui.notifications.warn(game.i18n.localize("SIMPLYSF2E.Generator.NoMembers"));
       return;
@@ -1732,14 +1751,15 @@ export class GeneratorApp extends SpfApp {
     return actor.pack ? game.actors.fromCompendium(actor) : actor.toObject();
   }
 
+  /** @returns {Promise<boolean>} true only when this call stored a new preview */
   async #generateReskin() {
     if (!this.#reskinSource) {
       ui.notifications.warn(game.i18n.localize("SIMPLYSF2E.Generator.ReskinNoSource"));
-      return;
+      return false;
     }
     if (!this.#input.prompt.trim()) {
       ui.notifications.warn(game.i18n.localize("SIMPLYSF2E.Errors.NoPrompt"));
-      return;
+      return false;
     }
     this.#stashPreview();
     this.#beginBusy();
@@ -1748,6 +1768,7 @@ export class GeneratorApp extends SpfApp {
     this.#reskinFlavor = null;
     this._tokenUsage = [];
     let signal;
+    let fresh = false;
     try {
       signal = this._beginProgress([["reskin", game.i18n.localize("SIMPLYSF2E.Progress.Reskin")]]);
       await this._setStep("reskin");
@@ -1768,6 +1789,7 @@ export class GeneratorApp extends SpfApp {
       this._throwIfCancelled();
       this.#reskinFlavor = normalizeReskin(flavor, source);
       this.#markPreview();
+      fresh = true;
     } catch (err) {
       this.#noteGenerationFailure(err, "reskin");
       this.#reskinFlavor = null;
@@ -1776,6 +1798,7 @@ export class GeneratorApp extends SpfApp {
       this._finishRun();
       await this.render();
     }
+    return fresh;
   }
 
   async #createReskinActor() {

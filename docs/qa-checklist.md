@@ -99,6 +99,7 @@ Use one prompt at level 5. The goal is to prove the adjustment is applied once (
 | 4.7 | Rollback: Compendium Sources → Bestiary Actors, uncheck every pack, Save. Generate an encounter preview and click **Create All Actors**. | Creation fails with "No usable NPC actor was available in the enabled Bestiary Actor sources…". No folder from this attempt remains and no stray actors remain (all-or-nothing). | Actors directory, console | | |
 | 4.8 | Restore defaults (Compendium Sources → **Reset to defaults** → Save). | Sources ready again. | Sources window | | |
 | 4.9 | Generate an encounter preview, then press "Remove one" on every member until each count is 0. Try to click **Create All Actors**. | The button is disabled. No folder is created and no "Created 0 actors" notice appears. Raising any member back to 1 enables it again. | Encounter preview, Actors sidebar | | |
+| 4.10 | Encounter mode, press **Generate** (not Preview). | The folder and every member actor are created in one go, with no extra click on Create All Actors. | Encounter preview, Actors sidebar | | |
 
 ## 5. Reskin
 
@@ -205,6 +206,8 @@ Per class and level:
 | 7.8 | Equipment. | Gear priced in credits; armor/weapon readied only if trained, else a Loadout note (e.g. "An untrained armor item was left stowed."). | Inventory | | |
 | 7.9 | Class path items: Operative specialization skill feat and Sniper bonus feat chosen without a native prompt; Solarian has Solar Manifestations. | Cited L1 choices closed before creation; none blank. | Feats, Actions | | |
 | 7.10 | Level 18 character, Treasure amount Standard, no named loot picks. Create it, then add up the prices of all inventory items except the Credstick. | Credstick credits plus that sum is about 450,000 credits (45,000 gp), not about 100,000 credits plus the gear. | Character inventory | | |
+| 7.11 | Character preview on screen, clear the prompt, press **Generate another version**. | Only the "enter a prompt" warning appears. No actor is created and the old preview stays. | Character preview, Actors sidebar | | |
+| 7.12 | Level 1 character whose gear costs more than 150 credits (generate, then add up the equipment prices). | The sheet has no Credstick from loot. The browser console shows one warning that the drafted coin was dropped. | Character inventory, console | | |
 
 ### 7a. Mystic and Witchwarper spellcasting (both levels)
 
