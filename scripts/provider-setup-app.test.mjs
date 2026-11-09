@@ -568,4 +568,45 @@ const newApp = (form) => {
   assert.deepEqual(activePrices, { inputPerM: 0.27, outputPerM: 1.1 }, "endpoint unchanged: prices kept");
 }
 
+// (m) Create and Delete change the active connection, so they are refused while another window runs
+// a generation: no dialog, nothing created or deleted, the BusySwitch notice. A run that starts while the
+// dialog is open stops the write as well.
+{
+  resetState();
+  runningApps.set("generator", { _generationAbort: new AbortController() });
+  const deleteApp = newApp(standardForm());
+  await actions.deleteConnection.call(deleteApp, null, {});
+  assert.equal(confirmCalls, 0, "another run: Delete opens no dialog");
+  assert.equal(deleteCalls, 0, "another run: nothing is deleted");
+  assert.equal(warnings.at(-1)?.[0], "SIMPLYSF2E.ProviderSetup.BusySwitch", "another run: Delete warns BusySwitch");
+
+  resetState();
+  runningApps.set("generator", { _generationAbort: new AbortController() });
+  const createApp = newApp(standardForm());
+  await actions.createConnection.call(createApp, null, {});
+  assert.equal(confirmCalls, 0, "another run: Create opens no dialog");
+  assert.equal(createCalls, 0, "another run: nothing is created");
+  assert.equal(warnings.at(-1)?.[0], "SIMPLYSF2E.ProviderSetup.BusySwitch", "another run: Create warns BusySwitch");
+
+  resetState();
+  const deleteDuringDialog = newApp(standardForm());
+  confirmHook = () => runningApps.set("generator", { _progress: { steps: [] } });
+  await actions.deleteConnection.call(deleteDuringDialog, null, {});
+  confirmHook = null;
+  assert.equal(confirmCalls, 1, "a run started during Delete: the dialog was shown once");
+  assert.equal(deleteCalls, 0, "a run started during Delete: nothing is deleted");
+  runningApps.clear();
+
+  resetState();
+  const createForm = standardForm();
+  createForm.querySelector("[name='jevApiKey']").value = "typed";
+  const createDuringDialog = newApp(createForm);
+  confirmHook = () => runningApps.set("generator", { _progress: { steps: [] } });
+  await actions.createConnection.call(createDuringDialog, null, {});
+  confirmHook = null;
+  assert.equal(confirmCalls, 1, "a run started during Create: the unsaved-edits dialog was shown once");
+  assert.equal(createCalls, 0, "a run started during Create: nothing is created");
+  runningApps.clear();
+}
+
 console.log("provider-setup-app.test.mjs: ok");
