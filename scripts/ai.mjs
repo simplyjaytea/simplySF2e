@@ -1691,6 +1691,12 @@ async function requestCompletion({ task, system, user, onProgress, signal, retry
     clearTimeout(idleTimer);
     idleTimer = setTimeout(() => controller.abort(), idleSeconds * 1000);
   };
+  // A deliberate Retry-After/backoff sleep produces no chunks: do not let the
+  // idle timer fire during it, and re-arm it when the next attempt is sent.
+  const onBackoff = (waiting) => {
+    if (waiting) clearTimeout(idleTimer);
+    else resetIdle();
+  };
   // The run deadline is an absolute wall-clock limit, so it is armed once per
   // request and deliberately NOT reset by streaming chunks: a provider that
   // keeps sending tokens must still stop when the run's time is up.
@@ -1704,7 +1710,7 @@ async function requestCompletion({ task, system, user, onProgress, signal, retry
 
   try {
     resetIdle();
-    let response = await postChatCompletion(baseUrl, apiKey, body, controller.signal, retryBudget);
+    let response = await postChatCompletion(baseUrl, apiKey, body, controller.signal, retryBudget, onBackoff);
     const rejectedParameters = new Set();
     // Some OpenAI-compatible providers reject stream_options, response_format
     // or streaming. Retry without a parameter ONLY when a 400/422 body actually
@@ -1714,7 +1720,7 @@ async function requestCompletion({ task, system, user, onProgress, signal, retry
       // Keep enough provider text to find a named compatibility field even
       // after a verbose gateway preamble. The user-facing formatter below
       // still caps the detail to a compact notification.
-      const detail = await safeErrorDetail(response, 4096);
+      const detail = await safeErrorDetail(response, 4096, controller.signal);
       const normalizedDetail = detail.toLowerCase();
       if (
         body.messages[0]?.role === "developer"
@@ -1726,7 +1732,7 @@ async function requestCompletion({ task, system, user, onProgress, signal, retry
         body.messages[0].role = "system";
         rejectedParameters.add("developer_role");
         resetIdle();
-        response = await postChatCompletion(baseUrl, apiKey, body, controller.signal, retryBudget);
+        response = await postChatCompletion(baseUrl, apiKey, body, controller.signal, retryBudget, onBackoff);
         continue;
       }
       const offending = [
@@ -1747,10 +1753,10 @@ async function requestCompletion({ task, system, user, onProgress, signal, retry
         if (!rejectedParameters.has(alternate)) body[alternate] = value;
       }
       resetIdle();
-      response = await postChatCompletion(baseUrl, apiKey, body, controller.signal, retryBudget);
+      response = await postChatCompletion(baseUrl, apiKey, body, controller.signal, retryBudget, onBackoff);
     }
     if (!response.ok) {
-      throw await providerApiError(response);
+      throw await providerApiError(response, controller.signal);
     }
 
     const contentType = response.headers.get("content-type") ?? "";
@@ -1766,7 +1772,9 @@ async function requestCompletion({ task, system, user, onProgress, signal, retry
       resetIdle();
       let data;
       try { data = await response.json(); }
-      catch {
+      catch (err) {
+        // An abort during the body read goes to the abort branch below (Cancelled, run deadline, idle timeout).
+        if (err?.name === "AbortError" || controller.signal.aborted) throw err;
         throw new AIRequestError(game.i18n.localize("SIMPLYSF2E.Errors.InvalidResponse"));
       }
       if (isRealProviderError(data?.error)) throw providerStreamError(data.error);
@@ -1930,7 +1938,7 @@ async function readEventStream(response, { onProgress, resetIdle }) {
   return { content, finishReason, usage, reasoningChars };
 }
 
-async function postChatCompletion(baseUrl, apiKey, body, signal, retryBudget = null) {
+async function postChatCompletion(baseUrl, apiKey, body, signal, retryBudget = null, onWait = null) {
   const headers = { "Content-Type": "application/json" };
   if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
   try {
@@ -1939,7 +1947,7 @@ async function postChatCompletion(baseUrl, apiKey, body, signal, retryBudget = n
       headers,
       body: JSON.stringify(body),
       signal
-    }, { retryBudget });
+    }, { retryBudget, onWait });
   } catch (err) {
     if (err.name === "AbortError") throw err;
     // fetch throws on network/CORS failures before we get a Response
@@ -1947,7 +1955,7 @@ async function postChatCompletion(baseUrl, apiKey, body, signal, retryBudget = n
   }
 }
 
-async function safeErrorDetail(response, maxLength = 240) {
+async function safeErrorDetail(response, maxLength = 240, signal = null) {
   try {
     const text = await response.text();
     try {
@@ -1956,7 +1964,9 @@ async function safeErrorDetail(response, maxLength = 240) {
     } catch {
       return compactErrorDetail(text || response.statusText, maxLength);
     }
-  } catch {
+  } catch (err) {
+    // An abort while the body is read is not a body failure: let the caller's abort branch classify it.
+    if (signal?.aborted) throw err;
     return compactErrorDetail(response.statusText, maxLength);
   }
 }
@@ -2025,8 +2035,8 @@ function providerApiErrorFromDetail(response, detail) {
   }));
 }
 
-async function providerApiError(response) {
-  return providerApiErrorFromDetail(response, await safeErrorDetail(response));
+async function providerApiError(response, signal = null) {
+  return providerApiErrorFromDetail(response, await safeErrorDetail(response, 240, signal));
 }
 
 /**
@@ -2035,8 +2045,21 @@ async function providerApiError(response) {
  * produce a valid-looking concept with required fields missing.
  */
 export function parseConceptJSON(content) {
-  const text = fencedJsonText(visibleTextContent(content).trim());
-  const parsed = tryParseJsonObject(text) ?? extractFirstJsonObject(text);
+  const visible = dropLeadingThink(visibleTextContent(content).trim());
+  if (visible == null) {
+    // The reply opened a <think> block and never closed it: the answer never started.
+    const details = responseDiagnostic({ content });
+    console.warn("simplysf2e | AI response is an unclosed <think> block:", details);
+    throw new AIRequestError(game.i18n.localize("SIMPLYSF2E.Errors.ReasoningWithoutJson"), {
+      retryable: true,
+      details
+    });
+  }
+  // Whole reply first: a valid object may hold ``` inside a string value. Only
+  // when it is not one object look for a fence around it.
+  const whole = tryParseJsonObject(visible);
+  const text = whole ? visible : fencedJsonText(visible);
+  const parsed = whole ?? tryParseJsonObject(text) ?? extractFirstJsonObject(text);
   if (parsed) return parsed;
   const details = responseDiagnostic({ content: text });
   console.warn("simplysf2e | Failed to parse AI response:", details);
@@ -2072,6 +2095,22 @@ function responseDiagnostic({ content, finishReason = null, reasoningChars = 0 }
     reasoningChars: Number(reasoningChars) || 0,
     preview: text.length > JSON_DIAGNOSTIC_PREVIEW ? `${text.slice(0, JSON_DIAGNOSTIC_PREVIEW)}…` : text
   };
+}
+
+/**
+ * Some local servers leave the model's reasoning inline as `<think>...</think>`
+ * at the start of the visible text. Drop leading blocks (and only leading ones:
+ * a `<think>` inside the answer is the model's own text). Returns null when a
+ * leading `<think>` never closes.
+ */
+function dropLeadingThink(text) {
+  let rest = text;
+  while (/^<think>/i.test(rest)) {
+    const close = /<\/think>/i.exec(rest);
+    if (!close) return null;
+    rest = rest.slice(close.index + close[0].length).trimStart();
+  }
+  return rest;
 }
 
 function fencedJsonText(text) {
