@@ -764,7 +764,7 @@ export class GeneratorApp extends SpfApp {
     }
     if (this.#input.mode === "encounter") {
       await this.#generateEncounter(isRandom);
-      if (create && this.#encounter && !this.#error) await this.#createEncounterActors();
+      if (create && this.#encounter && !this.#error) await this.#createEncounterActors({ fromRun: true });
       return;
     }
     if (!isRandom && !this.#input.prompt.trim()) {
@@ -1555,12 +1555,17 @@ export class GeneratorApp extends SpfApp {
     await this.render();
   }
 
-  /** Create every encounter member, each with closest-match bestiary art. */
-  async #createEncounterActors() {
-    if (this.#busy || this.#createPending || !this.#encounter) return;
+  /**
+   * Create every encounter member, each with closest-match bestiary art.
+   * `fromRun` is set only by the one-click Generate chain, which owns the
+   * `#createPending` lock itself; a GM click on Create All never passes it.
+   */
+  async #createEncounterActors({ fromRun = false } = {}) {
+    const locked = () => this.#busy || (this.#createPending && !fromRun) || !this.#encounter;
+    if (locked()) return;
     // Let a queued +/- loot fit land first, so the actors embed loot fitted to the final count.
     await this.#stepQueue;
-    if (this.#busy || this.#createPending || !this.#encounter) return;
+    if (locked()) return;
     if (this.#encounter.members.every((m) => !(m.count > 0))) {
       ui.notifications.warn(game.i18n.localize("SIMPLYSF2E.Generator.NoMembers"));
       return;
