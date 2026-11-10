@@ -873,11 +873,14 @@
   border-color: color-mix(in srgb, var(--spf-brand-accent) 70%, var(--spf-border));
 }
 
+/* Steps: a left-aligned wrapping row, so every row starts at the card's
+   left edge (centred, the rows wrapped ragged on both sides). */
 .simplysf2e .spf-progress-steps {
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
+  justify-content: flex-start;
   gap: var(--spf-space-xs) var(--spf-space-sm);
+  text-align: start;
   list-style: none;
   margin: 0;
   padding: 0;
