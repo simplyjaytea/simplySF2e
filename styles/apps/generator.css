@@ -278,17 +278,20 @@
   min-width: max-content;
 }
 
+/* Party fill: the button joins the level row; the note (party summary or
+   "no party" hint) always takes its own full-width line under that row, so
+   it never wraps in a narrow column beside the button. display: contents
+   makes both children items of the level form-group's wrapping flex row. */
 .simplysf2e .spf-party-fill {
-  display: flex;
-  align-items: center;
-  flex: 1 1 12rem;
-  flex-wrap: wrap;
-  gap: var(--spf-space-sm);
-  min-width: 0;
+  display: contents;
+}
+
+.simplysf2e .spf-use-party {
+  flex: none;
 }
 
 .simplysf2e .spf-party-note {
-  flex: 1 1 12rem;
+  flex: 0 0 100%;
   color: var(--spf-text-muted);
   font-size: var(--spf-text-sm);
   overflow-wrap: anywhere;
@@ -296,7 +299,8 @@
 }
 
 /* The level group keeps max-content width so its controls never squeeze;
-   with the party fill it may wrap, so the fill drops to its own line. */
+   with the party fill it wraps: the button may drop to a second line and
+   the note always sits on its own line below. */
 .simplysf2e .spf-level-primary .form-group:has(.spf-party-fill) {
   flex: 1 1 auto;
   flex-direction: row;
@@ -304,12 +308,6 @@
   flex-wrap: wrap;
   row-gap: var(--spf-space-xs);
   min-width: 0;
-}
-
-@container spf-window (max-width: 520px) {
-  .simplysf2e .spf-party-fill {
-    flex: 1 1 100%;
-  }
 }
 
 .simplysf2e .spf-advanced {
@@ -802,6 +800,15 @@
 .simplysf2e .spf-relevel {
   display: grid;
   gap: var(--spf-space-sm);
+}
+/* The New level hint takes its own full-width line under the stepper. */
+.simplysf2e .spf-relevel > .form-group {
+  flex-wrap: wrap;
+  row-gap: var(--spf-space-xs);
+}
+.simplysf2e .spf-relevel > .form-group > .spf-hint {
+  flex: 0 0 100%;
+  margin: 0;
 }
 .simplysf2e .spf-relevel-scroll {
   overflow-x: auto;
