@@ -1,5 +1,5 @@
 import {
-  MODULE_ID, SETTINGS, bindApiKeyToCurrentBaseUrlUnlocked, describeProvider,
+  MODULE_ID, SETTINGS, assertApiBaseUrlHasNoCredential, bindApiKeyToCurrentBaseUrlUnlocked, describeProvider,
   getProviderRequestConfig, normalizeApiBaseUrl, runProviderBankExclusive, setActiveProviderPricesUnlocked,
   upsertActiveProviderConnectionUnlocked, withProviderConnectionGuard
 } from "./settings.mjs";
@@ -126,6 +126,7 @@ export async function saveProviderConnection({
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
     throw new Error(game.i18n.localize("SIMPLYSF2E.ProviderSetup.InvalidBaseUrl"));
   }
+  assertApiBaseUrlHasNoCredential(baseUrl);
   if (requireModel && !model) throw new Error(game.i18n.localize("SIMPLYSF2E.Errors.NoModel"));
 
   // One queued step: no switch, create, delete or other save can run between

@@ -339,6 +339,51 @@ export function getSetting(key) {
   return game.settings.get(MODULE_ID, key);
 }
 
+const SECRET_QUERY_NAMES = new Set([
+  "key", "apikey", "api-key", "token", "access-token", "auth", "authorization", "secret",
+  "password", "subscription-key", "ocp-apim-subscription-key", "sig", "signature", "code"
+]);
+
+/** Name of the first key-like query parameter ("-" and "_" alike, any case), or "". */
+function findSecretQueryName(url) {
+  for (const name of url.searchParams.keys()) {
+    const folded = name.toLowerCase().replace(/_/g, "-");
+    if (SECRET_QUERY_NAMES.has(folded) || /-(key|token|secret)$/.test(folded)) return name;
+  }
+  return "";
+}
+
+/**
+ * Why an API Base URL must not be saved, or null. "userinfo" = user:pass@ in the
+ * URL; "query-secret" = a key-like query parameter name. The world setting is
+ * readable by every player, so credentials belong in the client-scoped API key.
+ * Unparseable input returns null (the protocol check reports it).
+ */
+export function apiBaseUrlCredentialReason(value) {
+  let url;
+  try { url = new URL(String(value ?? "").trim()); }
+  catch { return null; }
+  if (url.username || url.password) return "userinfo";
+  return findSecretQueryName(url) ? "query-secret" : null;
+}
+
+/**
+ * Throw a localized Error naming the cause (never the secret value) when the URL
+ * carries a credential. Used by every path that writes apiBaseUrl.
+ */
+export function assertApiBaseUrlHasNoCredential(value) {
+  const reason = apiBaseUrlCredentialReason(value);
+  if (!reason) return;
+  const i18n = globalThis.game?.i18n;
+  if (reason === "userinfo") {
+    throw new Error(i18n?.localize?.("SIMPLYSF2E.ProviderSetup.BaseUrlHasUserinfo") ?? "BaseUrlHasUserinfo");
+  }
+  const name = findSecretQueryName(new URL(String(value).trim()));
+  throw new Error(
+    i18n?.format?.("SIMPLYSF2E.ProviderSetup.BaseUrlHasSecret", { name }) ?? `BaseUrlHasSecret ${name}`
+  );
+}
+
 /**
  * Normalize the configured API root for both requests and key binding.
  * The path remains significant: two gateways on one origin must not share a
@@ -760,6 +805,8 @@ async function selectProviderConnectionUnlocked(id) {
  */
 export function createProviderConnection({ name, apiBaseUrl, model } = {}) {
   return runProviderBankExclusive(async () => {
+    // Fail closed before any write: the URL is stored world-scoped.
+    assertApiBaseUrlHasNoCredential(apiBaseUrl);
     const bank = await ensureProviderBankUnlocked();
     const leaving = bank.connections.find((connection) => connection.id === bank.activeId);
     if (leaving) copyLiveSettingsOnto(leaving);
