@@ -206,6 +206,7 @@ export class TreasureApp extends SpfApp {
     this.#input.level = clampTreasureLevel(party.level, this.#input.level);
     this.#input.partySize = clampPartySize(party.size, this.#input.partySize);
     ui.notifications.info(game.i18n.format("SIMPLYSF2E.Party.Filled", { name: party.name }));
+    this._skipFormReadOnce = true;   // show the party's level and size, do not read the old form back
     await this.render();
   }
 
@@ -227,7 +228,7 @@ export class TreasureApp extends SpfApp {
 
   static #onConfigureSources() {
     this.#readForm();
-    new SourcesConfigApp().render(true);
+    SourcesConfigApp.open();
   }
 
   static async #onTestProvider(_event, target) {
@@ -248,8 +249,12 @@ export class TreasureApp extends SpfApp {
     }
     this.#busy = true;
     this.#error = null;
+    // Keep the previous preview (and its token report) on screen until this run
+    // produces a replacement: the preview fields are only assigned at the very end
+    // of a successful run, and a failed or cancelled run puts the old usage back.
+    const previousUsage = this._tokenUsage;
     this._tokenUsage = [];
-    this.#clearPreview();
+    let succeeded = false;
     const { prompt, level, partySize, amount, rarity } = this.#input;
     const budget = treasureBudgetCredits(level, amount);
     let signal = null;
@@ -333,15 +338,16 @@ export class TreasureApp extends SpfApp {
       this.#budget = budget;
       this.#amount = amount;
       this.#dropped = hoard.unknown.length + hoard.overBudget.length + hoard.unpriced.length;
+      succeeded = true;
     } catch (err) {
       if (err?.cancelled) console.warn(`${MODULE_ID} | treasure generation cancelled`);
       else console.error(`${MODULE_ID} | treasure generation failed`, err);
       this.#error = String(err?.message ?? err ?? "");
       this._recordFailure(err, "treasure generation", this.#error);
-      this.#clearPreview();
     } finally {
       this.#busy = false;
       this._finishRun();
+      if (!succeeded) this._tokenUsage = previousUsage;
       await this.render();
     }
   }

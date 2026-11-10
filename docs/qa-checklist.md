@@ -880,7 +880,7 @@ Generate a level 7 NPC with a limited cone breath (name "Frost Breath", cold), a
 
 | # | Step | Expected | Where to look | Result | Evidence |
 | --- | --- | --- | --- | --- | --- |
-| 14h.1 | Generator, Monster: generate a level 4 creature and watch the step list until the bar finishes. | Each finished step shows how long it took after its name ("0.8 s", "12 s", "1 m 05 s"), small, muted and not in capitals. The current step says "running" and blinks; the steps still to come are dots. The percent and the token line are unchanged. | Generator progress card | | |
+| 14h.1 | Generator, Monster: generate a level 4 creature and watch the step list until the bar finishes. | Each finished step shows how long it took after its name ("0.8s", "12s", "1m 05s"), small, muted and not in capitals. The current step says "running" and blinks; the steps still to come are dots. The percent and the token line are unchanged. | Generator progress card | | |
 | 14h.2 | Same run: watch the time on a step that has just finished. | The time appears the moment the next step starts, without the card flickering or the bar jumping back. A step the run skipped shows no time. | Generator progress card | | |
 | 14h.3 | Run Item Forge, Shop and Treasure once each. | The same per-step times and "running" value appear on their progress cards. | Item Forge, Shop, Treasure | | |
 | 14h.4 | Open Welcome fresh (Help > Welcome, or a world with no provider). | The legends read "Choose a provider" and "Connect", without numbers. OpenRouter is pressed; Connect is enabled once a key is entered; nothing is dimmed. | Welcome | | |
@@ -923,3 +923,21 @@ Generate a level 7 NPC with a limited cone breath (name "Frost Breath", cold), a
 | 15.29 | Use a provider or model that rejects `stream_options` or `reasoning_effort` (an older OpenAI-compatible server); generate twice with the network tab open. | The first request negotiates (up to three POSTs); every later request to the same endpoint and model is one POST. A different model starts fresh. | Browser network tab | | |
 | 15.30 | Start a Monster run and cancel while text is streaming; then let a run hit the idle timeout (stop the local server mid-stream). | The token line counts the tokens that streamed before the stop (marked as an estimate). A dropped connection shows the network error message, not a raw browser error. | Token usage fold, error box | | |
 | 15.31 | Provider answering 429 with `Retry-After: 120`. | The run fails at once with the rate-limit message; no 30-second silent wait. A short Retry-After still retries once. | Error box | | |
+
+## 16. Review batch R4 (2026-11-10 follow-ups)
+
+| # | Step | Expected | Where to look | Result | Evidence |
+| --- | --- | --- | --- | --- | --- |
+| 16.1 | Generator with an encounter preview on screen: type a new theme and change Level, then press a member +, a reroll die, Dismiss, Forget recent, and save in Provider Setup opened from the header. | The typed theme and Level stay after each. A mode switch, a preset change, Open recent, Use my party and a chat command still show their own values. | Generator form | | |
+| 16.2 | Item Forge, Shop, Treasure: type a new description with a preview on screen, then remove a stock row or press Create and cancel. | The typed text stays. | Tool windows | | |
+| 16.3 | Welcome: run the sample monster with remembered Generator settings (a preset, level 7). Close and reopen the Generator. | The preset and level are the GM's own, not the sample's. The sample preview was shown. | Generator form after the sample | | |
+| 16.4 | Shop, Treasure, Item Forge (plain and graded weapon): with a preview on screen press Generate another, then Cancel; repeat with the provider unreachable. | The previous preview and its token line are back, with the error above it. Create makes the previous preview. With no previous preview the empty state and the error show. | Tool windows | | |
+| 16.5 | Open AI Provider Setup from the Generator, type a key, then open it again from Shop and from the module settings menu. | One window; the typed key is still there; it comes to the front. After Save, the header strip refreshes in both the Generator and Shop. Same for Compendium Sources and for a minimized window. | Provider Setup, header strips | | |
+| 16.6 | Character: generate an Operative; note the specialization's own choice; press Create with the provider switched off. | The preview already holds the choice and Create succeeds with no AI call. The sheet shows that choice. | Preview, network tab, sheet | | |
+| 16.7 | Character: a background that grants a skill feat; generate at level 4. | That feat is on the sheet once (from the background), not again in a skill or general slot. | Feats tab | | |
+| 16.8 | A world whose saved API Base URL has `?api-key=...` from before the update: open Provider Setup. | A warning under the URL field names the parameter (never the value) and says players can read it. Generation still works. Removing the parameter hides the line as you type. | AI Provider Setup | | |
+| 16.9 | Provider Setup: change manual prices, press Save & test, and switch connection in another window at once. | The prices are on the connection that was saved. An invalid price saves nothing. | Cost estimate fold on both connections | | |
+| 16.10 | Encounter with an uncommon or unique boss. | The Credits target equals the GM Core encounter budget for the party level and Treasure amount; rarity does not raise it. A standalone unique creature still carries more. | Encounter preview header | | |
+| 16.11 | Any run. | Step times read "0.8s", "12s", "1m 05s". | Progress card | | |
+| 16.12 | Change Equipment sources, save, open Item Forge (Wondrous) without reloading. | The passive-effect choices come from the new packs. | Item Forge | | |
+| 16.13 | GitHub: try to push to `main` directly. | Refused: a pull request with a passing `verify` check is required. | GitHub | | |

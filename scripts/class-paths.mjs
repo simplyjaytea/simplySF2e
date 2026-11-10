@@ -1,5 +1,5 @@
 import { getClassFeatureCandidates, getFeatCandidates, getPacksFor, toItemData } from "./compendium.mjs";
-import { choiceSetOptions, normalizeChoiceFlag, preselectChoiceSets } from "./choice-set.mjs";
+import { choiceSetOptions, normalizeChoiceFlag, preselectChoiceSets, sameChoiceValue } from "./choice-set.mjs";
 import { stagedActorContext } from "./pc-prerequisites.mjs";
 import { traditionFromChoiceOption } from "./pc-support.mjs";
 import { slugify } from "./text.mjs";
@@ -260,19 +260,72 @@ async function resolvePathCandidate(candidate, { config, classSlug, names, exclu
 }
 
 /**
- * First option uuid of each closed ChoiceSet that offers compendium feats
- * (the level-one skill feat query and class uuid choices). Slot planning keeps
- * these out of feat slots so the path can still be staged.
+ * The uuid each closed ChoiceSet that offers compendium feats (the level-one
+ * skill feat query and class uuid choices) was answered with. Slot planning
+ * keeps these picks out of feat slots so the path can still be staged.
  */
-function reservedFeatUuids(rules) {
+function chosenFeatUuids(rules, preselect) {
   const reserved = [];
   for (const rule of rules) {
     if (rule?.key !== "ChoiceSet" || !Array.isArray(rule.choices) || !rule.choices.length) continue;
     const values = rule.choices.map((choice) => choice?.value);
     if (!values.every((value) => typeof value === "string" && value.startsWith("Compendium."))) continue;
-    if (!reserved.includes(values[0])) reserved.push(values[0]);
+    const chosen = preselect?.[normalizeChoiceFlag(rule.flag)];
+    if (typeof chosen === "string" && values.includes(chosen) && !reserved.includes(chosen)) reserved.push(chosen);
   }
   return reserved;
+}
+
+/**
+ * Answer the selected path feature's own ChoiceSets with the bounded chooser
+ * and return the native GrantItem `preselectChoices` record. Nothing is
+ * authored: the record is what preselectChoiceSets writes on a GrantItem of
+ * the selected uuid, offered from its resolved closed copy. An unanswered
+ * required choice throws before any world write.
+ */
+async function answerPathChoices(selected, resolved, { bridgeName, context, config, selectChoices }) {
+  const bridge = { name: bridgeName, system: { rules: [{ key: "GrantItem", uuid: selected.uuid }] } };
+  await preselectChoiceSets([bridge], context, config,
+    async (uuid) => (uuid === selected.uuid ? structuredClone(resolved) : sourceFromUuid(uuid)), selectChoices);
+  const preselect = bridge.system.rules[0].preselectChoices ?? null;
+  assertPathChoicesAnswered(selected, resolved, preselect, config);
+  return preselect;
+}
+
+/**
+ * Fail closed unless `preselect` answers every ChoiceSet on the selected
+ * path's resolved copy with one of that ChoiceSet's offered values, and holds
+ * nothing else. Guards a stored plan record (a stale or edited preview) the
+ * same way as a fresh answer.
+ */
+function assertPathChoicesAnswered(selected, resolved, preselect, config) {
+  const selectedChoices = (resolved.system?.rules ?? []).filter((rule) => rule?.key === "ChoiceSet");
+  const requiredFlags = selectedChoices.map((rule) => normalizeChoiceFlag(rule.flag));
+  const record = isObject(preselect) ? preselect : {};
+  const answered = selectedChoices.every((rule, index) => {
+    const flag = requiredFlags[index];
+    if (!flag || !Object.prototype.hasOwnProperty.call(record, flag)) return false;
+    const options = choiceSetOptions(rule.choices, config);
+    return Boolean(options?.some((option) => sameChoiceValue(option.value, record[flag])));
+  });
+  if (!answered || Object.keys(record).some((flag) => !requiredFlags.includes(flag))) {
+    throw new Error(`simplysf2e | class path "${selected.name}" has an unanswered choice`);
+  }
+}
+
+/**
+ * Feats the selected path grants by a fixed uuid (sf2e 1.7.0: DPS++ grants
+ * Reach Spell, Guns Blazing grants Incredible Initiative). Predicated grants
+ * count too: excluding a feat from slots only narrows them (fail closed).
+ */
+async function staticFeatGrants(rules) {
+  const granted = [];
+  for (const rule of Array.isArray(rules) ? rules : []) {
+    const uuid = staticGrantUuid(rule);
+    if (!uuid || granted.includes(uuid)) continue;
+    if ((await sourceFromUuid(uuid))?.type === "feat") granted.push(uuid);
+  }
+  return granted;
 }
 
 /**
@@ -295,8 +348,14 @@ async function reservedFeatNameSlugs(uuids) {
  * known and can constrain restricted skill slots (e.g. Operative Specialized Skill Set).
  * @param {object} classData
  * @param {object} [options]
- * @returns {Promise<Record<string, { tag: string, uuid: string, name: string, skills: Record<string, number>, trainedSkill: string|null, reservedFeats: string[], reservedFeatNames: string[], tradition: string|null }>>}
- *   `reservedFeatNames` holds the slugified names of `reservedFeats`.
+ * @returns {Promise<Record<string, { tag: string, uuid: string, name: string, skills: Record<string, number>, trainedSkill: string|null, reservedFeats: string[], reservedFeatNames: string[], tradition: string|null, preselectChoices: Record<string, string|number|object>|null, grantedFeats: string[], grantedFeatNames: string[] }>>}
+ *   `preselectChoices` answers every ChoiceSet on the selected feature (made
+ *   here with `selectChoices`; stageClassPaths only applies it). An unanswered
+ *   one throws, as an unselected path does.
+ *   `reservedFeats` are the feats those answers chose; slot planning excludes
+ *   them. `reservedFeatNames` holds their slugified names.
+ *   `grantedFeats` are the feats the selected option grants by fixed uuid, and
+ *   `grantedFeatNames` their slugified names; slot planning excludes them too.
  *   `tradition` is the spell tradition the selected option's own rule declares
  *   (a Mystic Connection's or Witchwarper Paradox's `ActiveEffectLike` override
  *   on `flags.system.<class>.tradition`), or null when it declares none.
@@ -342,9 +401,16 @@ export async function planClassPaths(classData, {
       throw new Error(`simplysf2e | class path "${source.name}" was not selected from the offered catalog`);
     }
     const resolved = resolvedByUuid.get(selected.uuid);
+    // The selected feature's own choices (a specialization's skill feat, a
+    // Sniper's bonus feat) are answered here, at preview time, so Create only
+    // applies this record and never asks the AI.
+    const preselectChoices = await answerPathChoices(selected, resolved.source, {
+      bridgeName: source.name, context, config, selectChoices
+    });
     const skills = upgradedSkillRanks(resolved?.source?.system?.rules ?? []);
     const trainedSkill = Object.keys(skills)[0] ?? null;
-    const reservedFeats = reservedFeatUuids(resolved?.source?.system?.rules ?? []);
+    const reservedFeats = chosenFeatUuids(resolved?.source?.system?.rules ?? [], preselectChoices);
+    const grantedFeats = await staticFeatGrants(resolved?.source?.system?.rules);
     plan[selector.tag] = {
       tag: selector.tag,
       uuid: selected.uuid,
@@ -353,7 +419,10 @@ export async function planClassPaths(classData, {
       trainedSkill,
       reservedFeats,
       reservedFeatNames: await reservedFeatNameSlugs(reservedFeats),
-      tradition: traditionFromChoiceOption(resolved?.source, classSlug)
+      tradition: traditionFromChoiceOption(resolved?.source, classSlug),
+      preselectChoices,
+      grantedFeats,
+      grantedFeatNames: await reservedFeatNameSlugs(grantedFeats)
     };
   }
   return plan;
@@ -361,16 +430,17 @@ export async function planClassPaths(classData, {
 
 /**
  * Mutate a cloned class source to remove its native bridge entry and return
- * its exact replacement. This must run before Actor.create. It may invoke the
- * existing bounded choice callback; an omitted path is a hard failure, never
- * a later native dialog.
+ * its exact replacement. This must run before Actor.create. A path in
+ * `pathPlan` is applied from the plan (no choice callback); only an unplanned
+ * path invokes the existing bounded choice callback. An omitted path or
+ * unanswered choice is a hard failure, never a later native dialog.
  * @param {object} [options]
  * @param {string[]} [options.excludeFeats] compendium uuids or names of feats
  *   the build already embeds or grants (background, ancestry, planned slots);
  *   never offered for a path's own feat choice.
- * @param {Record<string, { uuid: string, reservedFeats?: string[] }>} [options.pathPlan] optional pre-resolved
- *   class path plan from planClassPaths; forces staging to consume the exact planned candidate.
- *   Its `reservedFeats` are never excluded from that path's own feat choice.
+ * @param {Record<string, { uuid: string, reservedFeats?: string[], preselectChoices?: object|null }>} [options.pathPlan] optional pre-resolved
+ *   class path plan from planClassPaths; forces staging to consume the exact planned candidate
+ *   and its stored `preselectChoices`. Its `reservedFeats` are never excluded from that path's own feat choice.
  */
 export async function stageClassPaths(classData, classId, {
   context, config = CONFIG?.PF2E ?? {}, selectChoices = null, excludeFeats = [], pathPlan = null
@@ -429,20 +499,20 @@ export async function stageClassPaths(classData, classId, {
     }
 
     // GrantItem's native `preselectChoices` reaches ChoiceSets on the path
-    // feature itself. Build that record using the same bounded chooser rather
-    // than authoring any Rule Element or selection values here; the selected
-    // feature's dynamic choices are offered from its resolved closed copy.
+    // feature itself. A planned path carries that record from preview time
+    // (planClassPaths) and is only checked here, with no chooser call; an
+    // unplanned path builds it with the same bounded chooser. Either way the
+    // selected feature's choices are checked against its resolved closed copy.
     const { source: resolved, grantFlags } = resolvedByUuid.get(selected.uuid);
-    const bridge = { name: source.name, system: { rules: [{ key: "GrantItem", uuid: selected.uuid }] } };
-    await preselectChoiceSets([bridge], context, config,
-      async (uuid) => (uuid === selected.uuid ? structuredClone(resolved) : sourceFromUuid(uuid)), selectChoices);
-    const targetGrant = source.system.rules.find((rule) => rule?.key === "GrantItem" && typeof rule.uuid === "string" && rule.uuid.includes("rulesSelections"));
-    const preselect = bridge.system.rules[0].preselectChoices;
-    const selectedChoices = (resolved.system?.rules ?? []).filter((rule) => rule?.key === "ChoiceSet");
-    const requiredFlags = selectedChoices.map((rule) => normalizeChoiceFlag(rule.flag));
-    if (!requiredFlags.every((flag) => flag && Object.prototype.hasOwnProperty.call(preselect ?? {}, flag))) {
-      throw new Error(`simplysf2e | class path "${selected.name}" has an unanswered choice`);
+    const planned = pathPlan?.[selector.tag];
+    let preselect;
+    if (planned) {
+      preselect = isObject(planned.preselectChoices) ? structuredClone(planned.preselectChoices) : null;
+      assertPathChoicesAnswered(selected, resolved, preselect, config);
+    } else {
+      preselect = await answerPathChoices(selected, resolved, { bridgeName: source.name, context, config, selectChoices });
     }
+    const targetGrant = source.system.rules.find((rule) => rule?.key === "GrantItem" && typeof rule.uuid === "string" && rule.uuid.includes("rulesSelections"));
     if (targetGrant && preselect) targetGrant.preselectChoices = preselect;
 
     delete classData.system.items[entryId];

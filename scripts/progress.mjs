@@ -136,9 +136,9 @@ function elapsedUnit(units, key) {
 }
 
 /**
- * Elapsed time as a short status value: tenths below 10 s ("0.8 s"), whole
- * seconds below a minute ("12 s"), then minutes and padded seconds
- * ("1 m 05 s"). Rounds first, so 9.96 s reads "10 s" and 59.6 s "1 m 00 s".
+ * Elapsed time as a short status value: tenths below 10 s ("0.8s"), whole
+ * seconds below a minute ("12s"), then minutes and padded seconds
+ * ("1m 05s"). Rounds first, so 9.96 s reads "10s" and 59.6 s "1m 00s".
  * `units` overrides the unit letters (`seconds`, `minutes`); a missing or
  * empty one falls back to the default. A missing or negative value is "".
  */
@@ -149,10 +149,10 @@ export function formatElapsed(ms, units = DEFAULT_ELAPSED_UNITS) {
   const secondsUnit = elapsedUnit(units, "seconds");
   const minutesUnit = elapsedUnit(units, "minutes");
   const tenths = Math.round(value / 100);
-  if (tenths < 100) return `${(tenths / 10).toFixed(1)} ${secondsUnit}`;
+  if (tenths < 100) return `${(tenths / 10).toFixed(1)}${secondsUnit}`;
   const seconds = Math.round(value / 1000);
-  if (seconds < 60) return `${seconds} ${secondsUnit}`;
-  return `${Math.floor(seconds / 60)} ${minutesUnit} ${String(seconds % 60).padStart(2, "0")} ${secondsUnit}`;
+  if (seconds < 60) return `${seconds}${secondsUnit}`;
+  return `${Math.floor(seconds / 60)}${minutesUnit} ${String(seconds % 60).padStart(2, "0")}${secondsUnit}`;
 }
 
 /** The status value a finished step shows: its elapsed time, or "" when it has none. */

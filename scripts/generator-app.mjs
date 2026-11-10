@@ -55,14 +55,15 @@ import {
 } from "./generator-context/pc-preview.mjs";
 import { completionContext, buildRecentContext } from "./generator-context/result-context.mjs";
 
-async function rollbackActor(actor, label) {
+async function rollbackActor(actor, labelKey) {
   if (!actor) return null;
+  const label = game.i18n.localize(labelKey);
   try {
     await actor.delete();
     return null;
   } catch (cleanupErr) {
     console.warn(`${MODULE_ID} | failed to roll back ${label} "${actor.name}"`, cleanupErr);
-    return `${label} "${actor.name}" still exists. The draft was discarded to prevent a duplicate; remove it manually before trying again.`;
+    return game.i18n.format("SIMPLYSF2E.Generator.SurvivorDraft", { label, name: actor.name });
   }
 }
 
@@ -171,6 +172,8 @@ export class GeneratorApp extends SpfApp {
   #chatPending = false;
   /** Preview-only samples leave the GM's remembered Generator inputs untouched. */
   #rememberInputSuspended = false;
+  /** The reskin source the on-screen re-level box was rendered for. */
+  #relevelShownFor = null;
   constructor(...args) {
     super(...args);
     // Isolated tests build the app without Foundry's settings.
@@ -185,6 +188,7 @@ export class GeneratorApp extends SpfApp {
   /** External programmatic input update (e.g. from chat command). */
   setInput(updates = {}) {
     this.#mergeInput(updates);
+    this._skipFormReadOnce = true;   // show the merged input, do not read the old form back
     this.render();
   }
 
@@ -221,15 +225,44 @@ export class GeneratorApp extends SpfApp {
     }
     // Held across the render so a second command cannot slip in before the run starts.
     this.#chatPending = true;
+    // A sample (remember: false) gives the GM's own input back when it ends.
+    let gmInput = null;
     try {
+      if (!remember) {
+        if (this.element) this.#readForm();   // persisting is suspended here
+        gmInput = { input: { ...this.#input }, modePrompts: { ...this.#modePrompts } };
+      }
       this.#mergeInput(updates);
+      this._skipFormReadOnce = true;   // show the merged input, do not read the old form back
       await this.render({ force: true });
       this.#chatPending = false;
       return await this.#runGeneration(false, { create: false });   // preview only; the GM still clicks Create
     } finally {
       this.#chatPending = false;
+      // Restore before persisting resumes, so the sample's values are never remembered.
+      if (gmInput) this.#restoreAfterSample(gmInput);
       this.#rememberInputSuspended = previousRememberSuspension;
     }
+  }
+
+  /**
+   * After a sample run: the GM's own fields and drafts come back, so their
+   * next click cannot remember the sample's level, preset or rarity. The
+   * mode stays the sample's, because each mode shows only its own preview
+   * and the GM asked to see this one.
+   */
+  #restoreAfterSample({ input, modePrompts }) {
+    const mode = this.#input.mode;
+    this.#modePrompts = modePrompts;
+    const [levelMin, levelMax] = ["monster", "npc"].includes(mode) ? [-1, 24] : [1, 20];
+    this.#input = {
+      ...input,
+      mode,
+      prompt: modePrompts[mode] ?? "",
+      level: Math.min(levelMax, Math.max(levelMin, input.level))
+    };
+    this._skipFormReadOnce = true;   // show the restored input, do not read the sample's form back
+    this.render().catch((err) => console.warn(`${MODULE_ID} | could not show the restored Generator input`, err));
   }
 
 
@@ -457,7 +490,8 @@ export class GeneratorApp extends SpfApp {
     const rawAdj = form.querySelector('[name="adjustment"]')?.value ?? this.#input.adjustment;
     const adjustment = rawAdj === "elite" || rawAdj === "weak" ? rawAdj : null;
     const reskinLevelEl = form.querySelector('[name="reskinLevel"]');
-    if (reskinLevelEl && this.#reskinSource) {
+    // A box rendered for an earlier source (a drop still loading) is not this source's level.
+    if (reskinLevelEl && this.#reskinSource && this.#relevelShownFor === this.#reskinSource) {
       const reskinLevel = clampRelevel(reskinLevelEl.value, this.#reskinTargetLevel());
       this.#reskinLevel = reskinLevel === this.#reskinSource.level ? null : reskinLevel;
     }
@@ -489,6 +523,7 @@ export class GeneratorApp extends SpfApp {
    */
   _onRender(context, options) {
     super._onRender?.(context, options);
+    this.#relevelShownFor = this.#reskinSource;
     this.element?.classList?.toggle("spf-busy", Boolean(context?.busy));
     this.element.querySelector("details[data-readiness]")?.addEventListener("toggle", (event) => {
       this.#readinessOpen = event.currentTarget.open;
@@ -505,12 +540,11 @@ export class GeneratorApp extends SpfApp {
         if (preset.treasureAmount) this.#input.treasureAmount = preset.treasureAmount;
       }
       this.#exampleTick++;
+      this._skipFormReadOnce = true;   // show the preset's defaults, do not read the old form back
       this.render();
     });
-    this.element.querySelector('input[name="reskinLevel"]')?.addEventListener("change", () => {
-      this.#readForm();
-      this.render();
-    });
+    // The render reads the form first, so the new re-level is kept.
+    this.element.querySelector('input[name="reskinLevel"]')?.addEventListener("change", () => this.render());
     const dropZone = this.element.querySelector("[data-reskin-drop]");
     if (dropZone) {
       dropZone.addEventListener("dragover", (event) => {
@@ -528,6 +562,8 @@ export class GeneratorApp extends SpfApp {
       radio.addEventListener("change", async () => {
         this.#readForm();
         const selectedMode = this.#input.mode;
+        // The prompt box still holds the previous mode's draft: do not read it back as this mode's.
+        this._skipFormReadOnce = true;
         await this.render();
         // Foundry focuses the first hidden radio after an application render.
         // Restore focus to the mode the GM actually selected so Monster does
@@ -564,7 +600,7 @@ export class GeneratorApp extends SpfApp {
   /** Open the shared Compendium Sources settings app (same as the forge's gear). */
   static #onConfigureSources() {
     this.#readForm();
-    new SourcesConfigApp().render(true);
+    SourcesConfigApp.open();
   }
 
   static async #onTestProvider(_event, target) {
@@ -589,6 +625,7 @@ export class GeneratorApp extends SpfApp {
     this.#readForm();
     const level = clampRelevel(this.#reskinTargetLevel() + delta, this.#reskinTargetLevel());
     this.#reskinLevel = level === this.#reskinSource.level ? null : level;
+    this._skipFormReadOnce = true;   // the re-level box still shows the old level
     this.render();
   }
 
@@ -665,6 +702,7 @@ export class GeneratorApp extends SpfApp {
     this.#input.level = party.level;
     this.#input.partySize = party.size;
     ui.notifications.info(game.i18n.format("SIMPLYSF2E.Party.Filled", { name: party.name }));
+    this._skipFormReadOnce = true;   // show the party's level and size, do not read the old form back
     await this.render();
   }
 
@@ -1389,7 +1427,7 @@ export class GeneratorApp extends SpfApp {
       }
     } catch (err) {
       if (!committed) {
-        const survivor = await rollbackActor(actor, "unverified actor");
+        const survivor = await rollbackActor(actor, "SIMPLYSF2E.Generator.RollbackUnverifiedActor");
         if (survivor) {
           this.#concept = null;
           this.#resolved = null;
@@ -1515,10 +1553,10 @@ export class GeneratorApp extends SpfApp {
     } catch (err) {
       let survivor = null;
       if (actor && !committed) {
-        survivor = await rollbackActor(actor, "unverified character");
+        survivor = await rollbackActor(actor, "SIMPLYSF2E.Generator.RollbackUnverifiedCharacter");
       } else if (err?.simplySF2eRollbackActor) {
         const stranded = err.simplySF2eRollbackActor;
-        survivor = `incomplete character "${stranded.name}" still exists. The draft was discarded to prevent a duplicate; remove it manually before trying again.`;
+        survivor = game.i18n.format("SIMPLYSF2E.Generator.SurvivorIncompleteCharacter", { name: stranded.name });
       }
       if (survivor) {
         this.#pcConcept = null;
@@ -1653,19 +1691,19 @@ export class GeneratorApp extends SpfApp {
       // original error while ensuring a retry cannot duplicate a partial roster.
       const survivors = [];
       for (const actor of actors.reverse()) {
-        const survivor = await rollbackActor(actor, "encounter actor");
+        const survivor = await rollbackActor(actor, "SIMPLYSF2E.Generator.RollbackEncounterActor");
         if (survivor) survivors.push(survivor);
       }
       if (folder) {
         try { await folder.delete(); } catch (cleanupErr) {
           console.warn(`${MODULE_ID} | failed to roll back encounter folder "${folder.name}"`, cleanupErr);
-          survivors.push(`encounter folder "${folder.name}" still exists`);
+          survivors.push(game.i18n.format("SIMPLYSF2E.Generator.SurvivorFolder", { name: folder.name }));
         }
       }
       if (survivors.length) {
         this.#encounter = null;
         this.#previewMeta = null;
-        this.#error = `${String(err?.message ?? err ?? "")} ${survivors.join(" ")} The plan was discarded to prevent a duplicate.`;
+        this.#error = `${String(err?.message ?? err ?? "")} ${survivors.join(" ")} ${game.i18n.localize("SIMPLYSF2E.Generator.PlanDiscarded")}`;
       } else this.#error = String(err?.message ?? err ?? "");
       this._recordFailure(err, "encounter creation", this.#error);
     } finally {
@@ -1743,6 +1781,7 @@ export class GeneratorApp extends SpfApp {
     if (this.element) this.#readForm();
     this.#input.mode = "reskin";
     this.#input.prompt = this.#modePrompts.reskin ?? "";
+    this._skipFormReadOnce = true;   // show Reskin, do not read the previous mode's form back
     await this.render({ force: true });   // the form now shows Reskin, so #readForm keeps it
     const actor = await fromUuid(uuid);
     await this.#loadReskinActor(actor);
@@ -2091,6 +2130,7 @@ export class GeneratorApp extends SpfApp {
     // The character review card is about an actor that already exists; keep it.
     this.#created = null;
     this.#error = null;
+    this._skipFormReadOnce = true;   // show the restored mode, do not read the previous mode's form back
     await this.render();
   }
 

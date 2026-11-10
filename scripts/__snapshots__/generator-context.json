@@ -231,7 +231,7 @@
       "humanoid",
       "human"
     ],
-    "speeds": "land 25 ft.",
+    "speeds": "land SIMPLYSF2E.Preview.Feet:{\"value\":25}",
     "senses": "darkvision",
     "languages": "common, kalo",
     "abilities": [
@@ -317,7 +317,7 @@
         "found": true
       },
       {
-        "name": "Spell Gem of Fireball (Rank 3)",
+        "name": "SIMPLYSF2E.Preview.SpellGem:{\"name\":\"Fireball\",\"rank\":3}",
         "found": true
       },
       {
@@ -577,7 +577,7 @@
       "humanoid",
       "human"
     ],
-    "speeds": "land 25 ft.",
+    "speeds": "land SIMPLYSF2E.Preview.Feet:{\"value\":25}",
     "senses": "darkvision",
     "languages": "common, kalo",
     "abilities": [],
@@ -789,7 +789,7 @@
       "humanoid",
       "human"
     ],
-    "speeds": "land 25 ft.",
+    "speeds": "land SIMPLYSF2E.Preview.Feet:{\"value\":25}",
     "senses": "darkvision",
     "languages": "common, kalo",
     "abilities": [],
@@ -1110,7 +1110,7 @@
         "found": true
       },
       {
-        "name": "general 3",
+        "name": "SIMPLYSF2E.Preview.SlotLabel:{\"type\":\"SIMPLYSF2E.Preview.SlotGeneral\",\"level\":3}",
         "found": false,
         "empty": true
       },
@@ -1119,12 +1119,12 @@
         "found": true
       },
       {
-        "name": "skill 2",
+        "name": "SIMPLYSF2E.Preview.SlotLabel:{\"type\":\"SIMPLYSF2E.Preview.SlotSkill\",\"level\":2}",
         "found": false,
         "empty": false
       }
     ],
-    "emptyFeatNotice": "SIMPLYSF2E.PC.EmptyFeatSlots:{\"count\":1,\"slots\":\"general 3\"}",
+    "emptyFeatNotice": "SIMPLYSF2E.PC.EmptyFeatSlots:{\"count\":1,\"slots\":\"SIMPLYSF2E.Preview.SlotLabel:{\\\"type\\\":\\\"SIMPLYSF2E.Preview.SlotGeneral\\\",\\\"level\\\":3}\"}",
     "spells": [
       {
         "name": "Shock",

@@ -1,7 +1,7 @@
 import {
-  MODULE_ID, SETTINGS, createProviderConnection, deleteProviderConnection,
+  MODULE_ID, SETTINGS, apiBaseUrlCredentialInfo, createProviderConnection, deleteProviderConnection,
   ensureProviderBank, getActiveProviderPrices, getJevRequestConfig, getProviderAuthWarningKey, getProviderRequestConfig,
-  normalizeApiBaseUrl, selectProviderConnection, setActiveProviderPrices
+  normalizeApiBaseUrl, selectProviderConnection
 } from "./settings.mjs";
 import {
   connectionFormDirty, connectionFormValues, saveProviderConnection, savedConnectionForDirty, snapshotProviderConnection
@@ -77,7 +77,8 @@ export function jevTestNotice(result) {
 
 /** Focused provider setup, reachable both from module settings and the generator. */
 export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) {
-  #onSaved;
+  /** Everyone waiting to hear about a saved connection (each opener's header strip). */
+  #savedListeners = new Set();
   #selectedPreset = null;
   #keysElement = null;
   #availableModels = [];
@@ -98,7 +99,75 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
       options = {};
     }
     super(options);
-    this.#onSaved = typeof onSaved === "function" ? onSaved : null;
+    this.addSavedListener(onSaved);
+  }
+
+  /** The window already on screen under this id, if any (the settings menu builds its own instances). */
+  static #live() {
+    return foundry.applications.instances?.get?.(ProviderSetupApp.DEFAULT_OPTIONS.id) ?? null;
+  }
+
+  /**
+   * Bring an already open window to the front without re-rendering it: its form
+   * holds unsaved edits and is patched in place, so a re-render could drop them.
+   */
+  static #bringToFront(live) {
+    if (live.minimized) live.maximize?.();
+    live.bringToFront?.();
+  }
+
+  /**
+   * Open Provider Setup, or reach the one already open. `onSaved` is told when
+   * a connection is saved either way. Use this instead of `new ProviderSetupApp()`.
+   */
+  static open(onSaved = null) {
+    const live = ProviderSetupApp.#live();
+    if (live) {
+      live.addSavedListener(onSaved);
+      if (live.rendered === false) live.render(true);
+      else ProviderSetupApp.#bringToFront(live);
+      return live;
+    }
+    const app = new ProviderSetupApp({}, onSaved);
+    app.render(true);
+    return app;
+  }
+
+  /** Call `listener` after every connection save while this window is open; cleared on close. */
+  addSavedListener(listener) {
+    if (typeof listener === "function") this.#savedListeners.add(listener);
+  }
+
+  /** Every listener runs; one that throws is logged and does not stop the others. */
+  async #notifySaved() {
+    for (const listener of [...this.#savedListeners]) {
+      try {
+        await listener();
+      } catch (err) {
+        console.error("simplysf2e | a Provider Setup save listener failed", err);
+      }
+    }
+  }
+
+  /**
+   * The settings menu builds `new ProviderSetupApp()` under the fixed id. When
+   * another instance is already open, hand over to it (listeners included)
+   * instead of replacing its DOM and losing its unsaved edits.
+   */
+  async render(options = {}, _options = {}) {
+    const live = ProviderSetupApp.#live();
+    if (live && live !== this && live instanceof ProviderSetupApp && live.rendered !== false) {
+      for (const listener of this.#savedListeners) live.addSavedListener(listener);
+      this.#savedListeners.clear();
+      ProviderSetupApp.#bringToFront(live);
+      return live;
+    }
+    return super.render(options, _options);
+  }
+
+  _onClose(options) {
+    this.#savedListeners.clear();
+    return super._onClose?.(options);
   }
 
   static DEFAULT_OPTIONS = {
@@ -159,6 +228,9 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
       connectionName: state.connectionName,
       canDeleteConnection: state.connections.length > 1,
       apiBaseUrl: state.baseUrl,
+      // Standing warning under the URL field while it holds a credential (non-blocking; text only, never the value).
+      baseUrlCredential: state.baseUrlCredential ?? null,
+      storedUrlWarning: ProviderSetupApp.#storedUrlWarningText(state.baseUrl),
       model: state.model,
       availableModels: this.#availableModels,
       inputPerM: prices.inputPerM ?? "",
@@ -230,8 +302,10 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
         this.#clearModelSuggestions();
       }
       this.#syncEndpointKeyHint();
+      this.#syncStoredUrlWarning();
     });
     this.#syncEndpointKeyHint();
+    this.#syncStoredUrlWarning();
     // A rejected price sets a custom validity message; a changed value drops it, or the
     // stale message would block the native submit (Save without testing). The visible
     // field error stays until the next save validates the new value.
@@ -297,6 +371,24 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
     const state = getProviderRequestConfig();
     const typed = this.element.querySelector("[name='apiBaseUrl']")?.value;
     hint.hidden = !(state.hasConfiguredApiKey && normalizeApiBaseUrl(typed) !== normalizeApiBaseUrl(state.baseUrl));
+  }
+
+  /** Warning text for a URL that carries a credential, or "". Names the parameter, never its value. */
+  static #storedUrlWarningText(value) {
+    const { reason, name } = apiBaseUrlCredentialInfo(value);
+    if (reason === "userinfo") return game.i18n.localize("SIMPLYSF2E.ProviderSetup.StoredUrlHasUserinfo");
+    if (reason === "query-secret") return game.i18n.format("SIMPLYSF2E.ProviderSetup.StoredUrlHasSecret", { name });
+    return "";
+  }
+
+  /** The standing credential warning under the URL field follows what the field holds now. */
+  #syncStoredUrlWarning() {
+    const line = this.element?.querySelector(".spf-stored-url-warning");
+    if (!line) return;
+    const text = ProviderSetupApp.#storedUrlWarningText(this.element.querySelector("[name='apiBaseUrl']")?.value);
+    const span = line.querySelector?.("span");
+    if (span) span.textContent = text;
+    line.hidden = !text;
   }
 
   #clearModelSuggestions() {
@@ -437,7 +529,7 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
       ?? (PROVIDER_PRESETS.some((provider) => provider.id === inferred) ? inferred : "custom");
     const preset = PROVIDER_PRESETS.find((entry) => entry.id === selected) ?? PROVIDER_PRESETS.at(-1);
     await createProviderConnection({
-      name: preset.preserve ? "New connection" : preset.label,
+      name: preset.preserve ? game.i18n.localize("SIMPLYSF2E.ProviderSetup.NewConnection") : preset.label,
       apiBaseUrl: preset.baseUrl,
       model: preset.model
     });
@@ -493,6 +585,7 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
         this.#clearModelSuggestions();
       }
       this.#syncEndpointKeyHint();
+      this.#syncStoredUrlWarning();
     }
   }
 
@@ -533,8 +626,6 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
     // saveProviderConnection clears manual prices when the base URL changes. Prices the GM left
     // untouched are the old provider's: re-applying them would put those rates on the new endpoint.
     const savedPrices = getActiveProviderPrices();
-    const baseChanged = normalizeApiBaseUrl(this.element.querySelector("[name='apiBaseUrl']")?.value)
-      !== normalizeApiBaseUrl(getProviderRequestConfig().baseUrl);
     const pricesEdited = ["inputPerM", "outputPerM"].some((field) => parsePrice(prices[field]).value !== parsePrice(savedPrices?.[field]).value);
     const result = await saveProviderConnection({
       baseUrl: this.element.querySelector("[name='apiBaseUrl']")?.value,
@@ -543,11 +634,12 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
       clearApiKey: Boolean(this.element.querySelector("[name='clearApiKey']")?.checked),
       connectionName: this.element.querySelector("[name='connectionName']")?.value,
       notify,
-      requireModel
+      requireModel,
+      // Written inside the same queued step as the connection (a switch cannot land between).
+      prices: priceInputs.inputPerM && priceInputs.outputPerM ? prices : null,
+      pricesEdited
     });
-    // After the connection save, so the prices land on the connection just saved.
-    if (priceInputs.inputPerM && priceInputs.outputPerM && !(baseChanged && !pricesEdited)) await setActiveProviderPrices(prices);
-    await this.#onSaved?.();
+    await this.#notifySaved();
     return result;
   }
 
@@ -641,7 +733,7 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
         ProviderSetupApp.#notifyJevSaved(result);
         // Update in place: a re-render would discard unsaved chat fields.
         this.#syncJevControls(Boolean(getJevRequestConfig().apiKey));
-        await this.#onSaved?.();
+        await this.#notifySaved();
       }
     } catch (err) {
       console.error("simplysf2e | Jev key save failed", err);
@@ -666,7 +758,7 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
       if (saved) {
         ProviderSetupApp.#notifyJevSaved(saved);
         this.#syncJevControls(Boolean(getJevRequestConfig().apiKey));
-        await this.#onSaved?.();
+        await this.#notifySaved();
       }
       const notice = jevTestNotice(await testJevConnection());
       ui.notifications[notice.level](notice.key, { localize: true, format: notice.data, escape: true });
@@ -729,6 +821,7 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
       clearBox.remove();
     }
     this.#syncEndpointKeyHint();
+    this.#syncStoredUrlWarning();
     // The form now shows what is stored: re-take the snapshot _prepareContext takes, or a later
     // connection-change refresh would count these saved values as unsaved edits.
     this.#renderedSaved = savedConnectionForDirty(snapshotProviderConnection(), { connectionName: state.connectionName, prices: getActiveProviderPrices() });

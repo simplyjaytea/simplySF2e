@@ -9,6 +9,8 @@ import vm from "node:vm";
 import * as connect from "./provider-connect.mjs";
 import { esc } from "./text.mjs";
 import { parsePrice } from "./cost.mjs";
+import { apiBaseUrlCredentialInfo } from "./settings.mjs";
+import { readFileSync } from "node:fs";
 
 if (!vm.SourceTextModule) {
   const run = spawnSync(process.execPath, ["--experimental-vm-modules", import.meta.filename], { stdio: "inherit" });
@@ -35,6 +37,7 @@ let priceWrites = [];
 const errors = [];
 const warnings = [];
 const runningApps = new Map();
+const liveById = new Map();
 
 const resetState = () => {
   providerState = {
@@ -57,6 +60,7 @@ const resetState = () => {
   errors.length = 0;
   warnings.length = 0;
   runningApps.clear();
+  liveById.clear();
   refreshCalls = [];
   priceWrites = [];
 };
@@ -119,8 +123,10 @@ function standardForm() {
 
 // --- module under test ---------------------------------------------------------
 class ApplicationV2 {
-  constructor(options = {}) { this.options = options; this.element = null; this.renders = 0; this.closed = 0; }
-  async render() { this.renders += 1; }
+  constructor(options = {}) { this.options = options; this.element = null; this.renders = 0; this.closed = 0; this.fronted = 0; }
+  get rendered() { return this.renders > 0 && !this.closed; }
+  bringToFront() { this.fronted += 1; }
+  async render() { this.renders += 1; liveById.set(this.options.id ?? "simplysf2e-provider-setup", this); }
   async close() { this.closed += 1; }
 }
 
@@ -141,7 +147,7 @@ const context = vm.createContext({
         HandlebarsApplicationMixin: (Base) => Base,
         DialogV2: { confirm: async (options) => { confirmCalls += 1; lastConfirm = options; if (confirmHook) confirmHook(); return confirmAnswer; } }
       },
-      instances: { values: () => runningApps.values() }
+      instances: { values: () => runningApps.values(), get: (id) => liveById.get(id) }
     }
   },
   Promise, AbortController
@@ -180,10 +186,14 @@ const mocks = {
   saveProviderConnection: async (data = {}) => {
     saveCalls += 1;
     // As the real save: a changed base URL moves the endpoint and clears the manual prices.
-    if (data.baseUrl !== undefined && mocks.normalizeApiBaseUrl(data.baseUrl) !== providerState.baseUrl) {
+    const baseChanged = data.baseUrl !== undefined && mocks.normalizeApiBaseUrl(data.baseUrl) !== providerState.baseUrl;
+    if (baseChanged) {
       providerState.baseUrl = mocks.normalizeApiBaseUrl(data.baseUrl);
       activePrices = { inputPerM: null, outputPerM: null };
     }
+    // Prices passed to the save are written in that same step (never a second call), unless the
+    // endpoint changed and they were not edited.
+    if (data.prices && !(baseChanged && !data.pricesEdited)) await mocks.setActiveProviderPrices(data.prices);
     // The model in the form is stored, as the real save does.
     if (data.model) providerState.model = data.model;
     // A typed key is stored; a clear request removes it. The returned state reflects that, as the real save does.
@@ -199,7 +209,8 @@ const mocks = {
   normalizeTypeSafeEndpoint: (value) => String(value ?? "").trim(),
   testJevConnection: async () => ({ ok: true }),
   esc,
-  parsePrice
+  parsePrice,
+  apiBaseUrlCredentialInfo
 };
 
 const module = new vm.SourceTextModule(source, { context });
@@ -273,6 +284,7 @@ const newApp = (form) => {
   assert.equal(select.value, "conn-1", "another window busy: the select is put back");
   assert.equal(warnings.at(-1)?.[0], "SIMPLYSF2E.ProviderSetup.BusySwitch", "another window busy: the notice names the run");
   runningApps.clear();
+  liveById.clear();
   // Idle: the switch goes through.
   changed("conn-2");
   await new Promise((resolve) => setImmediate(resolve));
@@ -598,6 +610,7 @@ const newApp = (form) => {
   assert.equal(confirmCalls, 1, "a run started during Delete: the dialog was shown once");
   assert.equal(deleteCalls, 0, "a run started during Delete: nothing is deleted");
   runningApps.clear();
+  liveById.clear();
 
   resetState();
   const createForm = standardForm();
@@ -609,6 +622,7 @@ const newApp = (form) => {
   assert.equal(confirmCalls, 1, "a run started during Create: the unsaved-edits dialog was shown once");
   assert.equal(createCalls, 0, "a run started during Create: nothing is created");
   runningApps.clear();
+  liveById.clear();
 }
 
 // (n) Load models saves a changed model and then refreshes the saved snapshot: the form now matches what is
@@ -711,6 +725,113 @@ const newApp = (form) => {
   providerState.hasConfiguredApiKey = false;
   typeUrl("https://openrouter.ai/api/v1");
   assert.equal(hint.hidden, true, "no saved key: nothing to lose, hint hidden");
+}
+
+// (R4-PROV) Standing warning for a URL that carries a credential: rendered outside any <details>,
+// part of the context, and kept in step with the field on typing, preset click and after a save.
+{
+  const hbs = readFileSync(new URL("../templates/provider-setup.hbs", import.meta.url), "utf8");
+  const at = hbs.indexOf("spf-stored-url-warning");
+  assert.ok(at > 0, "template has the warning line");
+  const before = hbs.slice(0, at);
+  assert.equal((before.match(/<details/g) ?? []).length, (before.match(/<\/details>/g) ?? []).length, "the warning is outside every <details>");
+  assert.ok(before.lastIndexOf('name="apiBaseUrl"') > before.lastIndexOf("<fieldset"), "it sits in the endpoint section after the URL field");
+  assert.ok(/class="[^"]*fa-triangle-exclamation[^"]*"/.test(hbs.slice(at, at + 300)), "icon plus text, not colour alone");
+
+  resetState();
+  providerState.baseUrl = "https://gw.example/v1?api-key=SECRET";
+  providerState.baseUrlCredential = "query-secret";
+  let ctx = await new App()._prepareContext();
+  assert.equal(ctx.baseUrlCredential, "query-secret");
+  assert.equal(ctx.storedUrlWarning, "SIMPLYSF2E.ProviderSetup.StoredUrlHasSecret|api-key", "names the parameter");
+  assert.equal(ctx.storedUrlWarning.includes("SECRET"), false, "never the value");
+  providerState.baseUrl = "https://u:p@gw.example/v1";
+  ctx = await new App()._prepareContext();
+  assert.equal(ctx.storedUrlWarning, "SIMPLYSF2E.ProviderSetup.StoredUrlHasUserinfo");
+  providerState.baseUrl = "https://api.deepseek.com/v1";
+  providerState.baseUrlCredential = null;
+  ctx = await new App()._prepareContext();
+  assert.equal(ctx.storedUrlWarning, "", "no credential, no warning");
+
+  // In place: typing toggles it.
+  resetState();
+  const form = standardForm();
+  const line = form.control(".spf-stored-url-warning", { hidden: true });
+  const span = {};
+  line.querySelector = (selector) => (selector === "span" ? span : null);
+  const app = newApp(form);
+  assert.equal(line.hidden, true, "clean URL on open: hidden");
+  const urlBox = form.querySelector("[name='apiBaseUrl']");
+  const type = (value) => {
+    urlBox.value = value;
+    for (const { type: t, fn } of urlBox.listeners) if (t === "input") fn({ currentTarget: urlBox });
+  };
+  type("https://gw.example/v1?token=abc");
+  assert.equal(line.hidden, false, "a typed secret shows it");
+  assert.equal(span.textContent, "SIMPLYSF2E.ProviderSetup.StoredUrlHasSecret|token");
+  type("https://u:p@gw.example/v1");
+  assert.equal(span.textContent, "SIMPLYSF2E.ProviderSetup.StoredUrlHasUserinfo");
+  type("https://gw.example/v1");
+  assert.equal(line.hidden, true, "removing it hides the line");
+  // Source scan: every path that updates the endpoint hint also updates the warning.
+  const hintCalls = source.match(/this\.#syncEndpointKeyHint\(\);/g).length;
+  const warnCalls = source.match(/this\.#syncStoredUrlWarning\(\);/g).length;
+  assert.equal(warnCalls, hintCalls, "typing, render, preset click and after-save all sync the warning");
+  void app;
+}
+
+// (r) Saved listeners: every opener is told, a throwing one does not block the rest, close clears them.
+{
+  resetState();
+  liveById.clear();
+  const calls = [];
+  const app = new App({}, () => calls.push("first"));
+  app.addSavedListener(() => { throw new Error("listener broke"); });
+  app.addSavedListener(async () => { calls.push("second"); });
+  app.addSavedListener("not a function");
+  app.element = standardForm();
+  app._onRender({}, {});
+  await actions.saveAndTest.call(app, null, { disabled: false });
+  assert.deepEqual(calls, ["first", "second"], "both listeners run on save, the throwing one in between does not stop them");
+  app._onClose({});
+  const before = calls.length;
+  await actions.saveAndTest.call(app, null, { disabled: false });
+  assert.equal(calls.length, before, "listeners are cleared on close");
+  const bare = new App();
+  bare.element = standardForm();
+  bare._onRender({}, {});
+  await actions.saveAndTest.call(bare, null, { disabled: false });
+  assert.ok(true, "the settings-menu constructor (no argument) still saves");
+}
+
+// (s) A second opener reaches the live window: no new instance, no re-render, its listener is added.
+{
+  resetState();
+  liveById.clear();
+  const calls = [];
+  const first = App.open(() => calls.push("opener A"));
+  assert.equal(first.renders, 1, "the first open renders once");
+  const second = App.open(() => calls.push("opener B"));
+  assert.equal(second, first, "the live window is reused");
+  assert.equal(first.renders, 1, "a second open does not re-render (unsaved edits stay)");
+  assert.equal(first.fronted, 1, "a second open brings it to the front");
+  first.element = standardForm();
+  first._onRender({}, {});
+  await actions.saveAndTest.call(first, null, { disabled: false });
+  assert.deepEqual(calls, ["opener A", "opener B"], "both openers hear the save");
+  first.closed = 0; // Save & Test closes the stub window; keep it open for the menu-path checks
+
+  // The settings-menu path: Foundry does `new Type().render(true)` while one is live.
+  const menu = new App();
+  await menu.render(true);
+  assert.equal(menu.renders, 0, "a constructed duplicate does not render over the live window");
+  assert.equal(first.renders, 1, "the live window's DOM is untouched");
+  assert.equal(first.fronted, 2, "the live window is brought to the front instead");
+  const viaCtor = new App({}, () => calls.push("opener C"));
+  await viaCtor.render(true);
+  calls.length = 0;
+  await actions.saveAndTest.call(first, null, { disabled: false });
+  assert.deepEqual(calls, ["opener A", "opener B", "opener C"], "a constructor callback is handed over to the live window");
 }
 
 console.log("provider-setup-app.test.mjs: ok");

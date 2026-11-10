@@ -371,6 +371,16 @@ export function apiBaseUrlCredentialReason(value) {
 }
 
 /**
+ * The reason code (see apiBaseUrlCredentialReason) plus the key-like query
+ * parameter NAME for "query-secret" ("" otherwise). Never the value.
+ */
+export function apiBaseUrlCredentialInfo(value) {
+  const reason = apiBaseUrlCredentialReason(value);
+  if (reason !== "query-secret") return { reason, name: "" };
+  return { reason, name: findSecretQueryName(new URL(String(value).trim())) };
+}
+
+/**
  * Throw a localized Error naming the cause (never the secret value) when the URL
  * carries a credential. Used by every path that writes apiBaseUrl.
  */
@@ -894,6 +904,9 @@ export function getProviderRequestConfig() {
     apiKeyIsBound,
     apiKeyInsecure,
     keylessLocal: isLikelyKeylessLocalEndpoint(baseUrl),
+    // Non-blocking: the LIVE stored URL carries a credential ("userinfo", "query-secret") or null.
+    // Never part of getProviderAuthWarningKey: generation keeps working.
+    baseUrlCredential: apiBaseUrlCredentialReason(baseUrl),
     model,
     provider,
     connectionId: active?.id ?? "",

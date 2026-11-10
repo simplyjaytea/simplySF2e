@@ -88,6 +88,14 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _canCancel = false;
   /** True once the window was closed, so a late pipeline `render()` cannot reopen it. */
   _closed = false;
+  /**
+   * Set to true right before a render that must show input the app itself
+   * just set (a mode switch, a preset's defaults, a chat command...): the form
+   * on screen still shows the old values, so reading it back would undo the
+   * change. Set it with no await before the `render` call; that render
+   * consumes it.
+   */
+  _skipFormReadOnce = false;
   _closePromptOpen = false;
   /** Window frame the shortcut is bound to; a reopened window gets a new frame. */
   _keysElement = null;
@@ -213,20 +221,42 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
     return super.close(options);
   }
 
-  /** A forced render (re)opens the window; a plain render after close is dropped. */
+  /**
+   * A forced render (re)opens the window; a plain render after close is dropped.
+   * Every render of a window already on screen first reads its form back
+   * (`_preserveForm`), because a render replaces the form with the stored
+   * input: without the read, a GM's typed-but-unused edits snap back.
+   */
   async render(options = {}, _options = {}) {
     const forced = options === true || options?.force === true;
+    // Consume a skip-once request even when this render is dropped, so it never leaks to a later one.
+    const skipFormRead = this._skipFormReadOnce;
+    this._skipFormReadOnce = false;
     if (this._closed && !forced) return this;
     if (forced) this._closed = false;
+    if (!skipFormRead) this._keepFormBeforeRender();
     return super.render(options, _options);
+  }
+
+  /** Read the on-screen form into the app's input; nothing before the first render. */
+  _keepFormBeforeRender() {
+    if (!this.element) return;
+    try {
+      this._preserveForm();
+    } catch (err) {
+      console.warn(`${MODULE_ID} | could not read the form before a render`, err);
+    }
   }
 
   /** Open the focused provider setup and refresh this app after it saves. */
   _openProviderSetup() {
-    new ProviderSetupApp(() => this.render()).render(true);
+    ProviderSetupApp.open(() => this.render());
   }
 
-  /** Subclasses that keep unsaved form drafts override this before a provider switch. */
+  /**
+   * Subclasses that keep unsaved form drafts override this to read the form
+   * into their input. `render` calls it before every re-render.
+   */
   _preserveForm() {}
 
   /** Localized unit letters for the progress card's elapsed times. */

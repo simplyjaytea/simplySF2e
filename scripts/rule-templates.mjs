@@ -17,7 +17,7 @@
  * hand-authored fallback.
  */
 
-import { getPacksFor, priceToGp, RARITY_RANK } from "./compendium.mjs";
+import { getPacksFor, priceToGp, RARITY_RANK, registerCompendiumCache, compendiumCacheGeneration } from "./compendium.mjs";
 
 // The catalog and its consumer share one supported-target boundary. These
 // are also re-exported by item-builder for activation and existing callers.
@@ -105,6 +105,7 @@ function ruleMatchesKind(rule, kind) {
 
 /* packId -> [{name, uuid, rules}] for entries that carry any rules. */
 const rulesEntryCache = new Map();
+registerCompendiumCache(() => rulesEntryCache.clear());
 
 const ruleRecord = (entry, packId) => ({
   name: entry.name,
@@ -130,6 +131,7 @@ const ruleRecord = (entry, packId) => ({
  */
 async function getRulesEntries(packId) {
   if (rulesEntryCache.has(packId)) return rulesEntryCache.get(packId);
+  const generation = compendiumCacheGeneration();
   const pack = game.packs.get(packId);
   if (!pack || pack.metadata.type !== "Item") {
     rulesEntryCache.set(packId, []);
@@ -157,7 +159,7 @@ async function getRulesEntries(packId) {
   } catch (err) {
     console.warn(`simplysf2e | itemforge: failed to scan pack "${packId}" for rule exemplars`, err);
   }
-  rulesEntryCache.set(packId, records);
+  if (generation === compendiumCacheGeneration()) rulesEntryCache.set(packId, records);
   return records;
 }
 

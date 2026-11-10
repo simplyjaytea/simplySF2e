@@ -31,6 +31,17 @@ export const RELEASE_NOTES = [
     ]
   },
   {
+    id: "2026-11-10-kept-work",
+    title: "SIMPLYSF2E.WhatsNew.Note.KeptWork.Title",
+    bullets: [
+      "SIMPLYSF2E.WhatsNew.Note.KeptWork.B1",
+      "SIMPLYSF2E.WhatsNew.Note.KeptWork.B2",
+      "SIMPLYSF2E.WhatsNew.Note.KeptWork.B3",
+      "SIMPLYSF2E.WhatsNew.Note.KeptWork.B4",
+      "SIMPLYSF2E.WhatsNew.Note.KeptWork.B5"
+    ]
+  },
+  {
     id: "2026-11-09-hunt-fixes",
     title: "SIMPLYSF2E.WhatsNew.Note.HuntFixes.Title",
     bullets: [

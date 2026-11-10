@@ -296,14 +296,14 @@ assert.equal(app._progress.steps[0].state, "done");
 assert.equal(app._progress.steps[1].state, "active");
 assert.equal(domSteps[0].className, "spf-step-done");
 assert.equal(domSteps[1].className, "spf-step-active");
-assert.match(domElapsed[0].textContent, /^\d+\.\d s$/, "a finished step paints its elapsed time in place");
+assert.match(domElapsed[0].textContent, /^\d+\.\ds$/, "a finished step paints its elapsed time in place");
 assert.equal(domElapsed[1].textContent, "SIMPLYSF2E.Progress.Running");
 
 // A live repaint uses the app's localized unit letters, not the defaults.
 unitLabels["SIMPLYSF2E.Progress.UnitSeconds"] = "sek";
 unitLabels["SIMPLYSF2E.Progress.UnitMinutes"] = "min";
 app._paintStepList();
-assert.match(domElapsed[0].textContent, /^\d+\.\d sek$/, "the in-place repaint ends with the localized seconds letter");
+assert.match(domElapsed[0].textContent, /^\d+\.\dsek$/, "the in-place repaint ends with the localized seconds letter");
 assert.equal(domElapsed[1].textContent, "SIMPLYSF2E.Progress.Running", "the active step still paints the running label");
 
 // 4. Provider switching & testing (the progress tests above left a run open on this window)
@@ -446,6 +446,46 @@ assert.ok(notifications.some((n) => n.type === "error" && n.msg.includes("TestFa
   await idle.close();
   assert.equal(confirmCalls, before, "closing an idle window does not prompt");
   assert.equal(idle.closedCalled, 1, "idle window closes");
+}
+
+// Every re-render reads the form first (R4-GEN); the first render and a skip-once render do not.
+{
+  class FormApp extends SpfApp {
+    reads = 0;
+    _preserveForm() { this.reads += 1; }
+  }
+  const formApp = new FormApp();
+  await formApp.render(true);
+  assert.equal(formApp.reads, 0, "the first render reads no form (no element yet)");
+  formApp.element = { querySelector: () => null };
+  await formApp.render();
+  assert.equal(formApp.reads, 1, "a re-render reads the form exactly once");
+  formApp._skipFormReadOnce = true;
+  await formApp.render();
+  assert.equal(formApp.reads, 1, "a skip-once render shows the input just set without reading the form");
+  assert.equal(formApp._skipFormReadOnce, false, "the skip-once flag is consumed");
+  await formApp.render();
+  assert.equal(formApp.reads, 2, "the render after a skip reads again");
+  formApp._closed = true;
+  formApp._skipFormReadOnce = true;
+  await formApp.render();
+  assert.equal(formApp._skipFormReadOnce, false, "a dropped render (closed window) still consumes the flag");
+  assert.equal(formApp.reads, 2, "a dropped render reads nothing");
+  await formApp.render(true);
+  assert.equal(formApp.reads, 3, "a forced reopen reads the form like any re-render");
+
+  // A failing read never blocks the render.
+  const broken = new (class extends SpfApp { _preserveForm() { throw new Error("form gone"); } })();
+  broken.element = { querySelector: () => null };
+  broken.rendered = false;
+  await broken.render();
+  assert.equal(broken.rendered, true, "a throwing _preserveForm does not stop the render");
+
+  // A window without a form draft (base no-op) is unaffected.
+  const plainApp = new SpfApp();
+  plainApp.element = { querySelector: () => null };
+  await plainApp.render();
+  assert.equal(plainApp.rendered, true, "an SpfApp without _preserveForm renders as before");
 }
 
 console.log("app-base.test.mjs: cancellation, token reporting, progress, and provider assertions passed");

@@ -50,7 +50,15 @@ class App {
 const context = vm.createContext({
   console: { log() {}, debug() {}, warn() {}, error() {} },
   game: {
-    i18n: { localize: (key) => key, format: (key, data) => (key === "SIMPLYSF2E.PC.EmptyFeatSlots" ? `${key} ${data.count} ${data.slots}` : key) },
+    i18n: { localize: (key) => (/^SIMPLYSF2E\.Preview\.Slot(Ancestry|Class|General|Skill)$/.test(key) ? key.slice(23).toLowerCase() : key), format: (key, data) => {
+      if (key === "SIMPLYSF2E.PC.EmptyFeatSlots") return `${key} ${data.count} ${data.slots}`;
+      if (key === "SIMPLYSF2E.Generator.SurvivorDraft") return `${data.label} "${data.name}" still exists.`;
+      if (key === "SIMPLYSF2E.Generator.SurvivorIncompleteCharacter") return `Incomplete character "${data.name}" still exists.`;
+      if (key === "SIMPLYSF2E.Preview.SpellGem") return `Spell gem of ${data.name} (rank ${data.rank})`;
+      if (key === "SIMPLYSF2E.Preview.SlotLabel") return `${data.type} ${data.level}`;
+      if (key === "SIMPLYSF2E.Preview.SlotLabelArchetype") return `archetype ${data.type} ${data.level}`;
+      return key;
+    } },
     actors: { get: (id) => id === actor?.id ? actor : null },
     settings: { get: () => freeArchetype },
     users: [{ id: "gm", isGM: true }, { id: "player", isGM: false }]
@@ -155,7 +163,7 @@ previewLoot = [
 const scrollPreview = await generate();
 assert.deepEqual(Array.from(scrollPreview.context.pcPreview.loot, ({ name, found }) => ({ name, found })), [
   { name: "Spell Gem of Fear (Rank 2) ×2", found: true },
-  { name: "Spell Gem of Heal (Rank 1)", found: true }
+  { name: "Spell gem of Heal (rank 1)", found: true }
 ]);
 previewLoot = [];
 
