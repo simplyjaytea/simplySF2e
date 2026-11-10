@@ -397,4 +397,42 @@ const hasCap = (body) => "max_tokens" in body || "max_completion_tokens" in body
   const strings = normalizeUsage({ prompt_tokens: "3", completion_tokens: "4" }, text);
   assert.deepEqual(strings, { prompt: 3, completion: 4, total: 7, estimated: false }, "numeric strings still count");
 }
+
+// --- 8. A Retry-After past the backoff cap is not retried early -------------
+{
+  useEndpoint();
+  const rateLimited = (seconds) => new Response("slow down", { status: 429, headers: { "retry-after": String(seconds) } });
+  const run = async (seconds) => {
+    const sentAt = [];
+    let clockRef = null;
+    const replies = [() => rateLimited(seconds), () => jsonOk('{"keywords":["fire"]}')];
+    globalThis.fetch = async () => { sentAt.push(clockRef.now()); return replies.shift()(); };
+    const outcome = await withFakeTime((clock) => {
+      clockRef = clock;
+      return chooseSpellFocus({ concept, tradition: "arcane", signal: new AbortController().signal });
+    });
+    return { ...outcome, sentAt };
+  };
+  const long = await run(120);
+  assert.deepEqual(long.sentAt, [0], "Retry-After 120: one request, no early retry");
+  assert.ok(long.error instanceof AIRequestError);
+  assert.match(long.error.message, /^SIMPLYSF2E\.Errors\.ApiError:\{"status":429/, "the existing rate-limit error");
+  assert.match(long.error.message, /ApiRateLimitHint/);
+  assert.equal(long.elapsed, 0, "it fails at once instead of waiting");
+  const short = await run(5);
+  assert.equal(short.error, undefined, "Retry-After 5: retried and answered");
+  assert.deepEqual(short.sentAt, [0, 5000]);
+
+  // The transport itself, for any caller.
+  let calls = 0;
+  let waited = false;
+  const response = await fetchWithBackoff("http://x/v1", { method: "GET" }, {
+    fetchImpl: async () => { calls += 1; return rateLimited(31); },
+    retryBudget: { remaining: 1 },
+    onWait: () => { waited = true; }
+  });
+  assert.equal(response.status, 429);
+  assert.equal(calls, 1);
+  assert.equal(waited, false);
+}
 console.log("ai.r3.test.mjs: ok");

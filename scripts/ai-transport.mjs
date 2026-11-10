@@ -73,6 +73,11 @@ export async function fetchWithBackoff(url, options, {
 
   if (!isRetryableStatus(status, response)) return response;
   if (retryBudget && retryBudget.remaining <= 0) return response;
+  // A provider that asks for a longer wait than the cap would only fail again
+  // if retried early: return its response now so the caller reports the
+  // rate-limit error, instead of a silent wait of minutes.
+  const after = retryAfterMs(response);
+  if (after != null && after > maxDelayMs) return response;
 
   if (retryBudget) retryBudget.remaining = Math.max(0, retryBudget.remaining - 1);
 
@@ -80,10 +85,10 @@ export async function fetchWithBackoff(url, options, {
 
   try { await response?.body?.cancel?.(); } catch { /* ignore */ }
 
-  const after = retryAfterMs(response);
   const rawDelay = (after != null) ? after : baseDelay;
-  // Honor a provider-supplied Retry-After exactly; only add jitter to our own
-  // default delay so a rate-limited provider is not kept waiting longer.
+  // Honor a provider-supplied Retry-After (at most maxDelayMs, see above)
+  // exactly; only add jitter to our own default delay so a rate-limited
+  // provider is not kept waiting longer. The cap then bounds only that.
   const jitter = (after != null) ? 0 : Math.floor(Math.random() * Math.max(1, Math.ceil(rawDelay * 0.25)));
   const delay = Math.min(rawDelay + jitter, maxDelayMs);
 
