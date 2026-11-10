@@ -61,7 +61,7 @@ Use the **Welcome** window for first-run setup:
 
 The recommendations are **DeepSeek V4.1 Flash** (`deepseek/deepseek-v4.1-flash` on OpenRouter) and **GPT-6 Luna** (`gpt-6-luna` on OpenAI). An OpenRouter key reaches both and can report request costs. Local models work too, but small ones often fail the structured steps.
 
-For named connections, custom endpoints, manual model IDs or saving without a test, open **Advanced → Set Up AI Connection**. The API Base URL can be the API root (normally ending in `/v1`) or a full `/chat/completions` address.
+For named connections, custom endpoints, manual model IDs or saving without a test, open **Advanced → Set Up AI Connection**. The API Base URL can be the API root (normally ending in `/v1`) or a full `/chat/completions` address. The URL is shared with the whole world, so put secrets in the API key field: a URL with a user name, password or key-like query parameter (such as `api-key` or `token`) is refused.
 
 **Keys are tied to one exact endpoint.** When you save, the key is authorized only for the API Base URL shown in the window. If you later change the URL without entering a new key, the old key is cleared, so it is never sent to a different service. If the generator ever says "Stored API key is not authorized for the current API Base URL and will not be sent", it shows the endpoint and an **Authorize for this endpoint** button. Click it only if that endpoint is the one you meant.
 
