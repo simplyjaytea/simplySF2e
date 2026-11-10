@@ -180,10 +180,14 @@ const mocks = {
   saveProviderConnection: async (data = {}) => {
     saveCalls += 1;
     // As the real save: a changed base URL moves the endpoint and clears the manual prices.
-    if (data.baseUrl !== undefined && mocks.normalizeApiBaseUrl(data.baseUrl) !== providerState.baseUrl) {
+    const baseChanged = data.baseUrl !== undefined && mocks.normalizeApiBaseUrl(data.baseUrl) !== providerState.baseUrl;
+    if (baseChanged) {
       providerState.baseUrl = mocks.normalizeApiBaseUrl(data.baseUrl);
       activePrices = { inputPerM: null, outputPerM: null };
     }
+    // Prices passed to the save are written in that same step (never a second call), unless the
+    // endpoint changed and they were not edited.
+    if (data.prices && !(baseChanged && !data.pricesEdited)) await mocks.setActiveProviderPrices(data.prices);
     // The model in the form is stored, as the real save does.
     if (data.model) providerState.model = data.model;
     // A typed key is stored; a clear request removes it. The returned state reflects that, as the real save does.
