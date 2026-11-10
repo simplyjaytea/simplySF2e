@@ -206,3 +206,57 @@ console.log("reskin.test.mjs: reskin changes fiction and display names only");
   assert.equal(spurText, dcOriginal.replace(`, ${escAi("dc")}, @Check[`, `, ${escAi("Spur")}, @Check[`), "only the Strike slot is rewritten");
   assert.equal(byId(spurred, "tr-published").system.description.value, dcOriginal, "unflagged trample is unchanged");
 }
+
+// A reskin of a WORLD actor is a fresh copy: default ownership, full HP, no
+// conditions or effects (a compendium source already gets this from
+// fromCompendium, which clears ownership and sort).
+{
+  const world = {
+    _id: "w1", name: "Cave Bear", type: "npc", sort: 300000, folder: "fold1",
+    ownership: { default: 0, abc123: 3 },
+    prototypeToken: { name: "Cave Bear" },
+    system: {
+      details: { level: { value: 5 } },
+      attributes: { ac: { value: 21 }, hp: { value: 12, max: 80, temp: 5, details: "" }, adjustment: null },
+      traits: { value: ["animal"], rarity: "common" }
+    },
+    items: [
+      { _id: "m", name: "Jaws", type: "melee", system: {} },
+      { _id: "c", name: "Frightened", type: "condition", system: {} },
+      { _id: "e", name: "Effect: Bless", type: "effect", system: {} },
+      { _id: "a", name: "Grab", type: "action", system: {} }
+    ]
+  };
+  const before = structuredClone(world);
+  const copy = applyReskin(world, {});
+  assert.equal("ownership" in copy, false, "no ownership: Foundry applies the default");
+  assert.equal("sort" in copy, false, "sort is dropped like fromCompendium does");
+  assert.equal(copy.folder, "fold1", "folder is kept (fromCompendium keeps it too)");
+  assert.equal(copy.system.attributes.hp.value, 80, "full HP");
+  assert.equal(copy.system.attributes.hp.max, 80);
+  assert.equal(copy.system.attributes.hp.temp, 0, "temp HP reset");
+  assert.deepEqual(copy.items.map((i) => i.type), ["melee", "action"], "conditions and effects removed");
+  assert.deepEqual(world, before, "the source is not mutated");
+
+  // an affliction is live state too
+  const sick = applyReskin({ ...world, items: [{ _id: "x", type: "affliction", name: "Disease", system: {} }] }, {});
+  assert.deepEqual(sick.items, []);
+
+  // Elite/Weak: stored max is the base, the system adds the change to value
+  const elite = structuredClone(world);
+  elite.system.attributes.adjustment = "elite";
+  assert.equal(applyReskin(elite, {}).system.attributes.hp.value, 100, "80 base + 20 Elite at level 5");
+  const weak = structuredClone(world);
+  weak.system.attributes.adjustment = "weak";
+  assert.equal(applyReskin(weak, {}).system.attributes.hp.value, 65, "80 base - 15 Weak at level 5 (3-5)");
+  assert.equal(applyReskin(weak, {}).system.attributes.hp.max, 80, "stored max stays the base");
+
+  // a compendium-shaped source (no ownership, full HP) is unchanged apart from the usual reskin
+  const comp = structuredClone(source);
+  const compCopy = applyReskin(comp, {});
+  const expected = structuredClone(source);
+  delete expected._id;
+  assert.deepEqual(compCopy, expected, "a compendium-shaped source passes through untouched");
+  assert.equal("temp" in compCopy.system.attributes.hp, false, "no temp field is invented");
+}
+console.log("reskin.test.mjs: world actor reskin is a fresh copy");

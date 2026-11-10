@@ -57,7 +57,7 @@ assert.equal(to, 7);
 assert.equal(data.system.details.level.value, 7);
 assert.equal(data.system.attributes.ac.value, 25);
 assert.equal(data.system.attributes.hp.max, 115);
-assert.equal(data.system.attributes.hp.value, 115, "copy starts at full HP");
+assert.equal(data.system.attributes.hp.value, 135, "copy starts at full HP: base max 115 plus the Elite change (+20 at level 5-19)");
 assert.equal(data.system.attributes.adjustment, "elite", "Elite/Weak is kept");
 assert.equal(data.system.perception.mod, at(T.PERCEPTION_AND_SAVES, "moderate", 7));
 assert.equal(data.system.saves.fortitude.value, at(T.PERCEPTION_AND_SAVES, "high", 7));
@@ -172,3 +172,13 @@ for (const source of ["1d4", "1d6+2", "1d4-1"]) {
 }
 
 console.log("relevel.test.mjs: re-level keeps each stat's GM Core scale");
+
+// Weak creature re-level: a copy starts at full health, which includes the
+// Weak change on top of the scaled base max.
+{
+  const weakSource = structuredClone(source);
+  weakSource.system.attributes.adjustment = "weak";
+  const out = relevelActorData(weakSource, 7).data;
+  assert.equal(out.system.attributes.hp.value, out.system.attributes.hp.max - 20, "weak at level 7 starts at max - 20");
+}
+console.log("relevel.test.mjs: weak full-health copy passed");

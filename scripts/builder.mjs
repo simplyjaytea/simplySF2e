@@ -1400,6 +1400,16 @@ export function hpAdjustment(level, adjustment) {
   return 0;
 }
 
+/**
+ * Current HP of an NPC at full health: stored `hp.max` is the base value and
+ * pf2e adds the Elite/Weak change on prep (npc/document.ts applyAdjustment
+ * moves `hp.value` by the same amount), so a full-health copy stores the
+ * adjusted figure. `level` is the stored (base) level.
+ */
+export function fullHealthHp(baseMax, level, adjustment) {
+  return Math.max(1, baseMax + hpAdjustment(level, adjustment ?? null));
+}
+
 function shiftFormula(formula, delta) {
   const m = /^(\d+d\d+)([+-]\d+)?$/.exec(String(formula).replaceAll(" ", ""));
   if (!m) return formula;
@@ -1927,7 +1937,7 @@ export async function createActor(concept, resolved, { img = null, scaffold = nu
         ac: { value: stats.ac, details: "" },
         // max is the base value; pf2e adds the Elite/Weak HP modifier on prep.
         // value starts full, matching npc/document.ts applyAdjustment.
-        hp: { value: Math.max(1, stats.hp + hpAdjustment(concept.level, concept.adjustment ?? null)), max: stats.hp, temp: 0, details: "" },
+        hp: { value: fullHealthHp(stats.hp, concept.level, concept.adjustment), max: stats.hp, temp: 0, details: "" },
         adjustment: concept.adjustment ?? null,
         speed: {
           value: concept.speeds.find((s) => s.type === "land")?.value ?? 0,

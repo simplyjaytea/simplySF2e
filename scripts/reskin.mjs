@@ -9,6 +9,7 @@
  * both go through applyReskin().
  */
 import { esc, escAi, plainAiText, toHtml, capitalized } from "./text.mjs";
+import { fullHealthHp } from "./builder.mjs";
 
 /** Item types whose display name Reskin may change (NPC strikes and abilities). */
 export const RENAMEABLE_TYPES = Object.freeze(["melee", "action"]);
@@ -100,6 +101,31 @@ export function recallKnowledgeNote(skills, dc, text) {
   return `<h3>Recall Knowledge</h3><p>${checks}: ${escAi(text)}</p>`;
 }
 
+/** Embedded item types that are live state, not part of the creature. */
+const STATE_ITEM_TYPES = ["condition", "effect", "affliction"];
+
+/**
+ * Make a copy of a world actor's data a fresh creature, like a reskin from a
+ * compendium: default ownership, full health and no conditions or effects.
+ * Mutates `data` (a clone). Foundry's fromCompendium already drops `sort`
+ * and resets ownership for a compendium source, so this is a no-op there
+ * apart from the HP and item filter, which a compendium actor already meets.
+ */
+export function freshCopy(data) {
+  delete data.ownership;
+  delete data.sort;
+  const hp = data.system?.attributes?.hp;
+  if (hp) {
+    if (typeof hp.max === "number") {
+      // Stored max is the base; the system adds the Elite/Weak change to value on prep.
+      hp.value = fullHealthHp(hp.max, Number(data.system.details?.level?.value ?? 0), data.system.attributes.adjustment);
+    }
+    if ("temp" in hp) hp.temp = 0;
+  }
+  if (Array.isArray(data.items)) data.items = data.items.filter((item) => !STATE_ITEM_TYPES.includes(item?.type));
+  return data;
+}
+
 /**
  * Return creation data for the reskinned copy. `actorData` is the source
  * actor's plain data (toObject / fromCompendium); it is not mutated.
@@ -110,6 +136,7 @@ export function recallKnowledgeNote(skills, dc, text) {
 export function applyReskin(actorData, flavor = {}, { recallSkill = null, recallDC = null } = {}) {
   const data = structuredClone(actorData);
   delete data._id;
+  freshCopy(data);
   if (flavor.name) {
     data.name = capitalized(flavor.name);
     if (data.prototypeToken) data.prototypeToken.name = data.name;
