@@ -221,8 +221,12 @@ export class ShopApp extends SpfApp {
     }
     this.#busy = true;
     this.#error = null;
+    // Keep the previous preview (and its token report) on screen until this run
+    // produces a replacement: the preview fields are only assigned at the very end
+    // of a successful run, and a failed or cancelled run puts the old usage back.
+    const previousUsage = this._tokenUsage;
     this._tokenUsage = [];
-    this.#clearPreview();
+    let succeeded = false;
     const { prompt, level, size, rarity } = this.#input;
     const count = SHOP_SIZES[size];
     let signal = null;
@@ -288,15 +292,16 @@ export class ShopApp extends SpfApp {
       this.#stock = rows;
       this.#level = level;
       this.#dropped = unknown.length + (stock.length - rows.length);
+      succeeded = true;
     } catch (err) {
       if (err?.cancelled) console.warn(`${MODULE_ID} | shop generation cancelled`);
       else console.error(`${MODULE_ID} | shop generation failed`, err);
       this.#error = String(err?.message ?? err ?? "");
       this._recordFailure(err, "shop generation", this.#error);
-      this.#clearPreview();
     } finally {
       this.#busy = false;
       this._finishRun();
+      if (!succeeded) this._tokenUsage = previousUsage;
       await this.render();
     }
   }

@@ -283,19 +283,24 @@ export class ItemForgeApp extends SpfApp {
     }
     this.#busy = true;
     this.#error = null;
+    // Keep the previous preview (and its token report) on screen until this run
+    // produces a replacement: the run works on locals and the preview fields
+    // (including #kind, which the preview and Create read) are assigned only at
+    // the very end of a success; a failed or cancelled run puts the old usage back.
+    const previousUsage = this._tokenUsage;
     this._tokenUsage = [];
-    this.#kind = this.#input.kind;
-    this.#clearPreview();
     this.#unavailableKinds = null;
-    if (CONCEPT_ITEM_KINDS.has(this.#kind)) {
-      await this.#generateWondrous();
-    } else {
-      await this.#generateRuned(this.#kind);
-    }
+    const kind = this.#input.kind;
+    const succeeded = CONCEPT_ITEM_KINDS.has(kind)
+      ? await this.#generateWondrous(kind)
+      : await this.#generateRuned(kind);
+    if (!succeeded) this._tokenUsage = previousUsage;
+    await this.render();
   }
 
-  async #generateWondrous() {
+  async #generateWondrous(kind) {
     let signal = null;
+    let succeeded = false;
     try {
       signal = this._beginProgress([
         ["templates", game.i18n.localize("SIMPLYSF2E.ItemForge.ProgressTemplates")],
@@ -307,12 +312,12 @@ export class ItemForgeApp extends SpfApp {
       await this._setStep("templates");
       // Implanted and "other" items are never invested, so effects that need
       // investment are not offered for them.
-      const fixedUsage = KIND_USAGE[this.#kind];
+      const fixedUsage = KIND_USAGE[kind];
       const effectCatalog = (await getForgeEffectCatalog(this.#input.level, this.#input.rarity))
         .filter((effect) => !fixedUsage || !effect.exemplar?.requiresInvestment);
       const availableKinds = [...new Set(effectCatalog.map((effect) => effect.kind))];
       this.#unavailableKinds = EFFECT_KINDS.filter((k) => !availableKinds.includes(k));
-      const usageOptions = await getUsageOptions(this.#kind);
+      const usageOptions = await getUsageOptions(kind);
 
       // 2. One AI call, constrained to the available kinds and real usages.
       await this._setStep("concept");
@@ -323,37 +328,40 @@ export class ItemForgeApp extends SpfApp {
         availableKinds,
         effectCatalog,
         usageOptions,
-        kind: this.#kind,
+        kind,
         onProgress: (p) => this._onAIProgress(p), signal
       });
       this._recordTokens(game.i18n.localize("SIMPLYSF2E.ItemForge.ProgressConcept"), usage);
 
       // 3. Normalize defensively and price from the empirical benchmark.
       await this._setStep("assemble");
-      this.#itemData = null;
-      this.#runedPreview = null;
-      this.#concept = normalizeMagicItemConcept(raw, {
+      const concept = normalizeMagicItemConcept(raw, {
         level: this.#input.level,
         rarity: this.#input.rarity,
         availableKinds,
         effectCatalog,
         usageOptions,
-        kind: this.#kind
+        kind
       });
-      this.#price = await priceForLevel(this.#concept.level, this.#concept.rarity);
+      const price = await priceForLevel(concept.level, concept.rarity);
       this._throwIfCancelled();
+      this.#kind = kind;
+      this.#itemData = null;
+      this.#runedPreview = null;
+      this.#concept = concept;
+      this.#price = price;
+      succeeded = true;
       console.debug(`${MODULE_ID} | token usage`, this._tokenUsage);
     } catch (err) {
       if (err?.cancelled) console.warn(`${MODULE_ID} | item generation cancelled`);
       else console.error(`${MODULE_ID} | item generation failed`, err);
       this.#error = String(err?.message ?? err ?? "");
       this._recordFailure(err, "item generation", this.#error);
-      this.#concept = null;
     } finally {
       this.#busy = false;
       this._finishRun();
-      await this.render();
     }
+    return succeeded;
   }
 
   /**
@@ -364,6 +372,7 @@ export class ItemForgeApp extends SpfApp {
    */
   async #generateRuned(kind) {
     let signal = null;
+    let succeeded = false;
     try {
       signal = this._beginProgress([
         ["templates", game.i18n.localize("SIMPLYSF2E.ItemForge.ProgressCandidates")],
@@ -404,29 +413,29 @@ export class ItemForgeApp extends SpfApp {
       // documents to compute the final name/price/level right away — a runed
       // item's preview IS its final data, there is no separate build step.
       await this._setStep("assemble");
-      this.#concept = normalizeRunedItemConcept(raw, {
+      const concept = normalizeRunedItemConcept(raw, {
         kind, rarity: this.#input.rarity, level: this.#input.level, baseCandidates, runeCandidates,
         grades: gradeTiers.grades,
         potencyTiers: tiers.potencyTiers, secondaryTiers: tiers.secondaryTiers
       });
-      const built = await buildRunedItem(this.#concept);
+      const built = await buildRunedItem(concept);
       this._throwIfCancelled();
+      this.#kind = kind;
+      this.#concept = concept;
       this.#itemData = built.itemData;
       this.#runedPreview = built.preview;
+      succeeded = true;
       console.debug(`${MODULE_ID} | token usage`, this._tokenUsage);
     } catch (err) {
       if (err?.cancelled) console.warn(`${MODULE_ID} | runed item generation cancelled`);
       else console.error(`${MODULE_ID} | runed item generation failed`, err);
       this.#error = String(err?.message ?? err ?? "");
-      this._recordFailure(err, `${this.#kind} generation`, this.#error);
-      this.#concept = null;
-      this.#itemData = null;
-      this.#runedPreview = null;
+      this._recordFailure(err, `${kind} generation`, this.#error);
     } finally {
       this.#busy = false;
       this._finishRun();
-      await this.render();
     }
+    return succeeded;
   }
 
   static async #onCreateItem() {
