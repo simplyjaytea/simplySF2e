@@ -738,6 +738,10 @@
   text-decoration: none;
 }
 
+.simplysf2e .spf-pick-tail {
+  white-space: nowrap;
+}
+
 .simplysf2e .spf-dropped .spf-reroll-pick i {
   color: inherit;
 }
