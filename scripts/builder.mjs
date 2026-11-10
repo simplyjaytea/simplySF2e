@@ -1,5 +1,5 @@
 import * as T from "./tables.mjs";
-import { getPacksFor, findEntry, getDocument, toItemData, priceToGp, unitPriceGp, isIssuedCandidate, placeholderState, placeholderDocFor } from "./compendium.mjs";
+import { getPacksFor, findEntry, getDocument, getIndexEntry, toItemData, priceToGp, unitPriceGp, isIssuedCandidate, placeholderState, placeholderDocFor } from "./compendium.mjs";
 import { ABILITY_DAMAGE_TYPES, ABILITY_DC_SCALES, fillBlocker, fillPlaceholderAbility, fillableSlug, hasPlaceholderValues, isFillableEntry } from "./ability-fill.mjs";
 import { buildModuleTemplate, isModuleTemplate, normalizeAreaBlast, normalizeAura } from "./ability-templates.mjs";
 import { slugify, capitalized, esc, escAi, toHtml } from "./text.mjs";
@@ -711,11 +711,20 @@ export async function resolveLoot(concept, { exactContent = false, skipped = nul
         );
       }
       if (!entry && skipUnmatched(exactContent, skipped, "loot", name, quantity)) continue;
-      const baseRank = entry?.system?.level?.value ?? 1;
+      // An issued ref has no `system`; read the spell's real rank from its index entry.
+      const spellInfo = entry ? (entry.system ? entry : await getIndexEntry(entry)) : null;
+      const baseRank = spellInfo?.system?.level?.value ?? 1;
       const rank = Math.min(Math.max(scroll.rank ?? baseRank, baseRank), 10);
       // A spell gem's real price lives on the rank template it will be built
       // from at creation (there is no premade gem to price).
       const templateDoc = await getDocument(await findSpellGemTemplate(rank));
+      // buildLootItems throws at Create when the rank template is missing, so
+      // resolve must reach the same decision: drop the pick here, fail closed.
+      if (entry && !templateDoc) {
+        console.warn(`simplysf2e | spell gem "${name}": no rank ${rank} spell gem template installed`);
+        skipUnmatched(true, skipped, "loot", name, quantity);
+        continue;
+      }
       const templateGp = priceToGp(templateDoc?.system?.price?.value);
       loot.push({
         name, quantity, value, runes: dropUncitedRunePrefix(name).runes, entry, scroll: { rank },
@@ -1074,12 +1083,21 @@ export async function resolveConcept(concept, { exactContent = false } = {}) {
   if (concept.spellcasting) {
     for (const spell of concept.spellcasting.spells) {
       const exact = spell.candidate;
-      const entry = isIssuedCandidate(exact, getPacksFor("spells"))
+      let entry = isIssuedCandidate(exact, getPacksFor("spells"))
         ? exact : (exactContent ? null : await findEntry(getPacksFor("spells"), spell.name, (e) => e.type === "spell"));
+      // An issued ref carries only ids; trait and rank reads need the index entry.
+      let info = entry?.system ? entry : null;
+      if (entry && !info) {
+        info = await getIndexEntry(entry);
+        if (!info) {
+          console.warn(`simplysf2e | spell "${spell.name}": issued candidate has no index entry; treated as unresolved`);
+          entry = null;
+        }
+      }
       // A ranked spell assigned rank 0 (or below its own rank) would be
       // misfiled as a cantrip slot in createActor — clamp to the real rank.
-      if (entry && !(entry.system?.traits?.value ?? []).includes("cantrip")) {
-        spell.rank = Math.max(spell.rank, entry.system?.level?.value ?? 1);
+      if (info && !(info.system?.traits?.value ?? []).includes("cantrip")) {
+        spell.rank = Math.max(spell.rank, info.system?.level?.value ?? 1);
       }
       spells.push({ spell, entry });
     }
@@ -1380,6 +1398,16 @@ export function hpAdjustment(level, adjustment) {
     if (level === 1 || level === 2) return -10;
   }
   return 0;
+}
+
+/**
+ * Current HP of an NPC at full health: stored `hp.max` is the base value and
+ * pf2e adds the Elite/Weak change on prep (npc/document.ts applyAdjustment
+ * moves `hp.value` by the same amount), so a full-health copy stores the
+ * adjusted figure. `level` is the stored (base) level.
+ */
+export function fullHealthHp(baseMax, level, adjustment) {
+  return Math.max(1, baseMax + hpAdjustment(level, adjustment ?? null));
 }
 
 function shiftFormula(formula, delta) {
@@ -1909,7 +1937,7 @@ export async function createActor(concept, resolved, { img = null, scaffold = nu
         ac: { value: stats.ac, details: "" },
         // max is the base value; pf2e adds the Elite/Weak HP modifier on prep.
         // value starts full, matching npc/document.ts applyAdjustment.
-        hp: { value: Math.max(1, stats.hp + hpAdjustment(concept.level, concept.adjustment ?? null)), max: stats.hp, temp: 0, details: "" },
+        hp: { value: fullHealthHp(stats.hp, concept.level, concept.adjustment), max: stats.hp, temp: 0, details: "" },
         adjustment: concept.adjustment ?? null,
         speed: {
           value: concept.speeds.find((s) => s.type === "land")?.value ?? 0,

@@ -57,7 +57,7 @@ assert.equal(to, 7);
 assert.equal(data.system.details.level.value, 7);
 assert.equal(data.system.attributes.ac.value, 25);
 assert.equal(data.system.attributes.hp.max, 115);
-assert.equal(data.system.attributes.hp.value, 115, "copy starts at full HP");
+assert.equal(data.system.attributes.hp.value, 135, "copy starts at full HP: base max 115 plus the Elite change (+20 at level 5-19)");
 assert.equal(data.system.attributes.adjustment, "elite", "Elite/Weak is kept");
 assert.equal(data.system.perception.mod, at(T.PERCEPTION_AND_SAVES, "moderate", 7));
 assert.equal(data.system.saves.fortitude.value, at(T.PERCEPTION_AND_SAVES, "high", 7));
@@ -114,4 +114,71 @@ assert.equal(clampRelevel(-5), T.MIN_LEVEL);
 assert.equal(clampRelevel("x", 4), 4);
 assert.equal(relevelActorData({ system: {} }, 5).to, 5, "a creature with no level counts as level 0");
 
+// Floor: a re-level never drops below the lowest printed scale at the new level
+// (AC, saves, Perception, attack bonus, DC) or the Low strike damage average.
+const lowestAt = (table, level) => Math.min(...Object.values(table).map((row) => row[level + 1]).filter((n) => typeof n === "number"));
+const weak = {
+  system: {
+    details: { level: { value: 10 } },
+    attributes: { ac: { value: 15 }, resistances: [{ type: "fire", value: 20 }] },
+    perception: { mod: 4 },
+    saves: { reflex: { value: 8 } },
+    skills: { stealth: { base: 3 } }
+  },
+  items: [
+    { _id: "s", type: "melee", system: { bonus: { value: 5 }, damageRolls: { a: { damage: "1d6+2" } } } },
+    { _id: "c", type: "spellcastingEntry", system: { spelldc: { value: 3, dc: 12 } } }
+  ]
+};
+const down = relevelActorData(weak, -1).data;
+assert.equal(down.system.attributes.ac.value, lowestAt(T.AC, -1), "AC 15 at level 10 lands on the Low AC at -1");
+assert.equal(down.system.saves.reflex.value, lowestAt(T.PERCEPTION_AND_SAVES, -1), "Reflex lands on the lowest printed save at -1");
+assert.equal(down.system.perception.mod, lowestAt(T.PERCEPTION_AND_SAVES, -1));
+assert.equal(down.items[0].system.bonus.value, lowestAt(T.STRIKE_ATTACK, -1));
+assert.equal(down.items[0].system.damageRolls.a.damage, at(T.STRIKE_DAMAGE, "low", -1), "damage is the table's Low formula");
+assert.equal(down.items[1].system.spelldc.dc, lowestAt(T.SPELL_DC, -1));
+assert.equal(down.items[1].system.spelldc.value, lowestAt(T.SPELL_ATTACK, -1));
+assert.equal(relevelActorData({ system: { details: { level: { value: 8 } } }, items: [weak.items[0]] }, 1).data.items[0].system.damageRolls.a.damage, at(T.STRIKE_DAMAGE, "low", 1), "level 8 1d6+2 to level 1 is Low, not 1d4-8");
+assert.equal(down.system.attributes.resistances[0].value, Math.max(1, 20 + at(T.RESISTANCE, "maximum", -1) - at(T.RESISTANCE, "maximum", 10)), "resistance keeps its plain step and own max(1) floor");
+assert.equal(down.system.skills.stealth.base, 3, "keepBelowFloor: a skill under its floor is left alone");
+
+// Normal mid-scale values are unchanged by the clamp (pinned to the earlier results).
+assert.deepEqual(shiftStat(T.AC, 19, 3, 7), { value: 25, scale: "high" });
+assert.equal(shiftStat(T.AC, 25, 7, 3).value, 19);
+assert.equal(shiftDamage("1d10+7", 3, 7).value, "2d10+10");
+
+// Same level is an exact no-op, even for a value under the floor; clamp is reported on a clamped result only.
+assert.deepEqual(shiftStat(T.AC, 3, 5, 5), { value: 3, scale: nearestScale(T.AC, 5, 3) });
+assert.equal(shiftStat(T.AC, 15, 10, -1).clamped, true);
+assert.equal(shiftStat(T.AC, 19, 3, 7).clamped, undefined);
+assert.equal(shiftStat(T.AC, 15, 10, -1).scale, "low");
+// keepBelowFloor: untouched below the floor, and never clamped.
+assert.equal(shiftStat(T.ABILITY_MODIFIER, -5, 1, 20, { keepBelowFloor: true }), null);
+assert.deepEqual(shiftStat(T.SKILL, at(T.SKILL, "low", 10), 10, -1, { keepBelowFloor: true }), { value: at(T.SKILL, "low", -1), scale: "low" });
+// Up: a value under the new floor is raised too (AC 5 at level 1 to level 10 would stay under Low).
+assert.equal(shiftStat(T.AC, 5, 1, 10).value, lowestAt(T.AC, 10));
+
+// Sweep: a damage formula never renders non-positive and never averages under Low.
+for (const source of ["1d4", "1d6+2", "1d4-1"]) {
+  for (let from = -1; from <= 24; from++) {
+    for (let to = -1; to <= 24; to++) {
+      if (from === to) continue;
+      const out = shiftDamage(source, from, to).value;
+      const low = at(T.STRIKE_DAMAGE, "low", to);
+      assert.ok(T.averageDamage(out) >= T.averageDamage(low), `${source} ${from}->${to} = ${out} under Low ${low}`);
+      assert.ok(T.averageDamage(out) > 0, `${source} ${from}->${to} = ${out} not positive`);
+    }
+  }
+}
+
 console.log("relevel.test.mjs: re-level keeps each stat's GM Core scale");
+
+// Weak creature re-level: a copy starts at full health, which includes the
+// Weak change on top of the scaled base max.
+{
+  const weakSource = structuredClone(source);
+  weakSource.system.attributes.adjustment = "weak";
+  const out = relevelActorData(weakSource, 7).data;
+  assert.equal(out.system.attributes.hp.value, out.system.attributes.hp.max - 20, "weak at level 7 starts at max - 20");
+}
+console.log("relevel.test.mjs: weak full-health copy passed");

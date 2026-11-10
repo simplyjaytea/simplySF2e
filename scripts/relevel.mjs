@@ -36,6 +36,7 @@
  * Pure module (no Foundry globals), node-testable.
  */
 import * as T from "./tables.mjs";
+import { fullHealthHp } from "./builder.mjs";
 import { buildModuleTemplate } from "./ability-templates.mjs";
 import { fillBlocker, fillPlaceholderAbility } from "./ability-fill.mjs";
 
@@ -89,11 +90,22 @@ function floorAt(table, level) {
   return values.length ? Math.min(...values) : null;
 }
 
+/** The scale name of the lowest printed row at a level (first one on a tie). */
+function floorScaleAt(table, level) {
+  const floor = floorAt(table, level);
+  return SCALE_ORDER.find((scale) => cell(table, scale, level) === floor) ?? null;
+}
+
 /**
  * Move a modifier/AC/DC by its scale's step. Returns {value, scale} or null.
  * With `keepBelowFloor`, a value under every printed scale is left alone.
+ * Otherwise a moved value that lands under the lowest printed scale at the new
+ * level is raised to that scale's value ({clamped: true}, `scale` is that row),
+ * so a re-level down never yields a nonsense AC, save or bonus. That includes a
+ * source already under its old floor. Same level is a no-op. `clamp: false`
+ * turns the clamp off for a caller that has its own floor (resistances).
  */
-export function shiftStat(table, value, from, to, { keepBelowFloor = false } = {}) {
+export function shiftStat(table, value, from, to, { keepBelowFloor = false, clamp = true } = {}) {
   if (!isNumber(value)) return null;
   if (keepBelowFloor && value < floorAt(table, from)) return null;
   const scale = nearestScale(table, from, value);
@@ -103,7 +115,12 @@ export function shiftStat(table, value, from, to, { keepBelowFloor = false } = {
   // printed scale at that level, keeping the same offset from the source scale.
   const after = scale && (cell(table, scale, to) ?? T.lookup(table, to, scale));
   if (!isNumber(before) || !isNumber(after)) return null;
-  return { value: value + (after - before), scale };
+  const moved = value + (after - before);
+  if (clamp && !keepBelowFloor && from !== to) {
+    const floor = floorAt(table, to);
+    if (isNumber(floor) && moved < floor) return { value: floor, scale: floorScaleAt(table, to), clamped: true };
+  }
+  return { value: moved, scale };
 }
 
 /** Scale HP by its scale's ratio; never below 1. */
@@ -122,7 +139,8 @@ const DICE_RE = /^(\d+)d(\d+)([+-]\d+)?$/;
  * Move one plain damage formula ("2d8+9") to the new level: the nearest
  * scale's formula at the new level, plus the old formula's distance from
  * that scale's average. Anything other than one dice term and a flat bonus
- * is returned as null and left unchanged.
+ * is returned as null and left unchanged. A result averaging less than the Low
+ * formula at the new level is replaced by that Low formula as printed.
  */
 export function shiftDamage(formula, from, to) {
   const text = String(formula ?? "").replaceAll(" ", "");
@@ -136,7 +154,10 @@ export function shiftDamage(formula, from, to) {
   const offset = average - T.averageDamage(before);
   const [, n, faces, flat] = DICE_RE.exec(after);
   const bonus = Number(flat ?? 0) + offset;
-  return { value: bonus === 0 ? `${n}d${faces}` : `${n}d${faces}${bonus > 0 ? "+" : ""}${bonus}`, scale };
+  const value = bonus === 0 ? `${n}d${faces}` : `${n}d${faces}${bonus > 0 ? "+" : ""}${bonus}`;
+  const low = cell(T.STRIKE_DAMAGE, "low", to);
+  if (low && T.averageDamage(value) < T.averageDamage(low)) return { value: low, scale: "low", clamped: true };
+  return { value, scale };
 }
 
 /**
@@ -234,7 +255,7 @@ export function relevelActorData(actorData, level, { sources = {} } = {}) {
     if (result) {
       // A copy starts at full health, the same way a new NPC does.
       hp.max = result.value;
-      hp.value = result.value;
+      hp.value = fullHealthHp(result.value, to, system.attributes.adjustment);
     }
   }
 
@@ -269,7 +290,7 @@ export function relevelActorData(actorData, level, { sources = {} } = {}) {
 
   for (const key of ["resistances", "weaknesses"]) {
     for (const entry of system.attributes?.[key] ?? []) {
-      const result = shiftStat(T.RESISTANCE, entry?.value, from, to);
+      const result = shiftStat(T.RESISTANCE, entry?.value, from, to, { clamp: false });
       if (result) entry.value = Math.max(1, result.value);
     }
   }

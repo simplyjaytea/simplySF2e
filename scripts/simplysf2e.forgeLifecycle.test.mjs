@@ -6,7 +6,9 @@ globalThis.foundry = { applications: { api: {
   ApplicationV2: App, HandlebarsApplicationMixin: (Base) => Base
 } } };
 const hooks = new Map();
-globalThis.Hooks = { once() {}, on: (name, callback) => hooks.set(name, callback) };
+globalThis.Hooks = { once() {}, on: (name, callback) => { if (!hooks.has(name)) hooks.set(name, callback); } };
+// The compendium cache hooks also listen on deleteItem and register after the
+// forge cleanup hook, so the first registration per name is the one under test.
 globalThis.game = { user: { id: "gm", isGM: true }, items: [], actors: [], scenes: [] };
 await import("./simplysf2e.mjs");
 

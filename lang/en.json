@@ -35,7 +35,7 @@
       },
       "RequestTimeout": {
         "Name": "Request timeout (seconds)",
-        "Hint": "Abort a generation if the AI provider sends no data for this long. Responses are streamed, so slow models keep working as long as data keeps arriving — this only catches genuinely stalled connections."
+        "Hint": "Abort a generation if the AI provider sends no data for this long. Responses are streamed, so slow models keep working as long as data keeps arriving. This only catches genuinely stalled connections."
       },
       "RunTokenBudget": {
         "Name": "Run token budget",
@@ -47,7 +47,7 @@
       },
       "FreeArchetype": {
         "Name": "Free Archetype variant rule",
-        "Hint": "When enabled, one-click characters gain the variant's extra archetype feat slot at each even level. Picks are validated staged — candidate-time prerequisite filtering plus slot-placement checks — and unprovable placements are left unresolved instead of guessed."
+        "Hint": "When enabled, one-click characters gain the variant's extra archetype feat slot at each even level. Picks are validated staged: candidate-time prerequisite filtering plus slot-placement checks, and unprovable placements are left unresolved instead of guessed."
       }
     },
     "ProviderSetup": {
@@ -87,18 +87,18 @@
       "PricesHint": "Only used for requests where the provider reports no cost (OpenRouter reports it; most others do not). Input and output tokens are priced separately. Leave empty for no cost estimate. Saved with this connection.",
       "PriceInputInvalid": "Input price must be empty or a number of 0 or more.",
       "PriceOutputInvalid": "Output price must be empty or a number of 0 or more.",
-      "ModelHint": "Use Load Models for IDs exposed by the saved provider, or enter an exact ID manually. LM Studio lists loaded models unless Just-In-Time loading is enabled.",
-      "LoadModels": "Load Models",
+      "ModelHint": "Use Load models for IDs exposed by the saved provider, or enter an exact ID manually. LM Studio lists loaded models unless Just-In-Time loading is enabled.",
+      "LoadModels": "Load models",
       "ModelsLoaded": "Loaded {count} available model IDs. Choose one from the Model field.",
       "ModelsFailed": "Could not load models: {message}. Check the API Base URL and API key, then try again.",
       "ModelsEmpty": "The provider returned no model IDs. For LM Studio, load a model or enable Just-In-Time loading; otherwise enter the exact ID manually.",
       "ModelsInvalid": "The provider's model-list response was not valid JSON.",
       "ApiKeyLabel": "API key (this browser only)",
-      "ApiKeySaved": "A key is saved — leave blank to keep it",
+      "ApiKeySaved": "A key is saved. Leave blank to keep it",
       "ApiKeyOptional": "Leave blank for a keyless local server",
-      "ApiKeyHint": "Changing endpoints clears the old saved key unless you enter a replacement here.",
+      "EndpointKeyHint": "Saving a new endpoint clears the saved API key. To keep using it, enter the key again below.",
       "ClearApiKey": "Clear the saved API key",
-      "Privacy": "Each connection's key stays in this browser and is sent only to the exact endpoint authorized when you save that connection.",
+      "Privacy": "Keys stay in this browser and are sent only to the endpoint they were saved for.",
       "JevLegend": "Fast picks (Jev)",
       "JevKeySavedShort": "key saved",
       "CostLegend": "Cost estimate",
@@ -109,7 +109,7 @@
       "JevSourceLabel": "Jev source",
       "JevKeyLabel": "Jev key (this browser only)",
       "JevKeyPlaceholder": "Optional: {source} key",
-      "JevKeySaved": "A Jev key is saved — leave blank to keep it",
+      "JevKeySaved": "A Jev key is saved. Leave blank to keep it",
       "ClearJevKey": "Clear the saved Jev key",
       "SaveJevKey": "Save Jev key",
       "JevCorsWarning": "TypeSafe AI currently blocks calls from a browser (CORS), so Foundry cannot reach api.typesafe.ai directly. Use OpenRouter, or enter the address of your own CORS proxy above. Use Test Jev to check. The TypeSafe key is sent only to the endpoint above.",
@@ -130,13 +130,14 @@
       "JevSaved": "Jev key saved.",
       "JevCleared": "Jev key cleared.",
       "JevSaveFailed": "Could not save or test the Jev connection: {message}. Check its endpoint and key, then try again.",
-      "SaveAuthorize": "Save & Authorize",
-      "FooterHint": "Save & Test saves the connection and sends one test request. Save & Authorize saves the connection and authorizes its key for this endpoint.",
-      "SaveTest": "Save & Test",
+      "SaveWithoutTest": "Save without testing",
+      "SaveTest": "Save & test",
       "Cancel": "Close",
       "Configure": "Configure AI provider",
       "TestConnection": "Test provider connection",
       "InvalidBaseUrl": "Enter a complete HTTP or HTTPS API Base URL.",
+      "BaseUrlHasUserinfo": "The API Base URL contains a user name or password. Every player's browser can read this URL. Remove them and enter the secret in the API key field.",
+      "BaseUrlHasSecret": "The API Base URL contains a secret in its query string ({name}). Every player's browser can read this URL. Remove that parameter and enter the secret in the API key field.",
       "Saved": "Saved {provider} with model {model}.",
       "SavedAuthorized": "Saved {provider} with model {model}; the key is authorized for this endpoint.",
       "SavedNeedsKey": "Saved {provider} with model {model}, but this remote provider still needs an API key.",
@@ -173,7 +174,7 @@
       "ModelChoiceLabel": "Choose your {provider} model",
       "ModelChoicePlaceholder": "Select a model",
       "ModelChoiceHint": "No model was chosen automatically. Pick one from this provider's list, then test it.",
-      "TestAndConnect": "Test & Connect",
+      "TestAndConnect": "Test & connect",
       "NoModels": "{provider} returned no models you can use here. Choose another provider, or install or enable a model and try again.",
       "Sample": "Generate a sample monster",
       "SampleHint": "Opens a preview; nothing is created until you click Create.",
@@ -191,8 +192,8 @@
       "SystemOld": "Version {version} is older than {minimum}. Update the Starfinder 2e system.",
       "SourcesMissing": "Required compendium content is missing: {categories}. Enable a pack for each in Compendium Sources.",
       "DontShow": "Don't show this again at login",
-      "OpenProvider": "Set Up AI Connection",
-      "Recheck": "Check Again",
+      "OpenProvider": "Set up AI connection",
+      "Recheck": "Check again",
       "Close": "Close"
     },
     "WhatsNew": {
@@ -208,121 +209,216 @@
       "Disable": "Don't show for updates",
       "Earlier": "Earlier changes ({count})",
       "Note": {
+        "ReviewFixes": {
+          "Title": "Fixes and a tidier setup",
+          "B1": "Ysoki and G'folian characters now get their own ancestry feats.",
+          "B2": "Creature spellcasters keep their cantrips at cantrip rank.",
+          "B3": "Re-leveling a creature far down no longer gives zero or negative AC, saves or damage.",
+          "B4": "Reskinning a world creature makes a fresh copy: full health, no conditions, GM-only ownership.",
+          "B5": "An API Base URL containing a password or key is refused, because players can read it."
+        },
+        "TidierWindows": {
+          "Title": "Tidier windows",
+          "B1": "Compendium Sources: one flat list replaces the ten boxes.",
+          "B2": "AI Provider Setup: one Save & test button, plus Save without testing.",
+          "B3": "Mystic and Witchwarper spell tradition now follows the chosen connection or paradox.",
+          "B4": "Encounter treasure is shared only among creatures that carry loot.",
+          "B5": "What's new lists changes as short bullets."
+        },
         "HuntFixes": {
           "Title": "Fixes from a full code review",
-          "Body": "Generate in Encounter mode now creates the actors in one go. An empty prompt no longer creates the previous preview. Shop and Treasure price ammunition per round, and credit prices no longer gain a stray credit. Re-level handles very low levels and Trample correctly. Switching connection is refused while another window is generating, and Provider Setup's Delete asks once."
+          "B1": "Encounter mode: Generate creates the actors in one go.",
+          "B2": "Generate with an empty prompt no longer creates the previous preview.",
+          "B3": "Shop and Treasure price ammunition per round, without a stray extra credit.",
+          "B4": "Re-level now handles very low levels and Trample correctly.",
+          "B5": "AI Provider Setup refuses to switch connection during a run, and Delete asks once."
         },
         "ProgressTelemetry": {
           "Title": "Step times and a simpler Welcome",
-          "Body": "The progress card now shows how long each finished step took, and the current step says \"running\". Welcome no longer numbers its sections, and the connection check lists its steps one per line."
+          "B1": "Progress card: each finished step shows how long it took.",
+          "B2": "Progress card: the current step says \"running\".",
+          "B3": "Welcome no longer numbers its sections.",
+          "B4": "Welcome: the connection check lists its steps one per line."
         },
         "ThemeSystem": {
           "Title": "One look in every window",
-          "Body": "The neon effects now mean the same thing everywhere. Glow marks what is live: the main action, the active mode and a running progress card. The moving sheen means a run is working, a slow pulse marks a list that waits for your decision, and only the current step blinks. Mode colours stay on the mode tile and the line under a preview's name. Only labels, column headings and tags are in capitals; titles and buttons are not. Trait tags are square, and empty panels share one look."
+          "B1": "Glow marks what is live: the main action, the active mode and a running progress card.",
+          "B2": "Only labels, column headings and tags are in capitals; titles and buttons are not.",
+          "B3": "Trait tags are square, and empty panels share one look."
         },
         "SetupWiring": {
           "Title": "Clearer setup windows",
-          "Body": "The Welcome warning for missing compendium content has a Configure compendium sources button. AI Provider Setup explains Save & Test and Save & Authorize, shows when an API key or a Jev key is saved, and marks a rejected price field. The Item Forge prompt hint follows the item kind."
+          "B1": "Welcome: the missing compendium warning has a Configure compendium sources button.",
+          "B2": "AI Provider Setup explains Save & test and Save & authorize.",
+          "B3": "AI Provider Setup shows when an API key or a Jev key is saved.",
+          "B4": "AI Provider Setup marks a rejected price field.",
+          "B5": "Item Forge: the prompt hint follows the item kind."
         },
         "CopySweep": {
           "Title": "Clearer wording",
-          "Body": "Window titles, buttons and empty-state hints use the same names. Empty Shop, Treasure and Item Forge windows name the button to press next. Mode tooltips say what each mode builds. Provider notes read Not yet tested, and a failed Welcome connect reads Connection failed."
+          "B1": "Window titles, buttons and empty-state hints use the same names.",
+          "B2": "Empty Shop, Treasure and Item Forge windows name the button to press next.",
+          "B3": "Mode tooltips say what each mode builds.",
+          "B4": "Provider notes read \"Not yet tested\", and a failed Welcome connect reads \"Connection failed\"."
         },
         "ShellConsistency": {
           "Title": "Tidier windows",
-          "Body": "Discard, Delete and Reset are red and sit apart from the main action. Numbers line up in tables and the token report. Empty panels are more compact, and long model and connection names wrap instead of being cut off. Encounter members, review lists and the Forge, Shop and Treasure readiness row match the Generator's layout."
+          "B1": "Discard, Delete and Reset are red and sit apart from the main action.",
+          "B2": "Numbers line up in tables and the token report.",
+          "B3": "Empty panels are more compact than before.",
+          "B4": "Long model and connection names wrap instead of being cut off.",
+          "B5": "Encounter members, review lists and the Forge, Shop and Treasure readiness row match the Generator's layout."
         },
         "RunGuards": {
           "Title": "Fewer ways to lose work",
-          "Body": "Create All is disabled when every encounter member is set to 0. If a created merchant or hoard cannot be verified and cannot be removed, the message names it and the draft is discarded so a retry does not make a duplicate. AI Provider Setup asks before switching, creating or deleting a connection with unsaved edits, keeps edits when loading models, and refuses to switch connections while a run is in progress."
+          "B1": "Create all actors is disabled when every encounter member is set to 0.",
+          "B2": "A merchant or hoard that cannot be verified or removed is named; its draft is discarded.",
+          "B3": "AI Provider Setup asks before switching, creating or deleting a connection with unsaved edits.",
+          "B4": "AI Provider Setup keeps your edits when loading models.",
+          "B5": "AI Provider Setup refuses to switch connections while a run is in progress."
         },
         "OneScreenWelcome": {
           "Title": "Set up in one screen",
-          "Body": "The Welcome window now connects your AI in one step: pick a provider, paste your key and press Connect. It loads the model list, tests the model and offers a sample monster. A failed connect leaves your previous setup untouched."
+          "B1": "Welcome connects your AI in one step: pick a provider, paste a key, press Connect.",
+          "B2": "Connect loads the model list, tests the model and offers a sample monster.",
+          "B3": "A failed connect leaves your previous setup untouched."
         },
         "RelevelAbilities": {
           "Title": "Re-leveled creatures keep their numbers in step",
-          "Body": "When you re-level a copy, the area blasts, auras and filled glossary abilities the module built are rebuilt for the new level. Published abilities keep their text."
+          "B1": "Re-level rebuilds the area blasts, auras and filled glossary abilities the module made.",
+          "B2": "Re-level: published abilities keep their text."
         },
         "Aura": {
           "Title": "Auras with real numbers",
-          "Body": "Creatures can now have auras that call for a save and apply a condition, or deal damage each turn. The radius, save DC, condition value and damage come from GM Core and the creature's level. The aura shows on the canvas; you apply the result."
+          "B1": "Creatures can have auras that call for a save and apply a condition.",
+          "B2": "Auras can also deal damage each turn.",
+          "B3": "Radius, save DC, condition value and damage come from GM Core and the creature's level.",
+          "B4": "The aura shows on the canvas; you apply the result."
         },
         "AreaBlast": {
           "Title": "Breaths and blasts with real numbers",
-          "Body": "Creatures' breath weapons and blasts can now be working abilities. The area, damage and DC come from GM Core for the creature's level, and a limited blast can be recharged."
+          "B1": "Creature breath weapons and blasts can now be working abilities.",
+          "B2": "Area, damage and DC come from GM Core for the creature's level.",
+          "B3": "A limited blast can be recharged."
         },
         "BlankAbilities": {
           "Title": "Creature abilities get real values again",
-          "Body": "Constrict, Greater Constrict, Swallow Whole, Engulf, Trample, Frightful Presence and Stench now get their damage, DCs, sizes and aura sizes for the creature's level, from the GM Core tables and published creatures. Trample uses the creature's own strike. An ability that cannot be filled, such as a tiny creature with Swallow Whole, is left out, and the console names it."
+          "B1": "Constrict, Greater Constrict, Swallow Whole, Engulf, Trample, Frightful Presence and Stench now get filled values.",
+          "B2": "Values come from GM Core tables and published creatures, scaled to the creature's level.",
+          "B3": "Trample uses the creature's own strike.",
+          "B4": "An ability that cannot be filled is left out and named in the console."
         },
         "ClearerErrors": {
           "Title": "Clearer error messages and bug reports",
-          "Body": "Error messages now say what went wrong and what to do next. After you copy a bug report, an Open GitHub issue button takes you straight to the issue form, and the report is never put in the link."
+          "B1": "Error messages say what went wrong and what to do next.",
+          "B2": "After you copy a bug report, an Open GitHub issue button opens the issue form.",
+          "B3": "The report is never put in the link."
         },
         "RunDeadline": {
           "Title": "Runs stop after 5 minutes",
-          "Body": "Runs now stop after 5 minutes by default, so a stuck request cannot hang the Generator. Change the limit, or turn it off with 0, in Module Settings: SimplySF2e, Run deadline (minutes)."
+          "B1": "Runs stop after 5 minutes by default, so a stuck request cannot hang the Generator.",
+          "B2": "Change the limit in Module Settings: SimplySF2e, Run deadline (minutes).",
+          "B3": "Set it to 0 to turn the limit off."
         },
         "RunCost": {
           "Title": "Run cost",
-          "Body": "The token report now shows what a run cost when your provider reports it (OpenRouter does). For other providers, enter optional per-1M-token prices on the connection in AI Provider Setup for an estimate marked with ≈."
+          "B1": "The token report shows run cost when your provider reports it, as OpenRouter does.",
+          "B2": "For other providers, enter optional per-1M-token prices in AI Provider Setup.",
+          "B3": "Estimates from those prices are marked with ≈."
         },
         "RunBudget": {
           "Title": "Per-run token budget",
-          "Body": "A run now stops at a token budget (60,000 by default) instead of retrying forever. The limit is a world setting."
+          "B1": "A run stops at a token budget instead of retrying forever.",
+          "B2": "The default budget is 60,000 tokens.",
+          "B3": "The limit is a world setting."
         },
         "ProviderRetry": {
           "Title": "More resilient provider requests",
-          "Body": "When the AI provider reports a rate limit or a transient server error, SimplySF2e can wait (honoring the provider's Retry-After when given) and try the request once. Ambiguous server errors that may already have been billed are not retried. Cancelling stops the retry."
+          "B1": "On a rate limit or transient server error, SimplySF2e waits and retries once.",
+          "B2": "It honors the provider's Retry-After value when given.",
+          "B3": "Ambiguous server errors that may already have been billed are not retried.",
+          "B4": "Cancelling a run also stops the retry."
         },
         "Multiclass": {
           "Title": "Multiclass, Tech Core ancestries and more",
-          "Body": "With Free Archetype on, a player character can take a second class: pick it in the new Multiclass field or let the AI choose from your prompt. The dedication goes in the first archetype slot, and later slots favor its feats. Mystic, Witchwarper and Technomancer dedications get their own spell list. A Technomancer now has a full spell database. Living Hologram and SRO characters get their size chosen for you, and the Item Forge can install projectile-weapon upgrades. The Item Forge keeps one grade label per item, keeps a base's published grade, and says which requested upgrades did not fit. Mechanic and Technomancer have Standard presets, shops and hoards skip items with no price, and the windows have a calmer look."
+          "B1": "With Free Archetype on, choose a second class in Multiclass, or let the AI choose.",
+          "B2": "The dedication goes in the first archetype slot, and later slots favor its feats.",
+          "B3": "Mystic, Witchwarper and Technomancer dedications get their own spell list.",
+          "B4": "Living Hologram and SRO characters get their size chosen for you.",
+          "B5": "Item Forge installs projectile-weapon upgrades and says which requested upgrades did not fit."
         },
         "ClassFixes": {
           "Title": "Every class builds cleanly",
-          "Body": "Player characters of every class now build from level 1 to 20. Feat choices check the character's planned attributes and skill ranks at each level, so dedications and feats that need, for example, Charisma +2 appear when they are legal. General feat slots can also hold skill feats, as in the system. Operative specializations keep the feat they need. If no legal feat exists for a slot, the character is still created with that slot empty and the GM gets a whisper saying which slots to fill by hand."
+          "B1": "Player characters of every class now build from level 1 to 20.",
+          "B2": "Feat choices check planned attributes and skill ranks at each level.",
+          "B3": "General feat slots can also hold skill feats, as in the system.",
+          "B4": "Operative specializations keep the feat they need.",
+          "B5": "If no legal feat exists for a slot, it stays empty and a whisper lists it."
         },
         "TechCore": {
           "Title": "Mechanic and Technomancer player characters",
-          "Body": "SimplySF2e now needs the Starfinder 2e system 1.6 or later. Player characters can be Mechanics or Technomancers from Tech Core. A Technomancer gets the magic hack that matches its programming language. A Mechanic who picks the Drone exocortex gets a reminder to set up the drone companion by hand."
+          "B1": "SimplySF2e now needs the Starfinder 2e system 1.6 or later.",
+          "B2": "Player characters can be Mechanics or Technomancers from Tech Core.",
+          "B3": "A Technomancer gets the magic hack that matches its programming language.",
+          "B4": "A Mechanic with the Drone exocortex gets a reminder to set up the drone by hand."
         },
         "UiRefresh": {
           "Title": "Easier to read, more Starfinder",
-          "Body": "Small labels and table headings are larger, and input fields have clearer borders. After a preview appears, Create is the main button and Generate offers another version. Icons and Item Forge wording now fit Starfinder: a microchip for the Generator, gears for the Item Forge and a bolt for Generate."
+          "B1": "Small labels and table headings are larger.",
+          "B2": "Input fields have clearer borders than before.",
+          "B3": "After a preview appears, Create is the main button and Generate offers another version.",
+          "B4": "Icons now fit Starfinder: a microchip for the Generator, gears for the Item Forge.",
+          "B5": "Item Forge wording now fits Starfinder."
         },
         "CreatureArt": {
           "Title": "Creature art keeps its token",
-          "Body": "With an art module installed, a generated creature now keeps the token art and scale of the similar bestiary creature it borrows from, instead of reusing its portrait. Its token is named after the new creature, and encounter copies are numbered in their token name too."
+          "B1": "With an art module, a generated creature keeps the similar bestiary creature's token art and scale.",
+          "B2": "The token no longer reuses the bestiary portrait.",
+          "B3": "The token is named after the new creature.",
+          "B4": "Encounter copies are numbered in their token name too."
         },
         "WhatsNew": {
           "Title": "What's new",
-          "Body": "This window. It opens once after an update that changes something you can see. Reopen it any time with /sf2e whatsnew."
+          "B1": "This window opens once after an update that changes something you can see.",
+          "B2": "Reopen it any time with /sf2e whatsnew."
         },
         "ReskinTrample": {
           "Title": "Reskin keeps Trample in step",
-          "Body": "When a Reskin renames a melee Strike, a Trample ability the module built for that creature now names the new Strike. Published creatures are not changed."
+          "B1": "Reskin: a Trample the module built names the renamed melee Strike.",
+          "B2": "Trample on published creatures is not changed."
         },
         "OneCredstick": {
           "Title": "One Credstick per hoard",
-          "Body": "A treasure hoard's leftover credits now go on a single Credstick (up to 5,000,000 credits) instead of several 100,000-credit sticks. NPC and player-character Credstick coin now reaches the full treasure budget at every level (it used to stop at 100,000 credits, which cut level 13+ budgets short)."
+          "B1": "A hoard's leftover credits go on one Credstick, up to 5,000,000 credits.",
+          "B2": "This replaces the old split into several 100,000-credit sticks.",
+          "B3": "NPC and player-character Credstick coin now reaches the full treasure budget at every level.",
+          "B4": "It used to stop at 100,000 credits, which cut level 13+ budgets short."
         },
         "UiPolish": {
           "Title": "Cleaner windows",
-          "Body": "Previews fold the token report into one line, encounter cards show stats as a grid, the character review lists what to check, AI Provider Setup and Compendium Sources are easier to scan (with a pack filter), and narrow windows read better."
+          "B1": "Previews fold the token report into one line.",
+          "B2": "Encounter cards show stats as a grid.",
+          "B3": "The character review lists what to check.",
+          "B4": "AI Provider Setup and Compendium Sources are easier to scan, with a pack filter.",
+          "B5": "Narrow windows are easier to read."
         },
         "FasterEncounters": {
           "Title": "Faster encounters",
-          "Body": "Encounter mode builds several creatures at the same time, so big encounters are ready sooner."
+          "B1": "Encounter mode builds several creatures at the same time.",
+          "B2": "Large encounters are ready sooner than before."
         },
         "Treasure": {
           "Title": "Treasure hoards",
-          "Body": "A new Treasure window (Actors sidebar button or /sf2e treasure) fills one encounter's or a whole level's treasure budget with real Starfinder items and credits, and creates a loot actor."
+          "B1": "A new Treasure window opens from the Actors sidebar button or /sf2e treasure.",
+          "B2": "It fills one encounter's or a whole level's treasure budget.",
+          "B3": "It uses real Starfinder items and credits.",
+          "B4": "The result is created as a loot actor."
         },
         "Relevel": {
           "Title": "Re-level a creature",
-          "Body": "In Reskin mode, set a new level. The copy's AC, HP, attacks, saves, skills and DCs move to the Starfinder GM Core values for that level, keeping how strong each stat was."
+          "B1": "In Reskin mode, set a new level for the copy.",
+          "B2": "AC, HP, attacks, saves, skills and DCs move to GM Core values for that level.",
+          "B3": "Each stat keeps its relative strength."
         }
       }
     },
@@ -354,7 +450,7 @@
       "CharacterPromptPlaceholder": "e.g. A gruff vesk artillerist who left the family foundry to hunt the beast that killed her mentor...",
       "Character": "Character",
       "Creature": "Creature",
-      "CreateAll": "Create All Actors",
+      "CreateAll": "Create all actors",
       "NoMembers": "Set at least one member to create.",
       "CreatedOneInFolder": "Created 1 actor in folder \"{name}\".",
       "CreatedAll": "Created {count} actors in folder \"{name}\".",
@@ -369,7 +465,7 @@
       "AdjustmentWeak": "Weak (-1 Level)",
       "Advanced": "Advanced options",
       "RarityCap": "Rarity cap",
-      "RarityCapTooltip": "Excludes ancestries, backgrounds, and heritages rarer than this from what the AI can pick — e.g. capping at Uncommon rules out Rare/Unique options",
+      "RarityCapTooltip": "Excludes ancestries, backgrounds, and heritages rarer than this from what the AI can pick, e.g. capping at Uncommon rules out Rare/Unique options",
       "TreasureAmount": "Treasure amount",
       "TreasureReadoutTooltip": "Total loot value across all members vs. the treasure budget (per-encounter share of the cited SF2e Party Treasure total, shown in credits; levels outside 1–20 are module extrapolations).",
       "AllowSpellcasting": "Allow spellcasting",
@@ -379,15 +475,15 @@
       "MulticlassAI": "Let the AI decide",
       "Generate": "Generate",
       "GenerateAnotherVersion": "Generate another version",
-      "GenerateMonster": "Generate Monster",
+      "GenerateMonster": "Generate monster",
       "GenerateNpc": "Generate NPC",
-      "GenerateEncounter": "Generate Encounter",
-      "GenerateCharacter": "Generate Character",
-      "PreviewPlan": "Preview Plan",
+      "GenerateEncounter": "Generate encounter",
+      "GenerateCharacter": "Generate character",
+      "PreviewPlan": "Preview plan",
       "Busy": "Creating…",
       "ChoicesNeedInput": "Some character choices could not be selected automatically. Complete any SF2e choice dialogs to continue.",
-      "CreateActor": "Create Actor",
-      "RerollLoot": "Reroll Loot",
+      "CreateActor": "Create actor",
+      "RerollLoot": "Reroll loot",
       "RerollLootTooltip": "Generate different loot without changing the creature",
       "RerollPickTooltip": "Swap for a different compendium pick",
       "RerollPickLabel": "Reroll {name}",
@@ -395,8 +491,8 @@
       "RerollPickInvalid": "The AI did not pick a listed option for {name}. The preview is unchanged. Try the reroll again.",
       "RerollPickBlocked": "{name} cannot be used for this creature (the console says why). The preview is unchanged.",
       "Discard": "Discard",
-      "EmptyHintReskin": "Nothing generated yet — drop an NPC above, then press Generate. The preview appears here before anything is created.",
-      "EmptyHintReskinReady": "Press Reskin Creature or Preview Plan to create the preview. Nothing is created until you confirm it.",
+      "EmptyHintReskin": "Nothing generated yet. Drop an NPC above, then press Generate. The preview appears here before anything is created.",
+      "EmptyHintReskinReady": "Press Reskin creature or Preview plan to create the preview. Nothing is created until you confirm it.",
       "XPUnit": "XP",
       "CreditsLabel": "Credits",
       "OverBudget": "(over budget)",
@@ -411,12 +507,12 @@
       "CompletionCustomNarrative": "Deliberate custom narrative abilities: {count}",
       "CompletionSkipped": "Skipped gear with no published match: {count}",
       "CompletionEmpty": "Feat slots left empty, no legal feat available: {count}",
-      "OpenSheet": "Open Sheet",
-      "GenerateAnother": "Generate Another",
+      "OpenSheet": "Open sheet",
+      "GenerateAnother": "Generate another",
       "DiscardTitle": "Discard preview?",
       "DiscardConfirm": "This throws away the preview, including any changes you made to it. The tokens it cost are not refunded.",
       "NoSupportedClasses": "No supported complete-only player-character classes are available in the enabled compendium sources.",
-      "ReviewTitle": "Character created — review",
+      "ReviewTitle": "Character created: review",
       "ReviewActionsHeading": "To review ({count})",
       "ReviewChoiceTitle": "Choose an option for {item}",
       "ReviewChoiceDetail": "This feature had no recorded choice after creation. It may be conditional or intentionally disabled; review it on the character sheet.",
@@ -446,12 +542,12 @@
       "JevShort": "Jev",
       "JevShortOn": "On",
       "JevShortOff": "Off",
-      "SourcesReady": "Ready — {packCount} enabled packs",
+      "SourcesReady": "Ready: {packCount} enabled packs",
       "SourcesMissing": "Required compendium content is unavailable: {categories}. Configure Compendium Sources before generating.",
       "ConfigureSources": "Configure compendium sources",
       "ModeLabel": "Generation mode",
       "NoModelShort": "No model",
-      "EmptyHint": "Nothing generated yet — describe a concept above and press Generate. The preview appears here before anything is created.",
+      "EmptyHint": "Nothing generated yet. Describe a concept above and press Generate. The preview appears here before anything is created.",
       "ReskinLegend": "Reskin an existing creature",
       "ReskinPrompt": "Reskin theme",
       "ReskinPromptPlaceholder": "e.g. make it a void-touched pirate enforcer who boards ships through airlocks...",
@@ -462,16 +558,16 @@
       "ReskinNoSource": "Drop an NPC onto the Reskin panel first.",
       "ReskinNotNpc": "Only NPC creatures can be reskinned. Drop an NPC onto the Reskin panel instead.",
       "ReskinSourceGone": "The creature you dropped can no longer be found. Drop it again.",
-      "GenerateReskin": "Reskin Creature",
+      "GenerateReskin": "Reskin creature",
       "ReskinUnchanged": "Statistics, rules, traits, and items are copied unchanged. The original creature is not modified.",
       "ReskinRenames": "Renamed strikes and abilities",
       "ReskinNoRenames": "No strikes or abilities were renamed.",
       "ReskinReadAloud": "Read aloud",
       "ReskinRecall": "Recall Knowledge",
-      "CreateReskin": "Create Reskinned Copy"
+      "CreateReskin": "Create reskinned copy"
     },
     "Presets": {
-      "None": "— No preset —",
+      "None": "(No preset)",
       "StandardGroup": "Standard classes",
       "ArchetypesGroup": "Starfinder Archetypes",
       "CustomGroup": "Custom presets",
@@ -490,7 +586,7 @@
       "BountyHunter": "Bounty Hunter",
       "DuplicateTooltip": "Duplicate the selected preset into a new custom preset",
       "DeleteTooltip": "Delete the selected custom preset",
-      "Manage": "Manage Presets",
+      "Manage": "Manage presets",
       "New": "New preset",
       "DialogTitle": "New Custom Preset",
       "DialogEditTitle": "Edit Custom Preset",
@@ -498,7 +594,7 @@
       "DialogNamePlaceholder": "e.g. Operative, Station Witchwarper, Corpsefleet Bruiser",
       "DialogGuidance": "Build guidance for the AI",
       "DialogGuidancePlaceholder": "e.g. Build like a soldier: a heavy-armor specialist with high AC and HP, a suppressing-fire area weapon, and a fighting-style signature ability. No spellcasting.",
-      "DialogSave": "Save Preset",
+      "DialogSave": "Save preset",
       "Saved": "Preset \"{name}\" saved.",
       "DeleteTitle": "Delete Preset",
       "DeleteConfirm": "Delete the custom preset \"{name}\"? This cannot be undone.",
@@ -546,7 +642,7 @@
       "Busy": "The Generator is busy. Try again when it finishes."
     },
     "Chat": {
-      "Busy": "The Generator is busy, so the command only filled in the form."
+      "Busy": "The Generator is busy, so the command was ignored. Send it again when the run finishes."
     },
     "Folders": {
       "Root": "SimplySF2e",
@@ -604,8 +700,8 @@
       "GrantTimingTitle": "Check skill grants and feat prerequisites",
       "IntelligenceTimingTitle": "Check skills trained from Intelligence",
       "NativeRuleTitle": "Review skills changed by a rule",
-      "UnspentTrainingTitle": "Assign {count} more trained skill(s)",
-      "UnspentIncreasesTitle": "Assign {count} more skill increase(s)",
+      "UnspentTrainingTitle": "Trained skills still to assign: {count}",
+      "UnspentIncreasesTitle": "Skill increases still to assign: {count}",
       "ProjectionMismatchTitle": "Check feats that need skill ranks",
       "Rank0": "Untrained",
       "Rank1": "Trained",
@@ -633,7 +729,7 @@
       "DroneManual": "Drone exocortex: set up the drone companion by hand; SimplySF2e does not create companion actors.",
       "ArchetypeSpellsManual": "{dedication}: choose its {choice} on the sheet, then add its spellcasting entry by hand.",
       "ArchetypeChoiceFallback": "choice",
-      "EmptyFeatSlots": "{count} feat slot(s) left empty because no legal feat was available: {slots}. Pick them on the sheet if your table allows."
+      "EmptyFeatSlots": "Feat slots left empty because no legal feat was available: {count} ({slots}). Pick them on the sheet if your table allows."
     },
     "Progress": {
       "Label": "Generation progress",
@@ -672,7 +768,7 @@
     },
     "Tokens": {
       "Heading": "Token usage",
-      "Step": "{prompt} in, {completion} out — {total} tokens",
+      "Step": "{prompt} in, {completion} out: {total} tokens",
       "StepEstimated": "≈ {total} tokens (estimated)",
       "StepTotal": "{total} tokens",
       "Total": "Total: {total} tokens",
@@ -734,7 +830,8 @@
       "PCSignaturePlan": "Planned signature choices: {selected}/{total}. Choices are rechecked against real spells during creation; missing or rejected choices stay regular and need manual review.",
       "EmptyFeatSlot": "empty, no legal feat available",
       "PCBaseSpellPlan": "Base spell plan only: prepared classes prepare each listed pick; spontaneous classes learn it at the listed rank. Review empty slots, signature spells, and restricted subclass or feat bonuses (such as curriculum or divine font) in Foundry.",
-      "PCVariableSpellPlan": "Base spell plan only. Verify the tradition against your bloodline or patron; if none was selected, configure spellcasting in Foundry. Review empty slots, signature spells, subclass-granted spells, and feat bonuses after creation.",
+      "PCVariableSpellPlan": "Base spell plan only. The spell tradition comes from the chosen connection or paradox. After creation, review empty slots, signature spells, and spells or bonuses that the connection, paradox or feats grant.",
+      "PCSpellTraditionUnproven": "No class spells were added because the spell tradition could not be read from the chosen connection or paradox. After creation, add the class spellcasting entry in Foundry with the tradition that your connection or paradox names.",
       "PCApproximateSpellPlan": "This class has no verified casting profile yet. Spellcasting uses a generic spontaneous approximation; review casting mode, tradition, slots, and spells in Foundry before play.",
       "AC": "AC",
       "HP": "HP",
@@ -775,7 +872,7 @@
       "Weaknesses": "Weaknesses",
       "FromCompendium": "Pulled from a bestiary ability glossary pack",
       "Custom": "Custom",
-      "NotFound": "No compendium match found — this entry will be skipped",
+      "NotFound": "No compendium match found. This entry will be skipped",
       "Found": "Matched a real compendium item",
       "MatchSummary": "{matched}/{total} compendium matches"
     },
@@ -836,7 +933,7 @@
       "KindCrystalHint": "Magic crystal for a solarian; general passive effects, not solar weapon damage",
       "KindCrystalShort": "Crystal",
       "ProgressCandidates": "Finding base equipment & upgrades",
-      "NoBaseItems": "No {kind} items were found in this world's compendiums — is the SF2e equipment pack installed?",
+      "NoBaseItems": "No {kind} items were found in this world's compendiums. Is the SF2e equipment pack installed?",
       "RunesHeading": "Upgrades",
       "ItemGradeUpgradesHeading": "Grade and upgrades",
       "Grade": "Grade",
@@ -850,10 +947,10 @@
       "EmptyHint": "Describe an item and press Generate. The preview appears here before anything is created."
     },
     "Loot": {
-      "CustomItem": "Generated by SimplySF2e. No compendium match was found for this item, so it stands in as treasure with an estimated value — replace it with the real item if you have it."
+      "CustomItem": "Generated by SimplySF2e. No compendium match was found for this item, so it stands in as treasure with an estimated value. Replace it with the real item if you have it."
     },
     "Equipment": {
-      "CustomItem": "Generated by SimplySF2e. No compendium match was found for this item, so it stands in as plain gear at an estimated price — replace it with the real item if you have it."
+      "CustomItem": "Generated by SimplySF2e. No compendium match was found for this item, so it stands in as plain gear at an estimated price. Replace it with the real item if you have it."
     },
     "BugReport": {
       "Copy": "Copy bug report",
@@ -935,7 +1032,7 @@
       "RemoveItem": "Remove {name} from stock",
       "StockTotal": "Total stock value: {total} credits. Prices are the compendium's own.",
       "AllRemoved": "Every item was removed. Press Generate another shop to restock.",
-      "Dropped": "{count} pick(s) were not on the offered list and were left out.",
+      "Dropped": "Picks left out because they were not on the offered list: {count}.",
       "Create": "Create merchant",
       "Created": "Created merchant {name}.",
       "RollbackSurvivor": "Merchant \"{name}\" still exists. The draft was discarded to prevent a duplicate; remove it manually before trying again.",
@@ -1003,7 +1100,7 @@
       "RemoveItem": "Remove {name} from the hoard",
       "CreditsRow": "Credits (Credstick)",
       "AllRemoved": "Every item was removed. The whole budget is now credits.",
-      "Dropped": "{count} pick(s) were not offered, had no price, or did not fit the budget, and were left out.",
+      "Dropped": "Picks left out because they were not offered, had no price, or did not fit the budget: {count}.",
       "Create": "Create hoard",
       "Created": "Created hoard {name}.",
       "RollbackSurvivor": "Hoard \"{name}\" still exists. The draft was discarded to prevent a duplicate; remove it manually before trying again."

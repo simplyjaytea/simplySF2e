@@ -1,12 +1,12 @@
 // What's new window. Shape follows WhatsNewApp._prepareContext() (whats-new-app.mjs):
-// version, notes and earlierNotes, each note with localized title/body.
+// version, notes and earlierNotes, each note with a localized title and a bullets array of localized strings.
 // Contract (docs/ui-contract.md): the automatic unseen view passes its notes and
 // an empty earlierNotes; the manual view (manualNotes(), capped) puts the notes
 // of the newest release date (id prefix YYYY-MM-DD) in notes, the rest in earlierNotes.
 import { localize } from "./_shared.mjs";
 import { RELEASE_NOTES, manualNotes } from "../../../scripts/whats-new.mjs";
 
-const note = (n) => ({ id: n.id, title: localize(n.title), body: localize(n.body) });
+const note = (n) => ({ id: n.id, title: localize(n.title), bullets: n.bullets.map(localize) });
 const day = (n) => n.id.slice(0, 10);
 const manual = manualNotes(RELEASE_NOTES);
 const newest = manual.filter((n) => day(n) === day(manual[0]));

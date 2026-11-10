@@ -140,6 +140,28 @@ export function traditionFromChoiceOption(chosenOption, classSlug) {
 }
 
 /**
+ * Class spell tradition for the class entry. A fixed-tradition profile
+ * (Technomancer) keeps its own. A variable profile (Mystic, Witchwarper) takes
+ * the tradition the planned class path declares (planClassPaths `tradition`,
+ * read from the chosen Connection's or Paradox's own rule). The AI's tradition
+ * is never consulted. Fail closed: no plan, no declaring path, or two paths
+ * declaring different traditions return null, and the caller makes no entry.
+ * @param {{tradition: string|null}|null} profile pcSpellcastingProfile result
+ * @param {Record<string, {tradition?: string|null}>|null} pathPlan
+ * @returns {string|null}
+ */
+export function classSpellTradition(profile, pathPlan) {
+  if (!profile) return null;
+  if (profile.tradition) return profile.tradition;
+  const declared = new Set(Object.values(pathPlan ?? {})
+    .map((planned) => planned?.tradition)
+    .filter((tradition) => tradition != null));
+  if (declared.size !== 1) return null;
+  const [tradition] = declared;
+  return CASTER_TRADITIONS.has(tradition) ? tradition : null;
+}
+
+/**
  * Archetype caster tradition. The Technomancer Dedication is arcane by its own
  * text. Mystic (Connection) and Witchwarper (Paradox) take their tradition from
  * the option the build pre-answered for the dedication's granted choice; with no

@@ -229,8 +229,18 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
       if (normalizeApiBaseUrl(event.currentTarget.value) !== this.#modelsBaseUrl) {
         this.#clearModelSuggestions();
       }
+      this.#syncEndpointKeyHint();
     });
-    // Enter in a field runs the visual primary (Save & Test), not the plain submit button.
+    this.#syncEndpointKeyHint();
+    // A rejected price sets a custom validity message; a changed value drops it, or the
+    // stale message would block the native submit (Save without testing). The visible
+    // field error stays until the next save validates the new value.
+    for (const name of ["inputPerM", "outputPerM"]) {
+      this.element.querySelector(`[name='${name}']`)?.addEventListener("input", (event) => {
+        event.currentTarget.setCustomValidity?.("");
+      });
+    }
+    // Enter in a field runs the visual primary (Save & test), not the native submit (Save without testing).
     // The frame survives re-renders but not close and reopen, so bind once per frame (as app-base does).
     if (this.#keysElement !== this.element && this.element?.addEventListener) {
       this.#keysElement = this.element;
@@ -274,6 +284,19 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
     const edited = connectionFormDirty(this.#renderedSaved ?? {}, form).length + this.#jevDirtyFields().length;
     if (edited) return;
     await this.#reloadForm();
+  }
+
+  /**
+   * The endpoint-change hint under the URL field: shown only while a key is saved
+   * and the field differs from the saved endpoint (saveProviderConnection then
+   * clears that key unless a replacement is entered).
+   */
+  #syncEndpointKeyHint() {
+    const hint = this.element?.querySelector(".spf-endpoint-key-hint");
+    if (!hint) return;
+    const state = getProviderRequestConfig();
+    const typed = this.element.querySelector("[name='apiBaseUrl']")?.value;
+    hint.hidden = !(state.hasConfiguredApiKey && normalizeApiBaseUrl(typed) !== normalizeApiBaseUrl(state.baseUrl));
   }
 
   #clearModelSuggestions() {
@@ -469,6 +492,7 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
       if (normalizeApiBaseUrl(preset.baseUrl) !== this.#modelsBaseUrl) {
         this.#clearModelSuggestions();
       }
+      this.#syncEndpointKeyHint();
     }
   }
 
@@ -704,6 +728,7 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
     } else if (!state.hasConfiguredApiKey && clearBox) {
       clearBox.remove();
     }
+    this.#syncEndpointKeyHint();
     // The form now shows what is stored: re-take the snapshot _prepareContext takes, or a later
     // connection-change refresh would count these saved values as unsaved edits.
     this.#renderedSaved = savedConnectionForDirty(snapshotProviderConnection(), { connectionName: state.connectionName, prices: getActiveProviderPrices() });

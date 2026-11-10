@@ -232,9 +232,21 @@
   margin-top: 0;
 }
 
+/* Narrow: five tiles cannot fit one row, so they sit 3 + 2 on a six-track
+   grid: each tile spans two tracks, and with exactly five tiles the last two
+   span three each, so both rows fill the width and no orphan gap is left. */
 @container spf-window (max-width: 520px) {
   .simplysf2e .spf-welcome-providers {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .simplysf2e .spf-welcome-provider {
+    grid-column: span 2;
+  }
+
+  .simplysf2e .spf-welcome-provider:nth-child(4):nth-last-child(2),
+  .simplysf2e .spf-welcome-provider:nth-child(5):last-child {
+    grid-column: span 3;
   }
 
   .simplysf2e .spf-welcome-provider {
@@ -253,6 +265,12 @@
 @container spf-window (max-width: 380px) {
   .simplysf2e .spf-welcome-providers {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .simplysf2e .spf-welcome-provider,
+  .simplysf2e .spf-welcome-provider:nth-child(4):nth-last-child(2),
+  .simplysf2e .spf-welcome-provider:nth-child(5):last-child {
+    grid-column: auto;
   }
 }
 

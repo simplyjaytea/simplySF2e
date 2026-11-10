@@ -35,7 +35,7 @@ import { composeEncounter, THREATS } from "./encounter.mjs";
 import { findBestiaryScaffold, scaffoldArt } from "./art.mjs";
 import { assertComplete, completionManifest } from "./completion.mjs";
 import { verifyCreatedActor } from "./post-create.mjs";
-import { manualNotesContent, supportedClassCandidates, isCompletePCClass } from "./pc-support.mjs";
+import { classSpellTradition, manualNotesContent, supportedClassCandidates, isCompletePCClass } from "./pc-support.mjs";
 import { validateArchetypeSlotPlacement } from "./pc-prerequisites.mjs";
 import { SpfApp } from "./app-base.mjs";
 import { progressView } from "./progress.mjs";
@@ -213,8 +213,6 @@ export class GeneratorApp extends SpfApp {
     this.#rememberInputSuspended = previousRememberSuspension || !remember;
     if (this.#busy || this.#createPending || this.#chatPending) {
       try {
-        if (remember) this.setInput(updates);
-        else this.#mergeInput(updates);
         ui.notifications.warn(game.i18n.localize("SIMPLYSF2E.Chat.Busy"));
       } finally {
         this.#rememberInputSuspended = previousRememberSuspension;
@@ -994,18 +992,26 @@ export class GeneratorApp extends SpfApp {
       }
 
       // The real class document owns the casting mode and base slot plan.
-      // Variable traditions still need the selected bloodline/patron checked.
+      // A Mystic's or Witchwarper's tradition comes from the Connection or
+      // Paradox planned above (resolvePCConcept ran planClassPaths), never
+      // from the AI; with none proven the class gets no spell entry.
       const castingProfile = pcSpellcastingProfile(resolved.classDoc);
       if (!this.#input.allowSpellcasting) concept.spellcasting = null;
       if (this.#input.allowSpellcasting && castingProfile) {
-        if (!concept.spellcasting && castingProfile.tradition) {
-          concept.spellcasting = { tradition: castingProfile.tradition, spells: [] };
+        const classTradition = classSpellTradition(castingProfile, resolved.pathPlan);
+        if (!classTradition) {
+          console.warn(`${MODULE_ID} | ${resolved.classDoc.name}: spell tradition not proven from the planned class path — no class spell entry`);
+          concept.spellcasting = null;
+        } else if (!concept.spellcasting) {
+          concept.spellcasting = { tradition: classTradition, spells: [] };
         }
-        concept.spellcastingNoticeKey = castingProfile.tradition
-          ? "SIMPLYSF2E.Preview.PCBaseSpellPlan"
-          : "SIMPLYSF2E.Preview.PCVariableSpellPlan";
+        concept.spellcastingNoticeKey = !classTradition
+          ? "SIMPLYSF2E.Preview.PCSpellTraditionUnproven"
+          : castingProfile.tradition
+            ? "SIMPLYSF2E.Preview.PCBaseSpellPlan"
+            : "SIMPLYSF2E.Preview.PCVariableSpellPlan";
         if (concept.spellcasting) {
-          if (castingProfile.tradition) concept.spellcasting.tradition = castingProfile.tradition;
+          concept.spellcasting.tradition = classTradition;
           const plan = pcSpellPlan(concept.level, castingProfile);
           concept.spellcasting.plannedPicks = plan.picks;
           // A spell database (Technomancer) is selected against its own caps; the
@@ -1391,7 +1397,7 @@ export class GeneratorApp extends SpfApp {
           this.#previewMeta = null;
         }
         console.error(`${MODULE_ID} | actor creation failed`, err);
-        this.#error = survivor ? `${err.message} ${survivor}` : err.message;
+        this.#error = survivor ? `${String(err?.message ?? err ?? "")} ${survivor}` : String(err?.message ?? err ?? "");
         this._recordFailure(err, "actor creation", this.#error);
       } else {
         console.warn(`${MODULE_ID} | actor committed, but completion presentation failed`, err);
@@ -1523,7 +1529,7 @@ export class GeneratorApp extends SpfApp {
       }
       if (!committed) {
         console.error(`${MODULE_ID} | character actor creation failed`, err);
-        this.#error = survivor ? `${err.message} ${survivor}` : err.message;
+        this.#error = survivor ? `${String(err?.message ?? err ?? "")} ${survivor}` : String(err?.message ?? err ?? "");
         this._recordFailure(err, "character creation", this.#error);
       } else console.warn(`${MODULE_ID} | character committed, but completion presentation failed`, err);
     } finally {
@@ -1659,8 +1665,8 @@ export class GeneratorApp extends SpfApp {
       if (survivors.length) {
         this.#encounter = null;
         this.#previewMeta = null;
-        this.#error = `${err.message} ${survivors.join(" ")} The plan was discarded to prevent a duplicate.`;
-      } else this.#error = err.message;
+        this.#error = `${String(err?.message ?? err ?? "")} ${survivors.join(" ")} The plan was discarded to prevent a duplicate.`;
+      } else this.#error = String(err?.message ?? err ?? "");
       this._recordFailure(err, "encounter creation", this.#error);
     } finally {
       this.#busy = false;

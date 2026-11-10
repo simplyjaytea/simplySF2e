@@ -97,7 +97,12 @@ export class SourcesConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
       const countEl = root.querySelector("[data-source-filter-count]");
       if (countEl) countEl.textContent = game.i18n.format("SIMPLYSF2E.Sources.FilterStatus", { shown, total });
     };
-    root.querySelector("[data-source-filter]")?.addEventListener("input", update);
+    const filterInput = root.querySelector("[data-source-filter]");
+    filterInput?.addEventListener("input", update);
+    // The filter applies as the GM types. Enter must not submit the form (that saves and closes).
+    filterInput?.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") event.preventDefault();
+    });
     root.querySelector("[data-source-selected-only]")?.addEventListener("change", update);
     for (const cb of root.querySelectorAll("label.spf-pack input[type='checkbox']")) {
       cb.addEventListener("change", () => {
