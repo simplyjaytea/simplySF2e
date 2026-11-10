@@ -1,6 +1,7 @@
 import { getClassFeatureCandidates, getFeatCandidates, getPacksFor, toItemData } from "./compendium.mjs";
 import { choiceSetOptions, normalizeChoiceFlag, preselectChoiceSets } from "./choice-set.mjs";
 import { stagedActorContext } from "./pc-prerequisites.mjs";
+import { traditionFromChoiceOption } from "./pc-support.mjs";
 import { slugify } from "./text.mjs";
 
 /**
@@ -294,8 +295,11 @@ async function reservedFeatNameSlugs(uuids) {
  * known and can constrain restricted skill slots (e.g. Operative Specialized Skill Set).
  * @param {object} classData
  * @param {object} [options]
- * @returns {Promise<Record<string, { tag: string, uuid: string, name: string, skills: Record<string, number>, trainedSkill: string|null, reservedFeats: string[], reservedFeatNames: string[] }>>}
+ * @returns {Promise<Record<string, { tag: string, uuid: string, name: string, skills: Record<string, number>, trainedSkill: string|null, reservedFeats: string[], reservedFeatNames: string[], tradition: string|null }>>}
  *   `reservedFeatNames` holds the slugified names of `reservedFeats`.
+ *   `tradition` is the spell tradition the selected option's own rule declares
+ *   (a Mystic Connection's or Witchwarper Paradox's `ActiveEffectLike` override
+ *   on `flags.system.<class>.tradition`), or null when it declares none.
  */
 export async function planClassPaths(classData, {
   context, config = globalThis.CONFIG?.PF2E ?? {}, selectChoices = null, excludeFeats = []
@@ -348,7 +352,8 @@ export async function planClassPaths(classData, {
       skills,
       trainedSkill,
       reservedFeats,
-      reservedFeatNames: await reservedFeatNameSlugs(reservedFeats)
+      reservedFeatNames: await reservedFeatNameSlugs(reservedFeats),
+      tradition: traditionFromChoiceOption(resolved?.source, classSlug)
     };
   }
   return plan;
