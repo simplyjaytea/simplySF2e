@@ -296,14 +296,14 @@ assert.equal(app._progress.steps[0].state, "done");
 assert.equal(app._progress.steps[1].state, "active");
 assert.equal(domSteps[0].className, "spf-step-done");
 assert.equal(domSteps[1].className, "spf-step-active");
-assert.match(domElapsed[0].textContent, /^\d+\.\d s$/, "a finished step paints its elapsed time in place");
+assert.match(domElapsed[0].textContent, /^\d+\.\ds$/, "a finished step paints its elapsed time in place");
 assert.equal(domElapsed[1].textContent, "SIMPLYSF2E.Progress.Running");
 
 // A live repaint uses the app's localized unit letters, not the defaults.
 unitLabels["SIMPLYSF2E.Progress.UnitSeconds"] = "sek";
 unitLabels["SIMPLYSF2E.Progress.UnitMinutes"] = "min";
 app._paintStepList();
-assert.match(domElapsed[0].textContent, /^\d+\.\d sek$/, "the in-place repaint ends with the localized seconds letter");
+assert.match(domElapsed[0].textContent, /^\d+\.\dsek$/, "the in-place repaint ends with the localized seconds letter");
 assert.equal(domElapsed[1].textContent, "SIMPLYSF2E.Progress.Running", "the active step still paints the running label");
 
 // 4. Provider switching & testing (the progress tests above left a run open on this window)
