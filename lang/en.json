@@ -227,6 +227,14 @@
           "B4": "Encounter treasure is shared only among creatures that carry loot.",
           "B5": "What's new lists changes as short bullets."
         },
+        "KeptWork": {
+          "Title": "Your work stays put",
+          "B1": "Typed prompts and fields survive every button press in the tool windows.",
+          "B2": "A failed or cancelled Generate another keeps your previous preview.",
+          "B3": "Character class-path choices are decided in the preview, not at Create.",
+          "B4": "A feat your ancestry or background grants is no longer picked again.",
+          "B5": "AI Provider Setup warns when the saved URL contains a secret."
+        },
         "HuntFixes": {
           "Title": "Fixes from a full code review",
           "B1": "Encounter mode: Generate creates the actors in one go.",
