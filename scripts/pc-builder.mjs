@@ -385,6 +385,9 @@ export async function resolvePCConcept(concept, { exactContent = false, pathPlan
     .filter((name) => typeof name === "string" && name.trim())
     .map((name) => [slugify(name), 1]));
 
+  // Feats the ancestry, heritage and background grant natively. Neither a
+  // class path's own choice nor a feat slot may take one again.
+  const abcGrants = abcGrantExclusions([ancestryDoc, heritageDoc, backgroundDoc]);
   if (!pathPlan) {
     // Same key ability createCharacterActor stages, so an attribute choice on
     // the path resolves here exactly as it did at Create.
@@ -392,8 +395,7 @@ export async function resolvePCConcept(concept, { exactContent = false, pathPlan
       keyAbility: resolveKeyAbility(classDoc.system, concept.keyAbility),
       names: conceptChoiceNames(concept, { ancestryDoc, heritageDoc, backgroundDoc, classDoc })
     };
-    const excludeFeats = abcGrantExclusions([ancestryDoc, heritageDoc, backgroundDoc]);
-    pathPlan = await planClassPaths(classDoc, { context: pathContext, selectChoices, excludeFeats });
+    pathPlan = await planClassPaths(classDoc, { context: pathContext, selectChoices, excludeFeats: abcGrants });
   }
 
   for (const planned of Object.values(pathPlan ?? {})) {
@@ -442,7 +444,17 @@ export async function resolvePCConcept(concept, { exactContent = false, pathPlan
   if (heritageDoc) pathFeatures.push({ name: `${heritageDoc.name} heritage` });
   const reservedFeats = Object.values(pathPlan ?? {}).flatMap((planned) => planned?.reservedFeats ?? []);
   const reservedFeatNames = Object.values(pathPlan ?? {}).flatMap((planned) => planned?.reservedFeatNames ?? []);
-  const slotExclusions = [...reservedFeats, ...reservedFeatNames];
+  // Feats the selected path grants outright (a Programming Language's
+  // metamagic feat, a Leadership Style's skill feat) and the ABC grants are
+  // already on the sheet: a slot never takes one again (the system only
+  // warns). getFeatCandidates matches an exact id-form uuid or a slugified
+  // name, and the ABC entries mostly use name-form uuids, so names are
+  // slugified here. A feat with a published maxTakable is excluded too: no
+  // cited source says when a second copy is legal (fail closed).
+  const grantedFeats = Object.values(pathPlan ?? {}).flatMap((planned) => planned?.grantedFeats ?? []);
+  const grantedFeatNames = Object.values(pathPlan ?? {}).flatMap((planned) => planned?.grantedFeatNames ?? []);
+  const abcGrantSlugs = abcGrants.map((grant) => (grant.startsWith("Compendium.") ? grant : slugify(grant))).filter(Boolean);
+  const slotExclusions = [...reservedFeats, ...reservedFeatNames, ...grantedFeats, ...grantedFeatNames, ...abcGrantSlugs];
 
   const hasSpecializedSkillSet = Object.values(classDoc.system?.items ?? {}).some((feature) =>
     Number(feature?.level) === 3 && (

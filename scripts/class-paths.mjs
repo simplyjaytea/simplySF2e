@@ -314,6 +314,21 @@ function assertPathChoicesAnswered(selected, resolved, preselect, config) {
 }
 
 /**
+ * Feats the selected path grants by a fixed uuid (sf2e 1.7.0: DPS++ grants
+ * Reach Spell, Guns Blazing grants Incredible Initiative). Predicated grants
+ * count too: excluding a feat from slots only narrows them (fail closed).
+ */
+async function staticFeatGrants(rules) {
+  const granted = [];
+  for (const rule of Array.isArray(rules) ? rules : []) {
+    const uuid = staticGrantUuid(rule);
+    if (!uuid || granted.includes(uuid)) continue;
+    if ((await sourceFromUuid(uuid))?.type === "feat") granted.push(uuid);
+  }
+  return granted;
+}
+
+/**
  * Slugified names of reserved feats, so slot planning excludes them by name
  * too. Name-form uuids (`Compendium.<pack>.Item.<Name>`) are matched by the
  * loaded source's name; an unloaded uuid contributes nothing.
@@ -333,12 +348,14 @@ async function reservedFeatNameSlugs(uuids) {
  * known and can constrain restricted skill slots (e.g. Operative Specialized Skill Set).
  * @param {object} classData
  * @param {object} [options]
- * @returns {Promise<Record<string, { tag: string, uuid: string, name: string, skills: Record<string, number>, trainedSkill: string|null, reservedFeats: string[], reservedFeatNames: string[], tradition: string|null, preselectChoices: Record<string, string|number|object>|null }>>}
+ * @returns {Promise<Record<string, { tag: string, uuid: string, name: string, skills: Record<string, number>, trainedSkill: string|null, reservedFeats: string[], reservedFeatNames: string[], tradition: string|null, preselectChoices: Record<string, string|number|object>|null, grantedFeats: string[], grantedFeatNames: string[] }>>}
  *   `preselectChoices` answers every ChoiceSet on the selected feature (made
  *   here with `selectChoices`; stageClassPaths only applies it). An unanswered
  *   one throws, as an unselected path does.
  *   `reservedFeats` are the feats those answers chose; slot planning excludes
  *   them. `reservedFeatNames` holds their slugified names.
+ *   `grantedFeats` are the feats the selected option grants by fixed uuid, and
+ *   `grantedFeatNames` their slugified names; slot planning excludes them too.
  *   `tradition` is the spell tradition the selected option's own rule declares
  *   (a Mystic Connection's or Witchwarper Paradox's `ActiveEffectLike` override
  *   on `flags.system.<class>.tradition`), or null when it declares none.
@@ -393,6 +410,7 @@ export async function planClassPaths(classData, {
     const skills = upgradedSkillRanks(resolved?.source?.system?.rules ?? []);
     const trainedSkill = Object.keys(skills)[0] ?? null;
     const reservedFeats = chosenFeatUuids(resolved?.source?.system?.rules ?? [], preselectChoices);
+    const grantedFeats = await staticFeatGrants(resolved?.source?.system?.rules);
     plan[selector.tag] = {
       tag: selector.tag,
       uuid: selected.uuid,
@@ -402,7 +420,9 @@ export async function planClassPaths(classData, {
       reservedFeats,
       reservedFeatNames: await reservedFeatNameSlugs(reservedFeats),
       tradition: traditionFromChoiceOption(resolved?.source, classSlug),
-      preselectChoices
+      preselectChoices,
+      grantedFeats,
+      grantedFeatNames: await reservedFeatNameSlugs(grantedFeats)
     };
   }
   return plan;
