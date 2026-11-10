@@ -260,7 +260,7 @@ assert.match(render, /_keepFormBeforeRender\(\)/, "SpfApp.render reads the form 
 assert.ok(render.indexOf("_skipFormReadOnce = false") < render.indexOf("if (this._closed && !forced) return this"),
   "a dropped render still consumes the skip-once flag");
 assert.match(body(base, "_keepFormBeforeRender() {"), /if \(!this\.element\) return;/, "no read before the first render");
-assert.match(body(base, "_openProviderSetup() {"), /new ProviderSetupApp\(\(\) => this\.render\(\)\)/,
+assert.match(body(base, "_openProviderSetup() {"), /ProviderSetupApp\.open\(\(\) => this\.render\(\)\)/,
   "the Provider Setup callback is a plain render (the base reads the form)");
 
 for (const signature of [
