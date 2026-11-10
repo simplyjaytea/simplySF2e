@@ -128,4 +128,41 @@ const hasCap = (body) => "max_tokens" in body || "max_completion_tokens" in body
   assert.equal(swap[1].max_completion_tokens, 64, "the cap moves to max_completion_tokens");
   assert.equal("max_tokens" in swap[1], false);
 }
+
+// --- 2. Parameter names match only as whole tokens -------------------------
+{
+  for (const message of [
+    "upstream connect error or disconnect/reset before headers",
+    "Bad request from upstream provider: streaming backend overthinking",
+    "The developers of this gateway rejected the request: context too long"
+  ]) {
+    useEndpoint(message.includes("developers") ? OPENAI : LOCAL);
+    const bodies = stubFetch(() => bad400(message));
+    const { error } = await settle(testProviderConnection());
+    assert.equal(bodies.length, 1, `"${message}": one POST, nothing dropped`);
+    assert.ok(error instanceof AIRequestError);
+    assert.match(error.message, /^SIMPLYSF2E\.Errors\.ApiError:/);
+    assert.ok(error.message.includes(message.slice(0, 20)), "the provider error surfaces");
+  }
+  // A quoted parameter name still negotiates, and "stream" survives it.
+  useEndpoint();
+  const quoted = stubFetch((body) => ("stream_options" in body ? bad400("Unsupported parameter: 'stream_options'") : jsonOk()));
+  await testProviderConnection();
+  assert.equal(quoted.length, 2);
+  assert.equal("stream_options" in quoted[1], false, "stream_options dropped");
+  assert.equal(quoted[1].stream, true, "stream kept");
+  // A backticked name and a bare word also negotiate.
+  useEndpoint();
+  const ticked = stubFetch((body) => ("stream" in body ? bad400("`stream` is not supported by this model") : jsonOk()));
+  await testProviderConnection();
+  assert.equal(ticked.length, 2);
+  assert.equal("stream" in ticked[1], false, "stream dropped");
+  assert.equal("stream_options" in ticked[1], true, "stream_options kept: only the named field goes");
+  // The developer role falls back only when "developer" is a whole word.
+  useEndpoint(OPENAI);
+  const role = stubFetch((body) => (body.messages[0].role === "developer" ? bad400("Invalid value: 'developer'. Supported roles: system, user.") : jsonOk()));
+  await testProviderConnection();
+  assert.equal(role.length, 2);
+  assert.equal(role[1].messages[0].role, "system");
+}
 console.log("ai.r3.test.mjs: ok");

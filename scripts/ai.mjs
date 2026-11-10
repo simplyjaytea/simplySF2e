@@ -1714,7 +1714,8 @@ async function requestCompletion({ task, system, user, onProgress, signal, retry
     const rejectedParameters = new Set();
     // Some OpenAI-compatible providers reject stream_options, response_format
     // or streaming. Retry without a parameter ONLY when a 400/422 body actually
-    // names it (checked longest-first so "stream" can't match the others);
+    // names it as a whole token (longest-first, and "upstream" or
+    // "stream_options" never count as "stream");
     // any other validation error fails fast with its own message.
     while (response.status === 400 || response.status === 422) {
       // Keep enough provider text to find a named compatibility field even
@@ -1724,7 +1725,7 @@ async function requestCompletion({ task, system, user, onProgress, signal, retry
       const normalizedDetail = detail.toLowerCase();
       if (
         body.messages[0]?.role === "developer"
-        && normalizedDetail.includes("developer")
+        && namesParameter(normalizedDetail, "developer")
         && !rejectedParameters.has("developer_role")
       ) {
         // Current OpenAI models prefer developer instructions, while older
@@ -1738,7 +1739,7 @@ async function requestCompletion({ task, system, user, onProgress, signal, retry
       const offending = [
         "max_completion_tokens", "reasoning_effort", "stream_options", "response_format",
         "temperature", "max_tokens", "thinking", "stream"
-      ].find((param) => param in body && normalizedDetail.includes(param));
+      ].find((param) => param in body && namesParameter(normalizedDetail, param));
       if (!offending) {
         throw providerApiErrorFromDetail(response, detail);
       }
@@ -1842,6 +1843,17 @@ async function requestCompletion({ task, system, user, onProgress, signal, retry
     clearTimeout(idleTimer);
     clearTimeout(deadlineTimer);
   }
+}
+
+/**
+ * True when a provider error text names `name` as a whole token: not preceded
+ * or followed by a letter, digit or underscore. Quoted ('stream_options'),
+ * backticked or bare names match; "upstream", "streaming" and the "stream" in
+ * "stream_options" do not.
+ */
+function namesParameter(text, name) {
+  // `name` is one of the fixed parameter identifiers: no regex metacharacters.
+  return new RegExp(`(?<![a-z0-9_])${name}(?![a-z0-9_])`, "i").test(text);
 }
 
 /** Consume an SSE chat-completions stream, reporting progress per chunk. */
