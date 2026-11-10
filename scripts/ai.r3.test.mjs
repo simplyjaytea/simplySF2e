@@ -377,4 +377,24 @@ const hasCap = (body) => "max_tokens" in body || "max_completion_tokens" in body
   await chooseSpellFocus({ concept, tradition: "arcane", signal: new AbortController().signal });
   assert.equal(requestSignal.aborted, false, "a completed request is not aborted");
 }
+
+// --- 7. Null or empty usage counts fall back to the estimate ----------------
+{
+  const text = { content: '{"a":1}', system: "system text", user: "user text" };
+  const estimate = normalizeUsage(null, text);
+  for (const empty of [null, "", undefined, "n/a", true]) {
+    const usage = normalizeUsage({ prompt_tokens: empty, completion_tokens: empty, total_tokens: empty }, text);
+    assert.equal(usage.estimated, true, `${JSON.stringify(empty)} counts are absent`);
+    assert.equal(usage.total, estimate.total);
+    assert.equal(usage.completion, estimateTokens(text.content));
+  }
+  const zero = normalizeUsage({ prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }, text);
+  assert.deepEqual(zero, { prompt: 0, completion: 0, total: 0, estimated: false }, "a real 0 stays an exact 0");
+  const partial = normalizeUsage({ prompt_tokens: 12, completion_tokens: null, total_tokens: "" }, text);
+  assert.equal(partial.prompt, 12);
+  assert.equal(partial.completion, estimateTokens(text.content));
+  assert.equal(partial.estimated, true);
+  const strings = normalizeUsage({ prompt_tokens: "3", completion_tokens: "4" }, text);
+  assert.deepEqual(strings, { prompt: 3, completion: 4, total: 7, estimated: false }, "numeric strings still count");
+}
 console.log("ai.r3.test.mjs: ok");
