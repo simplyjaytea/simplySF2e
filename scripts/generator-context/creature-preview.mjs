@@ -4,7 +4,7 @@
 import { computeStats, adjustedStats } from "../builder.mjs";
 import { rerollTarget } from "../reroll.mjs";
 import { signed } from "../text.mjs";
-import { mapNamed, mapSpells, mapGear, matchSummary } from "./rows.mjs";
+import { mapNamed, mapSpells, mapGear, matchSummary, feetText } from "./rows.mjs";
 
 export function buildCreaturePreviewContext(concept, resolved) {
   if (!concept) return null;
@@ -49,8 +49,8 @@ export function buildCreaturePreviewContext(concept, resolved) {
     stats,
     display,
     traits: [concept.rarity !== "common" ? concept.rarity : null, concept.size, ...concept.traits].filter(Boolean),
-    speeds: concept.speeds.map((s) => `${s.type} ${s.value} ft.`).join(", "),
-    senses: concept.senses.map((s) => [s.type, s.acuity, s.range ? `${s.range} ft.` : null].filter(Boolean).join(" ")).join(", "),
+    speeds: concept.speeds.map((s) => `${s.type} ${feetText(s.value)}`).join(", "),
+    senses: concept.senses.map((s) => [s.type, s.acuity, s.range ? feetText(s.range) : null].filter(Boolean).join(" ")).join(", "),
     languages: concept.languages.join(", "),
     abilities,
     spells,

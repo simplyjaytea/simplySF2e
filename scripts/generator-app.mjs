@@ -55,14 +55,15 @@ import {
 } from "./generator-context/pc-preview.mjs";
 import { completionContext, buildRecentContext } from "./generator-context/result-context.mjs";
 
-async function rollbackActor(actor, label) {
+async function rollbackActor(actor, labelKey) {
   if (!actor) return null;
+  const label = game.i18n.localize(labelKey);
   try {
     await actor.delete();
     return null;
   } catch (cleanupErr) {
     console.warn(`${MODULE_ID} | failed to roll back ${label} "${actor.name}"`, cleanupErr);
-    return `${label} "${actor.name}" still exists. The draft was discarded to prevent a duplicate; remove it manually before trying again.`;
+    return game.i18n.format("SIMPLYSF2E.Generator.SurvivorDraft", { label, name: actor.name });
   }
 }
 
@@ -1426,7 +1427,7 @@ export class GeneratorApp extends SpfApp {
       }
     } catch (err) {
       if (!committed) {
-        const survivor = await rollbackActor(actor, "unverified actor");
+        const survivor = await rollbackActor(actor, "SIMPLYSF2E.Generator.RollbackUnverifiedActor");
         if (survivor) {
           this.#concept = null;
           this.#resolved = null;
@@ -1552,10 +1553,10 @@ export class GeneratorApp extends SpfApp {
     } catch (err) {
       let survivor = null;
       if (actor && !committed) {
-        survivor = await rollbackActor(actor, "unverified character");
+        survivor = await rollbackActor(actor, "SIMPLYSF2E.Generator.RollbackUnverifiedCharacter");
       } else if (err?.simplySF2eRollbackActor) {
         const stranded = err.simplySF2eRollbackActor;
-        survivor = `incomplete character "${stranded.name}" still exists. The draft was discarded to prevent a duplicate; remove it manually before trying again.`;
+        survivor = game.i18n.format("SIMPLYSF2E.Generator.SurvivorIncompleteCharacter", { name: stranded.name });
       }
       if (survivor) {
         this.#pcConcept = null;
@@ -1690,19 +1691,19 @@ export class GeneratorApp extends SpfApp {
       // original error while ensuring a retry cannot duplicate a partial roster.
       const survivors = [];
       for (const actor of actors.reverse()) {
-        const survivor = await rollbackActor(actor, "encounter actor");
+        const survivor = await rollbackActor(actor, "SIMPLYSF2E.Generator.RollbackEncounterActor");
         if (survivor) survivors.push(survivor);
       }
       if (folder) {
         try { await folder.delete(); } catch (cleanupErr) {
           console.warn(`${MODULE_ID} | failed to roll back encounter folder "${folder.name}"`, cleanupErr);
-          survivors.push(`encounter folder "${folder.name}" still exists`);
+          survivors.push(game.i18n.format("SIMPLYSF2E.Generator.SurvivorFolder", { name: folder.name }));
         }
       }
       if (survivors.length) {
         this.#encounter = null;
         this.#previewMeta = null;
-        this.#error = `${String(err?.message ?? err ?? "")} ${survivors.join(" ")} The plan was discarded to prevent a duplicate.`;
+        this.#error = `${String(err?.message ?? err ?? "")} ${survivors.join(" ")} ${game.i18n.localize("SIMPLYSF2E.Generator.PlanDiscarded")}`;
       } else this.#error = String(err?.message ?? err ?? "");
       this._recordFailure(err, "encounter creation", this.#error);
     } finally {

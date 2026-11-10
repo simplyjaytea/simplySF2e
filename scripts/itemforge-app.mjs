@@ -168,7 +168,7 @@ export class ItemForgeApp extends SpfApp {
       traits: [concept.rarity !== "common" ? concept.rarity : null, ...concept.traits].filter(Boolean),
       usage: concept.usage,
       bulk: concept.bulk === 0.1 ? "L" : concept.bulk === 0 ? "—" : String(concept.bulk),
-      price: `${gpToCredits(this.#price).toLocaleString()} credits`,
+      price: game.i18n.format("SIMPLYSF2E.ItemForge.PriceCredits", { amount: gpToCredits(this.#price).toLocaleString() }),
       invested: concept.invested,
       effects: concept.effects.map((e) => describeEffect(e)),
       hasEffects: concept.effects.length > 0,
@@ -202,7 +202,7 @@ export class ItemForgeApp extends SpfApp {
     const data = this.#itemData;
     const preview = this.#runedPreview;
     const priceCredits = preview.priceCredits ?? gpToCredits(preview.priceGp);
-    const priceText = `${priceCredits.toLocaleString()} credits`;
+    const priceText = game.i18n.format("SIMPLYSF2E.ItemForge.PriceCredits", { amount: priceCredits.toLocaleString() });
     const skipped = preview.skippedUpgrades ?? [];
     const gradeKey = GRADE_LABEL_KEYS[preview.grade ?? data.system.grade ?? "commercial"];
     return {
