@@ -264,6 +264,7 @@ export class ItemForgeApp extends SpfApp {
     if (!validKinds.has(kind)) return;
     this.#readForm();
     this.#input = { ...this.#input, kind };
+    this._skipFormReadOnce = true;   // show the input just set, do not read the old form back
     await this.render();
   }
 

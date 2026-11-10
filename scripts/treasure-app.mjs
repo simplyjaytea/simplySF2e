@@ -206,6 +206,7 @@ export class TreasureApp extends SpfApp {
     this.#input.level = clampTreasureLevel(party.level, this.#input.level);
     this.#input.partySize = clampPartySize(party.size, this.#input.partySize);
     ui.notifications.info(game.i18n.format("SIMPLYSF2E.Party.Filled", { name: party.name }));
+    this._skipFormReadOnce = true;   // show the party's level and size, do not read the old form back
     await this.render();
   }
 
