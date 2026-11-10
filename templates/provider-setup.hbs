@@ -40,6 +40,8 @@
     <div class="form-group stacked">
       <label for="spf-provider-base-url">{{localize "SIMPLYSF2E.Settings.ApiBaseUrl.Name"}}</label>
       <input id="spf-provider-base-url" type="url" name="apiBaseUrl" value="{{apiBaseUrl}}" required spellcheck="false" autocomplete="url">
+      {{! Standing warning, never inside a fold: shown while the field holds a user name, password or secret query parameter. Kept in step with the field by provider-setup-app.mjs (#syncStoredUrlWarning). }}
+      <p class="spf-field-error spf-stored-url-warning" aria-live="polite" {{#unless storedUrlWarning}}hidden{{/unless}}><i aria-hidden="true" class="fa-solid fa-triangle-exclamation"></i> <span>{{storedUrlWarning}}</span></p>
       <p class="spf-hint">{{localize "SIMPLYSF2E.ProviderSetup.BaseUrlHint"}}</p>
       {{! Shown by provider-setup-app.mjs only while a key is saved and this field differs from the saved endpoint. }}
       <p class="spf-hint spf-endpoint-key-hint" aria-live="polite" hidden><i aria-hidden="true" class="fa-solid fa-key"></i> {{localize "SIMPLYSF2E.ProviderSetup.EndpointKeyHint"}}</p>

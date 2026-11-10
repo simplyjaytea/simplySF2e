@@ -138,6 +138,8 @@
       "InvalidBaseUrl": "Enter a complete HTTP or HTTPS API Base URL.",
       "BaseUrlHasUserinfo": "The API Base URL contains a user name or password. Every player's browser can read this URL. Remove them and enter the secret in the API key field.",
       "BaseUrlHasSecret": "The API Base URL contains a secret in its query string ({name}). Every player's browser can read this URL. Remove that parameter and enter the secret in the API key field.",
+      "StoredUrlHasUserinfo": "This saved URL contains a user name or password, and every player's browser can read it. Remove them here, put the secret in the API key field, and save. Then change that password at the provider.",
+      "StoredUrlHasSecret": "This saved URL contains a secret in its query string ({name}), and every player's browser can read it. Remove that parameter here, put the secret in the API key field, and save. Then replace that key at the provider.",
       "Saved": "Saved {provider} with model {model}.",
       "SavedAuthorized": "Saved {provider} with model {model}; the key is authorized for this endpoint.",
       "SavedNeedsKey": "Saved {provider} with model {model}, but this remote provider still needs an API key.",

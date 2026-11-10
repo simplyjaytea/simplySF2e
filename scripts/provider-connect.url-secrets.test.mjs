@@ -3,7 +3,7 @@
 // Run: node scripts/provider-connect.url-secrets.test.mjs
 import assert from "node:assert/strict";
 import {
-  SETTINGS, apiBaseUrlCredentialReason, createProviderConnection, chatCompletionsUrl
+  SETTINGS, apiBaseUrlCredentialInfo, apiBaseUrlCredentialReason, getProviderAuthWarningKey, getProviderRequestConfig, createProviderConnection, chatCompletionsUrl
 } from "./settings.mjs";
 import { saveProviderConnection } from "./provider-connect.mjs";
 
@@ -79,5 +79,30 @@ await saveProviderConnection({ baseUrl: "https://gw.example/v1?api-version=2024-
 assert.equal(values.get(SETTINGS.apiBaseUrl), "https://gw.example/v1?api-version=2024-06-01");
 assert.equal(chatCompletionsUrl("https://gw.example/v1?api-version=2024-06-01"),
   "https://gw.example/v1/chat/completions?api-version=2024-06-01");
+
+// Non-blocking flag for an ALREADY stored URL (Provider Setup shows a standing warning).
+{
+  const live = (url) => { values.set(SETTINGS.apiBaseUrl, url); values.set(SETTINGS.providerBank, { activeId: "", connections: [] }); };
+  live("https://gw.example/v1?api-key=SECRET");
+  assert.equal(getProviderRequestConfig().baseUrlCredential, "query-secret");
+  live("https://user:pw@gw.example/v1");
+  assert.equal(getProviderRequestConfig().baseUrlCredential, "userinfo");
+  live("https://gw.example/v1?api-version=2");
+  assert.equal(getProviderRequestConfig().baseUrlCredential, null);
+  live("");
+  assert.equal(getProviderRequestConfig().baseUrlCredential, null);
+  assert.deepEqual(apiBaseUrlCredentialInfo("https://gw.example/v1?API_KEY=SECRET"), { reason: "query-secret", name: "API_KEY" });
+  assert.equal(JSON.stringify(apiBaseUrlCredentialInfo("https://gw.example/v1?api-key=SECRET")).includes("SECRET"), false, "never the value");
+  assert.deepEqual(apiBaseUrlCredentialInfo("https://u:p@gw.example/v1"), { reason: "userinfo", name: "" });
+
+  // Generation readiness is unchanged by a credential-bearing stored URL (the flag must not block).
+  const base = { model: "m", hasConfiguredApiKey: true, apiKeyIsBound: true, apiKeyInsecure: false, keylessLocal: false };
+  for (const url of ["https://gw.example/v1?api-key=SECRET", "https://u:p@gw.example/v1", "https://gw.example/v1"]) {
+    assert.equal(
+      getProviderAuthWarningKey({ ...base, baseUrl: url, baseUrlCredential: apiBaseUrlCredentialReason(url) }, "https:"),
+      null, `${url}: still ready`
+    );
+  }
+}
 
 console.log("provider-connect.url-secrets tests passed");
