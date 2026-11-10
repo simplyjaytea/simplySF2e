@@ -346,6 +346,16 @@ export async function findEntry(packIds, name, filter) {
   return best;
 }
 
+/**
+ * Cached index entry (name, type, system.level/traits...) for a `{packId, _id}`
+ * reference, or null. An issued candidate ref carries only those two ids.
+ */
+export async function getIndexEntry(ref) {
+  if (!ref?.packId || !ref?._id) return null;
+  const entries = await getIndex(ref.packId);
+  return entries?.find((e) => e._id === ref._id) ?? null;
+}
+
 /** Fetch the full document for an index entry returned by findEntry(). */
 export async function getDocument(entry) {
   if (!entry) return null;
