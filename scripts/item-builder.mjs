@@ -12,7 +12,7 @@
 
 import {
   getPacksFor, EQUIPMENT_TYPES, findEntry, getDocument, toItemData, getEquipmentIndex,
-  priceToGp, RARITY_RANK
+  priceToGp, RARITY_RANK, registerCompendiumCache, compendiumCacheGeneration, sharedLoad
 } from "./compendium.mjs";
 import { slugify, capitalized, esc, escAi } from "./text.mjs";
 import {
@@ -121,10 +121,11 @@ const PRICED_TYPES = new Set([...EQUIPMENT_TYPES].filter((t) => t !== "treasure"
 /* -------------------- empirical pricing -------------------- */
 
 /* All priced items across the equipment packs, as {level, gp}. Cached. */
-let priceSamplesPromise = null;
+const priceSamplesCache = new Map();
+registerCompendiumCache(() => priceSamplesCache.clear());
 
-async function getPriceSamples() {
-  priceSamplesPromise ??= (async () => {
+function getPriceSamples() {
+  return sharedLoad(priceSamplesCache, "all", async () => {
     const samples = [];
     const seen = new Set();
     for (const packId of getPacksFor("equipment")) {
@@ -139,14 +140,14 @@ async function getPriceSamples() {
       }
     }
     return samples;
-  })();
-  return priceSamplesPromise;
+  });
 }
 
 const MIN_PRICE_SAMPLES = 5;
 
 /* level -> median gp of real items at (or near) that level. */
 const medianCache = new Map();
+registerCompendiumCache(() => medianCache.clear());
 
 function median(values) {
   const sorted = [...values].sort((a, b) => a - b);
@@ -169,6 +170,7 @@ function median(values) {
 export async function priceForLevel(level, rarity = "common") {
   const lv = Math.min(Math.max(Math.round(Number(level) || 0), MIN_ITEM_LEVEL), MAX_ITEM_LEVEL);
   if (!medianCache.has(lv)) {
+    const generation = compendiumCacheGeneration();
     const samples = await getPriceSamples();
     let base = 0;
     for (let window = 0; window <= MAX_ITEM_LEVEL; window++) {
@@ -181,6 +183,7 @@ export async function priceForLevel(level, rarity = "common") {
         break;
       }
     }
+    if (generation !== compendiumCacheGeneration()) return Math.round(base * (RARITY_TREASURE_MULTIPLIER[rarity] ?? 1));
     medianCache.set(lv, base);
   }
   return Math.round(medianCache.get(lv) * (RARITY_TREASURE_MULTIPLIER[rarity] ?? 1));
@@ -414,7 +417,8 @@ export async function buildRunedItem(concept) {
 /* Fallback when the AI's usage doesn't match anything harvested. */
 const DEFAULT_USAGE = "worn";
 
-let usageOptionsPromise = null;
+const usageOptionsCache = new Map();
+registerCompendiumCache(() => usageOptionsCache.clear());
 
 /**
  * The most common `system.usage.value` strings among real magical equipment
@@ -426,7 +430,7 @@ let usageOptionsPromise = null;
  */
 export async function getUsageOptions(kind = "wondrous") {
   if (KIND_USAGE[kind]) return [KIND_USAGE[kind]];
-  usageOptionsPromise ??= (async () => {
+  return sharedLoad(usageOptionsCache, "all", async () => {
     const counts = new Map();
     for (const packId of getPacksFor("equipment")) {
       for (const entry of await getEquipmentIndex(packId)) {
@@ -440,8 +444,7 @@ export async function getUsageOptions(kind = "wondrous") {
     }
     const options = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 14).map(([usage]) => usage);
     return options.length ? options : [DEFAULT_USAGE];
-  })();
-  return usageOptionsPromise;
+  });
 }
 
 /** Match the AI's usage answer to a real harvested string (format-tolerant). */
