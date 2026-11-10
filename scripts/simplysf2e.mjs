@@ -3,6 +3,7 @@ import { GeneratorApp } from "./generator-app.mjs";
 import { ItemForgeApp } from "./itemforge-app.mjs";
 import { ShopApp } from "./shop-app.mjs";
 import { TreasureApp } from "./treasure-app.mjs";
+import { clearCompendiumCaches, clearCachesForChangedDocument } from "./compendium.mjs";
 import { SourcesConfigApp } from "./sources-app.mjs";
 import { ProviderSetupApp } from "./provider-setup-app.mjs";
 import { WelcomeApp } from "./welcome-app.mjs";
@@ -256,6 +257,19 @@ Hooks.on("deleteItem", async (item, _options, userId) => {
     console.warn(`${MODULE_ID} | failed to clean up activation macro ${uuid}`, err);
   }
 });
+
+/*
+ * Compendium caches (indexes, price samples, placeholder documents) follow the
+ * GM's pack choice and the packs' content. `sourcePacks` is a world setting, so
+ * its onChange fires on every client; settings.mjs raises the hook below.
+ * Create/update/delete hooks fire for compendium documents too, with `.pack`
+ * set to the pack id; world documents have no `pack` and are ignored, so an
+ * ordinary actor update never clears anything.
+ */
+Hooks.on("simplysf2e.sourcePacksChanged", () => clearCompendiumCaches());
+for (const name of ["createItem", "updateItem", "deleteItem", "createActor", "updateActor", "deleteActor"]) {
+  Hooks.on(name, (doc) => clearCachesForChangedDocument(doc));
+}
 
 /*
  * The shared v14-dev rest macro still fires this exact hook name on the

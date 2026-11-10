@@ -107,7 +107,10 @@ export function registerSettings(SourcesConfigApp, ProviderSetupApp, WelcomeApp,
     scope: "world",
     config: false,
     type: Object,
-    default: {}
+    default: {},
+    // compendium.mjs imports this file, so it cannot be imported back here;
+    // simplysf2e.mjs listens for this hook and clears the compendium caches.
+    onChange: () => Hooks.callAll("simplysf2e.sourcePacksChanged")
   });
 
   // "Don't show this again" on the first-run welcome. Client scope: the AI

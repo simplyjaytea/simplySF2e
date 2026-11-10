@@ -10,6 +10,7 @@ import { hasPlaceholderValues, isFillableEntry } from "./ability-fill.mjs";
 export { hasPlaceholderValues, isFillableEntry };
 import { featPrerequisitesMet } from "./pc-prerequisites.mjs";
 import { slugify } from "./text.mjs";
+import { runPool } from "./pool.mjs";
 import { withinShopRarity, hasPositivePrice } from "./shop.mjs";
 
 export const CATEGORIES = [
@@ -98,9 +99,61 @@ export function unitPriceGp(doc) {
    base-item-vs-requested-rarity pick). */
 export const RARITY_RANK = { common: 0, uncommon: 1, rare: 2, unique: 3 };
 
+/* Cache registry. Every module-level cache here (and in item-builder.mjs and
+   runes.mjs, which register theirs) adds a reset function; clearCompendiumCaches
+   runs them all when the GM changes the pack sources or a pack's content changes.
+   A load that started before a clear compares its generation before writing. */
+const cacheResets = [];
+let cacheGeneration = 0;
+
+/** Register a function that empties one cache. */
+export function registerCompendiumCache(reset) {
+  if (typeof reset === "function") cacheResets.push(reset);
+}
+
+/** Bumped by every clear; a load writes its result only if this is unchanged. */
+export function compendiumCacheGeneration() { return cacheGeneration; }
+
+/** Forget every cached index, document, price sample and pack warning. */
+export function clearCompendiumCaches() {
+  cacheGeneration += 1;
+  for (const reset of cacheResets) reset();
+}
+
+/**
+ * Clear the caches when a compendium document changed in a pack the module has
+ * read. World documents (no `pack`) and unread packs are ignored.
+ * @param {{pack?: string|{collection?: string}|null}} doc
+ */
+export function clearCachesForChangedDocument(doc) {
+  const pack = doc?.pack;
+  const packId = typeof pack === "string" ? pack : pack?.collection;
+  if (!packId) return;
+  if (indexCache.has(packId) || equipmentIndexCache.has(packId)) clearCompendiumCaches();
+}
+
+/**
+ * One shared load per key. The promise is stored before it settles, so
+ * parallel callers share it; a rejected load is dropped so the next call
+ * retries. A clear removes the entry, so a stale load is never re-cached.
+ * @template T
+ * @param {Map<string, Promise<T>>} cache
+ * @param {string} key
+ * @param {() => Promise<T>|T} load
+ * @returns {Promise<T>}
+ */
+export function sharedLoad(cache, key, load) {
+  if (cache.has(key)) return cache.get(key);
+  const promise = (async () => load())();
+  cache.set(key, promise);
+  promise.catch(() => { if (cache.get(key) === promise) cache.delete(key); });
+  return promise;
+}
+
 /* Messages already printed by getPacksFor, so each warning shows once per session
    instead of on every render of the apps that call it. */
 const warnedPacks = new Set();
+registerCompendiumCache(() => warnedPacks.clear());
 
 function warnOnce(message) {
   if (warnedPacks.has(message)) return;
@@ -166,15 +219,19 @@ export async function getAllPacksFor(category) {
   return [...new Set([...configured, ...detected])];
 }
 
-let detectedPacks = null;
+const detectedPacks = new Map();
+registerCompendiumCache(() => detectedPacks.clear());
 
 /**
  * Scan every Item compendium in the world and report which packs can serve
  * each category, based on the item types they actually contain.
  * @returns {Promise<Record<string, {id: string, title: string, package: string}[]>>}
  */
-export async function detectAvailablePacks() {
-  if (detectedPacks) return detectedPacks;
+export function detectAvailablePacks() {
+  return sharedLoad(detectedPacks, "all", scanAvailablePacks);
+}
+
+async function scanAvailablePacks() {
   const result = {
     abilities: [], spells: [], feats: [], equipment: [],
     ancestries: [], backgrounds: [], classes: [], classFeatures: [], heritages: [], bestiaryActors: []
@@ -203,11 +260,12 @@ export async function detectAvailablePacks() {
     if (types.has("heritage")) result.heritages.push(info);
   }
   for (const list of Object.values(result)) list.sort((a, b) => a.title.localeCompare(b.title));
-  detectedPacks = result;
   return result;
 }
 
+// packId -> promise of the entries (null for a missing pack), shared while loading.
 const indexCache = new Map();
+registerCompendiumCache(() => indexCache.clear());
 
 function normalize(name) {
   return String(name ?? "")
@@ -219,13 +277,13 @@ function normalize(name) {
     .trim();
 }
 
-async function getIndex(packId) {
-  if (indexCache.has(packId)) return indexCache.get(packId);
+function getIndex(packId) {
+  return sharedLoad(indexCache, packId, () => loadIndex(packId));
+}
+
+async function loadIndex(packId) {
   const pack = game.packs.get(packId);
-  if (!pack) {
-    indexCache.set(packId, null);
-    return null;
-  }
+  if (!pack) return null;
   const index = await pack.getIndex({
     fields: [
       "name", "type", "system.slug", "system.level.value",
@@ -234,14 +292,13 @@ async function getIndex(packId) {
       "system.group", "system.price.value"
     ]
   });
-  const entries = index.map((e) => ({ ...e, packId, normalized: normalize(e.name) }));
-  indexCache.set(packId, entries);
-  return entries;
+  return index.map((e) => ({ ...e, packId, normalized: normalize(e.name) }));
 }
 
 /* packId -> index entries carrying the extra fields the equipment-heavy
    callers need (price/usage), which the shared index above doesn't request. */
 const equipmentIndexCache = new Map();
+registerCompendiumCache(() => equipmentIndexCache.clear());
 
 /**
  * Equipment-pack index extended with level, price, usage and traits — used by
@@ -249,13 +306,13 @@ const equipmentIndexCache = new Map();
  * which need real prices and `usage` strings the default index omits.
  * @returns {Promise<object[]>} index entries, or [] when the pack is missing
  */
-export async function getEquipmentIndex(packId) {
-  if (equipmentIndexCache.has(packId)) return equipmentIndexCache.get(packId);
+export function getEquipmentIndex(packId) {
+  return sharedLoad(equipmentIndexCache, packId, () => loadEquipmentIndex(packId));
+}
+
+async function loadEquipmentIndex(packId) {
   const pack = game.packs.get(packId);
-  if (!pack) {
-    equipmentIndexCache.set(packId, []);
-    return [];
-  }
+  if (!pack) return [];
   let entries = [];
   try {
     const index = await pack.getIndex({
@@ -265,7 +322,6 @@ export async function getEquipmentIndex(packId) {
   } catch (err) {
     console.warn(`simplysf2e | failed to index equipment pack "${packId}"`, err);
   }
-  equipmentIndexCache.set(packId, entries);
   return entries;
 }
 
@@ -274,9 +330,10 @@ export async function getEquipmentIndex(packId) {
  * scan serves rune lookups, base-item candidates and price sampling alike.
  * @returns {Promise<{name: string, type: string, level: number, gp: number, usage: string|null, category: string|null, group: string|null, specific: boolean}[]>}
  */
-let equipmentEntriesPromise = null;
+const equipmentEntriesCache = new Map();
+registerCompendiumCache(() => equipmentEntriesCache.clear());
 export function getAllEquipmentEntries() {
-  equipmentEntriesPromise ??= (async () => {
+  return sharedLoad(equipmentEntriesCache, "all", async () => {
     const entries = [];
     const seen = new Set();
     for (const packId of getPacksFor("equipment")) {
@@ -300,8 +357,7 @@ export function getAllEquipmentEntries() {
       }
     }
     return entries;
-  })();
-  return equipmentEntriesPromise;
+  });
 }
 
 /* Filler words that shouldn't block a token match ("Potion of Invisibility"
@@ -888,6 +944,13 @@ const placeholderCache = new Map();
 // The document behind each classified entry, kept so resolveConcept can dry-run
 // the build-time fill without a second pack read (FIX-B5).
 const placeholderDocs = new Map();
+// Loads in flight, shared by parallel callers; a settled load leaves this map.
+const placeholderPending = new Map();
+registerCompendiumCache(() => {
+  placeholderCache.clear();
+  placeholderDocs.clear();
+  placeholderPending.clear();
+});
 
 /**
  * Load the full document and classify it. "unreadable" (missing or thrown)
@@ -898,6 +961,17 @@ const placeholderDocs = new Map();
 export async function placeholderState(entry) {
   const key = `${entry?.packId}:${entry?._id}`;
   if (placeholderCache.has(key)) return placeholderCache.get(key);
+  let load = placeholderPending.get(key);
+  if (!load) {
+    load = loadPlaceholderState(entry, key, cacheGeneration);
+    placeholderPending.set(key, load);
+    const settled = () => { if (placeholderPending.get(key) === load) placeholderPending.delete(key); };
+    load.then(settled, settled);
+  }
+  return load;
+}
+
+async function loadPlaceholderState(entry, key, generation) {
   let doc = null;
   try {
     doc = await getDocument(entry);
@@ -910,8 +984,10 @@ export async function placeholderState(entry) {
     return "unreadable";
   }
   const state = hasPlaceholderValues(doc) ? "blank" : "clean";
-  placeholderCache.set(key, state);
-  placeholderDocs.set(key, doc);
+  if (generation === cacheGeneration) {
+    placeholderCache.set(key, state);
+    placeholderDocs.set(key, doc);
+  }
   return state;
 }
 
@@ -927,9 +1003,14 @@ export async function isPlaceholderEntry(entry) {
 
 /** Test seam: forget classified documents (packs are not edited during a session). */
 export function clearPlaceholderCache() {
+  cacheGeneration += 1;
   placeholderCache.clear();
   placeholderDocs.clear();
+  placeholderPending.clear();
 }
+
+/** Most placeholder document loads in flight at once. */
+const PLACEHOLDER_LOAD_LIMIT = 8;
 
 /**
  * Bounded exact bestiary-action candidates for creature ability selection.
@@ -947,8 +1028,8 @@ export async function getAbilityCandidates(keywords = [], { signal } = {}) {
   }
   // The placeholder check applies to every configured abilities pack, by
   // design: fail closed for any pack, not only the bundled glossary. Documents
-  // load in parallel; the cache keeps later calls cheap.
-  const states = await Promise.all(pending.map((entry) => placeholderState(entry)));
+  // load a few at a time; the cache keeps later calls cheap.
+  const states = await runPool(pending.length, PLACEHOLDER_LOAD_LIMIT, (i) => placeholderState(pending[i]));
   if (signal?.aborted) {
     const err = new Error("Cancelled");
     err.cancelled = true;
