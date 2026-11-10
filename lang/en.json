@@ -35,7 +35,7 @@
       },
       "RequestTimeout": {
         "Name": "Request timeout (seconds)",
-        "Hint": "Abort a generation if the AI provider sends no data for this long. Responses are streamed, so slow models keep working as long as data keeps arriving — this only catches genuinely stalled connections."
+        "Hint": "Abort a generation if the AI provider sends no data for this long. Responses are streamed, so slow models keep working as long as data keeps arriving. This only catches genuinely stalled connections."
       },
       "RunTokenBudget": {
         "Name": "Run token budget",
@@ -47,7 +47,7 @@
       },
       "FreeArchetype": {
         "Name": "Free Archetype variant rule",
-        "Hint": "When enabled, one-click characters gain the variant's extra archetype feat slot at each even level. Picks are validated staged — candidate-time prerequisite filtering plus slot-placement checks — and unprovable placements are left unresolved instead of guessed."
+        "Hint": "When enabled, one-click characters gain the variant's extra archetype feat slot at each even level. Picks are validated staged: candidate-time prerequisite filtering plus slot-placement checks, and unprovable placements are left unresolved instead of guessed."
       }
     },
     "ProviderSetup": {
@@ -94,7 +94,7 @@
       "ModelsEmpty": "The provider returned no model IDs. For LM Studio, load a model or enable Just-In-Time loading; otherwise enter the exact ID manually.",
       "ModelsInvalid": "The provider's model-list response was not valid JSON.",
       "ApiKeyLabel": "API key (this browser only)",
-      "ApiKeySaved": "A key is saved — leave blank to keep it",
+      "ApiKeySaved": "A key is saved. Leave blank to keep it",
       "ApiKeyOptional": "Leave blank for a keyless local server",
       "ApiKeyHint": "Changing endpoints clears the old saved key unless you enter a replacement here.",
       "ClearApiKey": "Clear the saved API key",
@@ -109,7 +109,7 @@
       "JevSourceLabel": "Jev source",
       "JevKeyLabel": "Jev key (this browser only)",
       "JevKeyPlaceholder": "Optional: {source} key",
-      "JevKeySaved": "A Jev key is saved — leave blank to keep it",
+      "JevKeySaved": "A Jev key is saved. Leave blank to keep it",
       "ClearJevKey": "Clear the saved Jev key",
       "SaveJevKey": "Save Jev key",
       "JevCorsWarning": "TypeSafe AI currently blocks calls from a browser (CORS), so Foundry cannot reach api.typesafe.ai directly. Use OpenRouter, or enter the address of your own CORS proxy above. Use Test Jev to check. The TypeSafe key is sent only to the endpoint above.",
@@ -369,7 +369,7 @@
       "AdjustmentWeak": "Weak (-1 Level)",
       "Advanced": "Advanced options",
       "RarityCap": "Rarity cap",
-      "RarityCapTooltip": "Excludes ancestries, backgrounds, and heritages rarer than this from what the AI can pick — e.g. capping at Uncommon rules out Rare/Unique options",
+      "RarityCapTooltip": "Excludes ancestries, backgrounds, and heritages rarer than this from what the AI can pick, e.g. capping at Uncommon rules out Rare/Unique options",
       "TreasureAmount": "Treasure amount",
       "TreasureReadoutTooltip": "Total loot value across all members vs. the treasure budget (per-encounter share of the cited SF2e Party Treasure total, shown in credits; levels outside 1–20 are module extrapolations).",
       "AllowSpellcasting": "Allow spellcasting",
@@ -395,7 +395,7 @@
       "RerollPickInvalid": "The AI did not pick a listed option for {name}. The preview is unchanged. Try the reroll again.",
       "RerollPickBlocked": "{name} cannot be used for this creature (the console says why). The preview is unchanged.",
       "Discard": "Discard",
-      "EmptyHintReskin": "Nothing generated yet — drop an NPC above, then press Generate. The preview appears here before anything is created.",
+      "EmptyHintReskin": "Nothing generated yet. Drop an NPC above, then press Generate. The preview appears here before anything is created.",
       "EmptyHintReskinReady": "Press Reskin Creature or Preview Plan to create the preview. Nothing is created until you confirm it.",
       "XPUnit": "XP",
       "CreditsLabel": "Credits",
@@ -416,7 +416,7 @@
       "DiscardTitle": "Discard preview?",
       "DiscardConfirm": "This throws away the preview, including any changes you made to it. The tokens it cost are not refunded.",
       "NoSupportedClasses": "No supported complete-only player-character classes are available in the enabled compendium sources.",
-      "ReviewTitle": "Character created — review",
+      "ReviewTitle": "Character created: review",
       "ReviewActionsHeading": "To review ({count})",
       "ReviewChoiceTitle": "Choose an option for {item}",
       "ReviewChoiceDetail": "This feature had no recorded choice after creation. It may be conditional or intentionally disabled; review it on the character sheet.",
@@ -446,12 +446,12 @@
       "JevShort": "Jev",
       "JevShortOn": "On",
       "JevShortOff": "Off",
-      "SourcesReady": "Ready — {packCount} enabled packs",
+      "SourcesReady": "Ready: {packCount} enabled packs",
       "SourcesMissing": "Required compendium content is unavailable: {categories}. Configure Compendium Sources before generating.",
       "ConfigureSources": "Configure compendium sources",
       "ModeLabel": "Generation mode",
       "NoModelShort": "No model",
-      "EmptyHint": "Nothing generated yet — describe a concept above and press Generate. The preview appears here before anything is created.",
+      "EmptyHint": "Nothing generated yet. Describe a concept above and press Generate. The preview appears here before anything is created.",
       "ReskinLegend": "Reskin an existing creature",
       "ReskinPrompt": "Reskin theme",
       "ReskinPromptPlaceholder": "e.g. make it a void-touched pirate enforcer who boards ships through airlocks...",
@@ -471,7 +471,7 @@
       "CreateReskin": "Create Reskinned Copy"
     },
     "Presets": {
-      "None": "— No preset —",
+      "None": "(No preset)",
       "StandardGroup": "Standard classes",
       "ArchetypesGroup": "Starfinder Archetypes",
       "CustomGroup": "Custom presets",
@@ -604,8 +604,8 @@
       "GrantTimingTitle": "Check skill grants and feat prerequisites",
       "IntelligenceTimingTitle": "Check skills trained from Intelligence",
       "NativeRuleTitle": "Review skills changed by a rule",
-      "UnspentTrainingTitle": "Assign {count} more trained skill(s)",
-      "UnspentIncreasesTitle": "Assign {count} more skill increase(s)",
+      "UnspentTrainingTitle": "Trained skills still to assign: {count}",
+      "UnspentIncreasesTitle": "Skill increases still to assign: {count}",
       "ProjectionMismatchTitle": "Check feats that need skill ranks",
       "Rank0": "Untrained",
       "Rank1": "Trained",
@@ -633,7 +633,7 @@
       "DroneManual": "Drone exocortex: set up the drone companion by hand; SimplySF2e does not create companion actors.",
       "ArchetypeSpellsManual": "{dedication}: choose its {choice} on the sheet, then add its spellcasting entry by hand.",
       "ArchetypeChoiceFallback": "choice",
-      "EmptyFeatSlots": "{count} feat slot(s) left empty because no legal feat was available: {slots}. Pick them on the sheet if your table allows."
+      "EmptyFeatSlots": "Feat slots left empty because no legal feat was available: {count} ({slots}). Pick them on the sheet if your table allows."
     },
     "Progress": {
       "Label": "Generation progress",
@@ -672,7 +672,7 @@
     },
     "Tokens": {
       "Heading": "Token usage",
-      "Step": "{prompt} in, {completion} out — {total} tokens",
+      "Step": "{prompt} in, {completion} out: {total} tokens",
       "StepEstimated": "≈ {total} tokens (estimated)",
       "StepTotal": "{total} tokens",
       "Total": "Total: {total} tokens",
@@ -775,7 +775,7 @@
       "Weaknesses": "Weaknesses",
       "FromCompendium": "Pulled from a bestiary ability glossary pack",
       "Custom": "Custom",
-      "NotFound": "No compendium match found — this entry will be skipped",
+      "NotFound": "No compendium match found. This entry will be skipped",
       "Found": "Matched a real compendium item",
       "MatchSummary": "{matched}/{total} compendium matches"
     },
@@ -836,7 +836,7 @@
       "KindCrystalHint": "Magic crystal for a solarian; general passive effects, not solar weapon damage",
       "KindCrystalShort": "Crystal",
       "ProgressCandidates": "Finding base equipment & upgrades",
-      "NoBaseItems": "No {kind} items were found in this world's compendiums — is the SF2e equipment pack installed?",
+      "NoBaseItems": "No {kind} items were found in this world's compendiums. Is the SF2e equipment pack installed?",
       "RunesHeading": "Upgrades",
       "ItemGradeUpgradesHeading": "Grade and upgrades",
       "Grade": "Grade",
@@ -850,10 +850,10 @@
       "EmptyHint": "Describe an item and press Generate. The preview appears here before anything is created."
     },
     "Loot": {
-      "CustomItem": "Generated by SimplySF2e. No compendium match was found for this item, so it stands in as treasure with an estimated value — replace it with the real item if you have it."
+      "CustomItem": "Generated by SimplySF2e. No compendium match was found for this item, so it stands in as treasure with an estimated value. Replace it with the real item if you have it."
     },
     "Equipment": {
-      "CustomItem": "Generated by SimplySF2e. No compendium match was found for this item, so it stands in as plain gear at an estimated price — replace it with the real item if you have it."
+      "CustomItem": "Generated by SimplySF2e. No compendium match was found for this item, so it stands in as plain gear at an estimated price. Replace it with the real item if you have it."
     },
     "BugReport": {
       "Copy": "Copy bug report",
@@ -935,7 +935,7 @@
       "RemoveItem": "Remove {name} from stock",
       "StockTotal": "Total stock value: {total} credits. Prices are the compendium's own.",
       "AllRemoved": "Every item was removed. Press Generate another shop to restock.",
-      "Dropped": "{count} pick(s) were not on the offered list and were left out.",
+      "Dropped": "Picks left out because they were not on the offered list: {count}.",
       "Create": "Create merchant",
       "Created": "Created merchant {name}.",
       "RollbackSurvivor": "Merchant \"{name}\" still exists. The draft was discarded to prevent a duplicate; remove it manually before trying again.",
@@ -1003,7 +1003,7 @@
       "RemoveItem": "Remove {name} from the hoard",
       "CreditsRow": "Credits (Credstick)",
       "AllRemoved": "Every item was removed. The whole budget is now credits.",
-      "Dropped": "{count} pick(s) were not offered, had no price, or did not fit the budget, and were left out.",
+      "Dropped": "Picks left out because they were not offered, had no price, or did not fit the budget: {count}.",
       "Create": "Create hoard",
       "Created": "Created hoard {name}.",
       "RollbackSurvivor": "Hoard \"{name}\" still exists. The draft was discarded to prevent a duplicate; remove it manually before trying again."
