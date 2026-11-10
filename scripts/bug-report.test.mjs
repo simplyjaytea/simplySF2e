@@ -33,6 +33,23 @@ assert.equal(trimmed[0], "    at f0 (x.mjs:0)");
 assert.equal(trimmed.length, 13);
 assert.match(trimmed.at(-1), /8 more lines/);
 
+// Stack URLs: only the module path and line:column survive, never the host.
+assert.equal(
+  trimStack("Error: x\n    at requestCompletion (https://foundry.example.com:30000/modules/simplysf2e/scripts/ai.mjs:1794:13)", "x"),
+  "    at requestCompletion (modules/simplysf2e/scripts/ai.mjs:1794:13)"
+);
+assert.equal(
+  trimStack("Error: x\n    at https://gm:pw@host.example/vtt/prefix/modules/simplysf2e/scripts/ai.mjs?v=3:10:5", "x"),
+  "    at modules/simplysf2e/scripts/ai.mjs:10:5"
+);
+assert.equal(
+  trimStack("Error: x\nrequestCompletion@https://foundry.example.com/modules/simplysf2e/scripts/ai.mjs:1794:13", "x"),
+  "requestCompletion@modules/simplysf2e/scripts/ai.mjs:1794:13"
+);
+assert.equal(trimStack("Error: x\n    at foo (https://cdn.example.org/lib/x.js:1:2)", "x"), "    at foo (/lib/x.js:1:2)");
+assert.equal(trimStack("Error: x\n    at file:///root/x/scripts/ai.mjs:5:1", "x"), "    at file:///root/x/scripts/ai.mjs:5:1");
+assert.equal(trimStack("Error: x\n    at plain (native)", "x"), "    at plain (native)");
+
 // Failure capture reads the active step and the finished ones.
 const err = new Error("Equipment pick failed");
 const progress = {
@@ -144,6 +161,23 @@ const spanReport = formatBugReport({
 });
 assert.ok(!spanReport.includes(spanKey.slice(0, 8)), "no fragment of a key spanning the prompt cut");
 assert.ok(!spanReport.includes(spanKey), "exact key in the error is masked");
+
+// A browser-style stack in a full report keeps the game-server host out of it.
+const browserErr = new Error("Generation failed");
+browserErr.stack = [
+  "Error: Generation failed",
+  "    at requestCompletion (https://foundry.example.com:30000/modules/simplysf2e/scripts/ai.mjs:1794:13)",
+  "    at https://gm:pw@foundry.example.com/vtt/modules/simplysf2e/scripts/generator-app.mjs?v=2:88:4"
+].join("\n");
+const browserReport = formatBugReport({
+  app: "Generator",
+  failure: captureFailure(browserErr, { operation: "generation", shown: browserErr.message, progress }),
+  env,
+  secrets
+});
+assert.match(browserReport, /at requestCompletion \(modules\/simplysf2e\/scripts\/ai\.mjs:1794:13\)/);
+assert.ok(!browserReport.includes("foundry.example.com"), "report leaks the game-server host");
+assert.ok(!browserReport.includes("gm:pw"), "report leaks stack userinfo");
 
 // Issue link: the bug-report template only, never report text in the URL.
 assert.equal(BUG_REPORT_ISSUE_URL, "https://github.com/simplyjaytea/simplySF2e/issues/new?template=bug_report.md");
