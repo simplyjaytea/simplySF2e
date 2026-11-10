@@ -5,7 +5,9 @@
     {{#each notes}}
       <li class="spf-whats-new-note">
         <strong class="spf-whats-new-title">{{title}}</strong>
-        <span class="spf-whats-new-body">{{body}}</span>
+        <ul class="spf-whats-new-bullets">
+          {{#each bullets}}<li>{{this}}</li>{{/each}}
+        </ul>
       </li>
     {{/each}}
   </ul>
@@ -19,7 +21,9 @@
         {{#each earlierNotes}}
           <li class="spf-whats-new-note">
             <strong class="spf-whats-new-title">{{title}}</strong>
-            <span class="spf-whats-new-body">{{body}}</span>
+            <ul class="spf-whats-new-bullets">
+              {{#each bullets}}<li>{{this}}</li>{{/each}}
+            </ul>
           </li>
         {{/each}}
       </ul>

@@ -3,6 +3,12 @@ import { markSeen, splitManualNotes, whatsNewView } from "./whats-new.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
+const localizeNote = (note) => ({
+  id: note.id,
+  title: game.i18n.localize(note.title),
+  bullets: note.bullets.map((key) => game.i18n.localize(key))
+});
+
 /**
  * "What's new" window. Auto-open passes only the unseen notes; a manual open
  * (settings menu, /sf2e whatsnew, api.openWhatsNew) passes none and shows the
@@ -57,16 +63,8 @@ export class WhatsNewApp extends HandlebarsApplicationMixin(ApplicationV2) {
     return {
       version: game.modules.get(MODULE_ID)?.version ?? "",
       manual: this.#manual,
-      notes: notesList.map((note) => ({
-        id: note.id,
-        title: game.i18n.localize(note.title),
-        body: game.i18n.localize(note.body)
-      })),
-      earlierNotes: earlierList.map((note) => ({
-        id: note.id,
-        title: game.i18n.localize(note.title),
-        body: game.i18n.localize(note.body)
-      }))
+      notes: notesList.map(localizeNote),
+      earlierNotes: earlierList.map(localizeNote)
     };
   }
 

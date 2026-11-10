@@ -23,6 +23,38 @@
   overflow-wrap: anywhere;
 }
 
+/* Bullets: real list markers in the accent colour, muted text so the title leads. */
+.simplysf2e .spf-whats-new-bullets {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spf-space-xs);
+  margin: 0;
+  padding: 0 0 0 var(--spf-space-lg);
+  list-style: disc;
+  color: var(--spf-text-muted);
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+
+.simplysf2e .spf-whats-new-bullets > li {
+  margin: 0;
+  padding: 0;
+}
+
+.simplysf2e .spf-whats-new-bullets > li::marker {
+  color: var(--spf-brand-accent);
+}
+
+@container spf-window (max-width: 520px) {
+  .simplysf2e .spf-whats-new-note {
+    padding: var(--spf-space-sm);
+  }
+
+  .simplysf2e .spf-whats-new-bullets {
+    padding-left: var(--spf-space-md);
+  }
+}
+
 .simplysf2e .spf-whats-new-broke {
   display: flex;
   flex-direction: column;
