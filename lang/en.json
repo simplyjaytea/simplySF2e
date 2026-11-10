@@ -216,7 +216,7 @@
           "B2": "Creature spellcasters keep their cantrips at cantrip rank.",
           "B3": "Re-leveling a creature far down no longer gives zero or negative AC, saves or damage.",
           "B4": "Reskinning a world creature makes a fresh copy: full health, no conditions, GM-only ownership.",
-          "B5": "An API Base URL that contains a password or key is refused, because players read it."
+          "B5": "An API Base URL that contains a password or key is refused, because players can read it."
         },
         "HuntFixes": {
           "Title": "Fixes from a full code review",
