@@ -448,4 +448,44 @@ assert.ok(notifications.some((n) => n.type === "error" && n.msg.includes("TestFa
   assert.equal(idle.closedCalled, 1, "idle window closes");
 }
 
+// Every re-render reads the form first (R4-GEN); the first render and a skip-once render do not.
+{
+  class FormApp extends SpfApp {
+    reads = 0;
+    _preserveForm() { this.reads += 1; }
+  }
+  const formApp = new FormApp();
+  await formApp.render(true);
+  assert.equal(formApp.reads, 0, "the first render reads no form (no element yet)");
+  formApp.element = { querySelector: () => null };
+  await formApp.render();
+  assert.equal(formApp.reads, 1, "a re-render reads the form exactly once");
+  formApp._skipFormReadOnce = true;
+  await formApp.render();
+  assert.equal(formApp.reads, 1, "a skip-once render shows the input just set without reading the form");
+  assert.equal(formApp._skipFormReadOnce, false, "the skip-once flag is consumed");
+  await formApp.render();
+  assert.equal(formApp.reads, 2, "the render after a skip reads again");
+  formApp._closed = true;
+  formApp._skipFormReadOnce = true;
+  await formApp.render();
+  assert.equal(formApp._skipFormReadOnce, false, "a dropped render (closed window) still consumes the flag");
+  assert.equal(formApp.reads, 2, "a dropped render reads nothing");
+  await formApp.render(true);
+  assert.equal(formApp.reads, 3, "a forced reopen reads the form like any re-render");
+
+  // A failing read never blocks the render.
+  const broken = new (class extends SpfApp { _preserveForm() { throw new Error("form gone"); } })();
+  broken.element = { querySelector: () => null };
+  broken.rendered = false;
+  await broken.render();
+  assert.equal(broken.rendered, true, "a throwing _preserveForm does not stop the render");
+
+  // A window without a form draft (base no-op) is unaffected.
+  const plainApp = new SpfApp();
+  plainApp.element = { querySelector: () => null };
+  await plainApp.render();
+  assert.equal(plainApp.rendered, true, "an SpfApp without _preserveForm renders as before");
+}
+
 console.log("app-base.test.mjs: cancellation, token reporting, progress, and provider assertions passed");
