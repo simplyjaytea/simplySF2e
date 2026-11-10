@@ -1754,6 +1754,7 @@ async function requestCompletion({ task, system, user, onProgress, signal, retry
   // `received` holds what has streamed in so far, for the estimate.
   const received = { content: "", reasoningChars: 0, usage: null, reader: null };
   let accepted = false;
+  let completed = false;
   let charged = null;
   const chargeUsageOnce = (usage, { content, reasoningChars }) => {
     if (charged) return charged;
@@ -1874,12 +1875,14 @@ async function requestCompletion({ task, system, user, onProgress, signal, retry
         }
       );
     }
-    return {
+    const result = {
       content,
       usage: chargeUsageOnce(usage, { content, reasoningChars }),
       finishReason,
       reasoningChars
     };
+    completed = true;
+    return result;
   } catch (err) {
     let failure = err;
     if (!(err instanceof AIRequestError) && (err.name === "AbortError" || controller.signal.aborted)) {
@@ -1902,6 +1905,14 @@ async function requestCompletion({ task, system, user, onProgress, signal, retry
     userSignal?.removeEventListener("abort", onUserAbort);
     clearTimeout(idleTimer);
     clearTimeout(deadlineTimer);
+    // A failed request may leave the body locked and the socket open (a
+    // provider error record on a stream it keeps alive). Release both. The
+    // error thrown above was already chosen, and the run's own signal is not
+    // touched, so this cannot turn it into Cancelled or Timeout.
+    if (!completed) {
+      try { received.reader?.cancel().catch(() => {}); } catch { /* already released */ }
+      controller.abort();
+    }
   }
 }
 

@@ -340,4 +340,41 @@ const hasCap = (body) => "max_tokens" in body || "max_completion_tokens" in body
   assert.equal(error.usage?.estimated, true, "streamed tokens attached");
   assert.equal(getRunBudget(ac.signal).tokensSpent, error.usage.total);
 }
+
+// --- 6. The stream is released when the request fails ------------------------
+{
+  useEndpoint();
+  let released = false;
+  let requestSignal = null;
+  globalThis.fetch = async (_url, init) => {
+    requestSignal = init.signal;
+    let n = 0;
+    return new Response(new ReadableStream({
+      pull(c) {
+        if (n++ === 0) {
+          c.enqueue(delta("partial"));
+          c.enqueue(sseRecord({ error: { message: "Insufficient credits" } }));
+          return;
+        }
+        return new Promise(() => {}); // the provider keeps the socket open
+      },
+      cancel() { released = true; }
+    }), { status: 200, headers: { "content-type": "text/event-stream" } });
+  };
+  const ac = new AbortController();
+  const { error } = await settle(chooseSpellFocus({ concept, tradition: "arcane", signal: ac.signal }));
+  assert.ok(error instanceof AIRequestError);
+  assert.match(error.message, /^SIMPLYSF2E\.Errors\.ProviderError:/, "the provider's error, not Cancelled or Timeout");
+  assert.match(error.message, /Insufficient credits/);
+  assert.notEqual(error.cancelled, true);
+  assert.equal(ac.signal.aborted, false, "the run's own signal is untouched");
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(released, true, "the response body was cancelled");
+  assert.equal(requestSignal.aborted, true, "the request's internal controller was aborted");
+
+  // A success leaves the request signal alone.
+  globalThis.fetch = async (_url, init) => { requestSignal = init.signal; return jsonOk('{"keywords":["fire"]}'); };
+  await chooseSpellFocus({ concept, tradition: "arcane", signal: new AbortController().signal });
+  assert.equal(requestSignal.aborted, false, "a completed request is not aborted");
+}
 console.log("ai.r3.test.mjs: ok");
