@@ -12,6 +12,35 @@ const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 export class SourcesConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
   #filter = { query: "", selectedOnly: false };
 
+  /** Open Compendium Sources, or reach the window already open. Use this instead of `new SourcesConfigApp()`. */
+  static open() {
+    const live = foundry.applications.instances?.get?.(SourcesConfigApp.DEFAULT_OPTIONS.id);
+    if (live) {
+      // Not re-rendered: its pack checkboxes may hold unsaved changes.
+      if (live.rendered === false) live.render(true);
+      else SourcesConfigApp.#bringToFront(live);
+      return live;
+    }
+    const app = new SourcesConfigApp();
+    app.render(true);
+    return app;
+  }
+
+  static #bringToFront(live) {
+    if (live.minimized) live.maximize?.();
+    live.bringToFront?.();
+  }
+
+  /** The settings menu builds its own instance under the fixed id: hand over to a window already open. */
+  async render(options = {}, _options = {}) {
+    const live = foundry.applications.instances?.get?.(SourcesConfigApp.DEFAULT_OPTIONS.id);
+    if (live && live !== this && live instanceof SourcesConfigApp && live.rendered !== false) {
+      SourcesConfigApp.#bringToFront(live);
+      return live;
+    }
+    return super.render(options, _options);
+  }
+
   static DEFAULT_OPTIONS = {
     id: "simplysf2e-sources",
     tag: "form",

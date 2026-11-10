@@ -77,7 +77,8 @@ export function jevTestNotice(result) {
 
 /** Focused provider setup, reachable both from module settings and the generator. */
 export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) {
-  #onSaved;
+  /** Everyone waiting to hear about a saved connection (each opener's header strip). */
+  #savedListeners = new Set();
   #selectedPreset = null;
   #keysElement = null;
   #availableModels = [];
@@ -98,7 +99,75 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
       options = {};
     }
     super(options);
-    this.#onSaved = typeof onSaved === "function" ? onSaved : null;
+    this.addSavedListener(onSaved);
+  }
+
+  /** The window already on screen under this id, if any (the settings menu builds its own instances). */
+  static #live() {
+    return foundry.applications.instances?.get?.(ProviderSetupApp.DEFAULT_OPTIONS.id) ?? null;
+  }
+
+  /**
+   * Bring an already open window to the front without re-rendering it: its form
+   * holds unsaved edits and is patched in place, so a re-render could drop them.
+   */
+  static #bringToFront(live) {
+    if (live.minimized) live.maximize?.();
+    live.bringToFront?.();
+  }
+
+  /**
+   * Open Provider Setup, or reach the one already open. `onSaved` is told when
+   * a connection is saved either way. Use this instead of `new ProviderSetupApp()`.
+   */
+  static open(onSaved = null) {
+    const live = ProviderSetupApp.#live();
+    if (live) {
+      live.addSavedListener(onSaved);
+      if (live.rendered === false) live.render(true);
+      else ProviderSetupApp.#bringToFront(live);
+      return live;
+    }
+    const app = new ProviderSetupApp({}, onSaved);
+    app.render(true);
+    return app;
+  }
+
+  /** Call `listener` after every connection save while this window is open; cleared on close. */
+  addSavedListener(listener) {
+    if (typeof listener === "function") this.#savedListeners.add(listener);
+  }
+
+  /** Every listener runs; one that throws is logged and does not stop the others. */
+  async #notifySaved() {
+    for (const listener of [...this.#savedListeners]) {
+      try {
+        await listener();
+      } catch (err) {
+        console.error("simplysf2e | a Provider Setup save listener failed", err);
+      }
+    }
+  }
+
+  /**
+   * The settings menu builds `new ProviderSetupApp()` under the fixed id. When
+   * another instance is already open, hand over to it (listeners included)
+   * instead of replacing its DOM and losing its unsaved edits.
+   */
+  async render(options = {}, _options = {}) {
+    const live = ProviderSetupApp.#live();
+    if (live && live !== this && live instanceof ProviderSetupApp && live.rendered !== false) {
+      for (const listener of this.#savedListeners) live.addSavedListener(listener);
+      this.#savedListeners.clear();
+      ProviderSetupApp.#bringToFront(live);
+      return live;
+    }
+    return super.render(options, _options);
+  }
+
+  _onClose(options) {
+    this.#savedListeners.clear();
+    return super._onClose?.(options);
   }
 
   static DEFAULT_OPTIONS = {
@@ -570,7 +639,7 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
       prices: priceInputs.inputPerM && priceInputs.outputPerM ? prices : null,
       pricesEdited
     });
-    await this.#onSaved?.();
+    await this.#notifySaved();
     return result;
   }
 
@@ -664,7 +733,7 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
         ProviderSetupApp.#notifyJevSaved(result);
         // Update in place: a re-render would discard unsaved chat fields.
         this.#syncJevControls(Boolean(getJevRequestConfig().apiKey));
-        await this.#onSaved?.();
+        await this.#notifySaved();
       }
     } catch (err) {
       console.error("simplysf2e | Jev key save failed", err);
@@ -689,7 +758,7 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
       if (saved) {
         ProviderSetupApp.#notifyJevSaved(saved);
         this.#syncJevControls(Boolean(getJevRequestConfig().apiKey));
-        await this.#onSaved?.();
+        await this.#notifySaved();
       }
       const notice = jevTestNotice(await testJevConnection());
       ui.notifications[notice.level](notice.key, { localize: true, format: notice.data, escape: true });

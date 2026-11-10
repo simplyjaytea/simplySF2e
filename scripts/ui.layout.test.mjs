@@ -453,7 +453,7 @@ for (const [name, source] of [
   ["item forge", itemForgeApp]
 ]) {
   assert.match(source, /configureSources:/, `${name} must register the sources gear action`);
-  assert.match(source, /new SourcesConfigApp\(\)\.render\(true\)/, `${name} sources gear must open the shared sources app`);
+  assert.match(source, /SourcesConfigApp\.open\(\)/, `${name} sources gear must open the shared sources app`);
 }
 
 // 4. One stable options order in every mode: Level → rarity control →
