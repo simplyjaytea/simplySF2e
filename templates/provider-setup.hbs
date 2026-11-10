@@ -41,6 +41,8 @@
       <label for="spf-provider-base-url">{{localize "SIMPLYSF2E.Settings.ApiBaseUrl.Name"}}</label>
       <input id="spf-provider-base-url" type="url" name="apiBaseUrl" value="{{apiBaseUrl}}" required spellcheck="false" autocomplete="url">
       <p class="spf-hint">{{localize "SIMPLYSF2E.ProviderSetup.BaseUrlHint"}}</p>
+      {{! Shown by provider-setup-app.mjs only while a key is saved and this field differs from the saved endpoint. }}
+      <p class="spf-hint spf-endpoint-key-hint" aria-live="polite" hidden><i aria-hidden="true" class="fa-solid fa-key"></i> {{localize "SIMPLYSF2E.ProviderSetup.EndpointKeyHint"}}</p>
     </div>
 
     <div class="form-group stacked">
@@ -63,7 +65,6 @@
       <label for="spf-provider-api-key">{{localize "SIMPLYSF2E.ProviderSetup.ApiKeyLabel"}}</label>
       <input id="spf-provider-api-key" type="password" name="apiKey" value="" spellcheck="false" autocomplete="new-password" placeholder="{{#unless hasApiKey}}{{localize 'SIMPLYSF2E.ProviderSetup.ApiKeyOptional'}}{{/unless}}">
       {{#if hasApiKey}}<p class="spf-hint spf-key-saved">{{localize "SIMPLYSF2E.ProviderSetup.ApiKeySaved"}}</p>{{/if}}
-      <p class="spf-hint">{{localize "SIMPLYSF2E.ProviderSetup.ApiKeyHint"}}</p>
     </div>
 
     {{#if hasApiKey}}
@@ -151,12 +152,12 @@
     <button type="button" class="spf-primary" data-action="saveAndTest">
       <i aria-hidden="true" class="fa-solid fa-signal"></i> {{localize "SIMPLYSF2E.ProviderSetup.SaveTest"}}
     </button>
-    <button type="submit">
-      <i aria-hidden="true" class="fa-solid fa-floppy-disk"></i> {{localize "SIMPLYSF2E.ProviderSetup.SaveAuthorize"}}
+    {{! The native submit is the plain save; Enter in a field runs Save & test instead (provider-setup-app.mjs keydown). }}
+    <button type="submit" class="spf-secondary">
+      <i aria-hidden="true" class="fa-solid fa-floppy-disk"></i> {{localize "SIMPLYSF2E.ProviderSetup.SaveWithoutTest"}}
     </button>
     <button type="button" data-action="cancel">
       <i aria-hidden="true" class="fa-solid fa-xmark"></i> {{localize "SIMPLYSF2E.ProviderSetup.Cancel"}}
     </button>
   </footer>
-  <p class="spf-hint spf-footer-hint">{{localize "SIMPLYSF2E.ProviderSetup.FooterHint"}}</p>
 </div>

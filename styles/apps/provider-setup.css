@@ -106,6 +106,13 @@
   width: auto;
 }
 
+/* The Jev "key is saved" line sits in the picker row: give it the whole row so
+   Save Jev key and Test Jev stay side by side below it. */
+.simplysf2e .spf-model-picker > .spf-hint {
+  flex: 1 0 100%;
+  margin: 0;
+}
+
 .simplysf2e .spf-price-row {
   display: flex;
   flex-wrap: wrap;
@@ -215,6 +222,7 @@
 
 /* The local-server hint is only for Ollama, LM Studio and custom endpoints. */
 .simplysf2e .spf-provider-local-hint[hidden],
+.simplysf2e .spf-endpoint-key-hint[hidden],
 .simplysf2e .spf-provider-clear-key[hidden],
 .simplysf2e .spf-jev-warning[hidden],
 .simplysf2e .spf-jev-endpoint[hidden] {
