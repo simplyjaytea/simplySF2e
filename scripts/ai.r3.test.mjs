@@ -61,6 +61,8 @@ function stubFetch(reply) {
   globalThis.fetch = async (_url, init) => {
     const body = JSON.parse(init.body);
     bodies.push(body);
+    // A negotiation loop that never ends fails the request instead of hanging.
+    if (bodies.length > 6) throw new Error("runaway negotiation");
     return reply(body, bodies.length - 1, init);
   };
   return bodies;
