@@ -643,4 +643,74 @@ const newApp = (form) => {
   assert.equal(editedForm.querySelector("[name='model']").value, "typed-after-save", "and the typed text is kept");
 }
 
+// (o) One save action: Save & test is the only primary; the native submit is the quiet
+// "Save without testing"; the footnote that explained two save buttons is gone.
+{
+  const template = await readFile(new URL("../templates/provider-setup.hbs", import.meta.url), "utf8");
+  const lang = await readFile(new URL("../lang/en.json", import.meta.url), "utf8");
+  assert.equal(template.match(/spf-primary/g)?.length, 1, "exactly one .spf-primary in Provider Setup");
+  assert.match(template, /class="spf-primary" data-action="saveAndTest"/, "Save & test is the primary");
+  assert.equal(template.match(/type="submit"/g)?.length, 1, "one native submit");
+  assert.match(template, /<button type="submit" class="spf-secondary">\s*<i[^>]*><\/i> \{\{localize "SIMPLYSF2E\.ProviderSetup\.SaveWithoutTest"\}\}/,
+    "the native submit is the secondary Save without testing");
+  for (const gone of ["FooterHint", "SaveAuthorize"]) {
+    assert.ok(!template.includes(gone), `${gone} is not in the template`);
+    assert.ok(!lang.includes(`"${gone}"`), `${gone} is not in lang/en.json`);
+  }
+  const messages = JSON.parse(lang).SIMPLYSF2E.ProviderSetup;
+  assert.equal(messages.SaveWithoutTest, "Save without testing");
+  assert.match(messages.ModelHint, /Load models/, "ModelHint names the real button label");
+  assert.match(template, /class="spf-hint spf-endpoint-key-hint"[^>]*hidden/, "the endpoint-change hint renders hidden");
+}
+
+// (p) A rejected price sets a custom validity; changing the value clears it at once, so the
+// native submit (Save without testing) is not blocked by the stale message. The field error stays.
+{
+  resetState();
+  const form = standardForm();
+  const validity = (el) => {
+    el.custom = "";
+    el.setCustomValidity = function (message) { this.custom = message; };
+    el.reportValidity = () => true;
+    return el;
+  };
+  const priceInput = validity(form.querySelector("[name='inputPerM']"));
+  const priceOutput = validity(form.querySelector("[name='outputPerM']"));
+  const app = newApp(form);
+  for (const el of [priceInput, priceOutput]) {
+    assert.equal(el.listeners.filter((entry) => entry.type === "input").length, 1, "one input listener per price field");
+  }
+  priceInput.value = "-2";
+  await actions.saveAndTest.call(app, null, { querySelector: () => null });
+  assert.equal(priceInput.custom, "SIMPLYSF2E.ProviderSetup.PriceInputInvalid", "the rejected price carries a custom validity");
+  assert.equal(saveCalls, 0, "a rejected price saves nothing");
+  priceInput.value = "2";
+  for (const { type, fn } of priceInput.listeners) if (type === "input") fn({ currentTarget: priceInput });
+  assert.equal(priceInput.custom, "", "a changed value clears the stale custom validity");
+  priceOutput.custom = "stale";
+  for (const { type, fn } of priceOutput.listeners) if (type === "input") fn({ currentTarget: priceOutput });
+  assert.equal(priceOutput.custom, "", "the output price clears too");
+}
+
+// (q) The endpoint-change hint shows only while a key is saved and the URL differs from the saved endpoint.
+{
+  resetState();
+  const form = standardForm();
+  const hint = form.control(".spf-endpoint-key-hint", { hidden: true });
+  const url = form.querySelector("[name='apiBaseUrl']");
+  newApp(form);
+  const typeUrl = (value) => {
+    url.value = value;
+    for (const { type, fn } of url.listeners) if (type === "input") fn({ currentTarget: url });
+  };
+  assert.equal(hint.hidden, true, "saved endpoint shown: hint hidden");
+  typeUrl("https://openrouter.ai/api/v1");
+  assert.equal(hint.hidden, false, "another endpoint with a saved key: hint shown");
+  typeUrl("https://api.deepseek.com/v1/");
+  assert.equal(hint.hidden, true, "back to the saved endpoint: hint hidden");
+  providerState.hasConfiguredApiKey = false;
+  typeUrl("https://openrouter.ai/api/v1");
+  assert.equal(hint.hidden, true, "no saved key: nothing to lose, hint hidden");
+}
+
 console.log("provider-setup-app.test.mjs: ok");

@@ -287,7 +287,7 @@ When a run fails, the red error box in the Generator, Item Forge, Shop or Treasu
 | "No usable NPC actor was found in the enabled Bestiary Actors sources." | Set a Bestiary Actors pack in Compendium Sources. Creature creation borrows art and structure from it. |
 | "No API Base URL is set." | Open AI Provider Setup and enter the provider's address. |
 | "No API key is configured for this remote provider." | Add a key in AI Provider Setup, or switch to a local Ollama or LM Studio connection. |
-| "Stored API key is not authorized for the current API Base URL and will not be sent." | The URL changed after the key was saved. Check the endpoint shown, then click **Authorize for this endpoint**, or re-enter the key and **Save & authorize**. |
+| "Stored API key is not authorized for the current API Base URL and will not be sent." | The URL changed after the key was saved. Check the endpoint shown, then click **Authorize for this endpoint**, or re-enter the key and click **Save & test**. |
 | "No model is set." | Enter a model in AI Provider Setup, or use **Load models**. |
 | An error from the provider with a status code (for example 401, 404, 429, 5xx) | 401/403: check the key and authorize it for this endpoint. 404: check the API Base URL and the exact model ID. 429: wait, or check your account's quota and billing. 5xx: the provider is having trouble, so retry shortly. SimplySF2e may retry a 429 or 5xx response once automatically. |
 | "Could not reach the AI provider: …" | Wrong URL, the server is not running, or (for local servers) CORS is not enabled. See the Ollama and LM Studio notes above. |
