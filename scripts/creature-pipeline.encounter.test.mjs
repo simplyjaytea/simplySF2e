@@ -8,9 +8,9 @@ import { treasureBudget } from "./tables.mjs";
 const unexpected = (name) => async () => { throw new Error(`unexpected AI call: ${name}`); };
 const COIN_LOOT = [{ name: "100 credits", quantity: 1 }];
 
-async function run(lootByGroup, counts = lootByGroup.map(() => 1)) {
+async function run(lootByGroup, counts = lootByGroup.map(() => 1), rarity = "common") {
   const drafts = lootByGroup.map((has, i) => ({
-    name: `Group ${i}`, level: 3, specialAbilities: [], feats: [], equipment: [], strikes: [],
+    name: `Group ${i}`, level: 3, rarity, specialAbilities: [], feats: [], equipment: [], strikes: [],
     loot: has ? COIN_LOOT : []
   }));
   let n = 0;
@@ -30,7 +30,7 @@ async function run(lootByGroup, counts = lootByGroup.map(() => 1)) {
     members: lootByGroup.map((_, i) => ({ role: i === 0 ? "boss" : "minion", level: 3, count: counts[i], xpEach: 20 }))
   };
   const enc = await generateEncounter({
-    composition, theme: "t", partyLevel: 3, rarity: "common", allowSpellcasting: false,
+    composition, theme: "t", partyLevel: 3, rarity, allowSpellcasting: false,
     treasureAmount: "standard", ai
   });
   assert.equal(n, lootByGroup.length, "every group was drafted");
@@ -69,5 +69,12 @@ assert.equal(enc.treasureBudget, 0);
 enc = await run([true, true, true]);
 for (const m of enc.members) assert.equal(m.treasureGroupBudget, FULL / 3);
 assert.ok(Math.abs(enc.treasureBudget - FULL) < 1e-9);
+
+// rarity never scales an encounter: a unique boss still carries the GM Core total
+enc = await run([true, false], [1, 1], "unique");
+assert.equal(enc.members[0].concept.rarity, "unique", "the member really is unique");
+assert.equal(enc.members[0].treasureGroupBudget, FULL, "a unique member's share is not multiplied");
+assert.equal(enc.treasureBudget, FULL);
+assert.ok(treasureBudget(3, "unique", "standard") > FULL, "the standalone multiplier still exists");
 
 console.log("creature-pipeline.encounter.test.mjs: treasure splits across loot groups only");
