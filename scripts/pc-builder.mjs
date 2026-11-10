@@ -15,7 +15,7 @@ import { CORE_SKILLS, normalizeSkillPriorities, initialSkillTraining, allocateCh
 import { ABILITY_KEYS, normalizeAbilityPriorities, assignAbilityBoosts, assignItemBoosts, projectAttributeModifiers, projectSkillRanks } from "./pc-projection.mjs";
 import { applyCharacterLoadout } from "./pc-loadout.mjs";
 import { pickDedicationBridge, planClassPaths, stageClassPaths } from "./class-paths.mjs";
-import { COMPLETE_PC_CLASS_SLUGS, archetypeTraditionFor, classManualNotes, getMulticlassDedicationSlug, technomancerCacheSpells, technomancerInitialHack, withInitialFocusSpell } from "./pc-support.mjs";
+import { COMPLETE_PC_CLASS_SLUGS, archetypeTraditionFor, classManualNotes, classSpellTradition, getMulticlassDedicationSlug, technomancerCacheSpells, technomancerInitialHack, withInitialFocusSpell } from "./pc-support.mjs";
 import {
   archetypeOfFeat, createDedicationRuleState, dedicationRuleBlock, evidencePrerequisitesMet, recordDedicationRulePlacement,
   stagedActorContext
@@ -1402,12 +1402,20 @@ export async function createCharacterActor(concept, resolved, { img = null, sele
   // their published profile; unsupported classes retain the legacy spontaneous
   // fallback until a source-qualified profile is added.
   const spellProfile = concept.spellcasting ? pcSpellcastingProfile(resolved.classDoc) : null;
-  if (concept.spellcasting && (spellProfile || resolved.spells?.some((s) => s.entry))) {
+  // A profiled class's tradition is its own (Technomancer) or the one the
+  // planned Connection/Paradox declares (Mystic, Witchwarper); the AI's
+  // tradition is used only for an unprofiled class. Unproven: no class entry.
+  const classTradition = !concept.spellcasting ? null
+    : spellProfile ? classSpellTradition(spellProfile, resolved.pathPlan) : concept.spellcasting.tradition;
+  if (spellProfile && !classTradition) {
+    console.warn(`simplysf2e | ${resolved.classDoc.name}: spell tradition not proven from the planned class path — no class spell entry`);
+  }
+  if (classTradition && (spellProfile || resolved.spells?.some((s) => s.entry))) {
     const plan = pcSpellPlan(concept.level, spellProfile);
     const built = await buildSpellcastingEntry({
       entryId: foundry.utils.randomID(),
-      name: `${capitalized(spellProfile?.tradition ?? concept.spellcasting.tradition)} Spells`,
-      tradition: spellProfile?.tradition ?? concept.spellcasting.tradition,
+      name: `${capitalized(classTradition)} Spells`,
+      tradition: classTradition,
       mode: spellProfile?.mode ?? "spontaneous",
       ability: spellProfile?.ability ?? keyAbility,
       proficiency: 1,
@@ -1467,8 +1475,8 @@ export async function createCharacterActor(concept, resolved, { img = null, sele
       img: systemIcon("icons/default-icons/spellcastingEntry.svg"),
       system: {
         // Real focus spells carry no tradition of their own; tag the entry
-        // with the class's casting tradition only when the concept has one.
-        ...(concept.spellcasting ? { tradition: { value: concept.spellcasting.tradition } } : {}),
+        // with the class's casting tradition only when one is proven.
+        ...(classTradition ? { tradition: { value: classTradition } } : {}),
         prepared: { value: "focus" },
         ability: { value: keyAbility },
         proficiency: { value: 1 },

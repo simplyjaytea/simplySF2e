@@ -35,7 +35,7 @@ import { composeEncounter, THREATS } from "./encounter.mjs";
 import { findBestiaryScaffold, scaffoldArt } from "./art.mjs";
 import { assertComplete, completionManifest } from "./completion.mjs";
 import { verifyCreatedActor } from "./post-create.mjs";
-import { manualNotesContent, supportedClassCandidates, isCompletePCClass } from "./pc-support.mjs";
+import { classSpellTradition, manualNotesContent, supportedClassCandidates, isCompletePCClass } from "./pc-support.mjs";
 import { validateArchetypeSlotPlacement } from "./pc-prerequisites.mjs";
 import { SpfApp } from "./app-base.mjs";
 import { progressView } from "./progress.mjs";
@@ -992,18 +992,26 @@ export class GeneratorApp extends SpfApp {
       }
 
       // The real class document owns the casting mode and base slot plan.
-      // Variable traditions still need the selected bloodline/patron checked.
+      // A Mystic's or Witchwarper's tradition comes from the Connection or
+      // Paradox planned above (resolvePCConcept ran planClassPaths), never
+      // from the AI; with none proven the class gets no spell entry.
       const castingProfile = pcSpellcastingProfile(resolved.classDoc);
       if (!this.#input.allowSpellcasting) concept.spellcasting = null;
       if (this.#input.allowSpellcasting && castingProfile) {
-        if (!concept.spellcasting && castingProfile.tradition) {
-          concept.spellcasting = { tradition: castingProfile.tradition, spells: [] };
+        const classTradition = classSpellTradition(castingProfile, resolved.pathPlan);
+        if (!classTradition) {
+          console.warn(`${MODULE_ID} | ${resolved.classDoc.name}: spell tradition not proven from the planned class path — no class spell entry`);
+          concept.spellcasting = null;
+        } else if (!concept.spellcasting) {
+          concept.spellcasting = { tradition: classTradition, spells: [] };
         }
-        concept.spellcastingNoticeKey = castingProfile.tradition
-          ? "SIMPLYSF2E.Preview.PCBaseSpellPlan"
-          : "SIMPLYSF2E.Preview.PCVariableSpellPlan";
+        concept.spellcastingNoticeKey = !classTradition
+          ? "SIMPLYSF2E.Preview.PCSpellTraditionUnproven"
+          : castingProfile.tradition
+            ? "SIMPLYSF2E.Preview.PCBaseSpellPlan"
+            : "SIMPLYSF2E.Preview.PCVariableSpellPlan";
         if (concept.spellcasting) {
-          if (castingProfile.tradition) concept.spellcasting.tradition = castingProfile.tradition;
+          concept.spellcasting.tradition = classTradition;
           const plan = pcSpellPlan(concept.level, castingProfile);
           concept.spellcasting.plannedPicks = plan.picks;
           // A spell database (Technomancer) is selected against its own caps; the

@@ -57,17 +57,58 @@ assert.ok(embedded.filter((item) => item.type === "spell").every((item) => item.
 const technomancerClass = resolved.classDoc;
 resolved.classDoc = doc("class", { slug: "witchwarper", publication: { title: "Starfinder Player Core", remaster: true }, keyAbility: { value: ["cha"] }, trainedSkills: { value: [], additional: 0 } }, "Witchwarper");
 const witchwarperClass = resolved.classDoc;
+// A Witchwarper's tradition is the planned Paradox's own (planClassPaths
+// `tradition`), never the concept's: the AI said occult, the paradox says arcane.
+resolved.pathPlan = { "witchwarper-paradox": { tag: "witchwarper-paradox", uuid: "Compendium.sf2e.class-features.Item.Analyst", name: "Analyst", tradition: "arcane" } };
 resolved.spells = [
   { spell: { rank: 3 }, entry: entry("fireball") }, { spell: { rank: 4 }, entry: entry("fireball") }
 ];
-await createCharacterActor({ ...common, level: 8, spellcasting: { tradition: "arcane", spells: [] } }, resolved);
+await createCharacterActor({ ...common, level: 8, spellcasting: { tradition: "occult", spells: [] } }, resolved);
+assert.equal(embedded.filter((item) => item.type === "spellcastingEntry" && item.system.tradition?.value === "occult").length, 0,
+  "the AI's tradition never reaches a Witchwarper's class or focus entry");
 const spontaneous = embedded.find((item) => item.type === "spellcastingEntry" && item.name === "Arcane Spells");
+assert.equal(spontaneous.system.tradition.value, "arcane", "the planned paradox decides the class entry's tradition");
 assert.equal(spontaneous.system.prepared.value, "spontaneous");
 const fireballs = embedded.filter((item) => item.type === "spell" && item.name === "fireball");
 assert.equal(fireballs.length, 2, "one source at two explicit spontaneous ranks embeds separately");
 assert.deepEqual(fireballs.map((item) => item.system.location.heightenedLevel).sort(), [4, undefined]);
 assert.equal(spontaneous.system.slots.slot4.max, 4);
 assert.equal(spontaneous.system.ability.value, "cha");
+// Fail closed: no planned path, or two paths that disagree, prove no tradition.
+const savedPlan = resolved.pathPlan;
+for (const pathPlan of [null, {}, { "witchwarper-paradox": { tradition: null } },
+  { "witchwarper-paradox": { tradition: "arcane" }, "witchwarper-anchor": { tradition: "occult" } }]) {
+  resolved.pathPlan = pathPlan;
+  await createCharacterActor({ ...common, level: 8, spellcasting: { tradition: "arcane", spells: [] } }, resolved);
+  assert.equal(embedded.filter((item) => item.type === "spellcastingEntry").length, 0,
+    `an unproven Witchwarper tradition makes no class entry (${JSON.stringify(pathPlan)})`);
+}
+resolved.pathPlan = savedPlan;
+// Mystic: the planned Elemental connection is primal while the AI said occult.
+// The per-spell tradition check runs against primal: an occult-only pick is dropped.
+{
+  const primalSpell = spellDoc("primal-bolt", 1).toObject();
+  primalSpell.system.traits.traditions = ["primal"];
+  docs.set("primal-bolt", { uuid: "Compendium.spells.Item.primal-bolt", toObject: () => structuredClone(primalSpell) });
+  const occultSpell = spellDoc("occult-bolt", 1).toObject();
+  occultSpell.system.traits.traditions = ["occult"];
+  docs.set("occult-bolt", { uuid: "Compendium.spells.Item.occult-bolt", toObject: () => structuredClone(occultSpell) });
+  const witchwarperSaved = resolved.classDoc;
+  const spellsSaved = resolved.spells;
+  resolved.classDoc = doc("class", { publication: { title: "Starfinder Player Core", remaster: true }, keyAbility: { value: ["wis"] }, trainedSkills: { value: [], additional: 0 } }, "Mystic");
+  resolved.pathPlan = { "mystic-connection": { tag: "mystic-connection", uuid: "Compendium.sf2e.class-features.Item.AurhNoZmNNhHktx6", name: "Elemental", tradition: "primal" } };
+  resolved.spells = [{ spell: { rank: 1 }, entry: entry("primal-bolt") }, { spell: { rank: 1 }, entry: entry("occult-bolt") }];
+  await createCharacterActor({ ...common, level: 1, spellcasting: { tradition: "occult", spells: [] } }, resolved);
+  const mysticEntry = embedded.find((item) => item.type === "spellcastingEntry");
+  assert.equal(mysticEntry.name, "Primal Spells");
+  assert.equal(mysticEntry.system.tradition.value, "primal", "the planned connection decides the Mystic entry's tradition");
+  assert.equal(mysticEntry.system.ability.value, "wis");
+  assert.deepEqual(embedded.filter((item) => item.type === "spell").map((item) => item.name), ["primal-bolt"],
+    "the per-spell tradition check uses the connection's tradition, not the AI's");
+  resolved.classDoc = witchwarperSaved;
+  resolved.spells = spellsSaved;
+  resolved.pathPlan = savedPlan;
+}
 
 const pick = (id, rank) => ({ spell: { name: id, rank }, entry: entry(id) });
 for (let i = 0; i < 6; i++) docs.set(`cantrip-${i}`, spellDoc(`cantrip-${i}`, 1, ["cantrip"]));
