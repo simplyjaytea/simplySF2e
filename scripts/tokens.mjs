@@ -62,6 +62,17 @@ export function lastRunTokenTotal(entries) {
 }
 
 /**
+ * A provider token count, or NaN when absent. null, undefined, "", booleans
+ * and non-numeric text are absent (Number(null) and Number("") would be 0);
+ * a numeric 0 or a numeric string stays a count.
+ */
+function usageCount(value) {
+  if (typeof value === "number") return value;
+  if (typeof value === "string" && value.trim()) return Number(value);
+  return NaN;
+}
+
+/**
  * Shape a provider usage block into {prompt, completion, total, estimated}.
  * Prefers complete provider counts. Partial blocks fill the missing side from
  * the estimator and stay labeled estimated. No usage at all is fully estimated.
@@ -70,9 +81,9 @@ export function normalizeUsage(usage, { content, system, user, reasoningChars = 
   // OpenRouter reports the charged amount as usage.cost; other providers omit it.
   const parsedCost = parseCost(usage?.cost);
   const costField = parsedCost == null ? {} : { cost: parsedCost };
-  const prompt = Number(usage?.prompt_tokens);
-  const completion = Number(usage?.completion_tokens);
-  const total = Number(usage?.total_tokens);
+  const prompt = usageCount(usage?.prompt_tokens);
+  const completion = usageCount(usage?.completion_tokens);
+  const total = usageCount(usage?.total_tokens);
   const hasPrompt = Number.isFinite(prompt);
   const hasCompletion = Number.isFinite(completion);
   const hasTotal = Number.isFinite(total);
