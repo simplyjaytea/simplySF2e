@@ -529,7 +529,7 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
       ?? (PROVIDER_PRESETS.some((provider) => provider.id === inferred) ? inferred : "custom");
     const preset = PROVIDER_PRESETS.find((entry) => entry.id === selected) ?? PROVIDER_PRESETS.at(-1);
     await createProviderConnection({
-      name: preset.preserve ? "New connection" : preset.label,
+      name: preset.preserve ? game.i18n.localize("SIMPLYSF2E.ProviderSetup.NewConnection") : preset.label,
       apiBaseUrl: preset.baseUrl,
       model: preset.model
     });

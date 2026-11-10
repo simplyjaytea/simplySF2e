@@ -30,6 +30,11 @@ const context = vm.createContext({
 vm.runInContext("Date.prototype.toLocaleTimeString = function () { return 'T' + this.getTime(); };", context);
 // The recent-previews builder now runs outside the vm (generator-context/result-context.mjs), in this realm.
 Date.prototype.toLocaleTimeString = function () { return "T" + this.getTime(); };
+// Number formatting follows the browser locale in production (no locale argument); pin it here.
+{
+  const toLocale = Number.prototype.toLocaleString;
+  Number.prototype.toLocaleString = function (locale, options) { return toLocale.call(this, locale ?? "en-US", options); };
+}
 console.warn = () => {}; // the real modules warn about fixture traits; keep the output clean
 globalThis.game = context.game;
 globalThis.CONFIG = context.CONFIG;

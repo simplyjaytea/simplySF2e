@@ -33,7 +33,7 @@ export function mapGear(list, skipped = [], category = null) {
   return [
     ...(list ?? []).map(({ name, quantity, runes, entry, scroll }) => ({
       name: (scroll && entry?.name
-        ? `Spell Gem of ${entry.name} (Rank ${scroll.rank})`
+        ? game.i18n.format("SIMPLYSF2E.Preview.SpellGem", { name: entry.name, rank: scroll.rank })
         : (runes?.potency ? name : entry?.name ?? name)) + (quantity > 1 ? ` ×${quantity}` : ""),
       found: Boolean(entry)
     })),
@@ -78,8 +78,21 @@ export function emptyFeatSlots(resolved) {
     .map((feat) => featSlotLabel(feat));
 }
 
+const SLOT_TYPE_KEYS = {
+  ancestry: "SIMPLYSF2E.Preview.SlotAncestry",
+  class: "SIMPLYSF2E.Preview.SlotClass",
+  general: "SIMPLYSF2E.Preview.SlotGeneral",
+  skill: "SIMPLYSF2E.Preview.SlotSkill"
+};
+
 export function featSlotLabel(feat) {
-  return `${feat.archetype ? "archetype " : ""}${feat.type} ${feat.level}`;
+  const type = SLOT_TYPE_KEYS[feat.type] ? game.i18n.localize(SLOT_TYPE_KEYS[feat.type]) : feat.type;
+  return game.i18n.format(feat.archetype ? "SIMPLYSF2E.Preview.SlotLabelArchetype" : "SIMPLYSF2E.Preview.SlotLabel", { type, level: feat.level });
+}
+
+/** A distance in feet, localized once for speeds and sense ranges. */
+export function feetText(value) {
+  return game.i18n.format("SIMPLYSF2E.Preview.Feet", { value });
 }
 
 export function skillName(slug) {

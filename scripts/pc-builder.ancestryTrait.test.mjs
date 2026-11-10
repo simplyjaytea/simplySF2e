@@ -85,7 +85,7 @@ packs[Symbol.iterator] = function* () { yield* this.values(); };
 globalThis.game = {
   packs,
   settings: { get: (_module, key) => (key === "freeArchetype" ? false : {}) },
-  i18n: { localize: (k) => k }
+  i18n: { localize: (k) => k.replace("SIMPLYSF2E.Preview.Slot", "").toLowerCase(), format: (k, d) => `${d.type} ${d.level}` }
 };
 globalThis.CONFIG = { PF2E: {} };
 globalThis.fromUuid = async (id) => docs.get(id) ?? null;

@@ -11,15 +11,15 @@ export function buildEncounterPreviewContext(encounter) {
     name: encounter.name,
     // Display-boundary thousands separators only; budget math stays numeric
     // above (overBudget comparisons use the raw values, unchanged).
-    budget: Number(encounter.budget ?? 0).toLocaleString("en-US"),
-    spent: Number(encounter.spent ?? 0).toLocaleString("en-US"),
+    budget: Number(encounter.budget ?? 0).toLocaleString(),
+    spent: Number(encounter.spent ?? 0).toLocaleString(),
     overBudget: encounter.spent > encounter.budget,
     // True when every member's count is 0: Create All has nothing to create.
     allSkipped: encounter.members.every((m) => !(m.count > 0)),
     // Internal treasure math stays in gp (applyTreasureBudget/lootValueGp);
     // only the display boundary converts to credits via the cited rate.
-    treasureBudget: gpToCredits(Math.round(encounter.treasureBudget ?? 0)).toLocaleString("en-US"),
-    treasureSpent: gpToCredits(encounter.treasureSpent ?? 0).toLocaleString("en-US"),
+    treasureBudget: gpToCredits(Math.round(encounter.treasureBudget ?? 0)).toLocaleString(),
+    treasureSpent: gpToCredits(encounter.treasureSpent ?? 0).toLocaleString(),
     treasureOverBudget: (encounter.treasureSpent ?? 0) > (encounter.treasureBudget ?? 0),
     members: encounter.members.map((member, index) => {
       const stats = adjustedStats(computeStats(member.concept), member.concept);
