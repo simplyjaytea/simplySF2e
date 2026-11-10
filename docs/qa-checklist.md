@@ -887,3 +887,36 @@ Generate a level 7 NPC with a limited cone breath (name "Frost Breath", cold), a
 | 14h.5 | Welcome: pick OpenRouter, then Ollama. | Picking a tile presses it and focuses the key field (OpenRouter) or the address field (Ollama). Connect is the only magenta button. | Welcome | | |
 | 14h.6 | Welcome: enter a key and press Connect. | "Checking your connection" lists the three checks one per line; the first says "running" at the end of its line, the other two are dots. No new animation besides the existing spinners. | Welcome | | |
 | 14h.7 | Screen reader on the Welcome provider group (supersedes 14f.2). | The group is announced as "Choose a provider". | Welcome | | |
+
+## 15. Review batch R3 (2026-11-10 code and UI review)
+
+| # | Step | Expected | Where to look | Result | Evidence |
+| --- | --- | --- | --- | --- | --- |
+| 15.1 | Generator, Character: generate a Ysoki and a G'folian at level 5. | Every ancestry feat on the sheet carries the ratfolk (Ysoki) or gfolian (G'folian) trait. A slot with no legal feat is empty and named in the review panel; no other ancestry's feat appears. | Character sheet feats tab, review panel | | |
+| 15.2 | Character: force a heritage miss (prompt names a heritage of another ancestry). | The fallback heritage belongs to the character's own ancestry, not a versatile heritage such as Borai. | Character sheet | | |
+| 15.3 | Character: generate a Mystic with each of two different connections, and a Witchwarper, with a prompt that names another tradition ("an occult healer" with a primal connection). | The class spellcasting entry and its spells use the connection's or paradox's tradition (Akashic occult; Elemental, Rhythm primal; Healing, Shadow divine; Analyst, Anomaly arcane; Gap Influenced, Precog occult), not the prompt's. | Spellcasting tab | | |
+| 15.4 | Monster: generate a caster with cantrips; reroll a cantrip. | Cantrips sit in the cantrip row, not rank 1. A cantrip-only caster shows no rank-1 slot row. The reroll offers cantrips. | Preview, then the sheet's spell tab | | |
+| 15.5 | Monster: a world whose Equipment sources lack the spell gem templates; ask for a spell gem as loot. | The gem is listed as skipped in the preview. Create succeeds. | Preview loot, console | | |
+| 15.6 | Reskin a weak high-level NPC (AC far below its level) and re-level it to -1, 0 and 1. | No AC, save, Perception, attack or DC below the lowest GM Core row for the new level; no negative or zero-average damage. | Re-level table, created sheet | | |
+| 15.7 | Reskin an Elite source and re-level it. | The copy starts at full health including the Elite hit points. | Created sheet HP | | |
+| 15.8 | Reskin a world NPC that is damaged, has a condition and is owned by a player, at the same level. | The copy has full health, no conditions or effects, and only the GM owns it. | Created sheet, ownership dialog | | |
+| 15.9 | Encounter: a boss with loot and two minion groups without loot. | The Credits chip target equals the whole encounter budget and the boss carries it. With every group carrying loot the split is even, as before. | Encounter preview header | | |
+| 15.10 | Level 23 or 24 creature with a High attack scale. | Strike bonus is +42 (level 23) or +44 (level 24). | Created sheet strikes | | |
+| 15.11 | During a Monster run, send `/sf2e npc 5 a bartender`. | A warning says the command was ignored. The finished preview is still a Monster with the original level, and Create files it under Creatures. | Chat, Generator | | |
+| 15.12 | Hover a Recent row whose creature name contains `<b>` or `&`. | The tooltip shows the name as plain text. | Generator Recent list | | |
+| 15.13 | Compendium Sources: untick a pack, type in the filter, press Enter. | Nothing is saved and the window stays open. Save still saves and closes. | Compendium Sources | | |
+| 15.14 | Compendium Sources: look at the window at default size. | One flat list: a heading and "n of m selected" per category, no boxes, no magenta. The count updates when a box is ticked; filter and Selected only work; the footer stays pinned. | Compendium Sources | | |
+| 15.15 | Compendium Sources: change Equipment sources, save, then open Item Forge without reloading. | Base items, upgrade candidates and benchmark prices come from the new packs. Editing an item inside a selected world compendium also shows up without a reload. | Item Forge | | |
+| 15.16 | AI Provider Setup: look at the footer; press Enter in a field; press each button. | One magenta button, "Save & test", plus "Save without testing" and Close; no sentence under the footer. Enter runs Save & test. Save without testing saves and authorizes the key for the shown endpoint. | AI Provider Setup | | |
+| 15.17 | Provider Setup with a saved key: change the API Base URL. | A hint under the URL field says the saved key will be cleared unless a new one is entered; it disappears when the URL is restored. | AI Provider Setup | | |
+| 15.18 | Provider Setup: enter price -1, Save & test, correct it to 0.5, press Save without testing. | The first save is refused with the error by the field; the corrected value saves. | Cost estimate fold | | |
+| 15.19 | Provider Setup and Welcome: save `https://user:pass@host/v1` and `https://host/v1?api-key=abc`; then `https://host/v1?api-version=1`. | The first two are refused with a message naming the cause (and the parameter name, never the value); nothing is saved. The third saves. | AI Provider Setup, Welcome | | |
+| 15.20 | Header connection switch: with three connections, switch twice as fast as possible; then open Provider Setup on each. | Each connection still has its own endpoint, model and key. | Header strip, AI Provider Setup | | |
+| 15.21 | Two GM browsers: switch connection in browser A; in browser B switch to another connection and back. | Browser B's connections keep their own endpoints and models (console may warn once that live settings no longer matched). No key is sent to another endpoint. | Both browsers' Provider Setup | | |
+| 15.22 | Force an error and press Copy bug report. | The stack lines show `modules/simplysf2e/...` paths with no server address. | Copied report | | |
+| 15.23 | Encounter preview: step a member to 0 and back. | The skipped row is muted with a thin dashed rule and the SKIPPED tag; nothing shifts. | Encounter preview | | |
+| 15.24 | Monster preview with abilities that have descriptions; Encounter with no party; Reskin re-level at a narrow width. | The reroll die sits on the ability's name line. The no-party note and the re-level hint each take their own line under the control. | Generator | | |
+| 15.25 | Any run: watch the progress card. Welcome with no model chosen. | Steps are left-aligned. The disabled Connect button has an intact edge. | Progress card, Welcome | | |
+| 15.26 | Shop, Treasure, Item Forge with a preview on screen. | The token count shows once (in the Token usage fold), not also in the header strip. | Tool windows | | |
+| 15.27 | Read every button in every window. | Sentence case throughout ("Generate monster", "Create all actors", "Load models"). | All windows | | |
+| 15.28 | Open What's new (`/sf2e whatsnew`). | Each note is a title with 2 to 5 bullets; "Fixes and a tidier setup" and "Tidier windows" are at the top; older notes sit under Earlier changes. | What's new | | |
