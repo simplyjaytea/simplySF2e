@@ -1,7 +1,7 @@
 import {
-  MODULE_ID, SETTINGS, authorizeApiKeyForCurrentBaseUrl, describeProvider,
-  getProviderRequestConfig, normalizeApiBaseUrl, setActiveProviderPrices, upsertActiveProviderConnection,
-  withProviderConnectionGuard
+  MODULE_ID, SETTINGS, bindApiKeyToCurrentBaseUrlUnlocked, describeProvider,
+  getProviderRequestConfig, normalizeApiBaseUrl, runProviderBankExclusive, setActiveProviderPricesUnlocked,
+  upsertActiveProviderConnectionUnlocked, withProviderConnectionGuard
 } from "./settings.mjs";
 
 export function findProviderPreset(id, presets) {
@@ -35,20 +35,25 @@ export function snapshotProviderConnection(read = (key) => game.settings.get(MOD
   return Object.fromEntries(CONNECTION_SNAPSHOT_KEYS.map((key) => [key, structuredClone(read(key))]));
 }
 
-/** Restore the exact pre-probe route, key binding and named-connection bank. */
-export async function restoreProviderConnection(
+/**
+ * Restore the exact pre-probe route, key binding and named-connection bank.
+ * Runs in the connection-bank queue, after any switch or save already queued.
+ */
+export function restoreProviderConnection(
   snapshot,
   write = (key, value) => game.settings.set(MODULE_ID, key, value),
   read = (key) => game.settings.get(MODULE_ID, key)
 ) {
-  await withProviderConnectionGuard(async () => {
-    for (const key of CONNECTION_SNAPSHOT_KEYS) await write(key, structuredClone(snapshot[key]));
+  return runProviderBankExclusive(async () => {
+    await withProviderConnectionGuard(async () => {
+      for (const key of CONNECTION_SNAPSHOT_KEYS) await write(key, structuredClone(snapshot[key]));
+    });
+    const restoredBinding = await read(SETTINGS.apiKeyBaseUrl);
+    if (restoredBinding !== snapshot[SETTINGS.apiKeyBaseUrl]) {
+      throw new Error("Previous API key endpoint binding was not restored");
+    }
+    return restoredBinding;
   });
-  const restoredBinding = await read(SETTINGS.apiKeyBaseUrl);
-  if (restoredBinding !== snapshot[SETTINGS.apiKeyBaseUrl]) {
-    throw new Error("Previous API key endpoint binding was not restored");
-  }
-  return restoredBinding;
 }
 
 // Every unsaved edit Provider Setup holds for the connection being left. The
@@ -123,25 +128,33 @@ export async function saveProviderConnection({
   }
   if (requireModel && !model) throw new Error(game.i18n.localize("SIMPLYSF2E.Errors.NoModel"));
 
-  const currentBaseUrl = normalizeApiBaseUrl(game.settings.get(MODULE_ID, SETTINGS.apiBaseUrl));
-  const baseChanged = currentBaseUrl !== baseUrl;
-  await game.settings.set(MODULE_ID, SETTINGS.apiBaseUrl, baseUrl);
-  await game.settings.set(MODULE_ID, SETTINGS.model, model);
+  // One queued step: no switch, create, delete or other save can run between
+  // writing the live settings and storing them on the active connection.
+  const authorized = await runProviderBankExclusive(async () => {
+    const currentBaseUrl = normalizeApiBaseUrl(game.settings.get(MODULE_ID, SETTINGS.apiBaseUrl));
+    const baseChanged = currentBaseUrl !== baseUrl;
+    await game.settings.set(MODULE_ID, SETTINGS.apiBaseUrl, baseUrl);
+    await game.settings.set(MODULE_ID, SETTINGS.model, model);
 
-  // A stored key belongs to its old endpoint. Switching providers without
-  // entering a replacement clears it instead of silently offering that
-  // secret for authorization against a different service.
-  if (clearApiKey || baseChanged || enteredApiKey) {
-    await game.settings.set(MODULE_ID, SETTINGS.apiKey, clearApiKey ? "" : enteredApiKey);
-  }
+    // A stored key belongs to its old endpoint. Switching providers without
+    // entering a replacement clears it instead of silently offering that
+    // secret for authorization against a different service.
+    if (clearApiKey || baseChanged || enteredApiKey) {
+      await game.settings.set(MODULE_ID, SETTINGS.apiKey, clearApiKey ? "" : enteredApiKey);
+    }
 
-  const configuredKey = String(game.settings.get(MODULE_ID, SETTINGS.apiKey) ?? "").trim();
-  const authorized = configuredKey
-    ? await authorizeApiKeyForCurrentBaseUrl(baseUrl)
-    : false;
-  await upsertActiveProviderConnection({ name: connectionName });
-  // Manual prices belong to the provider they were entered for.
-  if (baseChanged) await setActiveProviderPrices({});
+    const configuredKey = String(game.settings.get(MODULE_ID, SETTINGS.apiKey) ?? "").trim();
+    const bound = configuredKey
+      ? (await bindApiKeyToCurrentBaseUrlUnlocked(baseUrl)) === true
+      : false;
+    // The GM's own edit: store it on the active connection as long as the live
+    // endpoint/model are still the ones just written (another GM client may
+    // have changed the world settings meanwhile; then nothing is copied).
+    await upsertActiveProviderConnectionUnlocked({ name: connectionName }, { apiBaseUrl: baseUrl, model });
+    // Manual prices belong to the provider they were entered for.
+    if (baseChanged) await setActiveProviderPricesUnlocked({});
+    return bound;
+  });
   const provider = describeProvider(baseUrl, model);
   const state = getProviderRequestConfig();
   const insecure = Boolean(state.apiKeyInsecure);
