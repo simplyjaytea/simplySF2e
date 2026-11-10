@@ -39,6 +39,8 @@ function providerSetup(selected, patch = {}) {
     connectionName,
     canDeleteConnection: true,
     apiBaseUrl: "https://openrouter.ai/api/v1",
+    baseUrlCredential: null,
+    storedUrlWarning: "",
     model: "anthropic/claude-sonnet-5",
     availableModels: [],
     inputPerM: "",
@@ -149,6 +151,17 @@ export default [
       inputPerM: -2, outputPerM: 1.1, pricesOpen: true,
       priceError: localize("SIMPLYSF2E.ProviderSetup.PriceInputInvalid"),
       priceErrorField: "input"
+    })
+  },
+  {
+    // A world that stored a secret in the URL before the refusal existed: the standing warning shows.
+    id: "provider-setup-stored-secret",
+    app: "provider-setup",
+    context: providerSetup("custom", {
+      connectionName: "Company gateway", connections: [{ id: "c1", name: "Company gateway", active: true }, { id: "c2", name: "Home Ollama", active: false }],
+      apiBaseUrl: "https://gateway.example.com/v1?api-key=SECRET", model: "gpt-5.6-luna",
+      baseUrlCredential: "query-secret",
+      storedUrlWarning: localize("SIMPLYSF2E.ProviderSetup.StoredUrlHasSecret", { name: "api-key" })
     })
   },
   {

@@ -1,7 +1,7 @@
 import {
-  MODULE_ID, SETTINGS, createProviderConnection, deleteProviderConnection,
+  MODULE_ID, SETTINGS, apiBaseUrlCredentialInfo, createProviderConnection, deleteProviderConnection,
   ensureProviderBank, getActiveProviderPrices, getJevRequestConfig, getProviderAuthWarningKey, getProviderRequestConfig,
-  normalizeApiBaseUrl, selectProviderConnection, setActiveProviderPrices
+  normalizeApiBaseUrl, selectProviderConnection
 } from "./settings.mjs";
 import {
   connectionFormDirty, connectionFormValues, saveProviderConnection, savedConnectionForDirty, snapshotProviderConnection
@@ -159,6 +159,9 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
       connectionName: state.connectionName,
       canDeleteConnection: state.connections.length > 1,
       apiBaseUrl: state.baseUrl,
+      // Standing warning under the URL field while it holds a credential (non-blocking; text only, never the value).
+      baseUrlCredential: state.baseUrlCredential ?? null,
+      storedUrlWarning: ProviderSetupApp.#storedUrlWarningText(state.baseUrl),
       model: state.model,
       availableModels: this.#availableModels,
       inputPerM: prices.inputPerM ?? "",
@@ -230,8 +233,10 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
         this.#clearModelSuggestions();
       }
       this.#syncEndpointKeyHint();
+      this.#syncStoredUrlWarning();
     });
     this.#syncEndpointKeyHint();
+    this.#syncStoredUrlWarning();
     // A rejected price sets a custom validity message; a changed value drops it, or the
     // stale message would block the native submit (Save without testing). The visible
     // field error stays until the next save validates the new value.
@@ -297,6 +302,24 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
     const state = getProviderRequestConfig();
     const typed = this.element.querySelector("[name='apiBaseUrl']")?.value;
     hint.hidden = !(state.hasConfiguredApiKey && normalizeApiBaseUrl(typed) !== normalizeApiBaseUrl(state.baseUrl));
+  }
+
+  /** Warning text for a URL that carries a credential, or "". Names the parameter, never its value. */
+  static #storedUrlWarningText(value) {
+    const { reason, name } = apiBaseUrlCredentialInfo(value);
+    if (reason === "userinfo") return game.i18n.localize("SIMPLYSF2E.ProviderSetup.StoredUrlHasUserinfo");
+    if (reason === "query-secret") return game.i18n.format("SIMPLYSF2E.ProviderSetup.StoredUrlHasSecret", { name });
+    return "";
+  }
+
+  /** The standing credential warning under the URL field follows what the field holds now. */
+  #syncStoredUrlWarning() {
+    const line = this.element?.querySelector(".spf-stored-url-warning");
+    if (!line) return;
+    const text = ProviderSetupApp.#storedUrlWarningText(this.element.querySelector("[name='apiBaseUrl']")?.value);
+    const span = line.querySelector?.("span");
+    if (span) span.textContent = text;
+    line.hidden = !text;
   }
 
   #clearModelSuggestions() {
@@ -493,6 +516,7 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
         this.#clearModelSuggestions();
       }
       this.#syncEndpointKeyHint();
+      this.#syncStoredUrlWarning();
     }
   }
 
@@ -533,8 +557,6 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
     // saveProviderConnection clears manual prices when the base URL changes. Prices the GM left
     // untouched are the old provider's: re-applying them would put those rates on the new endpoint.
     const savedPrices = getActiveProviderPrices();
-    const baseChanged = normalizeApiBaseUrl(this.element.querySelector("[name='apiBaseUrl']")?.value)
-      !== normalizeApiBaseUrl(getProviderRequestConfig().baseUrl);
     const pricesEdited = ["inputPerM", "outputPerM"].some((field) => parsePrice(prices[field]).value !== parsePrice(savedPrices?.[field]).value);
     const result = await saveProviderConnection({
       baseUrl: this.element.querySelector("[name='apiBaseUrl']")?.value,
@@ -543,10 +565,11 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
       clearApiKey: Boolean(this.element.querySelector("[name='clearApiKey']")?.checked),
       connectionName: this.element.querySelector("[name='connectionName']")?.value,
       notify,
-      requireModel
+      requireModel,
+      // Written inside the same queued step as the connection (a switch cannot land between).
+      prices: priceInputs.inputPerM && priceInputs.outputPerM ? prices : null,
+      pricesEdited
     });
-    // After the connection save, so the prices land on the connection just saved.
-    if (priceInputs.inputPerM && priceInputs.outputPerM && !(baseChanged && !pricesEdited)) await setActiveProviderPrices(prices);
     await this.#onSaved?.();
     return result;
   }
@@ -729,6 +752,7 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
       clearBox.remove();
     }
     this.#syncEndpointKeyHint();
+    this.#syncStoredUrlWarning();
     // The form now shows what is stored: re-take the snapshot _prepareContext takes, or a later
     // connection-change refresh would count these saved values as unsaved edits.
     this.#renderedSaved = savedConnectionForDirty(snapshotProviderConnection(), { connectionName: state.connectionName, prices: getActiveProviderPrices() });

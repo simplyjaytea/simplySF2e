@@ -3,6 +3,7 @@ import {
   getProviderRequestConfig, normalizeApiBaseUrl, runProviderBankExclusive, setActiveProviderPricesUnlocked,
   upsertActiveProviderConnectionUnlocked, withProviderConnectionGuard
 } from "./settings.mjs";
+import { parsePrice } from "./cost.mjs";
 
 export function findProviderPreset(id, presets) {
   return presets.find((preset) => preset.id === id) ?? null;
@@ -110,11 +111,25 @@ export function savedConnectionForDirty(snapshot = {}, { connectionName = "", pr
   };
 }
 
-/** Save and authorize one exact provider route for Provider Setup and Welcome. */
+/**
+ * Save and authorize one exact provider route for Provider Setup and Welcome.
+ * Optional `prices` ({ inputPerM, outputPerM }, Provider Setup only) are written inside
+ * the same queued step as the connection, so no switch can land between the two. They are
+ * validated first (Error with `field`, nothing written). When the endpoint changed and
+ * `pricesEdited` is false the old provider's prices are cleared, not re-applied.
+ */
 export async function saveProviderConnection({
   baseUrl, model = "", enteredApiKey = "", clearApiKey = false, connectionName = "",
-  notify = true, requireModel = true
+  notify = true, requireModel = true, prices = null, pricesEdited = true
 } = {}) {
+  if (prices) {
+    for (const field of ["inputPerM", "outputPerM"]) {
+      if (!parsePrice(prices[field]).error) continue;
+      const err = new Error(game.i18n.localize(`SIMPLYSF2E.ProviderSetup.${field === "inputPerM" ? "PriceInput" : "PriceOutput"}Invalid`));
+      err.field = field;
+      throw err;
+    }
+  }
   baseUrl = normalizeApiBaseUrl(baseUrl);
   model = String(model ?? "").trim();
   enteredApiKey = String(enteredApiKey ?? "").trim();
@@ -154,6 +169,7 @@ export async function saveProviderConnection({
     await upsertActiveProviderConnectionUnlocked({ name: connectionName }, { apiBaseUrl: baseUrl, model });
     // Manual prices belong to the provider they were entered for.
     if (baseChanged) await setActiveProviderPricesUnlocked({});
+    if (prices && !(baseChanged && !pricesEdited)) await setActiveProviderPricesUnlocked(prices);
     return bound;
   });
   const provider = describeProvider(baseUrl, model);

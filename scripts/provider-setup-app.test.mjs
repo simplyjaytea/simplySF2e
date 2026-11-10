@@ -9,6 +9,8 @@ import vm from "node:vm";
 import * as connect from "./provider-connect.mjs";
 import { esc } from "./text.mjs";
 import { parsePrice } from "./cost.mjs";
+import { apiBaseUrlCredentialInfo } from "./settings.mjs";
+import { readFileSync } from "node:fs";
 
 if (!vm.SourceTextModule) {
   const run = spawnSync(process.execPath, ["--experimental-vm-modules", import.meta.filename], { stdio: "inherit" });
@@ -180,10 +182,14 @@ const mocks = {
   saveProviderConnection: async (data = {}) => {
     saveCalls += 1;
     // As the real save: a changed base URL moves the endpoint and clears the manual prices.
-    if (data.baseUrl !== undefined && mocks.normalizeApiBaseUrl(data.baseUrl) !== providerState.baseUrl) {
+    const baseChanged = data.baseUrl !== undefined && mocks.normalizeApiBaseUrl(data.baseUrl) !== providerState.baseUrl;
+    if (baseChanged) {
       providerState.baseUrl = mocks.normalizeApiBaseUrl(data.baseUrl);
       activePrices = { inputPerM: null, outputPerM: null };
     }
+    // Prices passed to the save are written in that same step (never a second call), unless the
+    // endpoint changed and they were not edited.
+    if (data.prices && !(baseChanged && !data.pricesEdited)) await mocks.setActiveProviderPrices(data.prices);
     // The model in the form is stored, as the real save does.
     if (data.model) providerState.model = data.model;
     // A typed key is stored; a clear request removes it. The returned state reflects that, as the real save does.
@@ -199,7 +205,8 @@ const mocks = {
   normalizeTypeSafeEndpoint: (value) => String(value ?? "").trim(),
   testJevConnection: async () => ({ ok: true }),
   esc,
-  parsePrice
+  parsePrice,
+  apiBaseUrlCredentialInfo
 };
 
 const module = new vm.SourceTextModule(source, { context });
@@ -711,6 +718,59 @@ const newApp = (form) => {
   providerState.hasConfiguredApiKey = false;
   typeUrl("https://openrouter.ai/api/v1");
   assert.equal(hint.hidden, true, "no saved key: nothing to lose, hint hidden");
+}
+
+// (R4-PROV) Standing warning for a URL that carries a credential: rendered outside any <details>,
+// part of the context, and kept in step with the field on typing, preset click and after a save.
+{
+  const hbs = readFileSync(new URL("../templates/provider-setup.hbs", import.meta.url), "utf8");
+  const at = hbs.indexOf("spf-stored-url-warning");
+  assert.ok(at > 0, "template has the warning line");
+  const before = hbs.slice(0, at);
+  assert.equal((before.match(/<details/g) ?? []).length, (before.match(/<\/details>/g) ?? []).length, "the warning is outside every <details>");
+  assert.ok(before.lastIndexOf('name="apiBaseUrl"') > before.lastIndexOf("<fieldset"), "it sits in the endpoint section after the URL field");
+  assert.ok(/class="[^"]*fa-triangle-exclamation[^"]*"/.test(hbs.slice(at, at + 300)), "icon plus text, not colour alone");
+
+  resetState();
+  providerState.baseUrl = "https://gw.example/v1?api-key=SECRET";
+  providerState.baseUrlCredential = "query-secret";
+  let ctx = await new App()._prepareContext();
+  assert.equal(ctx.baseUrlCredential, "query-secret");
+  assert.equal(ctx.storedUrlWarning, "SIMPLYSF2E.ProviderSetup.StoredUrlHasSecret|api-key", "names the parameter");
+  assert.equal(ctx.storedUrlWarning.includes("SECRET"), false, "never the value");
+  providerState.baseUrl = "https://u:p@gw.example/v1";
+  ctx = await new App()._prepareContext();
+  assert.equal(ctx.storedUrlWarning, "SIMPLYSF2E.ProviderSetup.StoredUrlHasUserinfo");
+  providerState.baseUrl = "https://api.deepseek.com/v1";
+  providerState.baseUrlCredential = null;
+  ctx = await new App()._prepareContext();
+  assert.equal(ctx.storedUrlWarning, "", "no credential, no warning");
+
+  // In place: typing toggles it.
+  resetState();
+  const form = standardForm();
+  const line = form.control(".spf-stored-url-warning", { hidden: true });
+  const span = {};
+  line.querySelector = (selector) => (selector === "span" ? span : null);
+  const app = newApp(form);
+  assert.equal(line.hidden, true, "clean URL on open: hidden");
+  const urlBox = form.querySelector("[name='apiBaseUrl']");
+  const type = (value) => {
+    urlBox.value = value;
+    for (const { type: t, fn } of urlBox.listeners) if (t === "input") fn({ currentTarget: urlBox });
+  };
+  type("https://gw.example/v1?token=abc");
+  assert.equal(line.hidden, false, "a typed secret shows it");
+  assert.equal(span.textContent, "SIMPLYSF2E.ProviderSetup.StoredUrlHasSecret|token");
+  type("https://u:p@gw.example/v1");
+  assert.equal(span.textContent, "SIMPLYSF2E.ProviderSetup.StoredUrlHasUserinfo");
+  type("https://gw.example/v1");
+  assert.equal(line.hidden, true, "removing it hides the line");
+  // Source scan: every path that updates the endpoint hint also updates the warning.
+  const hintCalls = source.match(/this\.#syncEndpointKeyHint\(\);/g).length;
+  const warnCalls = source.match(/this\.#syncStoredUrlWarning\(\);/g).length;
+  assert.equal(warnCalls, hintCalls, "typing, render, preset click and after-save all sync the warning");
+  void app;
 }
 
 console.log("provider-setup-app.test.mjs: ok");
