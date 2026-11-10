@@ -97,10 +97,13 @@ globalThis.fromUuid = async (uuid) => docs.get(uuid) ?? null;
 const { resolvePCConcept } = await import("./pc-builder.mjs");
 const concept = { ancestry: "Human", background: "Athlete", class: "Operative", keyAbility: "dex", level: 1,
   focusSpells: [], equipment: [], loot: [], feats: [] };
+// Planning answers the selected path's own choices (production passes the AI
+// chooser); this stand-in takes the first offered option of every group.
+const firstOption = async (groups) => ({ picks: groups.map((group) => ({ choice: group.id, option: group.options[0].id })) });
 
 // A1: Athlete grants Deadlift, so Striker's own choice must reserve the next
 // closed skill feat instead of Deadlift.
-const striker = await resolvePCConcept({ ...concept, feats: ["Striker"] });
+const striker = await resolvePCConcept({ ...concept, feats: ["Striker"] }, { selectChoices: firstOption });
 const strikerPlan = striker.pathPlan["operative-specialization"];
 assert.equal(strikerPlan.name, "Striker");
 assert.deepEqual(strikerPlan.reservedFeats, [featUuid("hefty")],
@@ -110,7 +113,7 @@ assert.ok(!strikerPlan.reservedFeats.includes(featUuid("deadlift")));
 
 // A2: a name-form reservation is excluded from the class-1 skill slot by its
 // loaded name, so the slot cannot duplicate the path's own grant.
-const marks = await resolvePCConcept({ ...concept, feats: ["Marksman"] });
+const marks = await resolvePCConcept({ ...concept, feats: ["Marksman"] }, { selectChoices: firstOption });
 const marksPlan = marks.pathPlan["operative-specialization"];
 assert.equal(marksPlan.name, "Marksman");
 assert.deepEqual(marksPlan.reservedFeatNames, ["keep-them-in-your-sights"]);

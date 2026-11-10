@@ -386,7 +386,12 @@ export async function resolvePCConcept(concept, { exactContent = false, pathPlan
     .map((name) => [slugify(name), 1]));
 
   if (!pathPlan) {
-    const pathContext = { names: conceptChoiceNames(concept, { ancestryDoc, heritageDoc, backgroundDoc, classDoc }) };
+    // Same key ability createCharacterActor stages, so an attribute choice on
+    // the path resolves here exactly as it did at Create.
+    const pathContext = {
+      keyAbility: resolveKeyAbility(classDoc.system, concept.keyAbility),
+      names: conceptChoiceNames(concept, { ancestryDoc, heritageDoc, backgroundDoc, classDoc })
+    };
     const excludeFeats = abcGrantExclusions([ancestryDoc, heritageDoc, backgroundDoc]);
     pathPlan = await planClassPaths(classDoc, { context: pathContext, selectChoices, excludeFeats });
   }
@@ -1349,9 +1354,11 @@ export async function createCharacterActor(concept, resolved, { img = null, sele
       excludeFeats.push(feat.name);
     }
   }
+  // A planned build made every class-path decision at preview time
+  // (planClassPaths); Create applies the plan and never asks the AI for one.
   const stagedClassPaths = await stageClassPaths(classData, classId, {
     context: { keyAbility, names: conceptChoiceNames(concept, resolved) },
-    selectChoices,
+    selectChoices: resolved.pathPlan ? null : selectChoices,
     excludeFeats,
     pathPlan: resolved.pathPlan ?? null
   });

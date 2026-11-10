@@ -250,14 +250,17 @@ await assert.rejects(stageClassPaths(technomancerClass(), "technomancer-id", { c
   "an unanswered Programming Language blocks before Actor.create");
 
 // Feat reservation: slots can take every level-one skill feat a specialization
-// offers at high level. The plan reserves the first offered feat per feat
-// ChoiceSet, and staging keeps it offerable to that path alone.
+// offers at high level. The plan reserves the feat its planning answer chose per
+// feat ChoiceSet (here the first offered), and staging keeps it offerable to
+// that path alone.
+// The path group takes `label`; a nested group of the selected path (answered
+// in the same planning step) takes its first offered option.
 const pickLabel = (label) => async (groups) => ({
-  picks: groups.map((group) => ({ choice: group.id, option: group.options.find((entry) => entry.label === label).id }))
+  picks: groups.map((group) => ({ choice: group.id, option: (group.options.find((entry) => entry.label === label) ?? group.options[0]).id }))
 });
 const ghostPlan = await planClassPaths(operativeClass(), { context: { names: ["Ghost"] }, selectChoices: pickLabel("Ghost") });
 assert.deepEqual(ghostPlan["operative-specialization"].reservedFeats, [featUuid("face")],
-  "the plan reserves the first level-one skill feat the specialization offers");
+  "the plan reserves the level-one skill feat it chose for the specialization");
 const allSkillFeats = ["face", "favored", "trace", "terrain", "skeptic"].map(featUuid);
 await assert.rejects(stageClassPaths(operativeClass(), "operative-id", { context: { names: ["Ghost"] }, excludeFeats: allSkillFeats }),
   /no fully resolvable/, "without a reservation, slots that take every skill feat close no Ghost candidate");
@@ -272,7 +275,7 @@ assert.deepEqual(reservedGhost.expectedPaths.map((entry) => entry._stats.compend
 
 const sniperPlan = await planClassPaths(operativeClass(), { context: { names: ["Sniper"] }, selectChoices: pickLabel("Sniper") });
 assert.deepEqual(sniperPlan["operative-specialization"].reservedFeats, [featUuid("trace"), featUuid("keep")],
-  "each feat ChoiceSet contributes its first option, including the class-gated bonus feat");
+  "each feat ChoiceSet contributes its chosen option, including the class-gated bonus feat");
 assert.deepEqual(sniperPlan["operative-specialization"].reservedFeatNames, ["without-a-trace", "keep-them-in-your-sights"],
   "each reserved feat is also reported by its slugified loaded name");
 
@@ -291,7 +294,7 @@ const excludedFace = await planClassPaths(operativeClass(), {
   context: { names: ["Ghost"] }, selectChoices: pickLabel("Ghost"), excludeFeats: [featUuid("face")]
 });
 assert.deepEqual(excludedFace["operative-specialization"].reservedFeats, [featUuid("favored")],
-  "a path whose first option is in excludeFeats reserves the next closed option");
+  "a feat in excludeFeats is never offered, so the next closed option is chosen and reserved");
 assert.deepEqual(excludedFace["operative-specialization"].reservedFeatNames, ["favored-disguise"]);
 
 // Name-form choice values (real sf2e Sniper-style bonusFeat data stores the
