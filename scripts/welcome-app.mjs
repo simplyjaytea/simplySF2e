@@ -324,11 +324,11 @@ export class WelcomeApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   static #onOpenProvider() {
     if (this.#busy) return;
-    new ProviderSetupApp(() => this.#providerSaved()).render(true);
+    ProviderSetupApp.open(() => this.#providerSaved());
   }
 
   static #onOpenSources() {
-    new SourcesConfigApp().render(true);
+    SourcesConfigApp.open();
   }
 
   static #onRecheck() {

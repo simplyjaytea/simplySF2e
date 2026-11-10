@@ -242,7 +242,7 @@ export class ItemForgeApp extends SpfApp {
   /** Open the shared Compendium Sources settings app (same as the generator's gear). */
   static #onConfigureSources() {
     this.#readForm();
-    new SourcesConfigApp().render(true);
+    SourcesConfigApp.open();
   }
 
   static async #onTestProvider(_event, target) {

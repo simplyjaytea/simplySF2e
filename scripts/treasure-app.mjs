@@ -227,7 +227,7 @@ export class TreasureApp extends SpfApp {
 
   static #onConfigureSources() {
     this.#readForm();
-    new SourcesConfigApp().render(true);
+    SourcesConfigApp.open();
   }
 
   static async #onTestProvider(_event, target) {

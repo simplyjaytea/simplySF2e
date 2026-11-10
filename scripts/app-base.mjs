@@ -223,7 +223,7 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   /** Open the focused provider setup and refresh this app after it saves. */
   _openProviderSetup() {
-    new ProviderSetupApp(() => this.render()).render(true);
+    ProviderSetupApp.open(() => this.render());
   }
 
   /** Subclasses that keep unsaved form drafts override this before a provider switch. */
