@@ -546,7 +546,7 @@
       "Busy": "The Generator is busy. Try again when it finishes."
     },
     "Chat": {
-      "Busy": "The Generator is busy, so the command only filled in the form."
+      "Busy": "The Generator is busy, so the command was ignored. Send it again when the run finishes."
     },
     "Folders": {
       "Root": "SimplySF2e",
