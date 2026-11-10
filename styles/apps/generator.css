@@ -611,11 +611,16 @@
   font-weight: bold;
 }
 
-/* Skipped (x0) members stay readable: a muted dashed card plus a text tag,
-   not a whole-card fade that put the text under 4.5:1. */
+/* Skipped (x0) members stay readable: muted text plus a text tag, not a
+   whole-card fade that put the text under 4.5:1. The only edge change is the
+   row's own 1px rule turning dashed, so the box model (and every member's
+   left edge) is the same whether the count is 0 or not. */
 .simplysf2e .spf-member-skipped {
-  border-style: dashed;
   color: var(--spf-text-muted);
+}
+
+.simplysf2e .spf-encounter-member + .spf-member-skipped {
+  border-top-style: dashed;
 }
 
 .simplysf2e .spf-member-skipped strong,
