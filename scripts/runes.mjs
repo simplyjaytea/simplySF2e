@@ -88,16 +88,16 @@ export const GRADE_CREDITS_DELTA = {
 };
 
 /**
- * Parse upgrade slot capacity from an item description or data.
- * In SF2e, base weapons and armor declare upgrade capacity in their published text
- * (e.g. "Upgrade Slots 1", "Upgrade Slots 0", or "1 upgrade slot").
- * Defaults to 1 for weapons and 0 for armor if unspecified.
+ * Upgrade slots a base weapon or armor offers the forge: weapon 1, armor 0.
+ * These are NOT published numbers. Checked against sf2e 1.7.0 packs (350 base
+ * weapons and armors) and the installed system bundle: no item carries a
+ * capacity field or an "upgrade" trait, the system never limits installed
+ * subitems by count, and only a few specific or odd items state a count in
+ * prose ("one upgrade slot" on Gnarefuroid Carapace, "an upgrade slot" on Pact
+ * Observer Armor). So the default is a module rule, kept uncited on purpose
+ * (PLAYBOOK §9); do not parse descriptions for it.
  */
-export function parseUpgradeCapacity(desc, kind = "weapon") {
-  const text = String(desc ?? "");
-  const match = text.match(/upgrade\s+slots?\s*[:\-]?\s*(\d+)/i)
-    || text.match(/(\d+)\s+upgrade\s+slots?/i);
-  if (match) return Number(match[1]);
+export function defaultUpgradeSlots(kind = "weapon") {
   return kind === "weapon" ? 1 : 0;
 }
 
@@ -368,7 +368,7 @@ export async function getBaseItemCandidates(kind, maxLevel) {
       level: e.level,
       category: e.category ?? null,
       group: e.group ?? null,
-      upgradeSlots: parseUpgradeCapacity(e.description, kind)
+      upgradeSlots: defaultUpgradeSlots(kind)
     }));
 }
 

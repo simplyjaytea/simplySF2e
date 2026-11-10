@@ -18,7 +18,7 @@ import { slugify, capitalized, esc, escAi } from "./text.mjs";
 import {
   RUNED_ITEM_KINDS, SECONDARY_ADJECTIVE, SECONDARY_RUNE_FIELD, propertyRuneFitsBase,
   getBaseItemCandidates, getPropertyRuneCandidates, getFundamentalRuneTiers,
-  EQUIPMENT_GRADES, GRADE_LEVELS, GRADE_CREDITS_DELTA, parseUpgradeCapacity, getGradeTiers,
+  EQUIPMENT_GRADES, GRADE_LEVELS, GRADE_CREDITS_DELTA, defaultUpgradeSlots, getGradeTiers,
   trailingGradeLabel, stripTrailingGradeLabel
 } from "./runes.mjs";
 
@@ -26,7 +26,7 @@ import {
 export {
   getBaseItemCandidates, getPropertyRuneCandidates, getFundamentalRuneTiers,
   SECONDARY_ADJECTIVE, RUNED_ITEM_KINDS,
-  EQUIPMENT_GRADES, GRADE_LEVELS, GRADE_CREDITS_DELTA, parseUpgradeCapacity, getGradeTiers, getUpgradeCandidates
+  EQUIPMENT_GRADES, GRADE_LEVELS, GRADE_CREDITS_DELTA, defaultUpgradeSlots, getGradeTiers, getUpgradeCandidates
 } from "./runes.mjs";
 import {
   RARITY_TREASURE_MULTIPLIER, MAX_LEVEL, lookup,
@@ -225,7 +225,7 @@ export function normalizeRunedItemConcept(raw, {
     grade = availableGrades[0] ?? "commercial";
   }
 
-  // Upgrade slots come from the base candidate (see runes.parseUpgradeCapacity).
+  // Upgrade slots come from the base candidate (a module default, see runes.defaultUpgradeSlots).
   const maxSlots = base.upgradeSlots ?? 0;
   const propertyRunes = [];
   const skippedUpgrades = [];
