@@ -20,8 +20,10 @@
   </div>
   <p class="spf-hint spf-source-no-match" data-source-no-match {{#unless filter.noMatches}}hidden{{/unless}}>{{localize "SIMPLYSF2E.Sources.NoMatches"}}</p>
   {{#each categories}}
-    <fieldset class="spf-source-category spf-card spf-hud-frame" data-source-category="{{this.key}}" {{#if this.hidden}}hidden{{/if}}>
-      <legend>{{localize this.label}} <span class="spf-source-count" data-source-count>{{localize "SIMPLYSF2E.Sources.CategoryCount" selected=this.selectedCount total=this.packs.length}}</span></legend>
+    {{! One flat list: each category is a plain heading row over its packs.
+        The fieldset and legend stay so screen readers announce the group. }}
+    <fieldset class="spf-source-category" data-source-category="{{this.key}}" {{#if this.hidden}}hidden{{/if}}>
+      <legend><span class="spf-source-category-label">{{localize this.label}}</span> <span class="spf-source-count" data-source-count>{{localize "SIMPLYSF2E.Sources.CategoryCount" selected=this.selectedCount total=this.packs.length}}</span></legend>
       {{#if this.packs.length}}
         {{#each this.packs}}
           <label class="spf-pack" {{#if this.hidden}}hidden{{/if}}>
