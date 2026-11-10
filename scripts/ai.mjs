@@ -1742,16 +1742,21 @@ async function requestCompletion({ task, system, user, onProgress, signal, retry
       if (!offending) {
         throw providerApiErrorFromDetail(response, detail);
       }
+      // OpenAI reasoning models require max_completion_tokens, while some
+      // local compatibility servers still implement only max_tokens.
+      // Negotiate in either direction without ever looping between names,
+      // and never send a request without an output cap: once both names
+      // were rejected, the provider's own error is the real reason.
+      const capAlternate = offending === "max_tokens" ? "max_completion_tokens"
+        : offending === "max_completion_tokens" ? "max_tokens"
+        : null;
+      if (capAlternate && rejectedParameters.has(capAlternate)) {
+        throw providerApiErrorFromDetail(response, detail);
+      }
       const value = body[offending];
       delete body[offending];
       rejectedParameters.add(offending);
-      // OpenAI reasoning models require max_completion_tokens, while some
-      // local compatibility servers still implement only max_tokens.
-      // Negotiate in either direction without ever looping between names.
-      if (offending === "max_tokens" || offending === "max_completion_tokens") {
-        const alternate = offending === "max_tokens" ? "max_completion_tokens" : "max_tokens";
-        if (!rejectedParameters.has(alternate)) body[alternate] = value;
-      }
+      if (capAlternate) body[capAlternate] = value;
       resetIdle();
       response = await postChatCompletion(baseUrl, apiKey, body, controller.signal, retryBudget, onBackoff);
     }
