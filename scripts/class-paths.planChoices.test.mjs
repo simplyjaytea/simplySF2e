@@ -161,6 +161,13 @@ const extra = { ...sniperEntry, preselectChoices: { ...sniperEntry.preselectChoi
 await assert.rejects(stageClassPaths(operativeClass(), "operative-id", { context: {}, pathPlan: { "operative-specialization": extra } }),
   /has an unanswered choice/, "a record carrying a flag the path does not have blocks");
 
+// A planned build whose plan lacks a path entry still makes no Create-time
+// chooser call: the unplanned path cannot be answered and blocks.
+await assert.rejects(createCharacterActor(concept, resolvedFor({}), { selectChoices: throwingChooser(createCalls) }),
+  /was not selected/, "an unplanned path on a planned build blocks Create");
+assert.equal(createCalls.length, 0, "createCharacterActor gives stageClassPaths no chooser when the build has a plan");
+assert.deepEqual(events, [], "no actor is created");
+
 // 4. A failed chooser at planning surfaces at preview time, the same way an
 //    unselected path does: planning throws, no plan is returned.
 let call = 0;
