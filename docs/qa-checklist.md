@@ -880,7 +880,7 @@ Generate a level 7 NPC with a limited cone breath (name "Frost Breath", cold), a
 
 | # | Step | Expected | Where to look | Result | Evidence |
 | --- | --- | --- | --- | --- | --- |
-| 14h.1 | Generator, Monster: generate a level 4 creature and watch the step list until the bar finishes. | Each finished step shows how long it took after its name ("0.8 s", "12 s", "1 m 05 s"), small, muted and not in capitals. The current step says "running" and blinks; the steps still to come are dots. The percent and the token line are unchanged. | Generator progress card | | |
+| 14h.1 | Generator, Monster: generate a level 4 creature and watch the step list until the bar finishes. | Each finished step shows how long it took after its name ("0.8s", "12s", "1m 05s"), small, muted and not in capitals. The current step says "running" and blinks; the steps still to come are dots. The percent and the token line are unchanged. | Generator progress card | | |
 | 14h.2 | Same run: watch the time on a step that has just finished. | The time appears the moment the next step starts, without the card flickering or the bar jumping back. A step the run skipped shows no time. | Generator progress card | | |
 | 14h.3 | Run Item Forge, Shop and Treasure once each. | The same per-step times and "running" value appear on their progress cards. | Item Forge, Shop, Treasure | | |
 | 14h.4 | Open Welcome fresh (Help > Welcome, or a world with no provider). | The legends read "Choose a provider" and "Connect", without numbers. OpenRouter is pressed; Connect is enabled once a key is entered; nothing is dimmed. | Welcome | | |
