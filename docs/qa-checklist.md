@@ -19,24 +19,24 @@ Conventions: "Generator" = the **SimplySF2e — Generator** window. "Forge" = th
 | 0.3 | Open the **Items** sidebar tab. | An **Item Forge** button (hammer icon) is in a row just below the directory header actions. | Items directory | | |
 | 0.4 | Log in as a non-GM player. Look at both directories; type `/sf2e` in chat. | No buttons for the player. The command shows the warning "Only a GM can use SimplySF2e generation and provider setup." and opens nothing. | Player's Actors/Items tabs, chat | | |
 | 0.5 | As GM: Game Settings → Configure Settings → Module Settings → SimplySF2e → **AI Provider Setup** → **Configure Provider**. | **AI Provider Setup** window opens with Saved connections, Endpoint and API key sections. | Settings dialog | | |
-| 0.6 | Choose a provider (hosted: enter its key; local Ollama/LM Studio: leave the key blank). Click **Load Models**, pick a model, name the connection. | "Loaded N available model IDs." The Model field accepts the chosen ID. | Provider Setup | | |
-| 0.7 | Click **Save & Test**. | Success message "Connected to {provider} with model {model} ({total} tokens)." and no failure message. | Notification, Provider Setup | | |
+| 0.6 | Choose a provider (hosted: enter its key; local Ollama/LM Studio: leave the key blank). Click **Load models**, pick a model, name the connection. | "Loaded N available model IDs." The Model field accepts the chosen ID. | Provider Setup | | |
+| 0.7 | Click **Save & test**. | Success message "Connected to {provider} with model {model} ({total} tokens)." and no failure message. | Notification, Provider Setup | | |
 | 0.8 | Open the Generator. Look at the provider row. | Green check, "Provider configuration is ready", and the model ID. The Forge shows the same row. | Generator header | | |
-| 0.9 | (Optional) In Provider Setup add a second connection, **Save & Authorize**, switch to it with the Active connection selector in the Generator, then switch back. | Switching loads that connection's URL/model; the key is not shown in plain text. | Generator connection switch | | |
+| 0.9 | (Optional) In Provider Setup add a second connection, **Save without testing**, switch to it with the Active connection selector in the Generator, then switch back. | Switching loads that connection's URL/model; the key is not shown in plain text. | Generator connection switch | | |
 | 0.10 | Module Settings → SimplySF2e → **Compendium Sources** → **Configure Sources**. Before changing anything, read each category. | Every category (Bestiary Abilities, Spells, Feats, Equipment, Ancestries, Backgrounds, Classes, Class Features, Heritages, Bestiary Actors) lists packs, with the sf2e defaults marked "default" (`sf2e.classes`, `class-features`, `feats`, `spells`, `equipment`, `ancestries`, `heritages`, `backgrounds`, `bestiary-ability-glossary-srd`, and the seven creature packs: `alien-core-bestiary`, `guilt-of-the-grave-world-bestiary`, `secrets-of-the-swarm-bestiary`, `standalone-adventure-bestiary`, `starfinder-society-bestiary`, `rulebook-bestiaries`, `tales-from-the-vast-bestiary`). | Sources window | | |
 | 0.11 | Click **Reset to defaults**, confirm the dialog, then **Save**. | "Compendium sources reset to the SF2e system pack defaults." then "Compendium sources saved." | Notifications | | |
-| 0.12 | Reopen the Generator. | Compendium Content row reads "Ready — N enabled packs"; no "Required compendium content is unavailable" message. | Generator | | |
+| 0.12 | Reopen the Generator. | Compendium Content row reads "Ready: N enabled packs"; no "Required compendium content is unavailable" message. | Generator | | |
 | 0.13 | Provider Setup → **Fast picks (Jev)** card: type an OpenRouter key and click **Save Jev key**. | "Jev key saved." The field is empty with the placeholder "A Jev key is saved — leave blank to keep it"; the key is not shown in plain text. A TypeSafe-direct key warning is visible. | Provider Setup | | |
 | 0.14 | Reopen Provider Setup; click **Save Jev key** with the field empty, then tick **Clear the saved Jev key** and click it again. | Empty click changes nothing. Clear shows "Jev key cleared." and the placeholder returns to "Optional: OpenRouter key". | Provider Setup | | |
-| 0.15 | Type a Jev key, leave the Model field empty, press **Save & Authorize**. | The chat save errors (model required) but reopening Provider Setup shows the Jev key is saved. | Provider Setup | | |
+| 0.15 | Type a Jev key, leave the Model field empty, press **Save without testing**. | The chat save errors (model required) but reopening Provider Setup shows the Jev key is saved. | Provider Setup | | |
 
-## 1. Presets and Manage Presets
+## 1. Presets and Manage presets
 
 | # | Step | Expected | Where to look | Result | Evidence |
 |---|------|----------|---------------|--------|----------|
 | 1.1 | Generator → Preset dropdown. | Groups: "Standard classes" (Envoy, Mechanic, Mystic, Operative, Solarian, Soldier, Technomancer, Witchwarper), "Starfinder Archetypes" (Corp Enforcer, Free Captain (Pirate), Street Cyberdoc, Bounty Hunter), "Custom presets". | Preset dropdown | | |
-| 1.2 | Click the save-preset button, name it "QA Test", add guidance text, **Save Preset**. | "Preset "QA Test" saved." It appears under Custom presets and is selected. | Dropdown, notification | | |
-| 1.3 | Duplicate it, then open **Manage Presets**. | "QA Test (copy)" exists. **Manage Custom Presets** lists both with edit and export buttons. | Manage window | | |
+| 1.2 | Click the save-preset button, name it "QA Test", add guidance text, **Save preset**. | "Preset "QA Test" saved." It appears under Custom presets and is selected. | Dropdown, notification | | |
+| 1.3 | Duplicate it, then open **Manage presets**. | "QA Test (copy)" exists. **Manage Custom Presets** lists both with edit and export buttons. | Manage window | | |
 | 1.4 | **Export All**, delete both presets, then **Import** the exported JSON. | "Presets imported: 2 added, 0 skipped." Both are back. | Manage window | | |
 | 1.5 | Delete "QA Test" and the copy (confirm dialog). | "Preset … deleted." Gone from the dropdown; Manage window shows "No custom presets yet." | Notification | | |
 | 1.6 | Generator → Preset dropdown → open the **Standard classes** group. | Lists Envoy, Mechanic, Mystic, Operative, Solarian, Soldier, Technomancer and Witchwarper. Mechanic and Technomancer select like the other standard presets. | Preset dropdown | | |
@@ -49,21 +49,21 @@ Repeat 2.1-2.7 for **Level 1**, **Level 5** and **Level 12**. Use the same promp
 
 | # | Step | Expected | Where to look | Result | Evidence |
 |---|------|----------|---------------|--------|----------|
-| 2.1 | Generator → mode **NPC** (or **Monster**). Set Level (Increase/Decrease level buttons). Enter the prompt. Leave Monster Adjustment = Normal. Click **Generate NPC** (**Generate Monster** in Monster mode). | Progress bar advances monotonically through concept, spells/abilities/equipment steps as applicable. A preview appears; nothing is created yet. | Generator preview | | |
+| 2.1 | Generator → mode **NPC** (or **Monster**). Set Level (Increase/Decrease level buttons). Enter the prompt. Leave Monster Adjustment = Normal. Click **Generate NPC** (**Generate monster** in Monster mode). | Progress bar advances monotonically through concept, spells/abilities/equipment steps as applicable. A preview appears; nothing is created yet. | Generator preview | | |
 | 2.2 | Read the preview: level, AC, HP, Perception, Fort/Ref/Will, strikes. | Level equals the requested level. The "N/M compendium matches" line is shown; unmatched entries show the "will be skipped" warning icon. | Preview | | |
-| 2.3 | Click **Create Actor**. | Notification "Created actor "{name}"." and the completion panel (Content grounding counts). **Open Sheet** works. | Notification, completion panel | | |
+| 2.3 | Click **Create actor**. | Notification "Created actor "{name}"." and the completion panel (Content grounding counts). **Open sheet** works. | Notification, completion panel | | |
 | 2.4 | On the sheet, AC, HP, saves, Perception. | Roughly within the GM Core ranges for that level. Record: AC `__`, HP `__`, Fort/Ref/Will `__`, Perception `__`. | NPC sheet header and Main tab | | |
 | 2.5 | Strikes: attack bonus and damage. | Attack bonus within the Strike Attack Bonus row for the level; average damage within the Strike Damage row. | Strikes section | | |
 | 2.6 | Spell DC / attack (if the NPC casts). | Within the Spell DC / Spell Attack row for the level. Spells are real `sf2e.spells` entries. | Spells tab | | |
 | 2.7 | Inventory. | Every item is a real compendium item; skipped gear is absent. | Inventory tab | | |
-| 2.8 | Generator → mode **NPC**. Enter a prompt that invites a grab or swallow ability (e.g. "a tentacled swamp horror that constricts and swallows prey whole, with a stench"). Generate at level 7, size Large, then Create Actor. Open the F12 console. | No ability on the sheet or in the preview has `(0)` damage, a blank DC, a 0-foot distance or a 0 aura radius. Any ability the module could not fill is absent, and the console names it: `simplysf2e \| dropped "<name>": its blank values cannot be filled for this creature (level 7, size lg)`. | Preview, Actions tab, console | | |
+| 2.8 | Generator → mode **NPC**. Enter a prompt that invites a grab or swallow ability (e.g. "a tentacled swamp horror that constricts and swallows prey whole, with a stench"). Generate at level 7, size Large, then Create actor. Open the F12 console. | No ability on the sheet or in the preview has `(0)` damage, a blank DC, a 0-foot distance or a 0 aura radius. Any ability the module could not fill is absent, and the console names it: `simplysf2e \| dropped "<name>": its blank values cannot be filled for this creature (level 7, size lg)`. | Preview, Actions tab, console | | |
 | 2.9 | Same prompt as 2.8 at level 7, size Large. Read the glossary abilities on the sheet. | Filled values, as the cited tables give them: Constrict `@Damage[(4d6)[bludgeoning]]`, DC 25 (high); Greater Constrict DC 25 (high); Engulf `@Damage[(4d6)[bludgeoning]] damage`, DC 22 (moderate), escape DC 22, Rupture 15; Swallow Whole "Medium", `(4d6)`, Rupture 15; Trample "Medium or smaller", the strike name is one of the creature's own melee Strikes (the highest-damage one), DC 25 (high); Frightful Presence 90 feet, DC 22 (moderate), Aura radius 90; Stench 30 feet, DC 22 (moderate), Aura radius 30 (the Aura rule radius matches the distance). A DC scale chosen by the AI (high or moderate) changes only the DC. The filled numbers use the creature's base level: Elite, Weak and re-level do not change ability text, as with published abilities. A Reskin that renames a melee Strike leaves Trample's text naming the old Strike. | Sheet, Actions tab, chat card | | |
-| 2.10 | Generator → mode **NPC**, level 7. Prompt: "a dragon that exhales a searing cone of flame and must catch its breath". Generate, then Create Actor. Read the breath item. | A 2-action item named by the AI with a 30-foot cone, damage `8d6` fire, "DC 25 Reflex basic" (save line), and "It can't use <name> again for 1d4 rounds". Click the recharge roll in chat: it rolls 1d4 and the item can be used again after it. | Preview, Actions tab, chat | | |
-| 2.11 | Same level 7 NPC, prompt: "a serpent that spits an acid line down a corridor". Create Actor. | An at-will 2-action item with a 30-foot line, damage `4d6` acid, "DC 25 Reflex basic", and no recharge sentence. | Preview, Actions tab | | |
-| 2.12 | Generator → mode **NPC**, level 8. Prompt: "a fungal swamp hulk whose spores sicken everything that comes near it". Generate, then Create Actor. Read the aura item and place the token on the canvas. | A passive 30-foot aura visible on the canvas around the token (Aura radius 30 on the sheet). The ability text has a clickable `@Check[fortitude\|dc:23]` (DC 23 is SPELL_DC moderate at level 8) and reads "On a failure, it becomes sickened 2". The module applies nothing: the GM clicks the check and applies the condition. | Canvas, Actions tab, chat | | |
-| 2.13 | Same level 8 creature, prompt: "a glowing reactor core that burns everything within ten feet each turn". Create Actor. Place the token on the canvas. | A passive 10-foot aura visible on the canvas around the token. The ability text has a clickable `@Damage[4d6[fire]]` link (4d6 is the unlimited column at level 6, level 8 minus 2) and a clickable `@Check[fortitude\|dc:23\|basic]`. The module applies no damage: the GM rolls and applies it. | Canvas, Actions tab, chat | | |
+| 2.10 | Generator → mode **NPC**, level 7. Prompt: "a dragon that exhales a searing cone of flame and must catch its breath". Generate, then Create actor. Read the breath item. | A 2-action item named by the AI with a 30-foot cone, damage `8d6` fire, "DC 25 Reflex basic" (save line), and "It can't use <name> again for 1d4 rounds". Click the recharge roll in chat: it rolls 1d4 and the item can be used again after it. | Preview, Actions tab, chat | | |
+| 2.11 | Same level 7 NPC, prompt: "a serpent that spits an acid line down a corridor". Create actor. | An at-will 2-action item with a 30-foot line, damage `4d6` acid, "DC 25 Reflex basic", and no recharge sentence. | Preview, Actions tab | | |
+| 2.12 | Generator → mode **NPC**, level 8. Prompt: "a fungal swamp hulk whose spores sicken everything that comes near it". Generate, then Create actor. Read the aura item and place the token on the canvas. | A passive 30-foot aura visible on the canvas around the token (Aura radius 30 on the sheet). The ability text has a clickable `@Check[fortitude\|dc:23]` (DC 23 is SPELL_DC moderate at level 8) and reads "On a failure, it becomes sickened 2". The module applies nothing: the GM clicks the check and applies the condition. | Canvas, Actions tab, chat | | |
+| 2.13 | Same level 8 creature, prompt: "a glowing reactor core that burns everything within ten feet each turn". Create actor. Place the token on the canvas. | A passive 10-foot aura visible on the canvas around the token. The ability text has a clickable `@Damage[4d6[fire]]` link (4d6 is the unlimited column at level 6, level 8 minus 2) and a clickable `@Check[fortitude\|dc:23\|basic]`. The module applies no damage: the GM rolls and applies it. | Canvas, Actions tab, chat | | |
 | 2.14 | Generator → mode **NPC**, level 14, rarity Unique, Treasure amount Generous, any prompt that gives it loot. Create the actor and open its inventory. | The Credstick in its inventory brings the loot value to about the Credits budget chip in the preview (175,200 for a single level 14 creature, about 17,520 gp), not 10,000 gp. | Preview, NPC inventory | | |
-| 2.15 | Generate and Create a monster or NPC. | After Create only Open Sheet is highlighted as the primary button; Generate Another is secondary. | Generator | | |
+| 2.15 | Generate and Create a monster or NPC. | After Create only Open sheet is highlighted as the primary button; Generate another is secondary. | Generator | | |
 | 2.16 | Clear the Level field and press Generate. | Level 1 is used, not 0. | Generator | | |
 
 | Level | Result | Evidence |
@@ -91,27 +91,27 @@ Use one prompt at level 5. The goal is to prove the adjustment is applied once (
 
 | # | Step | Expected | Where to look | Result | Evidence |
 |---|------|----------|---------------|--------|----------|
-| 4.1 | Generator → mode **Encounter**. Party level 3, Party size 4, Threat **Moderate**. Optionally enter a theme. Click **Generate Encounter**. | Progress shows "Encounter design" then "Member i/N" steps. A plan appears with roles (Boss, Minion, etc.) and per-member counts. | Generator preview | | |
+| 4.1 | Generator → mode **Encounter**. Party level 3, Party size 4, Threat **Moderate**. Optionally enter a theme. Click **Generate encounter**. | Progress shows "Encounter design" then "Member i/N" steps. A plan appears with roles (Boss, Minion, etc.) and per-member counts. | Generator preview | | |
 | 4.2 | Read the XP readout and treasure readout. | Total XP at or near the Moderate budget for the party (80 XP at party size 4); within-budget styling when under. Treasure in credits with thousands separators. | Preview | | |
 | 4.3 | Use "Add one" / "Remove one" on a member. | XP readout updates; "Remove one" at 0 skips that creature. | Preview | | |
 | 4.4 | Preview with Threat Trivial, Severe, Extreme and with party size 5. | Member counts and XP scale with threat and party size. Record XP: `__ / __ / __ / __`. | Preview | | |
-| 4.5 | Return to Moderate, party 4. Click **Create All Actors**. | Notification "Created N actors in folder "{encounter name}"." A new Actor folder with that name exists. | Actors directory | | |
+| 4.5 | Return to Moderate, party 4. Click **Create all actors**. | Notification "Created N actors in folder "{encounter name}"." A new Actor folder with that name exists. | Actors directory | | |
 | 4.6 | Count actors in the folder. | Count equals the sum of member counts in the plan. Duplicates are named "Name 1", "Name 2". Each has bestiary-borrowed art and a plausible level. | Actor folder | | |
-| 4.7 | Rollback: Compendium Sources → Bestiary Actors, uncheck every pack, Save. Generate an encounter preview and click **Create All Actors**. | Creation fails with "No usable NPC actor was available in the enabled Bestiary Actor sources…". No folder from this attempt remains and no stray actors remain (all-or-nothing). | Actors directory, console | | |
+| 4.7 | Rollback: Compendium Sources → Bestiary Actors, uncheck every pack, Save. Generate an encounter preview and click **Create all actors**. | Creation fails with "No usable NPC actor was available in the enabled Bestiary Actor sources…". No folder from this attempt remains and no stray actors remain (all-or-nothing). | Actors directory, console | | |
 | 4.8 | Restore defaults (Compendium Sources → **Reset to defaults** → Save). | Sources ready again. | Sources window | | |
-| 4.9 | Generate an encounter preview, then press "Remove one" on every member until each count is 0. Try to click **Create All Actors**. | The button is disabled. No folder is created and no "Created 0 actors" notice appears. Raising any member back to 1 enables it again. | Encounter preview, Actors sidebar | | |
-| 4.10 | Encounter mode, press **Generate** (not Preview). | The folder and every member actor are created in one go, with no extra click on Create All Actors. | Encounter preview, Actors sidebar | | |
+| 4.9 | Generate an encounter preview, then press "Remove one" on every member until each count is 0. Try to click **Create all actors**. | The button is disabled. No folder is created and no "Created 0 actors" notice appears. Raising any member back to 1 enables it again. | Encounter preview, Actors sidebar | | |
+| 4.10 | Encounter mode, press **Generate** (not Preview). | The folder and every member actor are created in one go, with no extra click on Create all actors. | Encounter preview, Actors sidebar | | |
 
 ## 5. Reskin
 
 | # | Step | Expected | Where to look | Result | Evidence |
 |---|------|----------|---------------|--------|----------|
 | 5.1 | Generator → mode **Reskin**. | "Reskin an existing creature" panel with "Drag an NPC here from the Actors sidebar or a bestiary compendium." | Generator | | |
-| 5.2 | Click **Reskin Creature** with nothing dropped. | Warning "Drop an NPC onto the Reskin panel first." | Notification | | |
+| 5.2 | Click **Reskin creature** with nothing dropped. | Warning "Drop an NPC onto the Reskin panel first." | Notification | | |
 | 5.3 | Drag a world NPC (with strikes, abilities and at least one rule/effect) from the Actors sidebar onto the panel. | Panel shows the creature name and "Creature {level}". | Drop panel | | |
 | 5.4 | Drag a **character** onto the panel. | Rejected: "Only NPC creatures can be reskinned." | Notification | | |
-| 5.5 | Re-drop the NPC. Enter a theme (e.g. "a void-touched pirate enforcer who boards ships through airlocks"). Click **Reskin Creature**. | Preview shows new description, "Read aloud", "Recall Knowledge", and "Renamed strikes and abilities" (or "No strikes or abilities were renamed."). Line shown: "Statistics, rules, traits, and items are copied unchanged. The original creature is not modified." | Preview | | |
-| 5.6 | Click **Create Reskinned Copy**. | A new actor appears; the original is untouched. | Actors directory | | |
+| 5.5 | Re-drop the NPC. Enter a theme (e.g. "a void-touched pirate enforcer who boards ships through airlocks"). Click **Reskin creature**. | Preview shows new description, "Read aloud", "Recall Knowledge", and "Renamed strikes and abilities" (or "No strikes or abilities were renamed."). Line shown: "Statistics, rules, traits, and items are copied unchanged. The original creature is not modified." | Preview | | |
+| 5.6 | Click **Create reskinned copy**. | A new actor appears; the original is untouched. | Actors directory | | |
 | 5.7 | Compare original and copy: level, AC, HP, saves, Perception, skills, speeds, IWR, traits, item count. | All identical. | Both sheets | | |
 | 5.8 | Compare items (Actions, Inventory, Spells). | Same item set. Only renamed strikes/abilities have new names; prose is new. | Both sheets | | |
 | 5.9 | On a renamed strike with attack effects, open its item Rules tab and make the attack. | Same rules, damage and traits as the original; the item's slug is pinned to the original slug. Effects still apply. | Item sheet, chat | | |
@@ -180,7 +180,7 @@ Open the Forge from the Items tab **Item Forge** button. Pick the **Item type**,
 
 ## 7. Player Characters (all eight classes)
 
-Run each class at **level 1** and at one higher level (use **5**; record the level used). Mode **Character**. Pick the class preset (Envoy, Mystic, Operative, Solarian, Soldier, Witchwarper) or name the class in the prompt (Mechanic and Technomancer have no preset), set Level, click **Generate Character**. Leave the Free Archetype setting off.
+Run each class at **level 1** and at one higher level (use **5**; record the level used). Mode **Character**. Pick the class preset (Envoy, Mystic, Operative, Solarian, Soldier, Witchwarper) or name the class in the prompt (Mechanic and Technomancer have no preset), set Level, click **Generate character**. Leave the Free Archetype setting off.
 
 | Class | L1 PASS/FAIL | L5 PASS/FAIL | Notes / evidence |
 |-------|--------------|--------------|------------------|
@@ -197,9 +197,9 @@ Per class and level:
 
 | # | Step | Expected | Where to look | Result | Evidence |
 |---|------|----------|---------------|--------|----------|
-| 7.1 | Generate Character; read the preview. | Ancestry, Heritage, Background, Class, Feats, Equipment populated; "Skill priorities" and "Resulting skill proficiencies" shown. | Preview | | |
-| 7.2 | Click **Create Actor**. Watch for native Foundry prompts. | No unexpected prompts. Only documented ones may appear: SF2e choice dialogs the module could not answer ("Some character choices could not be selected automatically. Complete any SF2e choice dialogs to continue."). Record every prompt: `____` | Dialogs | | |
-| 7.3 | Completion / review panel. | "Character created — review" if any features had no recorded choice. Record the listed items: `____` | Generator | | |
+| 7.1 | Generate character; read the preview. | Ancestry, Heritage, Background, Class, Feats, Equipment populated; "Skill priorities" and "Resulting skill proficiencies" shown. | Preview | | |
+| 7.2 | Click **Create actor**. Watch for native Foundry prompts. | No unexpected prompts. Only documented ones may appear: SF2e choice dialogs the module could not answer ("Some character choices could not be selected automatically. Complete any SF2e choice dialogs to continue."). Record every prompt: `____` | Dialogs | | |
+| 7.3 | Completion / review panel. | "Character created: review" if any features had no recorded choice. Record the listed items: `____` | Generator | | |
 | 7.4 | Open the character; check embedded items. | Exactly one class, ancestry, heritage and background, all real items. Features arrived via grants, not duplicated. | Character tab, Features | | |
 | 7.5 | Level, HP, AC, saves, Perception. | Level matches; system-computed stats are non-zero, no NaN. | Sheet header | | |
 | 7.6 | Feats tab. | Class, ancestry, skill and general slots for the level are filled, or the review reports the gap. No duplicates. | Feats tab | | |
@@ -243,7 +243,7 @@ Per class and level:
 
 | # | Step | Expected | Where to look | Result | Evidence |
 |---|------|----------|---------------|--------|----------|
-| 7d.1 | Level 1 **Living Hologram** PC. Character mode; name the ancestry in the prompt (e.g. "a living hologram courier"). Generate Character, then Create Actor. | No native size prompt appears. The module answers the size choice. The sheet shows the creature size it chose. | Dialogs, sheet | | |
+| 7d.1 | Level 1 **Living Hologram** PC. Character mode; name the ancestry in the prompt (e.g. "a living hologram courier"). Generate character, then Create actor. | No native size prompt appears. The module answers the size choice. The sheet shows the creature size it chose. | Dialogs, sheet | | |
 | 7d.2 | Level 1 **SRO** PC (SRO Frame). Same steps, naming the SRO ancestry in the prompt. | As 7d.1. | Dialogs, sheet | | |
 
 ### 7e. Multiclass (Free Archetype on only)
@@ -253,11 +253,11 @@ Turn on **Free Archetype variant rule** (Module Settings → SimplySF2e) for 7e.
 | # | Step | Expected | Where to look | Result | Evidence |
 |---|------|----------|---------------|--------|----------|
 | 7e.1 | With **Free Archetype variant rule** off, open the Generator in Character mode. Turn the setting on and reopen it. | Off: no **Multiclass** picker. On: a Multiclass picker appears, blank by default. | Generator | | |
-| 7e.2 | Free Archetype on. Class Soldier, level 5. Multiclass picker: Mystic. Generate Character, then Create Actor. | The Mystic Dedication fills the level-2 archetype slot. Preview and sheet agree. | Preview, Feats tab | | |
+| 7e.2 | Free Archetype on. Class Soldier, level 5. Multiclass picker: Mystic. Generate character, then Create actor. | The Mystic Dedication fills the level-2 archetype slot. Preview and sheet agree. | Preview, Feats tab | | |
 | 7e.3 | Same character. Read the archetype feats at levels 4 and later. | Where a legal follow-up exists, later archetype slots take Mystic archetype feats (their prerequisites name the Mystic Dedication or an earlier Mystic feat). | Feats tab | | |
-| 7e.4 | Free Archetype on. Multiclass picker left empty. Prompt: "a soldier who dabbles in mysticism", level 5. Generate Character, then Create Actor. | The AI picks a dedication from the prompt. That dedication fills the level-2 archetype slot; the picker stays empty. | Preview, Feats tab | | |
-| 7e.5 | Free Archetype on. Soldier with Multiclass picker: Mystic, created at level 4, then again at level 6 and at level 8. After each Create Actor, read the Spellcasting tab. | A separate Mystic archetype spellcasting entry appears with 2 cantrips. A rank 1 slot appears at level 4, rank 2 at level 6, rank 3 at level 8 (Player Core p. 174, basic spellcasting). Record slots per rank: `__`. Repeat once with Witchwarper or Technomancer as the picker. | Spellcasting tab | | |
-| 7e.6 | Free Archetype on. Multiclass picker: Mystic, level 6. Prompt: "a mystic who also trained as an operative". Generate Character, then read the archetype feats at levels 2 to 6. | Only the Mystic dedication appears. No second dedication (for example Operative Dedication) appears before two Mystic archetype feats are placed. | Preview, Feats tab | | |
+| 7e.4 | Free Archetype on. Multiclass picker left empty. Prompt: "a soldier who dabbles in mysticism", level 5. Generate character, then Create actor. | The AI picks a dedication from the prompt. That dedication fills the level-2 archetype slot; the picker stays empty. | Preview, Feats tab | | |
+| 7e.5 | Free Archetype on. Soldier with Multiclass picker: Mystic, created at level 4, then again at level 6 and at level 8. After each Create actor, read the Spellcasting tab. | A separate Mystic archetype spellcasting entry appears with 2 cantrips. A rank 1 slot appears at level 4, rank 2 at level 6, rank 3 at level 8 (Player Core p. 174, basic spellcasting). Record slots per rank: `__`. Repeat once with Witchwarper or Technomancer as the picker. | Spellcasting tab | | |
+| 7e.6 | Free Archetype on. Multiclass picker: Mystic, level 6. Prompt: "a mystic who also trained as an operative". Generate character, then read the archetype feats at levels 2 to 6. | Only the Mystic dedication appears. No second dedication (for example Operative Dedication) appears before two Mystic archetype feats are placed. | Preview, Feats tab | | |
 
 ## 8. Skills: Computers and Piloting
 
@@ -282,7 +282,7 @@ Turn on **Free Archetype variant rule** (Module Settings → SimplySF2e) for 7e.
 
 ## 10. Loot: spell gems, credits and UPB
 
-Use NPCs of level 8 or higher with Advanced options → **Treasure amount** = **Generous** and a prompt that invites consumables and money, e.g. "a spell-slinging cultist carrying spell gems and a stash of credits". Use **Reroll Loot** on the preview to try again.
+Use NPCs of level 8 or higher with Advanced options → **Treasure amount** = **Generous** and a prompt that invites consumables and money, e.g. "a spell-slinging cultist carrying spell gems and a stash of credits". Use **Reroll loot** on the preview to try again.
 
 | # | Step | Expected | Where to look | Result | Evidence |
 |---|------|----------|---------------|--------|----------|
@@ -292,7 +292,7 @@ Use NPCs of level 8 or higher with Advanced options → **Treasure amount** = **
 | 10.4 | Look for money. | A **Credstick** (credits) and/or **UPB** appear; no classic coin stacks. | Inventory | | |
 | 10.5 | Prompt "carries 50 gp". | Converted at 1 gp = 10 credits (500 credits). | Inventory | | |
 | 10.6 | Treasure readout in the preview. | Credits with thousands separators; over-budget styling like the XP readout. | Preview | | |
-| 10.7 | **Reroll Loot** on a preview. | Loot changes, creature does not. | Preview | | |
+| 10.7 | **Reroll loot** on a preview. | Loot changes, creature does not. | Preview | | |
 | 10.8 | Character mode starting wealth. | Surfaced in credits. | Inventory | | |
 
 ## 11. Chat commands
@@ -320,7 +320,7 @@ As GM, in the chat box. The command word is case-insensitive.
 | # | Step | Expected | Where to look | Result | Evidence |
 |---|------|----------|---------------|--------|----------|
 | 12.1 | Start a generation, click **Cancel generation** midway. | "Generation cancelled." No actor created; UI usable. | Notification | | |
-| 12.2 | Enter a wrong key or model in Provider Setup and **Save & Test**. | "Provider connection test failed: …" with a hint. | Notification | | |
+| 12.2 | Enter a wrong key or model in Provider Setup and **Save & test**. | "Provider connection test failed: …" with a hint. | Notification | | |
 | 12.3 | Restore the working provider and generate once. | Works. | Generator | | |
 | 12.4 | Click Generate with an empty prompt (not Random). | "Describe the creature first." (Forge: "Describe the magic item first."). | Notification | | |
 | 12.5 | Use the dice (Random) button in each mode. | A random concept is generated. | Preview | | |
@@ -375,10 +375,10 @@ Needs an OpenRouter connection, as 12b.
 | --- | --- | --- | --- | --- | --- |
 | 12f.1 | Forge a wondrous item with a 1/day self-buff whose name has `&` or `<` (type it in the prompt), then activate it. | Preview shows the name literally; the item description and chat line show it escaped, never as markup; the Effect item's name is the plain text. | Preview, chat | | |
 | 12f.2 | Open Compendium Sources with a long-id homebrew pack. | Source id wraps beside the title; title keeps readable width. | Sources | | |
-| 12f.3 | Open Manage Presets with no presets, then with some. | Empty text points to New Preset / Import; each row button reads aloud as "Edit preset <name>" etc. | Presets | | |
+| 12f.3 | Open Manage presets with no presets, then with some. | Empty text points to New Preset / Import; each row button reads aloud as "Edit preset <name>" etc. | Presets | | |
 | 12f.4 | Item Forge Level and Rarity row. | Labels share one line and the fields sit together. | Item Forge | | |
-| 12f.5 | Provider Setup: set Base URL to `ftp://x`, press Save & Authorize. | Error toast "Could not save provider settings: ..."; window stays open with your edits. A valid save still closes the window. | Provider Setup | | |
-| 12f.6 | With a screen reader (or the accessibility tree), tab through Provider Setup, Item Forge, Sources and Manage Presets. | Decorative icons are not announced; buttons read by their text. | All four | | |
+| 12f.5 | Provider Setup: set Base URL to `ftp://x`, press Save without testing. | Error toast "Could not save provider settings: ..."; window stays open with your edits. A valid save still closes the window. | Provider Setup | | |
+| 12f.6 | With a screen reader (or the accessibility tree), tab through Provider Setup, Item Forge, Sources and Manage presets. | Decorative icons are not announced; buttons read by their text. | All four | | |
 
 ## 12g. Generator UI fixes (U5a)
 
@@ -403,19 +403,19 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 | 12h.2 | Shrink the Sources window so the list scrolls. | **Save** and **Reset to defaults** stay pinned at the bottom while the categories scroll under them. | Sources | | |
 | 12h.3 | With every compendium pack disabled in the world, open Sources. | One "No compendium packs…" message, not one per category, and **Save** is disabled. | Sources | | |
 
-## 12i. U6 Manage Presets delete cue
+## 12i. U6 Manage presets delete cue
 
 | # | Do | Expect | Where | Pass | Notes |
 | --- | --- | --- | --- | --- | --- |
-| 12i.1 | Open Manage Presets with several presets. | The trash button is red-tinted and spaced apart from Edit, Duplicate and Export; hover or Tab to it turns the fill red. Clicking still asks for confirmation. | Manage Presets | | |
+| 12i.1 | Open Manage presets with several presets. | The trash button is red-tinted and spaced apart from Edit, Duplicate and Export; hover or Tab to it turns the fill red. Clicking still asks for confirmation. | Manage presets | | |
 
 ## 12j. U6 Provider Setup flow
 
 | # | Do | Expect | Where | Pass | Notes |
 | --- | --- | --- | --- | --- | --- |
-| 12j.1 | Open Provider Setup, type in the Connection name or Model field and press Enter. | Runs **Save & Test** (the highlighted primary), not Save & Authorize. | Provider Setup | | |
+| 12j.1 | Open Provider Setup, type in the Connection name or Model field and press Enter. | Runs **Save & test** (the highlighted primary), not Save without testing. | Provider Setup | | |
 | 12j.2 | Click through DeepSeek, OpenAI, OpenRouter, then Ollama, LM Studio, Custom. | The Ollama / LM Studio CORS paragraph is hidden for the three hosted providers and shown for the other three. | Provider Setup | | |
-| 12j.3 | Look at the bottom button that used to say Cancel. | It reads **Close** and just closes the window; Load Models and connection changes have already saved. | Provider Setup | | |
+| 12j.3 | Look at the bottom button that used to say Cancel. | It reads **Close** and just closes the window; Load models and connection changes have already saved. | Provider Setup | | |
 
 ## 12k. U6 Run safety
 
@@ -442,7 +442,7 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 | # | Do | Expect | Where | Pass | Notes |
 | --- | --- | --- | --- | --- | --- |
 | 12m.1 | Set the Generator to about 460 px wide. | The five modes sit on one row, icon above label; "Player Character" wraps to two lines inside its own segment and no label breaks mid-word. | Generator | | |
-| 12m.2 | Encounter and Character modes at the same width. | The Generate button label stays on one line; Preview Plan drops to a second line if there is no room. | Generator | | |
+| 12m.2 | Encounter and Character modes at the same width. | The Generate button label stays on one line; Preview plan drops to a second line if there is no room. | Generator | | |
 | 12m.3 | Item Forge at about 460 px. | Kind tiles sit two per row, so Generate and the preview are higher up. | Item Forge | | |
 | 12m.4 | Shrink the Generator under about 400 px. | Modes wrap into a grid again without overflow. | Generator | | |
 
@@ -490,10 +490,10 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 
 | # | Do | Expect | Where | Pass | Notes |
 | --- | --- | --- | --- | --- | --- |
-| 12r.1 | Generate a monster, then drag the Generator window's bottom edge up to about a third of the screen. | The window body scrolls with the mouse wheel down to the stat block's end. Create Actor, Reroll Loot (when the preview has loot) and Discard sit at the end of the preview and scroll with it. | Generator | | |
-| 12r.2 | Do the same with an Item Forge preview, AI Provider Setup, Manage Presets (with several presets) and Compendium Sources. | Each window scrolls to its last field and its button row at the end. Only Sources keeps Save and Reset pinned at the bottom edge. Nothing is cut off. | Each window | | |
-| 12r.3 | Shrink the Foundry browser window to a short height (about 600 px) and open each window fresh. | No window runs past the screen with unreachable content; each scrolls inside. In Sources, tabbing through the list never leaves the focused checkbox hidden under the pinned Save/Reset row, and Load Models in Provider Setup keeps your scroll place. | Each window | | |
-| 12r.4 | With the Foundry browser window short (about 600 px), open Manage Presets, then New Preset, then Import. | Both dialogs scroll to their Save/Import button; nothing is cut off. | Preset dialogs | | |
+| 12r.1 | Generate a monster, then drag the Generator window's bottom edge up to about a third of the screen. | The window body scrolls with the mouse wheel down to the stat block's end. Create actor, Reroll loot (when the preview has loot) and Discard sit at the end of the preview and scroll with it. | Generator | | |
+| 12r.2 | Do the same with an Item Forge preview, AI Provider Setup, Manage presets (with several presets) and Compendium Sources. | Each window scrolls to its last field and its button row at the end. Only Sources keeps Save and Reset pinned at the bottom edge. Nothing is cut off. | Each window | | |
+| 12r.3 | Shrink the Foundry browser window to a short height (about 600 px) and open each window fresh. | No window runs past the screen with unreachable content; each scrolls inside. In Sources, tabbing through the list never leaves the focused checkbox hidden under the pinned Save/Reset row, and Load models in Provider Setup keeps your scroll place. | Each window | | |
+| 12r.4 | With the Foundry browser window short (about 600 px), open Manage presets, then New Preset, then Import. | Both dialogs scroll to their Save/Import button; nothing is cut off. | Preset dialogs | | |
 | 12r.5 | Pick a connection or model with a long name, then hover the name, the model id and the last-run cost in both the Generator and the Item Forge status strip. | Each shows its full text in a tooltip when it is cut short with "...". | Generator, Item Forge | | |
 | 12r.6 | In each module window, scroll with the mouse wheel while the pointer is over a text box, a dropdown and the Level number box; then click into Level (and Party Size in Encounter mode) and wheel over it. | The window keeps scrolling (a long text box scrolls itself first); Level and Party Size never change from the wheel. | Each window | | |
 
@@ -515,7 +515,7 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 | 12t.1 | In a fresh browser profile (no saved AI key), log in as GM to an sf2e world with SimplySF2e enabled and healthy compendiums. | Welcome opens with OpenRouter selected and Recommended, an empty key and Connect disabled. No readiness warning appears. | Welcome window | | |
 | 12t.2 | Paste a key, then press Enter in the key field. | Connect becomes enabled and Enter starts it. The provider, key and Connect controls disable while progress is visible. | Welcome window | | |
 | 12t.3 | Connect OpenRouter with an account whose model list contains `deepseek/deepseek-v4.1-flash`. | That default is shown and tested; the connected state names it and offers **Generate a sample monster**. | Welcome window | | |
-| 12t.4 | Use a provider/account where the preset default is absent from `/models`. | No other model is picked silently. The provider's returned models appear, the placeholder is selected and Test & Connect stays disabled until the GM picks one. | Welcome window | | |
+| 12t.4 | Use a provider/account where the preset default is absent from `/models`. | No other model is picked silently. The provider's returned models appear, the placeholder is selected and Test & connect stays disabled until the GM picks one. | Welcome window | | |
 | 12t.5 | Choose Google and connect with a valid key. | Google shows **Live check pending**, uses `https://generativelanguage.googleapis.com/v1beta/openai`, lists models without choosing a default, and tests only the GM's pick. Record whether this endpoint worked live. | Welcome window | | |
 | 12t.6 | Choose Ollama with the local server running and more than one installed model. | No key is required, `http://localhost:11434/v1` is shown, Connect lists the installed models without a default, and only the GM's pick is tested. | Welcome window | | |
 | 12t.7 | Open Advanced and choose **Anthropic via OpenRouter**. | OpenRouter is selected; after Connect, only `anthropic/*` model IDs are offered and no model is selected automatically. | Welcome window, Advanced | | |
@@ -523,7 +523,7 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 | 12t.9 | Reject a key (for example with a 401), then correct it and retry. | The error states the cause and next step, the draft key remains, focus returns to the key field, and a successful retry reaches connected or model choice. | Welcome window | | |
 | 12t.10 | From a connected state, press **Generate a sample monster**. | The Generator opens in Monster mode at level 1 with “A level 1 space-pirate scout with a laser pistol” and starts a preview. No actor is created until the GM clicks Create. | Welcome window, Generator | | |
 | 12t.11 | Run Welcome on sf2e older than 1.6.0, with compendium problems also present. | One top warning banner names the old version and the update fix ("Version X is older than 1.6.0. Update the Starfinder 2e system."). It takes the place of the compendium warning, so only one shows. | Welcome window | | |
-| 12t.12 | On a supported system, disable every Spells pack, then press **Check Again**. | One top warning names Spells and says to enable a pack in Compendium Sources. Restoring the pack and rechecking hides the warning. | Welcome window, Compendium Sources | | |
+| 12t.12 | On a supported system, disable every Spells pack, then press **Check again**. | One top warning names Spells and says to enable a pack in Compendium Sources. Restoring the pack and rechecking hides the warning. | Welcome window, Compendium Sources | | |
 | 12t.13 | Complete a working connection and reload; then reopen with `/sf2e welcome` and the module-settings button. | Welcome no longer auto-opens after reload, and both manual routes open it. | Chat, module settings | | |
 | 12t.14 | Clear the key again (or use a second browser), tick **Don't show this again at login**, reload. | Welcome stays closed even though the connection does not work. | Welcome window | | |
 | 12t.15 | Log in as a player. | No welcome window, and `/sf2e welcome` shows the GM-only warning. | Player client | | |
@@ -543,7 +543,7 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 | # | Do | Expect | Where | Pass | Notes |
 | --- | --- | --- | --- | --- | --- |
 | 12v.1 | Generate a monster, then generate a different monster. | A "Recent previews" card appears under the Generate button with the first monster: its name, "Monster · Level N" and the time it was made. The new monster's preview shows below. | Generator | | |
-| 12v.2 | Press Open on the listed monster. | The first monster's preview comes back exactly as it was (same stats, picks, token usage), with Create Actor working. The second monster now sits in the list. | Generator | | |
+| 12v.2 | Press Open on the listed monster. | The first monster's preview comes back exactly as it was (same stats, picks, token usage), with Create actor working. The second monster now sits in the list. | Generator | | |
 | 12v.3 | Make one preview in each other mode (NPC, Encounter, Player Character, Reskin), then Open each from the list. | Each restores into its own mode (the mode tab switches) and its Create button creates that preview. A Reskin entry brings back its dropped creature too. | Generator | | |
 | 12v.4 | Create an actor from a restored preview, then look at the list. | The created preview is gone from the list; nothing in the list can create it a second time. | Generator | | |
 | 12v.5 | Close the Generator window and open it again from the Actors sidebar. | The preview on screen and the list are both still there. | Generator | | |
@@ -559,9 +559,9 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 | 12w.2 | Click the dice next to a cantrip. | The cantrip is replaced by a different cantrip, never a ranked spell. | Preview | | |
 | 12w.3 | Reroll the same spell several times. | It never swaps back to a spell it already replaced. When nothing else fits, a warning says no other compendium option fits and the spell stays. | Preview, notification | | |
 | 12w.4 | Reroll a feat and a published ability (book icon). | Each changes to a different published feat or bestiary action; the ability shows the book icon with its compendium name. Narrative-only abilities have no dice. | Preview | | |
-| 12w.5 | Reroll a spell, then Create Actor. | The sheet has the new spell (not the old one) at the shown rank, and the feat or ability you rerolled is the new one. | Spellcasting and Actions tabs | | |
+| 12w.5 | Reroll a spell, then Create actor. | The sheet has the new spell (not the old one) at the shown rank, and the feat or ability you rerolled is the new one. | Spellcasting and Actions tabs | | |
 | 12w.6 | Start a reroll and close the window or press Stop. | The preview keeps its old pick; only the usual "cancelled" notice appears. | Preview | | |
-| 12w.7 | Generate a level 7 large creature with a narrative signature ability. Click the dice next to that ability until the pick is Constrict, then Create Actor. | The created Constrict shows `@Damage[(4d6)[bludgeoning]]` and a DC from the slot's scale, with no blank values. If a pick cannot be used for this creature, the preview is unchanged and the console says why. | Generator, Actions tab, F12 console | | |
+| 12w.7 | Generate a level 7 large creature with a narrative signature ability. Click the dice next to that ability until the pick is Constrict, then Create actor. | The created Constrict shows `@Damage[(4d6)[bludgeoning]]` and a DC from the slot's scale, with no blank values. If a pick cannot be used for this creature, the preview is unchanged and the console says why. | Generator, Actions tab, F12 console | | |
 
 ## 12x. Stat check after Create
 
@@ -610,14 +610,14 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 |---|------|----------|---------------|--------|----------|
 | 13.1 | Open the world in Firefox. | Loads; no `simplysf2e` console errors. | Console | | |
 | 13.2 | Open the Generator and the Forge. | Both render with the module styling; resizing causes no horizontal scroll. | Windows | | |
-| 13.3 | Save & Test and one NPC generation. | Succeeds as in Chrome. (Local provider: confirm CORS allows Firefox's origin.) | Notification | | |
+| 13.3 | Save & test and one NPC generation. | Succeeds as in Chrome. (Local provider: confirm CORS allows Firefox's origin.) | Notification | | |
 
 ## 13a. Buttons scroll with content
 
 | # | Do | Expect | Where | Pass | Notes |
 | --- | --- | --- | --- | --- | --- |
-| 13a.1 | Generate a monster, NPC, encounter and player character, then make the Generator short enough that each preview scrolls. Scroll from the top to the bottom. | No button row stays stuck to the bottom edge while you scroll; Create Actor and Discard (and Reroll Loot, Create All Actors or Create Reskinned Copy where shown) appear only at the end of the preview. | Generator | | |
-| 13a.2 | Do the same with an Item Forge preview, AI Provider Setup, Manage Presets and the Shop window. | Create Item / Discard, Save & Test / Save & Authorize / Close, New Preset, and the Shop's button row sit at the end of the content and scroll with it. | Item Forge, Provider Setup, Presets, Shop | | |
+| 13a.1 | Generate a monster, NPC, encounter and player character, then make the Generator short enough that each preview scrolls. Scroll from the top to the bottom. | No button row stays stuck to the bottom edge while you scroll; Create actor and Discard (and Reroll loot, Create all actors or Create reskinned copy where shown) appear only at the end of the preview. | Generator | | |
+| 13a.2 | Do the same with an Item Forge preview, AI Provider Setup, Manage presets and the Shop window. | Create Item / Discard, Save & test / Save without testing / Close, New Preset, and the Shop's button row sit at the end of the content and scroll with it. | Item Forge, Provider Setup, Presets, Shop | | |
 | 13a.3 | Open Compendium Sources in a short window and scroll the category list. | Save and Reset stay pinned at the bottom edge while the list scrolls. | Sources | | |
 
 ## 13b. Jev TypeSafe endpoint (CORS proxy)
@@ -636,7 +636,7 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 
 | # | Do | Expect | Where | Pass | Notes |
 | --- | --- | --- | --- | --- | --- |
-| 13c.1 | In AI Provider Setup, set the API Base URL to `http://api.example.com/v1`, type any key and press Save & Test. | Warning toast: "This AI address uses plain http, so the API key would travel unencrypted and will not be sent…". DevTools Network shows no request carrying an Authorization header. | Provider Setup, Network | | |
+| 13c.1 | In AI Provider Setup, set the API Base URL to `http://api.example.com/v1`, type any key and press Save & test. | Warning toast: "This AI address uses plain http, so the API key would travel unencrypted and will not be sent…". DevTools Network shows no request carrying an Authorization header. | Provider Setup, Network | | |
 | 13c.2 | Open the Generator, Item Forge and Shop with that connection still active. | Each shows the same plain-http warning, has no Authorize button, and refuses to generate. | Generator, Item Forge, Shop | | |
 | 13c.3 | Switch back to an https provider (or Ollama on `http://localhost:11434/v1`) and generate a monster. | Works as before. A keyed gateway on a home-network address such as `http://192.168.1.20:4000/v1` also still works. | Generator | | |
 | 13c.4 | Reskin a creature and have the AI write a blurb containing "&" (for example "Salt & rust"). Open the created copy. | The sheet's blurb shows "&", not "&amp;". | NPC sheet | | |
@@ -706,7 +706,7 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 | --- | --- | --- | --- | --- | --- |
 | 13j.1 | In Reskin mode drop a level 3 bestiary NPC. | **New level** shows 3 and no table. | Generator | | |
 | 13j.2 | Press + until it shows 7. | A table lists AC, Max HP, Perception, saves, each strike and its damage, and Spell DC for casters, with the scale and the level 3 and level 7 values. | Generator | | |
-| 13j.3 | Write a theme and press **Preview Plan**, then **Create Reskinned Copy**. | The preview header says Creature 7 and the note says the copy moved to level 7. The new actor's sheet shows level 7 and the numbers from the table; the original is unchanged. | Generator, new actor sheet | | |
+| 13j.3 | Write a theme and press **Preview plan**, then **Create reskinned copy**. | The preview header says Creature 7 and the note says the copy moved to level 7. The new actor's sheet shows level 7 and the numbers from the table; the original is unchanged. | Generator, new actor sheet | | |
 | 13j.4 | On the new sheet, roll a strike and open a spell. | The attack bonus and damage match the table; spells keep their original ranks. | New actor sheet | | |
 | 13j.5 | Set the level back to the original and create a copy. | The copy keeps every number of the original (plain Reskin). | Generator | | |
 
@@ -714,7 +714,7 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 
 | # | Do | Expect | Where | Pass | Notes |
 | --- | --- | --- | --- | --- | --- |
-| 13k.1 | Generate a Severe encounter for a party of 5 with **Preview Plan** and watch the progress list. | Creatures finish in a few overlapping waves instead of one after another; the run takes noticeably less time than before. | Generator | | |
+| 13k.1 | Generate a Severe encounter for a party of 5 with **Preview plan** and watch the progress list. | Creatures finish in a few overlapping waves instead of one after another; the run takes noticeably less time than before. | Generator | | |
 | 13k.2 | Press Cancel while creatures are building. | Every creature stops; no preview and no actors. | Generator | | |
 | 13k.3 | Create the encounter. | Every member is created in the encounter folder, each with its own stats and gear. | Actors sidebar | | |
 
@@ -734,7 +734,7 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 | --- | --- | --- | --- | --- | --- |
 | 13m.1 | Connect OpenRouter with no manual prices and generate a creature preview. | The token report ends with "Cost: $0.00xx" (4 decimals under $0.01) and the header shows "last: N tokens · $0.00xx". No "≈". | Generator token report, header | | |
 | 13m.2 | Connect DeepSeek (or any provider that reports no cost) with both price fields empty and generate. | No cost line in the token report and none in the header; no "$0.00". | Generator | | |
-| 13m.3 | In AI Provider Setup enter Input 0.27 and Output 1.10 on that DeepSeek connection, **Save & Authorize**, generate. | Token report shows "Cost: ≈ $… (from your per-connection prices)"; the number is prompt tokens x 0.27 / 1M plus completion tokens x 1.10 / 1M. | Generator, Provider Setup | | |
+| 13m.3 | In AI Provider Setup enter Input 0.27 and Output 1.10 on that DeepSeek connection, **Save without testing**, generate. | Token report shows "Cost: ≈ $… (from your per-connection prices)"; the number is prompt tokens x 0.27 / 1M plus completion tokens x 1.10 / 1M. | Generator, Provider Setup | | |
 | 13m.4 | Type -1 or text in a price field and save. | The save is refused with a field error naming the price; nothing is stored. Empty fields clear the prices. | Provider Setup | | |
 | 13m.5 | Switch to the OpenRouter connection and back. | Each connection keeps its own prices. | Provider Setup | | |
 | 13m.6 | Use OpenRouter with a run that includes a request the provider gave no cost for (for example Jev on another route), no prices set. | Cost shows "at least" wording; with prices set on the chat connection the unpriced chat requests are priced and shown as mixed. Jev tokens are never priced with chat prices. | Generator | | |
@@ -750,7 +750,7 @@ One row per failure, so each cluster can become one fix PR.
 
 ## 12ab. Re-level: module-built abilities (T-RELEVEL)
 
-Generate a level 7 NPC with a limited cone breath (name "Frost Breath", cold), a sickening aura (Foul Air, sickened) and a glossary Constrict. Create Actor. Then Reskin the actor and re-level the copy to 12 (level field), and to 2.
+Generate a level 7 NPC with a limited cone breath (name "Frost Breath", cold), a sickening aura (Foul Air, sickened) and a glossary Constrict. Create actor. Then Reskin the actor and re-level the copy to 12 (level field), and to 2.
 
 | # | Step | Expected | Where to look | Result | Evidence |
 |---|------|----------|---------------|--------|----------|
@@ -834,11 +834,11 @@ Generate a level 7 NPC with a limited cone breath (name "Frost Breath", cold), a
 | # | Step | Expected | Where to look | Result | Evidence |
 |---|------|----------|---------------|--------|----------|
 | 14d.1 | Open Generator. Read the mode tiles and hover each one. | Tile names read Monster, NPC, Encounter, Character, Reskin. Each tooltip says what that mode builds: one creature, one NPC, a group sized to the party, one playable character, or a copy with new fiction. Random button reads "Random creature: ignores the description and invents one at this level." | Generator | | |
-| 14d.2 | Generator, mode Monster, a preview on screen. Press **Create Actor**. Read the busy card while the actor is written. | The no-progress fallback line reads "Creating…" (no AI request runs in a Create step). | Generator |  | |
+| 14d.2 | Generator, mode Monster, a preview on screen. Press **Create actor**. Read the busy card while the actor is written. | The no-progress fallback line reads "Creating…" (no AI request runs in a Create step). | Generator |  | |
 | 14d.3 | Open Item Forge with no preview. Read the empty hint. Generate an item with no usable passive effects. | Empty hint: "Describe an item and press Generate…". The warning says "Press Generate another version for a mechanical one." The window title reads "SimplySF2e Item Forge". The button reads "Create item". | Item Forge | | |
 | 14d.4 | Open Shop with no preview. Read the empty hint. Remove every stock row, then read the warning. | Empty hint names Generate shop. The warning reads "Press Generate another shop to restock." Title reads "SimplySF2e Shop". | Shop | | |
 | 14d.5 | Open Treasure with no preview. Read the empty hint and the title. The no-candidates error needs a level and rarity with no matching compendium item, which a GM cannot set reliably, so check its wording on the harness fixture `treasure-error` (`tools/ui-preview`). | Empty hint names **Generate hoard**. Title reads "SimplySF2e Treasure". Fixture error reads "No equipment at this party level and rarity was found in your compendiums. Raise Rarest item, or enable more packs in Compendium Sources." | Treasure |  | |
-| 14d.6 | Open Manage Presets with no custom presets. Read the empty state and the footer. | Empty state: "Press New preset to create one, or Import to paste exported preset JSON." Buttons read "New preset" and "Export all". Title reads "Manage custom presets". | Manage Presets | | |
+| 14d.6 | Open Manage presets with no custom presets. Read the empty state and the footer. | Empty state: "Press New preset to create one, or Import to paste exported preset JSON." Buttons read "New preset" and "Export all". Title reads "Manage custom presets". | Manage presets | | |
 | 14d.7 | Open Welcome. Read the Google note, the Advanced block, then press Connect with a key that is not authorized. | The Google note reads "Not yet tested". The Advanced block has a "Fast picks" heading and the labels "LM Studio" and "Jev · TypeSafe". A failed connect shows the title "Connection failed". | Welcome | | |
 
 ## 14e. Theme as a system (U4A, docs/ui-overhaul-plan.md §1)
@@ -853,11 +853,11 @@ Generate a level 7 NPC with a limited cone breath (name "Frost Breath", cold), a
 | 14e.6 | Create a creature whose stat check reports rows to look at. | The stat check's left rail pulses. A clean stat check does not. | Generator (after Create) | | |
 | 14e.7 | Turn on the OS "reduce motion" setting and repeat 14e.3 and 14e.5. | No sheen, no blink, no pulse; the spinner stands still. The progress card keeps its static glow. | Generator | | |
 | 14e.8 | Press Tab through a window. | Every control shows a cyan outline with no glow around it, including the mode tiles. | Any module window | | |
-| 14e.9 | Read the labels in the Generator, Shop and Provider Setup. | Uppercase: section legends, chips (level, traits, Custom, member roles), table column heads, progress steps, "Token usage", Provider Setup fold titles. Not uppercase: the window title, every button (Generate, Create Actor, Preview Plan), mode tiles, the preview name, headings such as Abilities or Recent previews, "Advanced options", "Earlier changes". | Generator, Shop, Provider Setup, What's new | | |
+| 14e.9 | Read the labels in the Generator, Shop and Provider Setup. | Uppercase: section legends, chips (level, traits, Custom, member roles), table column heads, progress steps, "Token usage", Provider Setup fold titles. Not uppercase: the window title, every button (Generate, Create actor, Preview plan), mode tiles, the preview name, headings such as Abilities or Recent previews, "Advanced options", "Earlier changes". | Generator, Shop, Provider Setup, What's new | | |
 | 14e.10 | Open a monster preview and a shop preview. | Trait and category tags are square, navy with a cyan edge and light text; no rounded magenta pills. | Generator, Shop, Item Forge | | |
 | 14e.11 | Open Compendium Sources. | Category frames have no glow; their legends are cyan chips with a magenta edge. | Compendium Sources | | |
 | 14e.12 | Pick a provider in AI Provider Setup and in Welcome. | The selected tile has a cyan ring and bold label, with no glow. | Provider Setup, Welcome | | |
-| 14e.13 | Look at each empty state: Generator and Item Forge before a run, Shop and Treasure before a run, Manage Presets with none saved, Sources with no packs, no filter match, or an empty category. | Each is a left-aligned panel with the faint scan-line texture and one short line of text. | Generator, Item Forge, Shop, Treasure, Manage Presets, Compendium Sources | | |
+| 14e.13 | Look at each empty state: Generator and Item Forge before a run, Shop and Treasure before a run, Manage presets with none saved, Sources with no packs, no filter match, or an empty category. | Each is a left-aligned panel with the faint scan-line texture and one short line of text. | Generator, Item Forge, Shop, Treasure, Manage presets, Compendium Sources | | |
 | 14e.14 | Open a Shop stock table and a Treasure hoard at normal and narrow width. | Both tables look as before this change: same row height, aligned numbers, remove buttons in one column, Lvl/Qty at narrow width. | Shop, Treasure | | |
 
 ## 14g. U5 Item Forge per-kind placeholder
@@ -872,9 +872,9 @@ Generate a level 7 NPC with a limited cone breath (name "Frost Breath", cold), a
 | --- | --- | --- | --- | --- | --- |
 | 14f.1 | Welcome with the Compendium Sources warning (remove an equipment pack, then open Welcome). | The warning names the missing category in a sentence and shows a "Configure compendium sources" button; the button opens Compendium Sources. | Welcome | | |
 | 14f.2 | Welcome, with the provider cards in view. | The group is labelled "Choose a provider" (its visible legend); a screen reader announces that name for the group. | Welcome | | |
-| 14f.3 | Provider Setup, look under the footer buttons. | One hint line: Save & Test sends one test request; Save & Authorize authorizes the key for this endpoint. | Provider Setup | | |
+| 14f.3 | Provider Setup, look under the footer buttons (superseded by 15.16). | No hint line under the footer; the two save buttons are named for what they do. | Provider Setup | | |
 | 14f.4 | Provider Setup with a saved API key, and with a saved Jev key. | A visible hint under each field says a key is saved, in addition to the placeholder. | Provider Setup | | |
-| 14f.5 | Provider Setup: enter a negative input price and press Save & Test. | The input price has a red border and its error message is linked to it; output price unaffected. | Provider Setup | | |
+| 14f.5 | Provider Setup: enter a negative input price and press Save & test. | The input price has a red border and its error message is linked to it; output price unaffected. | Provider Setup | | |
 
 ## 14h. U4B progress telemetry and Welcome boot sequence
 

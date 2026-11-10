@@ -767,7 +767,7 @@
    Input form (shared by generator + item forge)
    -------------------------------------------------------------------------- */
 /* HUD readout legends: console chips instead of bare text, on every card
-   fieldset (input forms, Provider Setup, Welcome, Sources categories). */
+   fieldset (input forms, Provider Setup, Welcome). */
 .simplysf2e .spf-card > legend {
   font-family: var(--spf-font-display);
   font-variant: normal;
