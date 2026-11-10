@@ -367,9 +367,12 @@
   outline-offset: 2px;
 }
 
+/* Explanations recede: one type step below body text and the muted colour
+   at 80% over its surface. Still >= 4.5:1 (7.3:1 on --spf-surface-raised,
+   8.6:1 on --spf-window-bg, 5.2:1 on a --spf-brand-soft tint). */
 .simplysf2e .spf-hint {
-  font-size: var(--spf-text-sm);
-  color: var(--spf-text-muted);
+  font-size: var(--spf-text-xs);
+  color: color-mix(in srgb, var(--spf-text-muted) 80%, transparent);
   margin: var(--spf-space-xs) 0;
 }
 
