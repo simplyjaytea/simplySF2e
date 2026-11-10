@@ -136,7 +136,10 @@ const concept = {
   focusSpells: []
 };
 
-const resolved = await resolvePCConcept(concept);
+// Planning answers the Sniper's own skill-feat choice (production passes the AI
+// chooser); this stand-in takes the first offered option (Quiet Move).
+const firstOption = async (groups) => ({ picks: groups.map((group) => ({ choice: group.id, option: group.options[0].id })) });
+const resolved = await resolvePCConcept(concept, { selectChoices: firstOption });
 
 // 1. Path plan must be resolved to Sniper with trainedSkill 'stealth'
 assert.ok(resolved.pathPlan, "pathPlan exists on resolved PC concept");
