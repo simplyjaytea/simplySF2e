@@ -207,4 +207,50 @@ assert.equal(stored("Y").model, "model-y2", "the queued save lands on the profil
 assert.equal(stored("X").model, "model-x", "the profile switched away from keeps its model");
 assert.equal(stored("Y").apiKey, "key-y");
 
+// R4-PROV: manual prices are written inside the save's own queued step.
+// A save with prices, then a switch in the same tick: the prices stay on the saved profile.
+seed(bankXY, "X");
+const savingPrices = saveProviderConnection({
+  baseUrl: "https://x.example/v1", model: "model-x", notify: false, prices: { inputPerM: "1.5", outputPerM: "3" }
+});
+const switchingAway = selectProviderConnection("Y");
+await watchdog(Promise.all([savingPrices, switchingAway]), "save with prices then switch");
+assert.deepEqual([stored("X").inputPerM, stored("X").outputPerM], [1.5, 3], "prices land on the connection that was saved");
+assert.deepEqual([stored("Y").inputPerM, stored("Y").outputPerM], [null, null], "the connection switched to gets none");
+assert.equal(getProviderRequestConfig().connectionId, "Y");
+
+// An invalid price rejects with err.field before anything is written (no half-saved connection).
+seed(bankXY, "X");
+const before = structuredClone(values.get(SETTINGS.providerBank));
+for (const [prices, field] of [
+  [{ inputPerM: "-1", outputPerM: "2" }, "inputPerM"],
+  [{ inputPerM: "1", outputPerM: "abc" }, "outputPerM"]
+]) {
+  await assert.rejects(
+    watchdog(saveProviderConnection({ baseUrl: "https://z.example/v1", model: "m-z", enteredApiKey: "k", connectionName: "Z", notify: false, prices }), "bad price"),
+    (err) => err.field === field
+  );
+}
+assert.deepEqual(values.get(SETTINGS.providerBank), before, "a rejected price writes no bank change");
+assert.equal(values.get(SETTINGS.apiBaseUrl), "https://x.example/v1", "a rejected price leaves the live endpoint");
+assert.equal(values.get(SETTINGS.model), "model-x");
+assert.equal(values.get(SETTINGS.apiKey), "key-x");
+
+// Endpoint changed and prices not edited: the old provider's prices are cleared, not re-applied.
+seed([{ ...conn("X", "https://x.example/v1", "model-x", "key-x"), inputPerM: 2, outputPerM: 4 }, conn("Y", "https://y.example/v1", "model-y", "key-y")], "X");
+await watchdog(saveProviderConnection({
+  baseUrl: "https://new.example/v1", model: "m", notify: false, prices: { inputPerM: "2", outputPerM: "4" }, pricesEdited: false
+}), "base changed, prices unedited");
+assert.deepEqual([stored("X").inputPerM, stored("X").outputPerM], [null, null], "unedited prices are cleared with the endpoint");
+// Endpoint changed and prices edited: the new prices are stored.
+await watchdog(saveProviderConnection({
+  baseUrl: "https://newer.example/v1", model: "m", notify: false, prices: { inputPerM: "5", outputPerM: "6" }, pricesEdited: true
+}), "base changed, prices edited");
+assert.deepEqual([stored("X").inputPerM, stored("X").outputPerM], [5, 6]);
+// Same endpoint, unedited prices: kept as they are.
+await watchdog(saveProviderConnection({
+  baseUrl: "https://newer.example/v1", model: "m2", notify: false, prices: { inputPerM: "5", outputPerM: "6" }, pricesEdited: false
+}), "same endpoint");
+assert.deepEqual([stored("X").inputPerM, stored("X").outputPerM], [5, 6]);
+
 console.log("settings.connection-queue tests passed");

@@ -1,7 +1,7 @@
 import {
   MODULE_ID, SETTINGS, createProviderConnection, deleteProviderConnection,
   ensureProviderBank, getActiveProviderPrices, getJevRequestConfig, getProviderAuthWarningKey, getProviderRequestConfig,
-  normalizeApiBaseUrl, selectProviderConnection, setActiveProviderPrices
+  normalizeApiBaseUrl, selectProviderConnection
 } from "./settings.mjs";
 import {
   connectionFormDirty, connectionFormValues, saveProviderConnection, savedConnectionForDirty, snapshotProviderConnection
@@ -533,8 +533,6 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
     // saveProviderConnection clears manual prices when the base URL changes. Prices the GM left
     // untouched are the old provider's: re-applying them would put those rates on the new endpoint.
     const savedPrices = getActiveProviderPrices();
-    const baseChanged = normalizeApiBaseUrl(this.element.querySelector("[name='apiBaseUrl']")?.value)
-      !== normalizeApiBaseUrl(getProviderRequestConfig().baseUrl);
     const pricesEdited = ["inputPerM", "outputPerM"].some((field) => parsePrice(prices[field]).value !== parsePrice(savedPrices?.[field]).value);
     const result = await saveProviderConnection({
       baseUrl: this.element.querySelector("[name='apiBaseUrl']")?.value,
@@ -543,10 +541,11 @@ export class ProviderSetupApp extends HandlebarsApplicationMixin(ApplicationV2) 
       clearApiKey: Boolean(this.element.querySelector("[name='clearApiKey']")?.checked),
       connectionName: this.element.querySelector("[name='connectionName']")?.value,
       notify,
-      requireModel
+      requireModel,
+      // Written inside the same queued step as the connection (a switch cannot land between).
+      prices: priceInputs.inputPerM && priceInputs.outputPerM ? prices : null,
+      pricesEdited
     });
-    // After the connection save, so the prices land on the connection just saved.
-    if (priceInputs.inputPerM && priceInputs.outputPerM && !(baseChanged && !pricesEdited)) await setActiveProviderPrices(prices);
     await this.#onSaved?.();
     return result;
   }
