@@ -1826,7 +1826,7 @@ async function requestCompletion({ task, system, user, onProgress, signal, retry
     let reasoningChars = 0;
     if (contentType.includes("text/event-stream") && response.body) {
       ({ content, finishReason, usage, reasoningChars } = await readEventStream(
-        response, { onProgress, resetIdle, received }
+        response, { onProgress, resetIdle, received, signal: controller.signal }
       ));
     } else {
       resetIdle();
@@ -1917,7 +1917,7 @@ function namesParameter(text, name) {
 }
 
 /** Consume an SSE chat-completions stream, reporting progress per chunk. */
-async function readEventStream(response, { onProgress, resetIdle, received = {} }) {
+async function readEventStream(response, { onProgress, resetIdle, received = {}, signal = null }) {
   const reader = response.body.getReader();
   received.reader = reader;
   const decoder = new TextDecoder();
@@ -1996,7 +1996,18 @@ async function readEventStream(response, { onProgress, resetIdle, received = {} 
 
   try {
     for (;;) {
-      const { done, value } = await reader.read();
+      let chunk;
+      try {
+        chunk = await reader.read();
+      } catch (err) {
+        // An abort goes to the caller's abort branch (Cancelled, run deadline,
+        // idle timeout). Anything else is the connection dropping mid-stream:
+        // the same localized, non-retryable error as a connect-time failure,
+        // since the POST may already have been billed.
+        if (err?.name === "AbortError" || signal?.aborted) throw err;
+        throw new AIRequestError(game.i18n.format("SIMPLYSF2E.Errors.NetworkError", { message: err?.message ?? String(err) }));
+      }
+      const { done, value } = chunk;
       if (done) break;
       resetIdle();
       buffer += decoder.decode(value, { stream: true });

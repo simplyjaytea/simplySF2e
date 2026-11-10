@@ -314,4 +314,30 @@ const hasCap = (body) => "max_tokens" in body || "max_completion_tokens" in body
     assert.equal(getRunBudget(ac.signal).tokensSpent, 46, "truncated + success: 30 + 16");
   }
 }
+
+// --- 5. A mid-stream network drop is a localized AIRequestError -------------
+{
+  useEndpoint();
+  const ac = new AbortController();
+  beginRunBudget(ac.signal, { tokenBudget: 1e9, deadlineMs: 0 });
+  let posts = 0;
+  globalThis.fetch = async () => {
+    posts += 1;
+    let n = 0;
+    return new Response(new ReadableStream({
+      pull(c) {
+        if (n++ === 0) c.enqueue(delta("x".repeat(400)));
+        else c.error(new TypeError("network error"));
+      }
+    }), { status: 200, headers: { "content-type": "text/event-stream" } });
+  };
+  const { error } = await settle(chooseSpellFocus({ concept, tradition: "arcane", signal: ac.signal }));
+  assert.ok(error instanceof AIRequestError, "a mid-stream TypeError is wrapped");
+  assert.match(error.message, /^SIMPLYSF2E\.Errors\.NetworkError:/, "same key as a connect-time failure");
+  assert.match(error.message, /network error/);
+  assert.equal(error.retryable, false, "a POST that may have been billed is not retried");
+  assert.equal(posts, 1);
+  assert.equal(error.usage?.estimated, true, "streamed tokens attached");
+  assert.equal(getRunBudget(ac.signal).tokensSpent, error.usage.total);
+}
 console.log("ai.r3.test.mjs: ok");
