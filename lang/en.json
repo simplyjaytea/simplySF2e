@@ -210,121 +210,208 @@
       "Disable": "Don't show for updates",
       "Earlier": "Earlier changes ({count})",
       "Note": {
+        "ReviewFixes": {
+          "Title": "Fixes and a tidier setup",
+          "B1": "Ysoki and G'folian characters now get their own ancestry feats.",
+          "B2": "Creature spellcasters keep their cantrips at cantrip rank.",
+          "B3": "Re-leveling a creature far down no longer gives zero or negative AC, saves or damage.",
+          "B4": "Reskinning a world creature makes a fresh copy: full health, no conditions, GM-only ownership.",
+          "B5": "An API Base URL that contains a password or key is refused, because players read it."
+        },
         "HuntFixes": {
           "Title": "Fixes from a full code review",
-          "Body": "Generate in Encounter mode now creates the actors in one go. An empty prompt no longer creates the previous preview. Shop and Treasure price ammunition per round, and credit prices no longer gain a stray credit. Re-level handles very low levels and Trample correctly. Switching connection is refused while another window is generating, and Provider Setup's Delete asks once."
+          "B1": "Encounter mode: Generate creates the actors in one go.",
+          "B2": "Generate with an empty prompt no longer creates the previous preview.",
+          "B3": "Shop and Treasure price ammunition per round, without a stray extra credit.",
+          "B4": "Re-level now handles very low levels and Trample correctly.",
+          "B5": "AI Provider Setup refuses to switch connection during a run, and Delete asks once."
         },
         "ProgressTelemetry": {
           "Title": "Step times and a simpler Welcome",
-          "Body": "The progress card now shows how long each finished step took, and the current step says \"running\". Welcome no longer numbers its sections, and the connection check lists its steps one per line."
+          "B1": "Progress card: each finished step shows how long it took.",
+          "B2": "Progress card: the current step says \"running\".",
+          "B3": "Welcome no longer numbers its sections.",
+          "B4": "Welcome: the connection check lists its steps one per line."
         },
         "ThemeSystem": {
           "Title": "One look in every window",
-          "Body": "The neon effects now mean the same thing everywhere. Glow marks what is live: the main action, the active mode and a running progress card. The moving sheen means a run is working, a slow pulse marks a list that waits for your decision, and only the current step blinks. Mode colours stay on the mode tile and the line under a preview's name. Only labels, column headings and tags are in capitals; titles and buttons are not. Trait tags are square, and empty panels share one look."
+          "B1": "Glow marks what is live: the main action, the active mode and a running progress card.",
+          "B2": "Only labels, column headings and tags are in capitals; titles and buttons are not.",
+          "B3": "Trait tags are square, and empty panels share one look."
         },
         "SetupWiring": {
           "Title": "Clearer setup windows",
-          "Body": "The Welcome warning for missing compendium content has a Configure compendium sources button. AI Provider Setup explains Save & Test and Save & Authorize, shows when an API key or a Jev key is saved, and marks a rejected price field. The Item Forge prompt hint follows the item kind."
+          "B1": "Welcome: the missing compendium warning has a Configure compendium sources button.",
+          "B2": "AI Provider Setup explains Save & test and Save & authorize.",
+          "B3": "AI Provider Setup shows when an API key or a Jev key is saved.",
+          "B4": "AI Provider Setup marks a rejected price field.",
+          "B5": "Item Forge: the prompt hint follows the item kind."
         },
         "CopySweep": {
           "Title": "Clearer wording",
-          "Body": "Window titles, buttons and empty-state hints use the same names. Empty Shop, Treasure and Item Forge windows name the button to press next. Mode tooltips say what each mode builds. Provider notes read Not yet tested, and a failed Welcome connect reads Connection failed."
+          "B1": "Window titles, buttons and empty-state hints use the same names.",
+          "B2": "Empty Shop, Treasure and Item Forge windows name the button to press next.",
+          "B3": "Mode tooltips say what each mode builds.",
+          "B4": "Provider notes read \"Not yet tested\", and a failed Welcome connect reads \"Connection failed\"."
         },
         "ShellConsistency": {
           "Title": "Tidier windows",
-          "Body": "Discard, Delete and Reset are red and sit apart from the main action. Numbers line up in tables and the token report. Empty panels are more compact, and long model and connection names wrap instead of being cut off. Encounter members, review lists and the Forge, Shop and Treasure readiness row match the Generator's layout."
+          "B1": "Discard, Delete and Reset are red and sit apart from the main action.",
+          "B2": "Numbers line up in tables and the token report.",
+          "B3": "Empty panels are more compact than before.",
+          "B4": "Long model and connection names wrap instead of being cut off.",
+          "B5": "Encounter members, review lists and the Forge, Shop and Treasure readiness row match the Generator's layout."
         },
         "RunGuards": {
           "Title": "Fewer ways to lose work",
-          "Body": "Create All is disabled when every encounter member is set to 0. If a created merchant or hoard cannot be verified and cannot be removed, the message names it and the draft is discarded so a retry does not make a duplicate. AI Provider Setup asks before switching, creating or deleting a connection with unsaved edits, keeps edits when loading models, and refuses to switch connections while a run is in progress."
+          "B1": "Create all actors is disabled when every encounter member is set to 0.",
+          "B2": "A merchant or hoard that cannot be verified or removed is named; its draft is discarded.",
+          "B3": "AI Provider Setup asks before switching, creating or deleting a connection with unsaved edits.",
+          "B4": "AI Provider Setup keeps your edits when loading models.",
+          "B5": "AI Provider Setup refuses to switch connections while a run is in progress."
         },
         "OneScreenWelcome": {
           "Title": "Set up in one screen",
-          "Body": "The Welcome window now connects your AI in one step: pick a provider, paste your key and press Connect. It loads the model list, tests the model and offers a sample monster. A failed connect leaves your previous setup untouched."
+          "B1": "Welcome connects your AI in one step: pick a provider, paste a key, press Connect.",
+          "B2": "Connect loads the model list, tests the model and offers a sample monster.",
+          "B3": "A failed connect leaves your previous setup untouched."
         },
         "RelevelAbilities": {
           "Title": "Re-leveled creatures keep their numbers in step",
-          "Body": "When you re-level a copy, the area blasts, auras and filled glossary abilities the module built are rebuilt for the new level. Published abilities keep their text."
+          "B1": "Re-level rebuilds the area blasts, auras and filled glossary abilities the module made.",
+          "B2": "Re-level: published abilities keep their text."
         },
         "Aura": {
           "Title": "Auras with real numbers",
-          "Body": "Creatures can now have auras that call for a save and apply a condition, or deal damage each turn. The radius, save DC, condition value and damage come from GM Core and the creature's level. The aura shows on the canvas; you apply the result."
+          "B1": "Creatures can have auras that call for a save and apply a condition.",
+          "B2": "Auras can also deal damage each turn.",
+          "B3": "Radius, save DC, condition value and damage come from GM Core and the creature's level.",
+          "B4": "The aura shows on the canvas; you apply the result."
         },
         "AreaBlast": {
           "Title": "Breaths and blasts with real numbers",
-          "Body": "Creatures' breath weapons and blasts can now be working abilities. The area, damage and DC come from GM Core for the creature's level, and a limited blast can be recharged."
+          "B1": "Creature breath weapons and blasts can now be working abilities.",
+          "B2": "Area, damage and DC come from GM Core for the creature's level.",
+          "B3": "A limited blast can be recharged."
         },
         "BlankAbilities": {
           "Title": "Creature abilities get real values again",
-          "Body": "Constrict, Greater Constrict, Swallow Whole, Engulf, Trample, Frightful Presence and Stench now get their damage, DCs, sizes and aura sizes for the creature's level, from the GM Core tables and published creatures. Trample uses the creature's own strike. An ability that cannot be filled, such as a tiny creature with Swallow Whole, is left out, and the console names it."
+          "B1": "Constrict, Greater Constrict, Swallow Whole, Engulf, Trample, Frightful Presence and Stench now get filled values.",
+          "B2": "Values come from GM Core tables and published creatures, scaled to the creature's level.",
+          "B3": "Trample uses the creature's own strike.",
+          "B4": "An ability that cannot be filled is left out and named in the console."
         },
         "ClearerErrors": {
           "Title": "Clearer error messages and bug reports",
-          "Body": "Error messages now say what went wrong and what to do next. After you copy a bug report, an Open GitHub issue button takes you straight to the issue form, and the report is never put in the link."
+          "B1": "Error messages say what went wrong and what to do next.",
+          "B2": "After you copy a bug report, an Open GitHub issue button opens the issue form.",
+          "B3": "The report is never put in the link."
         },
         "RunDeadline": {
           "Title": "Runs stop after 5 minutes",
-          "Body": "Runs now stop after 5 minutes by default, so a stuck request cannot hang the Generator. Change the limit, or turn it off with 0, in Module Settings: SimplySF2e, Run deadline (minutes)."
+          "B1": "Runs stop after 5 minutes by default, so a stuck request cannot hang the Generator.",
+          "B2": "Change the limit in Module Settings: SimplySF2e, Run deadline (minutes).",
+          "B3": "Set it to 0 to turn the limit off."
         },
         "RunCost": {
           "Title": "Run cost",
-          "Body": "The token report now shows what a run cost when your provider reports it (OpenRouter does). For other providers, enter optional per-1M-token prices on the connection in AI Provider Setup for an estimate marked with ≈."
+          "B1": "The token report shows run cost when your provider reports it, as OpenRouter does.",
+          "B2": "For other providers, enter optional per-1M-token prices in AI Provider Setup.",
+          "B3": "Estimates from those prices are marked with ≈."
         },
         "RunBudget": {
           "Title": "Per-run token budget",
-          "Body": "A run now stops at a token budget (60,000 by default) instead of retrying forever. The limit is a world setting."
+          "B1": "A run stops at a token budget instead of retrying forever.",
+          "B2": "The default budget is 60,000 tokens.",
+          "B3": "The limit is a world setting."
         },
         "ProviderRetry": {
           "Title": "More resilient provider requests",
-          "Body": "When the AI provider reports a rate limit or a transient server error, SimplySF2e can wait (honoring the provider's Retry-After when given) and try the request once. Ambiguous server errors that may already have been billed are not retried. Cancelling stops the retry."
+          "B1": "On a rate limit or transient server error, SimplySF2e waits and retries once.",
+          "B2": "It honors the provider's Retry-After value when given.",
+          "B3": "Ambiguous server errors that may already have been billed are not retried.",
+          "B4": "Cancelling a run also stops the retry."
         },
         "Multiclass": {
           "Title": "Multiclass, Tech Core ancestries and more",
-          "Body": "With Free Archetype on, a player character can take a second class: pick it in the new Multiclass field or let the AI choose from your prompt. The dedication goes in the first archetype slot, and later slots favor its feats. Mystic, Witchwarper and Technomancer dedications get their own spell list. A Technomancer now has a full spell database. Living Hologram and SRO characters get their size chosen for you, and the Item Forge can install projectile-weapon upgrades. The Item Forge keeps one grade label per item, keeps a base's published grade, and says which requested upgrades did not fit. Mechanic and Technomancer have Standard presets, shops and hoards skip items with no price, and the windows have a calmer look."
+          "B1": "With Free Archetype on, choose a second class in Multiclass, or let the AI choose.",
+          "B2": "The dedication goes in the first archetype slot, and later slots favor its feats.",
+          "B3": "Mystic, Witchwarper and Technomancer dedications get their own spell list.",
+          "B4": "Living Hologram and SRO characters get their size chosen for you.",
+          "B5": "Item Forge installs projectile-weapon upgrades and says which requested upgrades did not fit."
         },
         "ClassFixes": {
           "Title": "Every class builds cleanly",
-          "Body": "Player characters of every class now build from level 1 to 20. Feat choices check the character's planned attributes and skill ranks at each level, so dedications and feats that need, for example, Charisma +2 appear when they are legal. General feat slots can also hold skill feats, as in the system. Operative specializations keep the feat they need. If no legal feat exists for a slot, the character is still created with that slot empty and the GM gets a whisper saying which slots to fill by hand."
+          "B1": "Player characters of every class now build from level 1 to 20.",
+          "B2": "Feat choices check planned attributes and skill ranks at each level.",
+          "B3": "General feat slots can also hold skill feats, as in the system.",
+          "B4": "Operative specializations keep the feat they need.",
+          "B5": "If no legal feat exists for a slot, it stays empty and a whisper lists it."
         },
         "TechCore": {
           "Title": "Mechanic and Technomancer player characters",
-          "Body": "SimplySF2e now needs the Starfinder 2e system 1.6 or later. Player characters can be Mechanics or Technomancers from Tech Core. A Technomancer gets the magic hack that matches its programming language. A Mechanic who picks the Drone exocortex gets a reminder to set up the drone companion by hand."
+          "B1": "SimplySF2e now needs the Starfinder 2e system 1.6 or later.",
+          "B2": "Player characters can be Mechanics or Technomancers from Tech Core.",
+          "B3": "A Technomancer gets the magic hack that matches its programming language.",
+          "B4": "A Mechanic with the Drone exocortex gets a reminder to set up the drone by hand."
         },
         "UiRefresh": {
           "Title": "Easier to read, more Starfinder",
-          "Body": "Small labels and table headings are larger, and input fields have clearer borders. After a preview appears, Create is the main button and Generate offers another version. Icons and Item Forge wording now fit Starfinder: a microchip for the Generator, gears for the Item Forge and a bolt for Generate."
+          "B1": "Small labels and table headings are larger.",
+          "B2": "Input fields have clearer borders than before.",
+          "B3": "After a preview appears, Create is the main button and Generate offers another version.",
+          "B4": "Icons now fit Starfinder: a microchip for the Generator, gears for the Item Forge.",
+          "B5": "Item Forge wording now fits Starfinder."
         },
         "CreatureArt": {
           "Title": "Creature art keeps its token",
-          "Body": "With an art module installed, a generated creature now keeps the token art and scale of the similar bestiary creature it borrows from, instead of reusing its portrait. Its token is named after the new creature, and encounter copies are numbered in their token name too."
+          "B1": "With an art module, a generated creature keeps the similar bestiary creature's token art and scale.",
+          "B2": "The token no longer reuses the bestiary portrait.",
+          "B3": "The token is named after the new creature.",
+          "B4": "Encounter copies are numbered in their token name too."
         },
         "WhatsNew": {
           "Title": "What's new",
-          "Body": "This window. It opens once after an update that changes something you can see. Reopen it any time with /sf2e whatsnew."
+          "B1": "This window opens once after an update that changes something you can see.",
+          "B2": "Reopen it any time with /sf2e whatsnew."
         },
         "ReskinTrample": {
           "Title": "Reskin keeps Trample in step",
-          "Body": "When a Reskin renames a melee Strike, a Trample ability the module built for that creature now names the new Strike. Published creatures are not changed."
+          "B1": "Reskin: a Trample the module built names the renamed melee Strike.",
+          "B2": "Trample on published creatures is not changed."
         },
         "OneCredstick": {
           "Title": "One Credstick per hoard",
-          "Body": "A treasure hoard's leftover credits now go on a single Credstick (up to 5,000,000 credits) instead of several 100,000-credit sticks. NPC and player-character Credstick coin now reaches the full treasure budget at every level (it used to stop at 100,000 credits, which cut level 13+ budgets short)."
+          "B1": "A hoard's leftover credits go on one Credstick, up to 5,000,000 credits.",
+          "B2": "This replaces the old split into several 100,000-credit sticks.",
+          "B3": "NPC and player-character Credstick coin now reaches the full treasure budget at every level.",
+          "B4": "It used to stop at 100,000 credits, which cut level 13+ budgets short."
         },
         "UiPolish": {
           "Title": "Cleaner windows",
-          "Body": "Previews fold the token report into one line, encounter cards show stats as a grid, the character review lists what to check, AI Provider Setup and Compendium Sources are easier to scan (with a pack filter), and narrow windows read better."
+          "B1": "Previews fold the token report into one line.",
+          "B2": "Encounter cards show stats as a grid.",
+          "B3": "The character review lists what to check.",
+          "B4": "AI Provider Setup and Compendium Sources are easier to scan, with a pack filter.",
+          "B5": "Narrow windows are easier to read."
         },
         "FasterEncounters": {
           "Title": "Faster encounters",
-          "Body": "Encounter mode builds several creatures at the same time, so big encounters are ready sooner."
+          "B1": "Encounter mode builds several creatures at the same time.",
+          "B2": "Large encounters are ready sooner than before."
         },
         "Treasure": {
           "Title": "Treasure hoards",
-          "Body": "A new Treasure window (Actors sidebar button or /sf2e treasure) fills one encounter's or a whole level's treasure budget with real Starfinder items and credits, and creates a loot actor."
+          "B1": "A new Treasure window opens from the Actors sidebar button or /sf2e treasure.",
+          "B2": "It fills one encounter's or a whole level's treasure budget.",
+          "B3": "It uses real Starfinder items and credits.",
+          "B4": "The result is created as a loot actor."
         },
         "Relevel": {
           "Title": "Re-level a creature",
-          "Body": "In Reskin mode, set a new level. The copy's AC, HP, attacks, saves, skills and DCs move to the Starfinder GM Core values for that level, keeping how strong each stat was."
+          "B1": "In Reskin mode, set a new level for the copy.",
+          "B2": "AC, HP, attacks, saves, skills and DCs move to GM Core values for that level.",
+          "B3": "Each stat keeps its relative strength."
         }
       }
     },
@@ -398,7 +485,7 @@
       "RerollPickBlocked": "{name} cannot be used for this creature (the console says why). The preview is unchanged.",
       "Discard": "Discard",
       "EmptyHintReskin": "Nothing generated yet. Drop an NPC above, then press Generate. The preview appears here before anything is created.",
-      "EmptyHintReskinReady": "Press Reskin Creature or Preview Plan to create the preview. Nothing is created until you confirm it.",
+      "EmptyHintReskinReady": "Press Reskin creature or Preview plan to create the preview. Nothing is created until you confirm it.",
       "XPUnit": "XP",
       "CreditsLabel": "Credits",
       "OverBudget": "(over budget)",

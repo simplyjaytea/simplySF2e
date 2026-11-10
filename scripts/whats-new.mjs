@@ -4,154 +4,302 @@
 //
 // Releases are version-tagged automatically on every merge, so notes are keyed
 // by a unique id, never by version. Every PR with a change a GM can see adds
-// one entry at the TOP of RELEASE_NOTES (new unique id, i18n title and body).
+// one entry at the TOP of RELEASE_NOTES (new unique id, i18n title and 2 to 5 bullets).
 
-/** Newest first. title/body are i18n keys in lang/en.json. */
+/** Newest first. title and each bullet are i18n keys in lang/en.json; a note has 2 to 5 bullets. */
 export const RELEASE_NOTES = [
+  {
+    id: "2026-11-10-review-fixes",
+    title: "SIMPLYSF2E.WhatsNew.Note.ReviewFixes.Title",
+    bullets: [
+      "SIMPLYSF2E.WhatsNew.Note.ReviewFixes.B1",
+      "SIMPLYSF2E.WhatsNew.Note.ReviewFixes.B2",
+      "SIMPLYSF2E.WhatsNew.Note.ReviewFixes.B3",
+      "SIMPLYSF2E.WhatsNew.Note.ReviewFixes.B4",
+      "SIMPLYSF2E.WhatsNew.Note.ReviewFixes.B5"
+    ]
+  },
   {
     id: "2026-11-09-hunt-fixes",
     title: "SIMPLYSF2E.WhatsNew.Note.HuntFixes.Title",
-    body: "SIMPLYSF2E.WhatsNew.Note.HuntFixes.Body"
+    bullets: [
+      "SIMPLYSF2E.WhatsNew.Note.HuntFixes.B1",
+      "SIMPLYSF2E.WhatsNew.Note.HuntFixes.B2",
+      "SIMPLYSF2E.WhatsNew.Note.HuntFixes.B3",
+      "SIMPLYSF2E.WhatsNew.Note.HuntFixes.B4",
+      "SIMPLYSF2E.WhatsNew.Note.HuntFixes.B5"
+    ]
   },
   {
     id: "2026-11-08-progress-telemetry",
     title: "SIMPLYSF2E.WhatsNew.Note.ProgressTelemetry.Title",
-    body: "SIMPLYSF2E.WhatsNew.Note.ProgressTelemetry.Body"
+    bullets: [
+      "SIMPLYSF2E.WhatsNew.Note.ProgressTelemetry.B1",
+      "SIMPLYSF2E.WhatsNew.Note.ProgressTelemetry.B2",
+      "SIMPLYSF2E.WhatsNew.Note.ProgressTelemetry.B3",
+      "SIMPLYSF2E.WhatsNew.Note.ProgressTelemetry.B4"
+    ]
   },
   {
     id: "2026-11-08-theme-system",
     title: "SIMPLYSF2E.WhatsNew.Note.ThemeSystem.Title",
-    body: "SIMPLYSF2E.WhatsNew.Note.ThemeSystem.Body"
+    bullets: [
+      "SIMPLYSF2E.WhatsNew.Note.ThemeSystem.B1",
+      "SIMPLYSF2E.WhatsNew.Note.ThemeSystem.B2",
+      "SIMPLYSF2E.WhatsNew.Note.ThemeSystem.B3"
+    ]
   },
   {
     id: "2026-11-08-setup-wiring",
     title: "SIMPLYSF2E.WhatsNew.Note.SetupWiring.Title",
-    body: "SIMPLYSF2E.WhatsNew.Note.SetupWiring.Body"
+    bullets: [
+      "SIMPLYSF2E.WhatsNew.Note.SetupWiring.B1",
+      "SIMPLYSF2E.WhatsNew.Note.SetupWiring.B2",
+      "SIMPLYSF2E.WhatsNew.Note.SetupWiring.B3",
+      "SIMPLYSF2E.WhatsNew.Note.SetupWiring.B4",
+      "SIMPLYSF2E.WhatsNew.Note.SetupWiring.B5"
+    ]
   },
   {
     id: "2026-11-08-copy-sweep",
     title: "SIMPLYSF2E.WhatsNew.Note.CopySweep.Title",
-    body: "SIMPLYSF2E.WhatsNew.Note.CopySweep.Body"
+    bullets: [
+      "SIMPLYSF2E.WhatsNew.Note.CopySweep.B1",
+      "SIMPLYSF2E.WhatsNew.Note.CopySweep.B2",
+      "SIMPLYSF2E.WhatsNew.Note.CopySweep.B3",
+      "SIMPLYSF2E.WhatsNew.Note.CopySweep.B4"
+    ]
   },
   {
     id: "2026-11-08-shell-consistency",
     title: "SIMPLYSF2E.WhatsNew.Note.ShellConsistency.Title",
-    body: "SIMPLYSF2E.WhatsNew.Note.ShellConsistency.Body"
+    bullets: [
+      "SIMPLYSF2E.WhatsNew.Note.ShellConsistency.B1",
+      "SIMPLYSF2E.WhatsNew.Note.ShellConsistency.B2",
+      "SIMPLYSF2E.WhatsNew.Note.ShellConsistency.B3",
+      "SIMPLYSF2E.WhatsNew.Note.ShellConsistency.B4",
+      "SIMPLYSF2E.WhatsNew.Note.ShellConsistency.B5"
+    ]
   },
   {
     id: "2026-11-08-run-guards",
     title: "SIMPLYSF2E.WhatsNew.Note.RunGuards.Title",
-    body: "SIMPLYSF2E.WhatsNew.Note.RunGuards.Body"
+    bullets: [
+      "SIMPLYSF2E.WhatsNew.Note.RunGuards.B1",
+      "SIMPLYSF2E.WhatsNew.Note.RunGuards.B2",
+      "SIMPLYSF2E.WhatsNew.Note.RunGuards.B3",
+      "SIMPLYSF2E.WhatsNew.Note.RunGuards.B4",
+      "SIMPLYSF2E.WhatsNew.Note.RunGuards.B5"
+    ]
   },
   {
     id: "2026-11-08-one-credstick",
     title: "SIMPLYSF2E.WhatsNew.Note.OneCredstick.Title",
-    body: "SIMPLYSF2E.WhatsNew.Note.OneCredstick.Body"
+    bullets: [
+      "SIMPLYSF2E.WhatsNew.Note.OneCredstick.B1",
+      "SIMPLYSF2E.WhatsNew.Note.OneCredstick.B2",
+      "SIMPLYSF2E.WhatsNew.Note.OneCredstick.B3",
+      "SIMPLYSF2E.WhatsNew.Note.OneCredstick.B4"
+    ]
   },
   {
     id: "2026-11-08-reskin-trample",
     title: "SIMPLYSF2E.WhatsNew.Note.ReskinTrample.Title",
-    body: "SIMPLYSF2E.WhatsNew.Note.ReskinTrample.Body"
+    bullets: [
+      "SIMPLYSF2E.WhatsNew.Note.ReskinTrample.B1",
+      "SIMPLYSF2E.WhatsNew.Note.ReskinTrample.B2"
+    ]
   },
   {
     id: "2026-11-08-ui-polish",
     title: "SIMPLYSF2E.WhatsNew.Note.UiPolish.Title",
-    body: "SIMPLYSF2E.WhatsNew.Note.UiPolish.Body"
+    bullets: [
+      "SIMPLYSF2E.WhatsNew.Note.UiPolish.B1",
+      "SIMPLYSF2E.WhatsNew.Note.UiPolish.B2",
+      "SIMPLYSF2E.WhatsNew.Note.UiPolish.B3",
+      "SIMPLYSF2E.WhatsNew.Note.UiPolish.B4",
+      "SIMPLYSF2E.WhatsNew.Note.UiPolish.B5"
+    ]
   },
   {
     id: "2026-11-07-run-deadline",
     title: "SIMPLYSF2E.WhatsNew.Note.RunDeadline.Title",
-    body: "SIMPLYSF2E.WhatsNew.Note.RunDeadline.Body"
+    bullets: [
+      "SIMPLYSF2E.WhatsNew.Note.RunDeadline.B1",
+      "SIMPLYSF2E.WhatsNew.Note.RunDeadline.B2",
+      "SIMPLYSF2E.WhatsNew.Note.RunDeadline.B3"
+    ]
   },
   {
     id: "2026-11-07-run-cost",
     title: "SIMPLYSF2E.WhatsNew.Note.RunCost.Title",
-    body: "SIMPLYSF2E.WhatsNew.Note.RunCost.Body"
+    bullets: [
+      "SIMPLYSF2E.WhatsNew.Note.RunCost.B1",
+      "SIMPLYSF2E.WhatsNew.Note.RunCost.B2",
+      "SIMPLYSF2E.WhatsNew.Note.RunCost.B3"
+    ]
   },
   {
     id: "2026-11-07-relevel-abilities",
     title: "SIMPLYSF2E.WhatsNew.Note.RelevelAbilities.Title",
-    body: "SIMPLYSF2E.WhatsNew.Note.RelevelAbilities.Body"
+    bullets: [
+      "SIMPLYSF2E.WhatsNew.Note.RelevelAbilities.B1",
+      "SIMPLYSF2E.WhatsNew.Note.RelevelAbilities.B2"
+    ]
   },
   {
     id: "2026-11-07-aura",
     title: "SIMPLYSF2E.WhatsNew.Note.Aura.Title",
-    body: "SIMPLYSF2E.WhatsNew.Note.Aura.Body"
+    bullets: [
+      "SIMPLYSF2E.WhatsNew.Note.Aura.B1",
+      "SIMPLYSF2E.WhatsNew.Note.Aura.B2",
+      "SIMPLYSF2E.WhatsNew.Note.Aura.B3",
+      "SIMPLYSF2E.WhatsNew.Note.Aura.B4"
+    ]
   },
   {
     id: "2026-11-06-one-screen-welcome",
     title: "SIMPLYSF2E.WhatsNew.Note.OneScreenWelcome.Title",
-    body: "SIMPLYSF2E.WhatsNew.Note.OneScreenWelcome.Body"
+    bullets: [
+      "SIMPLYSF2E.WhatsNew.Note.OneScreenWelcome.B1",
+      "SIMPLYSF2E.WhatsNew.Note.OneScreenWelcome.B2",
+      "SIMPLYSF2E.WhatsNew.Note.OneScreenWelcome.B3"
+    ]
   },
   {
     id: "2026-11-05-area-blast",
     title: "SIMPLYSF2E.WhatsNew.Note.AreaBlast.Title",
-    body: "SIMPLYSF2E.WhatsNew.Note.AreaBlast.Body"
+    bullets: [
+      "SIMPLYSF2E.WhatsNew.Note.AreaBlast.B1",
+      "SIMPLYSF2E.WhatsNew.Note.AreaBlast.B2",
+      "SIMPLYSF2E.WhatsNew.Note.AreaBlast.B3"
+    ]
   },
   {
     id: "2026-11-05-blank-abilities",
     title: "SIMPLYSF2E.WhatsNew.Note.BlankAbilities.Title",
-    body: "SIMPLYSF2E.WhatsNew.Note.BlankAbilities.Body"
+    bullets: [
+      "SIMPLYSF2E.WhatsNew.Note.BlankAbilities.B1",
+      "SIMPLYSF2E.WhatsNew.Note.BlankAbilities.B2",
+      "SIMPLYSF2E.WhatsNew.Note.BlankAbilities.B3",
+      "SIMPLYSF2E.WhatsNew.Note.BlankAbilities.B4"
+    ]
   },
   {
     id: "2026-11-05-clearer-errors",
     title: "SIMPLYSF2E.WhatsNew.Note.ClearerErrors.Title",
-    body: "SIMPLYSF2E.WhatsNew.Note.ClearerErrors.Body"
+    bullets: [
+      "SIMPLYSF2E.WhatsNew.Note.ClearerErrors.B1",
+      "SIMPLYSF2E.WhatsNew.Note.ClearerErrors.B2",
+      "SIMPLYSF2E.WhatsNew.Note.ClearerErrors.B3"
+    ]
   },
   {
     id: "2026-10-31-run-budget",
     title: "SIMPLYSF2E.WhatsNew.Note.RunBudget.Title",
-    body: "SIMPLYSF2E.WhatsNew.Note.RunBudget.Body"
+    bullets: [
+      "SIMPLYSF2E.WhatsNew.Note.RunBudget.B1",
+      "SIMPLYSF2E.WhatsNew.Note.RunBudget.B2",
+      "SIMPLYSF2E.WhatsNew.Note.RunBudget.B3"
+    ]
   },
   {
     id: "2026-10-31-provider-retry",
     title: "SIMPLYSF2E.WhatsNew.Note.ProviderRetry.Title",
-    body: "SIMPLYSF2E.WhatsNew.Note.ProviderRetry.Body"
+    bullets: [
+      "SIMPLYSF2E.WhatsNew.Note.ProviderRetry.B1",
+      "SIMPLYSF2E.WhatsNew.Note.ProviderRetry.B2",
+      "SIMPLYSF2E.WhatsNew.Note.ProviderRetry.B3",
+      "SIMPLYSF2E.WhatsNew.Note.ProviderRetry.B4"
+    ]
   },
   {
     id: "2026-10-25-multiclass",
     title: "SIMPLYSF2E.WhatsNew.Note.Multiclass.Title",
-    body: "SIMPLYSF2E.WhatsNew.Note.Multiclass.Body"
+    bullets: [
+      "SIMPLYSF2E.WhatsNew.Note.Multiclass.B1",
+      "SIMPLYSF2E.WhatsNew.Note.Multiclass.B2",
+      "SIMPLYSF2E.WhatsNew.Note.Multiclass.B3",
+      "SIMPLYSF2E.WhatsNew.Note.Multiclass.B4",
+      "SIMPLYSF2E.WhatsNew.Note.Multiclass.B5"
+    ]
   },
   {
     id: "2026-10-25-class-fixes",
     title: "SIMPLYSF2E.WhatsNew.Note.ClassFixes.Title",
-    body: "SIMPLYSF2E.WhatsNew.Note.ClassFixes.Body"
+    bullets: [
+      "SIMPLYSF2E.WhatsNew.Note.ClassFixes.B1",
+      "SIMPLYSF2E.WhatsNew.Note.ClassFixes.B2",
+      "SIMPLYSF2E.WhatsNew.Note.ClassFixes.B3",
+      "SIMPLYSF2E.WhatsNew.Note.ClassFixes.B4",
+      "SIMPLYSF2E.WhatsNew.Note.ClassFixes.B5"
+    ]
   },
   {
     id: "2026-10-25-tech-core",
     title: "SIMPLYSF2E.WhatsNew.Note.TechCore.Title",
-    body: "SIMPLYSF2E.WhatsNew.Note.TechCore.Body"
+    bullets: [
+      "SIMPLYSF2E.WhatsNew.Note.TechCore.B1",
+      "SIMPLYSF2E.WhatsNew.Note.TechCore.B2",
+      "SIMPLYSF2E.WhatsNew.Note.TechCore.B3",
+      "SIMPLYSF2E.WhatsNew.Note.TechCore.B4"
+    ]
   },
   {
     id: "2026-10-25-ui-refresh",
     title: "SIMPLYSF2E.WhatsNew.Note.UiRefresh.Title",
-    body: "SIMPLYSF2E.WhatsNew.Note.UiRefresh.Body"
+    bullets: [
+      "SIMPLYSF2E.WhatsNew.Note.UiRefresh.B1",
+      "SIMPLYSF2E.WhatsNew.Note.UiRefresh.B2",
+      "SIMPLYSF2E.WhatsNew.Note.UiRefresh.B3",
+      "SIMPLYSF2E.WhatsNew.Note.UiRefresh.B4",
+      "SIMPLYSF2E.WhatsNew.Note.UiRefresh.B5"
+    ]
   },
   {
     id: "2026-10-25-creature-art",
     title: "SIMPLYSF2E.WhatsNew.Note.CreatureArt.Title",
-    body: "SIMPLYSF2E.WhatsNew.Note.CreatureArt.Body"
+    bullets: [
+      "SIMPLYSF2E.WhatsNew.Note.CreatureArt.B1",
+      "SIMPLYSF2E.WhatsNew.Note.CreatureArt.B2",
+      "SIMPLYSF2E.WhatsNew.Note.CreatureArt.B3",
+      "SIMPLYSF2E.WhatsNew.Note.CreatureArt.B4"
+    ]
   },
   {
     id: "2026-10-11-whats-new",
     title: "SIMPLYSF2E.WhatsNew.Note.WhatsNew.Title",
-    body: "SIMPLYSF2E.WhatsNew.Note.WhatsNew.Body"
+    bullets: [
+      "SIMPLYSF2E.WhatsNew.Note.WhatsNew.B1",
+      "SIMPLYSF2E.WhatsNew.Note.WhatsNew.B2"
+    ]
   },
   {
     id: "2026-10-11-faster-encounters",
     title: "SIMPLYSF2E.WhatsNew.Note.FasterEncounters.Title",
-    body: "SIMPLYSF2E.WhatsNew.Note.FasterEncounters.Body"
+    bullets: [
+      "SIMPLYSF2E.WhatsNew.Note.FasterEncounters.B1",
+      "SIMPLYSF2E.WhatsNew.Note.FasterEncounters.B2"
+    ]
   },
   {
     id: "2026-10-11-treasure",
     title: "SIMPLYSF2E.WhatsNew.Note.Treasure.Title",
-    body: "SIMPLYSF2E.WhatsNew.Note.Treasure.Body"
+    bullets: [
+      "SIMPLYSF2E.WhatsNew.Note.Treasure.B1",
+      "SIMPLYSF2E.WhatsNew.Note.Treasure.B2",
+      "SIMPLYSF2E.WhatsNew.Note.Treasure.B3",
+      "SIMPLYSF2E.WhatsNew.Note.Treasure.B4"
+    ]
   },
   {
     id: "2026-10-11-relevel",
     title: "SIMPLYSF2E.WhatsNew.Note.Relevel.Title",
-    body: "SIMPLYSF2E.WhatsNew.Note.Relevel.Body"
+    bullets: [
+      "SIMPLYSF2E.WhatsNew.Note.Relevel.B1",
+      "SIMPLYSF2E.WhatsNew.Note.Relevel.B2",
+      "SIMPLYSF2E.WhatsNew.Note.Relevel.B3"
+    ]
   }
 ];
 
