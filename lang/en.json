@@ -217,6 +217,14 @@
           "B4": "Reskinning a world creature makes a fresh copy: full health, no conditions, GM-only ownership.",
           "B5": "An API Base URL containing a password or key is refused, because players can read it."
         },
+        "TidierWindows": {
+          "Title": "Tidier windows",
+          "B1": "Compendium Sources: one flat list replaces the ten boxes.",
+          "B2": "AI Provider Setup: one Save & test button, plus Save without testing.",
+          "B3": "Mystic and Witchwarper spell tradition now follows the chosen connection or paradox.",
+          "B4": "Encounter treasure is shared only among creatures that carry loot.",
+          "B5": "What's new lists changes as short bullets."
+        },
         "HuntFixes": {
           "Title": "Fixes from a full code review",
           "B1": "Encounter mode: Generate creates the actors in one go.",

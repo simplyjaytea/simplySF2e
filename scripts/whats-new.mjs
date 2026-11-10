@@ -20,6 +20,17 @@ export const RELEASE_NOTES = [
     ]
   },
   {
+    id: "2026-11-10-tidier-windows",
+    title: "SIMPLYSF2E.WhatsNew.Note.TidierWindows.Title",
+    bullets: [
+      "SIMPLYSF2E.WhatsNew.Note.TidierWindows.B1",
+      "SIMPLYSF2E.WhatsNew.Note.TidierWindows.B2",
+      "SIMPLYSF2E.WhatsNew.Note.TidierWindows.B3",
+      "SIMPLYSF2E.WhatsNew.Note.TidierWindows.B4",
+      "SIMPLYSF2E.WhatsNew.Note.TidierWindows.B5"
+    ]
+  },
+  {
     id: "2026-11-09-hunt-fixes",
     title: "SIMPLYSF2E.WhatsNew.Note.HuntFixes.Title",
     bullets: [
