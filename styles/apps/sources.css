@@ -3,12 +3,35 @@
    Loaded after styles/simplysf2e.css; tokens and shared kit live there.
    ========================================================================== */
 
-/* Category legends: the shared console chip (.spf-card > legend) with a
-   tighter tracking and pad and a neon edge. */
-.simplysf2e .spf-source-category legend {
-  letter-spacing: 0.06em;
-  padding: 0 var(--spf-space-xs);
-  border: 1px solid color-mix(in srgb, var(--spf-neon) 40%, var(--spf-border));
+/* One flat list (JT, 2026-11-10): a category is a plain heading row over
+   its packs, not a card. The fieldset stays for the screen-reader group;
+   the body's flex gap spaces the categories. */
+.simplysf2e .spf-source-category {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+/* Heading row: the HUD label style (uppercase, cyan, flat) with the
+   "n of m selected" count right-aligned on the same line. */
+.simplysf2e .spf-source-category > legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--spf-space-md);
+  width: 100%;
+  margin: 0 0 var(--spf-space-2xs);
+  padding: 0 var(--spf-space-sm);
+  border: 0;
+  background: none;
+  font-family: var(--spf-font-display);
+  font-size: var(--spf-text-sm);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--spf-brand-accent);
 }
 
 .simplysf2e .spf-pack {
@@ -127,11 +150,14 @@
 }
 
 .simplysf2e .spf-source-count {
-  margin-left: var(--spf-space-xs);
+  margin-inline-start: auto;
   font-family: var(--spf-font-mono);
+  font-size: var(--spf-text-xs);
   font-weight: 400;
+  font-variant-numeric: tabular-nums;
   letter-spacing: 0;
   text-transform: none;
+  white-space: nowrap;
   color: var(--spf-text-muted);
 }
 
@@ -153,11 +179,6 @@
 
 .simplysf2e .spf-hud-accent > i {
   color: var(--spf-brand-accent);
-}
-
-/* Category frames are static: the card's inset hairline only, no glow. */
-.simplysf2e .spf-hud-frame {
-  box-shadow: var(--spf-inset-glow);
 }
 
 /* One state message when nothing was detected; Save is disabled with it. */

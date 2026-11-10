@@ -564,7 +564,11 @@ for (const [name, template] of [
 }
 assert.match(managePresets, /spf-manage-list spf-card/, "preset rows must sit on the shared HUD card surface");
 assert.match(managePresets, /spf-hud-actions/, "preset actions must carry the HUD treatment");
-assert.match(sources, /spf-source-category spf-card/, "source categories must keep the shared card surface");
+// One flat list (JT, 2026-11-10): categories are heading rows, not cards,
+// but each stays a fieldset with a legend so screen readers announce the group.
+assert.match(sources, /<fieldset class="spf-source-category" data-source-category=/, "source categories are plain fieldsets, not cards");
+assert.match(sources, /<legend>[\s\S]*?data-source-count[\s\S]*?<\/legend>/, "each category legend carries its live count");
+assert.doesNotMatch(sources, /spf-card|spf-hud-frame/, "the Sources list draws no card frames");
 assert.match(sources, /spf-hud-accent/, "sources must carry a HUD accent line");
 assert.match(sources, /fa-satellite-dish/, "sources hint must use a sci-fi uplink glyph");
 
@@ -637,9 +641,9 @@ assert.match(
   "required review choices pulse: they wait for the GM"
 );
 assert.doesNotMatch(
-  css.match(/\.simplysf2e \.spf-hud-frame\s*\{([^}]*)\}/s)?.[1] ?? "",
-  /0 0 \d+px/,
-  "Sources category frames are static: no outer glow"
+  css.match(/\.simplysf2e \.spf-source-category > legend\s*\{([^}]*)\}/s)?.[1] ?? "",
+  /--spf-neon|box-shadow|border:\s*1px/,
+  "Sources category headings are flat cyan labels: no chip, no magenta"
 );
 assert.match(css, /@keyframes spf-telemetry-blink/, "telemetry pip motion must be a named keyframe");
 assert.match(
@@ -668,7 +672,7 @@ assert.match(
   /\.simplysf2e input\[type="number"\]\s*\{[^}]*tabular-nums/s,
   "numeric console readouts must use tabular figures"
 );
-for (const hook of ["spf-hud-accent", "spf-hud-actions", "spf-hud-frame", "spf-hud-list", "spf-hud-empty"]) {
+for (const hook of ["spf-hud-accent", "spf-hud-actions", "spf-hud-list", "spf-hud-empty"]) {
   assert.match(
     css,
     new RegExp(`\\.simplysf2e \\.${hook}\\s*\\{`),
