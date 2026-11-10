@@ -213,8 +213,6 @@ export class GeneratorApp extends SpfApp {
     this.#rememberInputSuspended = previousRememberSuspension || !remember;
     if (this.#busy || this.#createPending || this.#chatPending) {
       try {
-        if (remember) this.setInput(updates);
-        else this.#mergeInput(updates);
         ui.notifications.warn(game.i18n.localize("SIMPLYSF2E.Chat.Busy"));
       } finally {
         this.#rememberInputSuspended = previousRememberSuspension;
@@ -1391,7 +1389,7 @@ export class GeneratorApp extends SpfApp {
           this.#previewMeta = null;
         }
         console.error(`${MODULE_ID} | actor creation failed`, err);
-        this.#error = survivor ? `${err.message} ${survivor}` : err.message;
+        this.#error = survivor ? `${String(err?.message ?? err ?? "")} ${survivor}` : String(err?.message ?? err ?? "");
         this._recordFailure(err, "actor creation", this.#error);
       } else {
         console.warn(`${MODULE_ID} | actor committed, but completion presentation failed`, err);
@@ -1523,7 +1521,7 @@ export class GeneratorApp extends SpfApp {
       }
       if (!committed) {
         console.error(`${MODULE_ID} | character actor creation failed`, err);
-        this.#error = survivor ? `${err.message} ${survivor}` : err.message;
+        this.#error = survivor ? `${String(err?.message ?? err ?? "")} ${survivor}` : String(err?.message ?? err ?? "");
         this._recordFailure(err, "character creation", this.#error);
       } else console.warn(`${MODULE_ID} | character committed, but completion presentation failed`, err);
     } finally {
@@ -1659,8 +1657,8 @@ export class GeneratorApp extends SpfApp {
       if (survivors.length) {
         this.#encounter = null;
         this.#previewMeta = null;
-        this.#error = `${err.message} ${survivors.join(" ")} The plan was discarded to prevent a duplicate.`;
-      } else this.#error = err.message;
+        this.#error = `${String(err?.message ?? err ?? "")} ${survivors.join(" ")} The plan was discarded to prevent a duplicate.`;
+      } else this.#error = String(err?.message ?? err ?? "");
       this._recordFailure(err, "encounter creation", this.#error);
     } finally {
       this.#busy = false;
