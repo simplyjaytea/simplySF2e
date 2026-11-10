@@ -104,6 +104,11 @@ assert.equal(lookup(HP, 22, "low"), 323, "SF GM Core pg 122: low HP at lvl 22 mi
 assert.equal(lookup(STRIKE_ATTACK, 19, "moderate"), 34, "SF GM Core pg 124: moderate strike attack at lvl 19 is +34");
 assert.equal(lookup(STRIKE_ATTACK, 21, "moderate"), 37, "SF GM Core pg 124: moderate strike attack at lvl 21 is +37");
 assert.equal(lookup(STRIKE_ATTACK, 23, "moderate"), 40, "SF GM Core pg 124: moderate strike attack at lvl 23 is +40");
+// Rows 23 and 24 as printed (https://2e.aonsrd.com/rules/1010-strikes): 44/42/40/35 and 46/44/42/36.
+assert.equal(lookup(STRIKE_ATTACK, 23, "high"), 42, "SF GM Core pg 124: high strike attack at lvl 23 is +42");
+assert.equal(lookup(STRIKE_ATTACK, 24, "high"), 44, "SF GM Core pg 124: high strike attack at lvl 24 is +44");
+assert.equal(lookup(STRIKE_ATTACK, 24, "extreme"), 46, "SF GM Core pg 124: extreme strike attack at lvl 24 is +46");
+assert.equal(lookup(STRIKE_ATTACK, 24, "low"), 36, "SF GM Core pg 124: low strike attack at lvl 24 is +36");
 assert.equal(lookup(STRIKE_ATTACK, 24, "moderate"), 42, "SF GM Core pg 124: moderate strike attack at lvl 24 is +42");
 assert.equal(lookup(STRIKE_ATTACK, 22, "low"), 33, "SF GM Core pg 124: low strike attack at lvl 22 is +33");
 assert.equal(lookup(STRIKE_DAMAGE, 0, "extreme"), "1d6+3", "SF GM Core pg 124: extreme strike damage at lvl 0");
