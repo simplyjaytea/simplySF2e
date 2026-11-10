@@ -1746,6 +1746,22 @@ async function requestCompletion({ task, system, user, onProgress, signal, retry
     }, Math.min(Math.max(0, deadlineLeft), 2147483647));
   }
 
+  // Usage is charged to the run budget exactly once per request, on every
+  // exit: success, a retryable bad reply, or a failure after the provider
+  // accepted the request (idle timeout, cancel, run deadline, dropped
+  // connection, mid-stream provider error). A request the provider never
+  // accepted (connect error, HTTP error status) charges nothing.
+  // `received` holds what has streamed in so far, for the estimate.
+  const received = { content: "", reasoningChars: 0, usage: null, reader: null };
+  let accepted = false;
+  let charged = null;
+  const chargeUsageOnce = (usage, { content, reasoningChars }) => {
+    if (charged) return charged;
+    charged = normalizeUsage(usage, { content, system, user, reasoningChars });
+    spendRunTokens(signal, charged);
+    return charged;
+  };
+
   try {
     resetIdle();
     let response = await postChatCompletion(baseUrl, apiKey, body, controller.signal, retryBudget, onBackoff);
@@ -1801,6 +1817,7 @@ async function requestCompletion({ task, system, user, onProgress, signal, retry
     if (!response.ok) {
       throw await providerApiError(response, controller.signal);
     }
+    accepted = true;
 
     const contentType = response.headers.get("content-type") ?? "";
     let content;
@@ -1809,7 +1826,7 @@ async function requestCompletion({ task, system, user, onProgress, signal, retry
     let reasoningChars = 0;
     if (contentType.includes("text/event-stream") && response.body) {
       ({ content, finishReason, usage, reasoningChars } = await readEventStream(
-        response, { onProgress, resetIdle }
+        response, { onProgress, resetIdle, received }
       ));
     } else {
       resetIdle();
@@ -1838,7 +1855,7 @@ async function requestCompletion({ task, system, user, onProgress, signal, retry
         game.i18n.format("SIMPLYSF2E.Errors.Truncated", { max: maxTokens }),
         {
           retryable: true,
-          usage: (() => { const normalized = normalizeUsage(usage, { content, system, user, reasoningChars }); spendRunTokens(signal, normalized); return normalized; })(),
+          usage: chargeUsageOnce(usage, { content, reasoningChars }),
           details
         }
       );
@@ -1852,29 +1869,35 @@ async function requestCompletion({ task, system, user, onProgress, signal, retry
         game.i18n.localize(emptyKey),
         {
           retryable: true,
-          usage: (() => { const normalized = normalizeUsage(usage, { content, system, user, reasoningChars }); spendRunTokens(signal, normalized); return normalized; })(),
+          usage: chargeUsageOnce(usage, { content, reasoningChars }),
           details
         }
       );
     }
     return {
       content,
-      usage: (() => { const normalized = normalizeUsage(usage, { content, system, user, reasoningChars }); spendRunTokens(signal, normalized); return normalized; })(),
+      usage: chargeUsageOnce(usage, { content, reasoningChars }),
       finishReason,
       reasoningChars
     };
   } catch (err) {
-    if (err instanceof AIRequestError) throw err;
-    if (err.name === "AbortError" || controller.signal.aborted) {
+    let failure = err;
+    if (!(err instanceof AIRequestError) && (err.name === "AbortError" || controller.signal.aborted)) {
       if (userSignal?.aborted) {
-        throw new AIRequestError(game.i18n.localize("SIMPLYSF2E.Errors.Cancelled"), { cancelled: true });
+        failure = new AIRequestError(game.i18n.localize("SIMPLYSF2E.Errors.Cancelled"), { cancelled: true });
+      } else if (deadlineFired) {
+        failure = new AIRequestError(game.i18n.localize("SIMPLYSF2E.Errors.RunDeadline"), { retryable: false, runLimit: true });
+      } else {
+        failure = new AIRequestError(game.i18n.format("SIMPLYSF2E.Errors.Timeout", { seconds: idleSeconds }));
       }
-      if (deadlineFired) {
-        throw new AIRequestError(game.i18n.localize("SIMPLYSF2E.Errors.RunDeadline"), { retryable: false, runLimit: true });
-      }
-      throw new AIRequestError(game.i18n.format("SIMPLYSF2E.Errors.Timeout", { seconds: idleSeconds }));
     }
-    throw err;
+    if (accepted) {
+      // Tokens streamed before the failure were generated (and likely
+      // billed): estimate them from what was sent and received so far.
+      const usage = chargeUsageOnce(received.usage, received);
+      if (failure instanceof AIRequestError && !failure.usage) failure.usage = usage;
+    }
+    throw failure;
   } finally {
     userSignal?.removeEventListener("abort", onUserAbort);
     clearTimeout(idleTimer);
@@ -1894,8 +1917,9 @@ function namesParameter(text, name) {
 }
 
 /** Consume an SSE chat-completions stream, reporting progress per chunk. */
-async function readEventStream(response, { onProgress, resetIdle }) {
+async function readEventStream(response, { onProgress, resetIdle, received = {} }) {
   const reader = response.body.getReader();
+  received.reader = reader;
   const decoder = new TextDecoder();
   let buffer = "";
   let content = "";
@@ -1970,20 +1994,27 @@ async function readEventStream(response, { onProgress, resetIdle }) {
     }
   };
 
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    resetIdle();
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split("\n");
-    buffer = lines.pop();
-    for (const line of lines) consumeLine(line);
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      resetIdle();
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop();
+      for (const line of lines) consumeLine(line);
+    }
+    // A stream may close immediately after its final data record. Flush the
+    // decoder and consume that unterminated line instead of reporting a false
+    // empty response or losing the provider's final usage block.
+    buffer += decoder.decode();
+    for (const line of buffer.split("\n")) consumeLine(line);
+  } finally {
+    // What streamed in so far, so a failure can still be charged.
+    received.content = content || messageContent;
+    received.reasoningChars = reasoningChars || messageReasoningChars;
+    received.usage = usage;
   }
-  // A stream may close immediately after its final data record. Flush the
-  // decoder and consume that unterminated line instead of reporting a false
-  // empty response or losing the provider's final usage block.
-  buffer += decoder.decode();
-  for (const line of buffer.split("\n")) consumeLine(line);
   // Some OpenAI-compatible proxies emit the full message on the final chunk
   // and never send delta.content. Prefer accumulated deltas when both exist
   // so a last-chunk message copy cannot concatenate onto streamed text.

@@ -224,4 +224,94 @@ const hasCap = (body) => "max_tokens" in body || "max_completion_tokens" in body
   assert.match(error.message, /^SIMPLYSF2E\.Errors\.ApiError:/);
   assert.equal(typeof ai.resetProviderParameterMemory, "function");
 }
+
+// --- 4. Tokens streamed before a failure are charged once -------------------
+{
+  useEndpoint();
+  const streamed = "x".repeat(4000); // no JSON punctuation: estimate is chars / 4
+  // One chunk, then the body stays open until the request signal aborts.
+  const stalling = (init) => {
+    let n = 0;
+    return new Response(new ReadableStream({
+      pull(c) {
+        if (n++ === 0) { c.enqueue(delta(streamed)); return; }
+        return new Promise((resolve) => {
+          const abort = () => { c.error(new DOMException("Aborted", "AbortError")); resolve(); };
+          if (init.signal.aborted) abort();
+          else init.signal.addEventListener("abort", abort, { once: true });
+        });
+      }
+    }), { status: 200, headers: { "content-type": "text/event-stream" } });
+  };
+  const run = async (trigger) => {
+    const ac = new AbortController();
+    let posts = 0;
+    globalThis.fetch = async (_url, init) => { posts += 1; return stalling(init); };
+    const outcome = await withFakeTime((clock) => {
+      beginRunBudget(ac.signal, { tokenBudget: 1e9, deadlineMs: trigger === "deadline" ? 50 : 0, now: clock.now });
+      if (trigger === "cancel") clock.at(20, () => ac.abort());
+      return chooseSpellFocus({ concept, tradition: "arcane", signal: ac.signal });
+    });
+    return { ...outcome, posts, spent: getRunBudget(ac.signal).tokensSpent };
+  };
+  for (const [trigger, pattern] of [["idle", /Timeout/], ["cancel", /Cancelled/], ["deadline", /RunDeadline/]]) {
+    const { error, posts, spent } = await run(trigger);
+    assert.ok(error instanceof AIRequestError, `${trigger}: AIRequestError`);
+    assert.match(error.message, pattern, `${trigger}: classification unchanged`);
+    assert.equal(posts, 1);
+    assert.equal(error.usage?.estimated, true, `${trigger}: usage attached and estimated`);
+    assert.equal(error.usage.completion, estimateTokens(streamed), `${trigger}: streamed text is charged`);
+    assert.ok(error.usage.prompt > 0, `${trigger}: the prompt is charged`);
+    assert.equal(spent, error.usage.total, `${trigger}: the run budget holds exactly the attached usage`);
+  }
+
+  // A connect failure sends nothing billable: nothing is charged.
+  {
+    const ac = new AbortController();
+    beginRunBudget(ac.signal, { tokenBudget: 1e9, deadlineMs: 0 });
+    globalThis.fetch = async () => { throw new TypeError("Failed to fetch"); };
+    const { error } = await settle(chooseSpellFocus({ concept, tradition: "arcane", signal: ac.signal }));
+    assert.match(error.message, /NetworkError/);
+    assert.equal(getRunBudget(ac.signal).tokensSpent, 0, "connect failure charges nothing");
+    assert.equal(error.usage?.total ?? 0, 0);
+  }
+  // A rejected HTTP status (no completion produced) charges nothing.
+  {
+    const ac = new AbortController();
+    beginRunBudget(ac.signal, { tokenBudget: 1e9, deadlineMs: 0 });
+    globalThis.fetch = async () => new Response("no", { status: 401 });
+    await settle(chooseSpellFocus({ concept, tradition: "arcane", signal: ac.signal }));
+    assert.equal(getRunBudget(ac.signal).tokensSpent, 0, "an HTTP error charges nothing");
+  }
+  // Success with exact usage: charged exactly once.
+  {
+    const ac = new AbortController();
+    beginRunBudget(ac.signal, { tokenBudget: 1e9, deadlineMs: 0 });
+    globalThis.fetch = async () => new Response(new ReadableStream({
+      start(c) {
+        c.enqueue(delta('{"keywords":["fire"]}'));
+        c.enqueue(sseRecord({ choices: [], usage: { prompt_tokens: 11, completion_tokens: 7, total_tokens: 18 } }));
+        c.enqueue(enc.encode("data: [DONE]\n\n"));
+        c.close();
+      }
+    }), { status: 200, headers: { "content-type": "text/event-stream" } });
+    const result = await chooseSpellFocus({ concept, tradition: "arcane", signal: ac.signal });
+    assert.deepEqual(result.keywords, ["fire"]);
+    assert.equal(result.usage.total, 18);
+    assert.equal(getRunBudget(ac.signal).tokensSpent, 18, "success charges exactly once");
+  }
+  // A truncated reply followed by a good one: each attempt charged once.
+  {
+    const ac = new AbortController();
+    beginRunBudget(ac.signal, { tokenBudget: 1e9, deadlineMs: 0 });
+    const replies = [
+      { choices: [{ message: { content: '{"keywords":["fi' }, finish_reason: "length" }], usage: { prompt_tokens: 10, completion_tokens: 20, total_tokens: 30 } },
+      { choices: [{ message: { content: '{"keywords":["fire"]}' }, finish_reason: "stop" }], usage: { prompt_tokens: 11, completion_tokens: 5, total_tokens: 16 } }
+    ];
+    globalThis.fetch = async () => new Response(JSON.stringify(replies.shift()), { status: 200, headers: { "content-type": "application/json" } });
+    const result = await chooseSpellFocus({ concept, tradition: "arcane", signal: ac.signal });
+    assert.equal(result.usage.total, 46);
+    assert.equal(getRunBudget(ac.signal).tokensSpent, 46, "truncated + success: 30 + 16");
+  }
+}
 console.log("ai.r3.test.mjs: ok");
