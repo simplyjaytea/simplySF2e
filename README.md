@@ -54,14 +54,14 @@ Use the **Welcome** window for first-run setup:
    | **Anthropic via OpenRouter** (Advanced) | `https://openrouter.ai/api/v1` | Choose an `anthropic/*` model |
    | **LM Studio** (Advanced) | `http://localhost:1234/v1` | Choose from the list |
 
-   **Advanced** mentions Jev and TypeSafe. Their setup is in the full **AI Provider Setup** window, opened with **Set Up AI Connection**.
+   **Advanced** mentions Jev and TypeSafe. Their setup is in the full **AI Provider Setup** window, opened with **Set up AI connection**.
 2. Paste the provider's API key. Ollama and other local keyless servers show their **API Base URL** instead.
-3. Click **Connect** (or press Enter in the key/URL field). Connect loads the provider's models through `/models`. It uses the preset's default only when that exact ID is listed. Otherwise, pick a returned model and click **Test & Connect**. The chosen model gets a small connection test. If Connect fails, it restores your previous connection when possible.
-4. Click **Generate a sample monster** to open a level-1 Monster preview with a fixed sample prompt. Nothing is created until you click **Create Actor**.
+3. Click **Connect** (or press Enter in the key/URL field). Connect loads the provider's models through `/models`. It uses the preset's default only when that exact ID is listed. Otherwise, pick a returned model and click **Test & connect**. The chosen model gets a small connection test. If Connect fails, it restores your previous connection when possible.
+4. Click **Generate a sample monster** to open a level-1 Monster preview with a fixed sample prompt. Nothing is created until you click **Create actor**.
 
 The recommendations are **DeepSeek V4.1 Flash** (`deepseek/deepseek-v4.1-flash` on OpenRouter) and **GPT-6 Luna** (`gpt-6-luna` on OpenAI). An OpenRouter key reaches both and can report request costs. Local models work too, but small ones often fail the structured steps.
 
-For named connections, custom endpoints, manual model IDs or saving without a test, open **Advanced → Set Up AI Connection**. The API Base URL can be the API root (normally ending in `/v1`) or a full `/chat/completions` address. The URL is shared with the whole world, so put secrets in the API key field: a URL with a user name, password or key-like query parameter (such as `api-key` or `token`) is refused.
+For named connections, custom endpoints, manual model IDs or saving without a test, open **Advanced → Set up AI connection**. The API Base URL can be the API root (normally ending in `/v1`) or a full `/chat/completions` address. The URL is shared with the whole world, so put secrets in the API key field: a URL with a user name, password or key-like query parameter (such as `api-key` or `token`) is refused.
 
 **Keys are tied to one exact endpoint.** When you save, the key is authorized only for the API Base URL shown in the window. If you later change the URL without entering a new key, the old key is cleared, so it is never sent to a different service. If the generator ever says "Stored API key is not authorized for the current API Base URL and will not be sent", it shows the endpoint and an **Authorize for this endpoint** button. Click it only if that endpoint is the one you meant.
 
@@ -128,7 +128,7 @@ All launchers are GM-only and only appear in an `sf2e` world.
 | Chat: `/sf2e [monster\|npc\|character\|encounter] [level] [description]` | The generator, pre-filled. Every part is optional, but they must come in that order, so a description that starts with a number is read as the level. Example: `/sf2e npc 4 street doc who patches up gang runners`. |
 | Macro: `game.modules.get("simplysf2e").api.open()` / `.openItemForge()` / `.openShop()` / `.openTreasure()` / `.openWelcome()` / `.openWhatsNew()` | The generator / the Item Forge / the shop generator / the treasure window / the welcome window / the What's new window |
 
-The chat command is not case-sensitive. A description starts a preview right away. Without a description, the command only pre-fills the form. Nothing is created until you press **Create Actor** or **Create All Actors**. A level outside the mode's range is clamped (−1 to 24 for Monster and NPC, 1 to 20 for Encounters and Player Character). Reskin has no chat shortcut.
+The chat command is not case-sensitive. A description starts a preview right away. Without a description, the command only pre-fills the form. Nothing is created until you press **Create actor** or **Create all actors**. A level outside the mode's range is clamped (−1 to 24 for Monster and NPC, 1 to 20 for Encounters and Player Character). Reskin has no chat shortcut.
 
 ## Using the generator
 
@@ -138,8 +138,8 @@ Choose a mode with the buttons at the top: **Monster**, **NPC**, **Encounter**, 
 
 Every mode except Reskin has three ways to start:
 
-- **Generate Monster / Generate NPC / Generate Encounter / Generate Character** generates **and creates** the result in one step, as long as every required compendium pick is matched.
-- **Preview Plan** generates the same thing but only shows a preview. Nothing is written to the world until you press **Create Actor** (or **Create All Actors** for an encounter). **Discard** throws the preview away.
+- **Generate monster / Generate NPC / Generate encounter / Generate character** generates **and creates** the result in one step, as long as every required compendium pick is matched.
+- **Preview plan** generates the same thing but only shows a preview. Nothing is written to the world until you press **Create actor** (or **Create all actors** for an encounter). **Discard** throws the preview away.
 - The **dice button** ignores your description and rolls a surprise concept at the chosen level. It always stops at the preview.
 
 **Recent previews** keeps the last five previews you moved away from, so a paid AI run is not lost when you generate again. **Open** brings one back in its own mode so you can review or create it, and the **x** removes it. Creating an actor takes its preview off the list. The list lasts until Foundry reloads.
@@ -150,7 +150,7 @@ AI-written prose is shown as text, not as Foundry commands. It cannot add links,
 
 **Advanced options** (a fold-out under the description) holds:
 
-- **Preset**: a flavor guide for the AI. It offers the eight Standard classes (Envoy, Mechanic, Mystic, Operative, Solarian, Soldier, Technomancer, Witchwarper), four Starfinder Archetypes (Corp Enforcer, Free Captain (Pirate), Street Cyberdoc, Bounty Hunter), and your own custom presets. **Manage Presets** lets you create, edit, duplicate, delete, export and import custom presets as JSON. Custom presets are saved in the world.
+- **Preset**: a flavor guide for the AI. It offers the eight Standard classes (Envoy, Mechanic, Mystic, Operative, Solarian, Soldier, Technomancer, Witchwarper), four Starfinder Archetypes (Corp Enforcer, Free Captain (Pirate), Street Cyberdoc, Bounty Hunter), and your own custom presets. **Manage presets** lets you create, edit, duplicate, delete, export and import custom presets as JSON. Custom presets are saved in the world.
 - **Rarity**: the creature's rarity. In Character mode this becomes **Rarity cap**, which excludes ancestries, backgrounds and heritages rarer than the cap.
 - **Monster Adjustment**: **Normal**, **Elite (+1 Level)** or **Weak (-1 Level)** (not shown in Character or Encounter mode). It applies to single Monster and NPC generation.
 - **Treasure amount**: **Stingy**, **Standard** or **Generous**.
@@ -171,15 +171,15 @@ A module-built **Area Blast** gives a bespoke breath or blast a cone or line, da
 
 The glossary abilities **Constrict**, **Greater Constrict**, **Swallow Whole**, **Engulf**, **Trample**, **Frightful Presence** and **Stench** also get level-appropriate values. SimplySF2e fills their damage, DCs, sizes and aura radii. Trample uses the creature's own melee Strike. If a glossary ability cannot be filled safely, its working version is left out. Safe flavor text may remain as **Narrative only**. The browser console names the ability.
 
-If the creature carries loot, **Reroll Loot** generates different loot without changing anything else. The dice next to a spell, feat or published ability swaps just that pick for a different compendium entry of the same kind (a spell keeps its rank and tradition); it costs one small AI call and never repeats a pick the creature already has. A rerolled glossary ability such as Constrict is filled for this creature like any other; if the new pick cannot work for this creature (for example Swallow Whole on a Tiny creature), the reroll is refused, the old pick stays and a warning says why. The AI cannot give a creature the same glossary ability twice. **Create Actor** makes the NPC actor, using art from the closest-matching creature in your Bestiary Actors packs. The finished panel reports how much came from the compendium. **Open Sheet** jumps to the new actor.
+If the creature carries loot, **Reroll loot** generates different loot without changing anything else. The dice next to a spell, feat or published ability swaps just that pick for a different compendium entry of the same kind (a spell keeps its rank and tradition); it costs one small AI call and never repeats a pick the creature already has. A rerolled glossary ability such as Constrict is filled for this creature like any other; if the new pick cannot work for this creature (for example Swallow Whole on a Tiny creature), the reroll is refused, the old pick stays and a warning says why. The AI cannot give a creature the same glossary ability twice. **Create actor** makes the NPC actor, using art from the closest-matching creature in your Bestiary Actors packs. The finished panel reports how much came from the compendium. **Open Sheet** jumps to the new actor.
 
-After **Create Actor** (and **Create All Actors** for an encounter), a **Stat check** reads the new sheet and compares its AC, max HP, Perception, saves, strike attack bonuses and spell DC with the preview and with the *Starfinder GM Core* range for the creature's level. Each number shows its GM Core scale (for example "AC 21 (moderate)"). A number that differs from the preview, sits outside the GM Core range, or cannot be read is marked, and the GM also gets a chat whisper listing it so it is still there after the window closes. The check only reports; it never changes the actor. Player Characters are not checked, because the system computes their numbers.
+After **Create actor** (and **Create all actors** for an encounter), a **Stat check** reads the new sheet and compares its AC, max HP, Perception, saves, strike attack bonuses and spell DC with the preview and with the *Starfinder GM Core* range for the creature's level. Each number shows its GM Core scale (for example "AC 21 (moderate)"). A number that differs from the preview, sits outside the GM Core range, or cannot be read is marked, and the GM also gets a chat whisper listing it so it is still there after the window closes. The check only reports; it never changes the actor. Player Characters are not checked, because the system computes their numbers.
 
 ### Encounter
 
 Set **Party level**, **Party size** and **Threat**, and optionally fill **Describe the encounter theme (optional)**. The AI designs a theme and a set of roles, and SimplySF2e then builds each member through the full creature pipeline. That means one AI round per creature, so encounters cost more tokens than a single monster. Up to three creatures are built at the same time, which cuts the wait for bigger encounters. A local provider (Ollama, LM Studio, or another address on your home network) still builds them one at a time, because most local servers answer one request at a time. If one creature fails, the others stop and nothing is kept.
 
-The preview shows each member's level, role (**Boss**, **Minion**) and key statistics in a small grid, with **Add one** / **Remove one (0 skips this creature)** counters. The header chips show **XP** and **Credits** spent against the encounter's budgets. **Create All Actors** creates every member inside a new Actors folder named after the encounter. If any member fails, the whole batch and its folder are rolled back.
+The preview shows each member's level, role (**Boss**, **Minion**) and key statistics in a small grid, with **Add one** / **Remove one (0 skips this creature)** counters. The header chips show **XP** and **Credits** spent against the encounter's budgets. **Create all actors** creates every member inside a new Actors folder named after the encounter. If any member fails, the whole batch and its folder are rolled back.
 
 ### Character
 
@@ -208,9 +208,9 @@ Reskin gives an existing NPC new fiction. Its numbers stay the same unless you c
 1. Choose **Reskin**, or right-click an NPC in the Actors sidebar and choose **Reskin**.
 2. Drag an NPC from the Actors sidebar or from a bestiary compendium onto the drop zone. Drop another one to replace it. Only NPC actors are accepted.
 3. Describe the new look under **Reskin theme**.
-4. Press **Reskin Creature**, or **Preview Plan** to review first.
+4. Press **Reskin creature**, or **Preview plan** to review first.
 
-The AI writes a new name, a read-aloud description and Recall Knowledge text, and may rename strikes and abilities. **Create Reskinned Copy** creates a new actor. Without a level change, its statistics, rules, traits and items are copied unchanged. The original creature is not modified.
+The AI writes a new name, a read-aloud description and Recall Knowledge text, and may rename strikes and abilities. **Create reskinned copy** creates a new actor. Without a level change, its statistics, rules, traits and items are copied unchanged. The original creature is not modified.
 
 **New level** re-levels the copy. Set it with the − / + buttons (−1 to 24) and a table shows each changed number at the old and new level. Every number keeps its Starfinder GM Core scale: a creature with high AC at level 3 has high AC at level 7, and one point above "high" stays one point above. HP scales by the same proportion, and each strike's main damage moves to the matching damage scale. AC, HP, Perception, saves, attribute modifiers, skills, strikes, spell DC and spell attack, and resistance and weakness values all move.
 
@@ -287,8 +287,8 @@ When a run fails, the red error box in the Generator, Item Forge, Shop or Treasu
 | "No usable NPC actor was found in the enabled Bestiary Actors sources." | Set a Bestiary Actors pack in Compendium Sources. Creature creation borrows art and structure from it. |
 | "No API Base URL is set." | Open AI Provider Setup and enter the provider's address. |
 | "No API key is configured for this remote provider." | Add a key in AI Provider Setup, or switch to a local Ollama or LM Studio connection. |
-| "Stored API key is not authorized for the current API Base URL and will not be sent." | The URL changed after the key was saved. Check the endpoint shown, then click **Authorize for this endpoint**, or re-enter the key and **Save & Authorize**. |
-| "No model is set." | Enter a model in AI Provider Setup, or use **Load Models**. |
+| "Stored API key is not authorized for the current API Base URL and will not be sent." | The URL changed after the key was saved. Check the endpoint shown, then click **Authorize for this endpoint**, or re-enter the key and **Save & authorize**. |
+| "No model is set." | Enter a model in AI Provider Setup, or use **Load models**. |
 | An error from the provider with a status code (for example 401, 404, 429, 5xx) | 401/403: check the key and authorize it for this endpoint. 404: check the API Base URL and the exact model ID. 429: wait, or check your account's quota and billing. 5xx: the provider is having trouble, so retry shortly. SimplySF2e may retry a 429 or 5xx response once automatically. |
 | "Could not reach the AI provider: …" | Wrong URL, the server is not running, or (for local servers) CORS is not enabled. See the Ollama and LM Studio notes above. |
 | "Foundry is open over https://, but the AI provider address starts with http://…" | Browsers block this. Serve the provider over HTTPS, or open Foundry over HTTP on a trusted local network. |
