@@ -36,6 +36,7 @@
  * Pure module (no Foundry globals), node-testable.
  */
 import * as T from "./tables.mjs";
+import { fullHealthHp } from "./builder.mjs";
 import { buildModuleTemplate } from "./ability-templates.mjs";
 import { fillBlocker, fillPlaceholderAbility } from "./ability-fill.mjs";
 
@@ -254,7 +255,7 @@ export function relevelActorData(actorData, level, { sources = {} } = {}) {
     if (result) {
       // A copy starts at full health, the same way a new NPC does.
       hp.max = result.value;
-      hp.value = result.value;
+      hp.value = fullHealthHp(result.value, to, system.attributes.adjustment);
     }
   }
 
