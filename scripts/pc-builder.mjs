@@ -210,6 +210,34 @@ export function heritageMatchesAncestry(heritageDoc, ancestryDoc) {
 }
 
 /**
+ * Creature-type traits an ancestry document carries next to its own ancestry
+ * trait. They are shared between ancestries (humanoid sits on 40 of the 60
+ * pinned ancestries) or are not the ancestry's own feat trait, so they never
+ * identify an ancestry's feats.
+ */
+const GENERIC_ANCESTRY_DOC_TRAITS = new Set([
+  "humanoid", "aberration", "beast", "construct", "ooze", "fey", "dragon", "plant", "tech", "cosmic", "aquatic", "amphibious"
+]);
+
+/**
+ * The feat trait(s) that mark an ancestry's own feats, read from the ancestry
+ * DOCUMENT (`system.traits.value`), never from its display name: Ysoki's
+ * feats carry "ratfolk" and G'folian's "gfolian", while slugify(name) gives
+ * "ysoki" and "g-folian". The document's traits minus the generic creature-type
+ * traits leave exactly one own trait for each of the 60 ancestries in the
+ * pinned sf2e 1.7.0 pack (checked by pc-builder.ancestryTrait.test.mjs against
+ * the cache when present). An empty array means "no provable trait": the
+ * caller leaves the slot empty instead of widening it.
+ * @param {object} ancestryDoc
+ * @returns {string[]}
+ */
+export function ancestryFeatTraits(ancestryDoc) {
+  const traits = ancestryDoc?.system?.traits?.value;
+  if (!Array.isArray(traits)) return [];
+  return traits.filter((trait) => typeof trait === "string" && trait && !GENERIC_ANCESTRY_DOC_TRAITS.has(trait));
+}
+
+/**
  * Deterministic fallback heritage for `ancestryDoc`, used when the AI's
  * heritage pick didn't resolve or belonged to a different ancestry. Heritage
  * is ABC-adjacent (falls under invariant #5's PC-feat-slot exception, same
@@ -219,19 +247,24 @@ export function heritageMatchesAncestry(heritageDoc, ancestryDoc) {
  * rarity-capped — resolvePCConcept has no rarityCap in scope here, so this
  * fallback may surface a rarer heritage than the generator's own cap would
  * normally offer) and resolves+checks each one until a match for
- * `ancestryDoc` turns up.
+ * `ancestryDoc` turns up. A heritage whose `system.ancestry` link names
+ * this ancestry wins; a versatile heritage (null link) is used only when the
+ * ancestry has no heritage of its own.
  * @param {object} ancestryDoc
  * @returns {Promise<object|null>}
  */
 async function fallbackHeritageFor(ancestryDoc) {
   const candidates = await getHeritageCandidates();
   const packIds = await getAllPacksFor("heritages");
+  let versatile = null;
   for (const candidate of candidates) {
     const entry = await findEntry(packIds, candidate.name, (e) => e.type === "heritage");
     const doc = await getDocument(entry);
-    if (doc && heritageMatchesAncestry(doc, ancestryDoc)) return doc;
+    if (!doc || !heritageMatchesAncestry(doc, ancestryDoc)) continue;
+    if (doc.system?.ancestry) return doc;
+    versatile ??= doc;
   }
-  return null;
+  return versatile;
 }
 
 /**
@@ -418,7 +451,7 @@ export async function resolvePCConcept(concept, { exactContent = false, pathPlan
   const operativePlan = pathPlan?.["operative-specialization"];
   const operativeSkill = operativePlan?.trainedSkill ?? null;
 
-  const ancestryTrait = slugify(ancestryDoc.name);
+  const ancestryTraits = ancestryFeatTraits(ancestryDoc);
   const classTrait = slugify(classDoc.name);
   const featSlots = [];
   const freeArchetype = Boolean(getSetting(SETTINGS.freeArchetype));
@@ -451,19 +484,21 @@ export async function resolvePCConcept(concept, { exactContent = false, pathPlan
       ? offeredArchetypeSlugs : new Set(multiclass ? [slugify(multiclass.dedication)] : []);
     const prerequisiteContext = { ...stagedContext, names: new Set([...stagedContext.names, ...offeredNames]) };
     const traits = slot.archetype ? ["archetype"]
-      : slot.type === "ancestry" ? [ancestryTrait]
+      : slot.type === "ancestry" ? ancestryTraits
       : slot.type === "class" ? [classTrait] : [];
     // General slots also accept skill feats (sf2e-1.6.1 feats/collection.ts: supported ["general", "skill"]).
     const category = slot.type === "general" ? ["general", "skill"] : slot.type;
-    let candidates = await getFeatCandidates({
+    // Fail closed: an ancestry or class slot with no trait-matching candidate
+    // stays empty (reported to the GM as an empty feat slot). The trait filter
+    // is never dropped, because the system does not check feat traits and a
+    // wrong-ancestry or wrong-class feat would sit on the sheet unnoticed.
+    const ownTraitSlot = slot.type === "ancestry" || slot.type === "class";
+    let candidates = ownTraitSlot && !slot.archetype && !traits.length ? [] : await getFeatCandidates({
       level: slot.level, category, traits, preferredNames: concept.feats,
       excludeUuids: slotExclusions, prerequisiteContext
     });
-    if (!candidates.length && traits.length && !slot.archetype) {
-      candidates = await getFeatCandidates({
-        level: slot.level, category, preferredNames: concept.feats,
-        excludeUuids: slotExclusions, prerequisiteContext
-      });
+    if (!candidates.length && ownTraitSlot && !slot.archetype) {
+      console.warn(`simplysf2e | no ${slot.type} feat with trait ${traits.length ? traits.join("/") : "(none provable)"} for the level ${slot.level} slot — left empty`);
     }
     if (slot.archetype && dedicationSlug && !firstArchetypeSlotSeen) {
       firstArchetypeSlotSeen = true;

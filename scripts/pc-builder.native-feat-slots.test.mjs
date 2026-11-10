@@ -40,7 +40,8 @@ for (const broken of [{}, { ...classes.Fighter, classFeatLevels: { value: null }
 
 const source = (name, type, system) => ({ _id: name, name, type, system });
 const entries = {
-  ancestry: source("Human", "ancestry", {}),
+  // Real ancestry documents carry their feat trait in system.traits.value (read from the document, not the name).
+  ancestry: source("Human", "ancestry", { traits: { value: ["human", "humanoid"] } }),
   background: source("Scholar", "background", { trainedSkills: { value: ["society"], lore: [] } }),
   class: source("Rogue", "class", { ...classes.Rogue, trainedSkills: { value: ["stealth"], additional: 7 },
     items: { deny: { level: 3, name: "Deny Advantage", uuid: "Compendium.pf2e.classfeatures.Item.Deny Advantage" } } })
