@@ -41,6 +41,17 @@ const NO_TOKENS = Object.freeze({ prompt: 0, completion: 0, total: 0, estimated:
 
 let warnedLegacyDeepSeekModel = false;
 
+// Parameters (and the developer role) that an endpoint + model rejected with a
+// 400/422, kept for the page's lifetime so later requests skip the wasted
+// negotiation round trips. Keyed by the normalized base URL and the model
+// only: never by, and never holding, the API key.
+const providerParameterMemory = new Map();
+
+/** Forget every remembered parameter rejection (tests). */
+export function resetProviderParameterMemory() {
+  providerParameterMemory.clear();
+}
+
 /**
  * Exercise the exact configured Chat Completions path with a tiny structured
  * response. Unlike a /models probe, this verifies CORS, endpoint binding,
@@ -1678,6 +1689,33 @@ async function requestCompletion({ task, system, user, onProgress, signal, retry
     response_format: { type: "json_object" }
   };
 
+  // Start from what this endpoint + model already rejected: same removals,
+  // same role and the same token-cap name, so a known-picky provider costs
+  // one POST per request. A remembered removal never drops the only cap.
+  const memoryKey = `${baseUrl}\n${model}`;
+  if (!providerParameterMemory.has(memoryKey)) providerParameterMemory.set(memoryKey, new Set());
+  const rememberedParameters = providerParameterMemory.get(memoryKey);
+  const rejectedParameters = new Set(rememberedParameters);
+  const rejectParameter = (param) => {
+    rejectedParameters.add(param);
+    rememberedParameters.add(param);
+  };
+  for (const param of rejectedParameters) {
+    if (param === "developer_role") {
+      if (body.messages[0]?.role === "developer") body.messages[0].role = "system";
+      continue;
+    }
+    if (!(param in body)) continue;
+    const capAlternate = param === "max_tokens" ? "max_completion_tokens"
+      : param === "max_completion_tokens" ? "max_tokens"
+      : null;
+    if (capAlternate) {
+      if (rejectedParameters.has(capAlternate)) continue;
+      body[capAlternate] = body[param];
+    }
+    delete body[param];
+  }
+
   const idleSeconds = Math.max(10, Number(getSetting(SETTINGS.requestTimeout)) || 90);
   const controller = new AbortController();
   const userSignal = signal;
@@ -1711,7 +1749,6 @@ async function requestCompletion({ task, system, user, onProgress, signal, retry
   try {
     resetIdle();
     let response = await postChatCompletion(baseUrl, apiKey, body, controller.signal, retryBudget, onBackoff);
-    const rejectedParameters = new Set();
     // Some OpenAI-compatible providers reject stream_options, response_format
     // or streaming. Retry without a parameter ONLY when a 400/422 body actually
     // names it as a whole token (longest-first, and "upstream" or
@@ -1731,7 +1768,7 @@ async function requestCompletion({ task, system, user, onProgress, signal, retry
         // Current OpenAI models prefer developer instructions, while older
         // Chat Completions models may only recognize the system role.
         body.messages[0].role = "system";
-        rejectedParameters.add("developer_role");
+        rejectParameter("developer_role");
         resetIdle();
         response = await postChatCompletion(baseUrl, apiKey, body, controller.signal, retryBudget, onBackoff);
         continue;
@@ -1756,7 +1793,7 @@ async function requestCompletion({ task, system, user, onProgress, signal, retry
       }
       const value = body[offending];
       delete body[offending];
-      rejectedParameters.add(offending);
+      rejectParameter(offending);
       if (capAlternate) body[capAlternate] = value;
       resetIdle();
       response = await postChatCompletion(baseUrl, apiKey, body, controller.signal, retryBudget, onBackoff);

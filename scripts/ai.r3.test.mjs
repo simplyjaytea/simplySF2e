@@ -165,4 +165,63 @@ const hasCap = (body) => "max_tokens" in body || "max_completion_tokens" in body
   assert.equal(role.length, 2);
   assert.equal(role[1].messages[0].role, "system");
 }
+
+// --- 3. Rejected parameters are remembered per endpoint + model ------------
+{
+  const picky = (body) => {
+    if ("reasoning_effort" in body) return bad400("Unrecognized request argument supplied: reasoning_effort");
+    if ("stream_options" in body) return bad400("Unsupported parameter: 'stream_options'");
+    return jsonOk();
+  };
+  useEndpoint(LOCAL, "model-a");
+  const first = stubFetch(picky);
+  await testProviderConnection();
+  assert.equal(first.length, 3, "the first logical request negotiates twice");
+  const second = stubFetch(picky);
+  await testProviderConnection();
+  assert.equal(second.length, 1, "the next request to the same URL + model sends one POST");
+  assert.equal("reasoning_effort" in second[0], false);
+  assert.equal("stream_options" in second[0], false);
+  assert.equal(second[0].max_tokens, 64, "the token cap is still present");
+  assert.equal(second[0].stream, true);
+
+  settings.set(SETTINGS.model, "model-b");
+  const otherModel = stubFetch(picky);
+  await testProviderConnection();
+  assert.equal(otherModel.length, 3, "a different model starts fresh");
+  settings.set(SETTINGS.apiBaseUrl, "http://localhost:8080/v1");
+  settings.set(SETTINGS.model, "model-a");
+  const otherUrl = stubFetch(picky);
+  await testProviderConnection();
+  assert.equal(otherUrl.length, 3, "a different URL starts fresh");
+  settings.set(SETTINGS.apiBaseUrl, LOCAL);
+  const back = stubFetch(picky);
+  await testProviderConnection();
+  assert.equal(back.length, 1, "the first key is still remembered");
+
+  // The cap swap and the developer role are remembered too.
+  useEndpoint(OPENAI, "o-model");
+  const strict = (body) => {
+    if (body.messages[0].role === "developer") return bad400("Invalid value: 'developer'.");
+    if ("max_completion_tokens" in body) return bad400("Unsupported parameter: 'max_completion_tokens'");
+    return jsonOk();
+  };
+  const learn = stubFetch(strict);
+  await testProviderConnection();
+  assert.equal(learn.length, 3);
+  const reuse = stubFetch(strict);
+  await testProviderConnection();
+  assert.equal(reuse.length, 1, "remembered role and cap name: one POST");
+  assert.equal(reuse[0].messages[0].role, "system");
+  assert.equal(reuse[0].max_tokens, 64, "the cap moved to max_tokens, never removed");
+  assert.equal("max_completion_tokens" in reuse[0], false);
+
+  // A remembered cap name that the provider later rejects too stops with its error, still capped.
+  const both = stubFetch((body) => (hasCap(body) ? bad400("Unsupported parameter: 'max_tokens'") : jsonOk()));
+  const { error } = await settle(testProviderConnection());
+  assert.equal(both.length, 1);
+  assert.ok(both.every(hasCap));
+  assert.match(error.message, /^SIMPLYSF2E\.Errors\.ApiError:/);
+  assert.equal(typeof ai.resetProviderParameterMemory, "function");
+}
 console.log("ai.r3.test.mjs: ok");
