@@ -1020,9 +1020,13 @@
   align-self: center;
 }
 
+/* The sheen is 42% of the fill wide and travels from 40% of the fill's
+   width before its left edge to its right edge. Written as a transform (a
+   share of the sheen's own width: -40/42 and 100/42) so the browser moves
+   it on the compositor and lays nothing out again while a run works. */
 @keyframes spf-step-slide {
-  0% { margin-left: -40%; }
-  100% { margin-left: 100%; }
+  0% { transform: translateX(-95.24%); }
+  100% { transform: translateX(238.1%); }
 }
 
 /* Pulse: "waiting for you". The left rail of a panel that needs a GM

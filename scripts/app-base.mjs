@@ -64,7 +64,7 @@ export async function refreshOtherConnectionViews(self) {
     try {
       if (app instanceof SpfApp) {
         app._preserveForm();
-        await app.render();
+        await app._renderStatus();
       } else if (app instanceof ProviderSetupApp) {
         await app._refreshForConnectionChange();
       }
@@ -257,9 +257,17 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
   }
 
+  /**
+   * Show a changed connection, model or key state. In a tool window only the
+   * status strip reads them, so the form and the preview keep their DOM.
+   */
+  async _renderStatus() {
+    return this.render(this.constructor.WINDOW_ID ? { parts: ["status"] } : {});
+  }
+
   /** Open the focused provider setup and refresh this app after it saves. */
   _openProviderSetup() {
-    ProviderSetupApp.open(() => this.render());
+    ProviderSetupApp.open(() => this._renderStatus());
   }
 
   /**
@@ -292,7 +300,7 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
     this._preserveForm();
     await selectProviderConnection(id);
-    await this.render();
+    await this._renderStatus();
     await refreshOtherConnectionViews(this);
   }
 
@@ -584,7 +592,8 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
       this._paintProgress();
       return;
     }
-    await this.render();
+    // The card is not on screen yet: render the part that holds it.
+    await this.render(this.constructor.WINDOW_ID ? { parts: ["result"] } : {});
   }
 
   /**

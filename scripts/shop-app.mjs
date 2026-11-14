@@ -190,7 +190,7 @@ export class ShopApp extends SpfApp {
     } else {
       ui.notifications.warn(game.i18n.localize("SIMPLYSF2E.Generator.ApiKeyAuthorizationFailed"));
     }
-    await this.render();
+    await this.render({ parts: ["status"] });   // only the strip shows the key state
   }
 
   static #onConfigureProvider() {
@@ -314,7 +314,7 @@ export class ShopApp extends SpfApp {
     const key = target?.dataset?.key;
     this.#readForm();
     this.#stock = this.#stock.filter((row) => row.key !== key);
-    await this.render();
+    await this.render({ parts: ["result"] });
   }
 
   static async #onCreateShop() {

@@ -954,3 +954,22 @@ No visual change is intended. The status strip of the Generator, Item Forge, Sho
 | 17.4 | Open the Compendium and Jev row in each window. | The Compendium line reads the window's own sentence (the Generator names the pack count). The books button opens Sources. | All four tool windows | | |
 | 17.5 | Generate a shop, then look at the strip while the preview is open; do the same in the Generator. | Shop, Treasure and Forge hide "Last run" while the preview's Token usage line is on screen. The Generator keeps showing it. | Shop, Generator | | |
 | 17.6 | Remove the API key (or use a world with none) and open each window. | The key warning shows under the strip in all four windows, with the Authorize button where it applied before. | All four tool windows | | |
+
+## 18. UI revamp slice 2: window parts and run state (2026-11-14)
+
+No visual change is intended. Generator, Item Forge, Shop and Treasure render three parts (status, brief, result) inside one body element, and a click re-renders only the part it changed.
+
+| ID | Step | Expected | Where | Result | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 18.1 | Open each of the four tool windows with the console open (F12). | Each opens and looks as in v0.1.16. No console error about a template part or a root element. | All four tool windows | | |
+| 18.2 | Generate an encounter preview. Type a new prompt without generating, then press + and - on a member. | Counts, XP and Credits update. The typed prompt, the cursor and the scroll position stay where they were. | Generator, Encounter | | |
+| 18.3 | Open Advanced options and pick a different preset. | The preset's defaults show and Advanced options stays open. | Generator | | |
+| 18.4 | With a preview on screen, open Token usage, then reroll loot or one pick. | After the reroll the Token usage fold is still open. | Generator | | |
+| 18.5 | Scroll to the bottom of a long creature preview and press a reroll die. | The window does not jump back to the top during or after the reroll. | Generator | | |
+| 18.6 | Generate a shop, type in the prompt box, then remove a stock row. Do the same in Treasure. | The row goes; the typed text and focus stay. | Shop, Treasure | | |
+| 18.7 | With two connections saved and all four windows open, type an unsent prompt in each, then switch connection in one. | Every window's strip shows the new connection. No prompt text is lost and no form field resets. | All four tool windows | | |
+| 18.8 | Switch mode with the keyboard (arrow keys on the mode tiles). | The form changes to the new mode and focus stays on the chosen tile. | Generator | | |
+| 18.9 | Start a run and press Cancel; start another and close the window (answer Yes); run once with a wrong API key. | Each time the window ends unlocked: fields enabled, Generate usable, no stuck progress card. | Generator | | |
+| 18.10 | One full run in each mode: Monster, NPC, Encounter (one-click Generate creates the actors), Character, Reskin with a re-level. | Each run behaves as in v0.1.16, including the progress card's step list, times and the sheen moving across the bar. | Generator | | |
+| 18.11 | Generate and create one item in Item Forge, one shop and one hoard. | Each previews and creates as in v0.1.16. | Item Forge, Shop, Treasure | | |
+| 18.12 | Tab through the Generator from the connection select to Create. | Focus order follows the screen: strip, form, preview, buttons. A screen reader announces each progress step once. | Generator | | |

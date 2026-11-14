@@ -31,6 +31,10 @@ Read first: `references/anti-slop-checklist.md` in this folder (what generic AI-
 7. Verify: `node --check` on any touched `.mjs`; the all-tests loop in `PLAYBOOK.md` §4; `node scripts/i18n-keys.test.mjs`; `git diff --check`.
 8. Run `references/anti-slop-checklist.md` sections 1 to 6 on every changed PNG and string. Report to `/root/sf2e-wt/reports/<ID>.md`: branch, SHA, files, each fixture id you looked at and what changed in it, the checklist lines you could not verify, new `lang/en.json` keys, any context field the app must now supply (also written to `docs/ui-contract.md`), anything you could not verify. Reply only `DONE <ID>`.
 
+## Tool window parts
+
+Generator, Item Forge, Shop and Treasure are three template parts each: `status` (the shared strip), `brief` (the form, root `<fieldset>`), `result` (progress, error, previews, empty state). `scripts/window-parts.mjs` lists them. Each part template has exactly one root element; the status and result roots are `.spf-part` wrappers that take no box (`display: contents`), so their children lay out as children of `.spf-window-body`. A new `<details>` in a brief or result needs a `data-fold="name"`, or it closes on every re-render. The body element and its classes (mode, busy) are created in JavaScript, not in a template.
+
 ## Harness caveats to remember
 
 - No Foundry core CSS: judge layout, wrapping, overflow and tokens, not typography (the world uses Signika).
@@ -43,9 +47,9 @@ Read first: `references/anti-slop-checklist.md` in this folder (what generic AI-
 
 | Window | Template | CSS | Fixtures | App JS |
 | --- | --- | --- | --- | --- |
-| Generator (5 modes, previews, Reskin, re-level) | `templates/generator.hbs` | `styles/apps/generator.css` | `fixtures/generator.mjs` | `scripts/generator-app.mjs` |
-| Item Forge | `templates/itemforge.hbs` | `styles/apps/itemforge.css` | `fixtures/itemforge.mjs` | `scripts/itemforge-app.mjs` |
-| Shop / Treasure | `templates/shop.hbs`, `templates/treasure.hbs` | `styles/apps/shop.css`, `styles/apps/treasure.css` | `fixtures/shop.mjs`, `fixtures/treasure.mjs` | `scripts/shop-app.mjs`, `scripts/treasure-app.mjs` |
+| Generator (5 modes, previews, Reskin, re-level) | `templates/generator-status.hbs`, `-brief.hbs`, `-result.hbs` | `styles/apps/generator.css` | `fixtures/generator.mjs` | `scripts/generator-app.mjs` |
+| Item Forge | `templates/itemforge-status.hbs`, `-brief.hbs`, `-result.hbs` | `styles/apps/itemforge.css` | `fixtures/itemforge.mjs` | `scripts/itemforge-app.mjs` |
+| Shop / Treasure | `templates/shop-*.hbs`, `templates/treasure-*.hbs` (status, brief, result) | `styles/apps/shop.css`, `styles/apps/treasure.css` | `fixtures/shop.mjs`, `fixtures/treasure.mjs` | `scripts/shop-app.mjs`, `scripts/treasure-app.mjs` |
 | Provider Setup, Sources, Manage Presets | `templates/provider-setup.hbs`, `templates/sources.hbs`, `templates/manage-presets.hbs` | `styles/apps/<same>.css` | `fixtures/dialogs.mjs` | `scripts/<same>-app.mjs` |
 | Welcome, What's new | `templates/welcome.hbs`, `templates/whats-new.hbs` | `styles/apps/welcome.css`, `styles/apps/whats-new.css` | `fixtures/welcome.mjs`, `fixtures/whats-new.mjs` | `scripts/welcome-app.mjs`, `scripts/whats-new-app.mjs` |
 | Shared shell (connection switch, token report, progress bar) | `templates/_statusbar.hbs`, `templates/_progress.hbs` | `styles/simplysf2e.css` | `fixtures/_shared.mjs` | `scripts/app-base.mjs` |

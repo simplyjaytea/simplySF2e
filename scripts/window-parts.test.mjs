@@ -243,4 +243,63 @@ for (const [file, windowId] of [["generator-app.mjs", "generator"], ["itemforge-
   }
 }
 
+// --- 6. Which parts each action renders ---------------------------------------
+// A click that changes one region must leave the others alone, above all the
+// brief the GM may be typing in.
+const fnBody = (text, signature) => {
+  const start = text.indexOf(signature);
+  assert.notEqual(start, -1, `${signature} not found`);
+  let depth = 0;
+  for (let i = text.indexOf("{", start + signature.length - 1); i < text.length; i++) {
+    if (text[i] === "{") depth++;
+    else if (text[i] === "}" && --depth === 0) return text.slice(start, i + 1);
+  }
+  throw new Error(`${signature} has no end`);
+};
+const sources = Object.fromEntries(await Promise.all(["generator", "itemforge", "shop", "treasure"]
+  .map(async (name) => [name, await readFile(new URL(`./${name}-app.mjs`, import.meta.url), "utf8")])));
+const expectParts = (app, signature, parts) => {
+  const renders = fnBody(sources[app], signature).match(/this\.render\([^)]*\)/g) ?? [];
+  assert.deepEqual(renders, [`this.render({ parts: [${parts.map((id) => `"${id}"`).join(", ")}] })`],
+    `${app}: ${signature} renders only ${parts.join(" + ")}`);
+};
+expectParts("generator", "async #refitMemberLoot(member) {", ["result"]);
+expectParts("generator", "static async #onForgetRecent(event, target) {", ["result"]);
+expectParts("generator", "static async #onUseParty() {", ["brief"]);
+expectParts("generator", "#stepReskinLevel(delta) {", ["brief", "result"]);
+expectParts("generator", "static async #onDismissCharacterReview() {", ["brief", "result"]);
+expectParts("generator", "static async #onGenerateAnother() {", ["brief", "result"]);
+expectParts("shop", "static async #onRemoveStock(_event, target) {", ["result"]);
+expectParts("treasure", "static async #onRemoveItem(_event, target) {", ["result"]);
+expectParts("treasure", "static async #onUseParty() {", ["brief"]);
+for (const app of Object.keys(sources)) expectParts(app, "static async #onAuthorizeApiKey(_event, target) {", ["status"]);
+// A changed connection touches only the status strip, in this window and in the others.
+assert.match(fnBody(source, "async _switchActiveConnection(id) {"), /await selectProviderConnection\(id\);\s*await this\._renderStatus\(\);/);
+assert.match(fnBody(source, "export async function refreshOtherConnectionViews(self) {"), /app\._preserveForm\(\);\s*await app\._renderStatus\(\);/);
+// A step change that cannot patch the card in place renders the part that holds it.
+assert.match(fnBody(source, "async _setStep(key) {"), /await this\.render\(this\.constructor\.WINDOW_ID \? \{ parts: \["result"\] \} : \{\}\);/);
+
+// --- 7. A run always unlocks the window ---------------------------------------
+// Between the busy flag going up and the `try` that guards it there is no
+// await: nothing can throw or yield while the window is locked without a
+// `finally` to unlock it. Every busy run ends through #endBusy.
+{
+  const generator = sources.generator;
+  const starts = [...generator.matchAll(/^    this\.#beginBusy\(\);\n/gm)];
+  assert.equal(starts.length, 10, "ten Generator runs take the busy flag");
+  for (const start of starts) {
+    const line = generator.slice(0, start.index).split("\n").length;
+    const tryAt = generator.indexOf("\n    try {\n", start.index);
+    assert.notEqual(tryAt, -1, `generator-app.mjs:${line} busy start has a try`);
+    const gap = generator.slice(start.index, tryAt);
+    assert.ok(gap.split("\n").length <= 16, `generator-app.mjs:${line} the try follows the busy start`);
+    assert.doesNotMatch(gap, /\bawait\b/, `generator-app.mjs:${line} nothing awaits between the busy start and its try`);
+    const finallyAt = generator.indexOf("\n    } finally {\n", tryAt);
+    assert.match(generator.slice(finallyAt, finallyAt + 400), /this\.#endBusy\((?:\{ finishRun: true \})?\);/,
+      `generator-app.mjs:${line} the run's finally leaves the busy state`);
+  }
+  assert.equal((generator.match(/this\.#busy = (?:true|false);/g) ?? []).length, 2,
+    "the busy flag changes only in #beginBusy and #endBusy");
+}
+
 console.log("window-parts.test.mjs: parts config, body classes, fold carry and the persistent body hold");

@@ -1,7 +1,7 @@
 /* Regression tests for two GeneratorApp bugs in scripts/generator-app.mjs:
    1. #readForm's partySize fallback (line ~319): the partySize input only
       exists in the DOM in Encounter mode ({{#if encounterMode}} in
-      templates/generator.hbs); outside that mode the selector is null and
+      templates/generator-brief.hbs); outside that mode the selector is null and
       the old code fell back to a literal 4 instead of the prior #input
       value, silently discarding the GM's saved party size.
    2. The allowSpellcasting toggle (~line 490): enforced only in the AI

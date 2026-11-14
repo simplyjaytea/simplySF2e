@@ -210,7 +210,7 @@ export class TreasureApp extends SpfApp {
     this.#input.partySize = clampPartySize(party.size, this.#input.partySize);
     ui.notifications.info(game.i18n.format("SIMPLYSF2E.Party.Filled", { name: party.name }));
     this._skipFormReadOnce = true;   // show the party's level and size, do not read the old form back
-    await this.render();
+    await this.render({ parts: ["brief"] });
   }
 
   static async #onAuthorizeApiKey(_event, target) {
@@ -221,7 +221,7 @@ export class TreasureApp extends SpfApp {
     } else {
       ui.notifications.warn(game.i18n.localize("SIMPLYSF2E.Generator.ApiKeyAuthorizationFailed"));
     }
-    await this.render();
+    await this.render({ parts: ["status"] });   // only the strip shows the key state
   }
 
   static #onConfigureProvider() {
@@ -360,7 +360,7 @@ export class TreasureApp extends SpfApp {
     const key = target?.dataset?.key;
     this.#readForm();
     this.#items = this.#items.filter((row) => row.key !== key);
-    await this.render();
+    await this.render({ parts: ["result"] });
   }
 
   static async #onCreateTreasure() {

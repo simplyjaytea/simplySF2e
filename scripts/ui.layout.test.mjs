@@ -220,7 +220,9 @@ assert.doesNotMatch(generatorApp, /this\.#created = \{ name: actor\.name, actorI
   "generation failure handling must not fabricate a creation result from an unavailable actor");
 assert.match(generatorApp, /selectChoices: async \(groups\) =>[\s\S]*?selectCharacterChoices\([\s\S]*?this\._recordTokens\(label, usage, timing\)/,
   "character creation must use the grounded provider selector and record its usage");
-assert.match(generatorApp, /finally \{\s*this\.#busy = false;\s*this\.#busyMessage = null;\s*this\._finishRun\(\);/,
+assert.match(generatorApp, /#endBusy\(\{ finishRun = false \} = \{\}\) \{\s*this\.#busy = false;\s*this\.#busyMessage = null;\s*if \(finishRun\) this\._finishRun\(\);\s*\}/,
+  "leaving the busy state must clear both native and AI progress state");
+assert.match(generatorApp, /async #createCharacterActor\(\) \{[\s\S]*?finally \{\s*this\.#endBusy\(\{ finishRun: true \}\);/,
   "character success and failure must clear both native and AI progress state");
 const messages = JSON.parse(langJson).SIMPLYSF2E;
 assert.match(messages.Progress.ApplyingCharacter, /SF2e choice dialogs/);

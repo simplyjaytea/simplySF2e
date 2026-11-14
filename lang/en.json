@@ -211,6 +211,13 @@
       "Disable": "Don't show for updates",
       "Earlier": "Earlier changes ({count})",
       "Note": {
+        "SteadierWindows": {
+          "Title": "Steadier windows",
+          "B1": "A click in a preview no longer redraws the form you are typing in.",
+          "B2": "Advanced options and Token usage stay open after a change.",
+          "B3": "Switching connection refreshes only the status strip in every open window.",
+          "B4": "A window that failed to redraw during Create now unlocks itself."
+        },
         "ReviewFixes": {
           "Title": "Fixes and a tidier setup",
           "B1": "Ysoki and G'folian characters now get their own ancestry feats.",

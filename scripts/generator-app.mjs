@@ -477,7 +477,7 @@ export class GeneratorApp extends SpfApp {
     const allowSpellcasting = form.querySelector('[name="allowSpellcasting"]')?.checked ?? this.#input.allowSpellcasting;
     const preset = form.querySelector('[name="preset"]')?.value ?? this.#input.preset;
     // partySize is only rendered in Encounter mode ({{#if encounterMode}} in
-    // generator.hbs) — outside that mode the selector is null, so fall back
+    // generator-brief.hbs) — outside that mode the selector is null, so fall back
     // to the prior #input value like every other optional field here, not a
     // literal default that would silently discard the GM's saved party size.
     const partySizeEl = form.querySelector('[name="partySize"]');
@@ -553,10 +553,10 @@ export class GeneratorApp extends SpfApp {
       }
       this.#exampleTick++;
       this._skipFormReadOnce = true;   // show the preset's defaults, do not read the old form back
-      this.render();
+      this.render({ parts: ["brief"] });
     });
     // The render reads the form first, so the new re-level is kept.
-    element.querySelector('input[name="reskinLevel"]')?.addEventListener("change", () => this.render());
+    element.querySelector('input[name="reskinLevel"]')?.addEventListener("change", () => this.render({ parts: ["brief", "result"] }));
     const dropZone = element.querySelector("[data-reskin-drop]");
     if (dropZone) {
       dropZone.addEventListener("dragover", (event) => {
@@ -601,7 +601,7 @@ export class GeneratorApp extends SpfApp {
     } else {
       ui.notifications.warn(game.i18n.localize("SIMPLYSF2E.Generator.ApiKeyAuthorizationFailed"));
     }
-    await this.render();
+    await this.render({ parts: ["status"] });   // only the strip shows the key state
   }
 
   static #onConfigureProvider() {
@@ -638,7 +638,7 @@ export class GeneratorApp extends SpfApp {
     const level = clampRelevel(this.#reskinTargetLevel() + delta, this.#reskinTargetLevel());
     this.#reskinLevel = level === this.#reskinSource.level ? null : level;
     this._skipFormReadOnce = true;   // the re-level box still shows the old level
-    this.render();
+    this.render({ parts: ["brief", "result"] });
   }
 
   static async #onMemberUp(_event, target) {
@@ -681,7 +681,8 @@ export class GeneratorApp extends SpfApp {
     // each group's constant share regardless of how the stepper is set.
     this.#encounter.treasureBudget = this.#encounter.members.reduce((sum, m) => sum + m.count * (m.treasureBudgetEach ?? 0), 0);
     this.#encounter.treasureSpent = this.#encounter.members.reduce((sum, m) => sum + m.count * (m.treasureEach ?? 0), 0);
-    await this.render();
+    // Counts and totals live in the preview: the form the GM may be typing in is left alone.
+    await this.render({ parts: ["result"] });
   }
 
   #stepLevel(delta) {
@@ -715,7 +716,7 @@ export class GeneratorApp extends SpfApp {
     this.#input.partySize = party.size;
     ui.notifications.info(game.i18n.format("SIMPLYSF2E.Party.Filled", { name: party.name }));
     this._skipFormReadOnce = true;   // show the party's level and size, do not read the old form back
-    await this.render();
+    await this.render({ parts: ["brief"] });
   }
 
   #stepParty(delta) {
@@ -871,8 +872,7 @@ export class GeneratorApp extends SpfApp {
       this.#resolved = null;
       this.#manifest = null;
     } finally {
-      this.#busy = false;
-      this._finishRun();
+      this.#endBusy({ finishRun: true });
       await this.render();
     }
     if (create && this.#concept && !this.#error) await GeneratorApp.#onCreateActor.call(this);
@@ -931,8 +931,7 @@ export class GeneratorApp extends SpfApp {
       this.#noteGenerationFailure(err, "encounter generation");
       this.#encounter = null;
     } finally {
-      this.#busy = false;
-      this._finishRun();
+      this.#endBusy({ finishRun: true });
       await this.render();
     }
   }
@@ -1248,8 +1247,7 @@ export class GeneratorApp extends SpfApp {
       this.#pcResolved = null;
       this.#manifest = null;
     } finally {
-      this.#busy = false;
-      this._finishRun();
+      this.#endBusy({ finishRun: true });
       await this.render();
     }
     return fresh;
@@ -1396,10 +1394,10 @@ export class GeneratorApp extends SpfApp {
     if (!this.#concept) return;
     this.#beginBusy();
     this.#error = null;
-    await this.render();
     let actor = null;
     let committed = false;
     try {
+      await this.render();
       assertComplete(this.#manifest);
       // Art: borrowed from the closest-matching bestiary creature.
       const scaffold = await findBestiaryScaffold(this.#concept);
@@ -1453,7 +1451,7 @@ export class GeneratorApp extends SpfApp {
         console.warn(`${MODULE_ID} | actor committed, but completion presentation failed`, err);
       }
     } finally {
-      this.#busy = false;
+      this.#endBusy();
       await this.render();
     }
   }
@@ -1583,9 +1581,7 @@ export class GeneratorApp extends SpfApp {
         this._recordFailure(err, "character creation", this.#error);
       } else console.warn(`${MODULE_ID} | character committed, but completion presentation failed`, err);
     } finally {
-      this.#busy = false;
-      this.#busyMessage = null;
-      this._finishRun();
+      this.#endBusy({ finishRun: true });
       try {
         await this.render();
       } catch (err) {
@@ -1598,7 +1594,7 @@ export class GeneratorApp extends SpfApp {
 
   static async #onDismissCharacterReview() {
     this.#characterReview = null;
-    await this.render();
+    await this.render({ parts: ["brief", "result"] });   // the Generate button's label follows the result
   }
 
   static async #onOpenReviewedCharacter() {
@@ -1622,7 +1618,7 @@ export class GeneratorApp extends SpfApp {
   static async #onGenerateAnother() {
     this.#created = null;
     this.#characterReview = null;
-    await this.render();
+    await this.render({ parts: ["brief", "result"] });   // the Generate button's label follows the result
   }
 
   /**
@@ -1642,12 +1638,12 @@ export class GeneratorApp extends SpfApp {
     }
     this.#beginBusy();
     this.#error = null;
-    await this.render();
     let folder = null;
     const actors = [];
     const checked = [];
     let committed = false;
     try {
+      await this.render();
       let parentId = null;
       try { parentId = await generatedFolderId("Actor", "root"); }
       catch (err) { console.warn(`${MODULE_ID} | could not find the generated folder for the encounter`, err); }
@@ -1719,7 +1715,7 @@ export class GeneratorApp extends SpfApp {
       } else this.#error = String(err?.message ?? err ?? "");
       this._recordFailure(err, "encounter creation", this.#error);
     } finally {
-      this.#busy = false;
+      this.#endBusy();
       await this.render();
     }
   }
@@ -1851,8 +1847,7 @@ export class GeneratorApp extends SpfApp {
       this.#noteGenerationFailure(err, "reskin");
       this.#reskinFlavor = null;
     } finally {
-      this.#busy = false;
-      this._finishRun();
+      this.#endBusy({ finishRun: true });
       await this.render();
     }
     return fresh;
@@ -1863,8 +1858,8 @@ export class GeneratorApp extends SpfApp {
     const flavor = this.#reskinFlavor;
     this.#beginBusy();
     this.#error = null;
-    await this.render();
     try {
+      await this.render();
       const { data: releveled } = await relevelReskin(await this.#reskinSourceData(), this.#reskinTargetLevel(), (uuid) => fromUuid(uuid));
       const data = reskinActorData(releveled, flavor);
       const actor = await Actor.create(data);
@@ -1883,7 +1878,7 @@ export class GeneratorApp extends SpfApp {
       this.#error = err?.message ?? String(err);
       this._recordFailure(err, "reskin creation", this.#error);
     } finally {
-      this.#busy = false;
+      this.#endBusy();
       await this.render();
     }
   }
@@ -1925,8 +1920,7 @@ export class GeneratorApp extends SpfApp {
     } catch (err) {
       this.#noteGenerationFailure(err, "loot reroll");
     } finally {
-      this.#busy = false;
-      this._finishRun();
+      this.#endBusy({ finishRun: true });
       await this.render();
     }
   }
@@ -2008,8 +2002,7 @@ export class GeneratorApp extends SpfApp {
     } catch (err) {
       this.#noteGenerationFailure(err, "pick reroll");
     } finally {
-      this.#busy = false;
-      this._finishRun();
+      this.#endBusy({ finishRun: true });
       await this.render();
     }
   }
@@ -2084,6 +2077,18 @@ export class GeneratorApp extends SpfApp {
     return new Map([...(source ?? [])].map(([slot, names]) => [slot, new Set(names)]));
   }
 
+  /**
+   * Leave the busy state. Every run ends here, from a `finally`, so a failed,
+   * cancelled or thrown run always unlocks the window. `finishRun` also drops
+   * the progress card and the run's abort signal (SpfApp._finishRun); the
+   * create-only steps never opened one.
+   */
+  #endBusy({ finishRun = false } = {}) {
+    this.#busy = false;
+    this.#busyMessage = null;
+    if (finishRun) this._finishRun();
+  }
+
   /** Mark a run as started: set busy and take over the preview epoch so a late load leaves it alone. */
   #beginBusy() {
     this.#busy = true;
@@ -2149,7 +2154,7 @@ export class GeneratorApp extends SpfApp {
   static async #onForgetRecent(event, target) {
     if (this.#busy || this.#createPending) return;
     this.#recent = forgetRecent(this.#recent, target?.dataset?.recentId);
-    await this.render();
+    await this.render({ parts: ["result"] });
   }
 
   /** Open the Manage Custom Presets dialog (edit/duplicate/delete/export/import). */

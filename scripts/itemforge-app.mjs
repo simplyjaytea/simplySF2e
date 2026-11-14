@@ -234,7 +234,7 @@ export class ItemForgeApp extends SpfApp {
     } else {
       ui.notifications.warn(game.i18n.localize("SIMPLYSF2E.Generator.ApiKeyAuthorizationFailed"));
     }
-    await this.render();
+    await this.render({ parts: ["status"] });   // only the strip shows the key state
   }
 
   static #onConfigureProvider() {
