@@ -3,14 +3,33 @@
 // or the narrow-window overflow fix from silently drifting apart.
 // Run: node scripts/ui.layout.test.mjs
 import assert from "node:assert/strict";
+import { windowBodyClassName } from "./window-parts.mjs";
 import { readFile } from "node:fs/promises";
 
 const root = new URL("../", import.meta.url);
 const read = (path) => readFile(new URL(path, root), "utf8");
 
+// The four tool windows include the shared status strip as a partial. The
+// checks below read each window as the GM sees it, so the include is replaced
+// by the partial's markup first; a window that drops the include fails here.
+const statusbar = await read("templates/_statusbar.hbs");
+const withStatusbar = (name, template) => {
+  const include = /\{\{> simplysf2e-statusbar [^}]*\}\}/g;
+  assert.equal(template.match(include)?.length, 1, `${name} must include the shared status strip exactly once`);
+  // The include stays: its arguments carry the window's own strings.
+  return template.replace(include, (match) => `${match}\n${statusbar}`);
+};
+assert.match(await read("scripts/simplysf2e.mjs"), /"simplysf2e-statusbar": `modules\/\$\{MODULE_ID\}\/templates\/_statusbar\.hbs`/,
+  "the entry point must register the shared status strip partial");
+// A tool window is three part templates (window-parts.mjs); read them as one
+// document, in render order.
+const readWindow = async (name) => (await Promise.all(["status", "brief", "result"]
+  .map((part) => read(`templates/${name}-${part}.hbs`)))).join("\n");
+for (const name of ["shop", "treasure"]) withStatusbar(name, await readWindow(name));
+
 const [generator, itemForge, providerSetup, managePresets, sources, progress, generatorApp, itemForgeApp, appBase, css, langJson, creaturePipeline] = await Promise.all([
-  read("templates/generator.hbs"),
-  read("templates/itemforge.hbs"),
+  readWindow("generator").then((template) => withStatusbar("generator", template)),
+  readWindow("itemforge").then((template) => withStatusbar("item forge", template)),
   read("templates/provider-setup.hbs"),
   read("templates/manage-presets.hbs"),
   read("templates/sources.hbs"),
@@ -201,7 +220,9 @@ assert.doesNotMatch(generatorApp, /this\.#created = \{ name: actor\.name, actorI
   "generation failure handling must not fabricate a creation result from an unavailable actor");
 assert.match(generatorApp, /selectChoices: async \(groups\) =>[\s\S]*?selectCharacterChoices\([\s\S]*?this\._recordTokens\(label, usage, timing\)/,
   "character creation must use the grounded provider selector and record its usage");
-assert.match(generatorApp, /finally \{\s*this\.#busy = false;\s*this\.#busyMessage = null;\s*this\._finishRun\(\);/,
+assert.match(generatorApp, /#endBusy\(\{ finishRun = false \} = \{\}\) \{\s*this\.#busy = false;\s*this\.#busyMessage = null;\s*if \(finishRun\) this\._finishRun\(\);\s*\}/,
+  "leaving the busy state must clear both native and AI progress state");
+assert.match(generatorApp, /async #createCharacterActor\(\) \{[\s\S]*?finally \{\s*this\.#endBusy\(\{ finishRun: true \}\);/,
   "character success and failure must clear both native and AI progress state");
 const messages = JSON.parse(langJson).SIMPLYSF2E;
 assert.match(messages.Progress.ApplyingCharacter, /SF2e choice dialogs/);
@@ -256,7 +277,7 @@ assert.match(itemForgeApp, /showEmptyState:/, "item forge must expose the empty-
   assert.ok(advancedAt < presetAt, "presets must live in the advanced disclosure");
 }
 
-assert.match(generator, /<details class="spf-advanced">[\s\S]*?<summary>\{\{localize "SIMPLYSF2E\.Generator\.Advanced"\}\}<\/summary>/,
+assert.match(generator, /<details data-fold="advanced" class="spf-advanced">[\s\S]*?<summary>\{\{localize "SIMPLYSF2E\.Generator\.Advanced"\}\}<\/summary>/,
   "secondary controls must be in a native, keyboard-operable Advanced disclosure");
 assert.match(generator, /data-action="managePresets"[\s\S]*?SIMPLYSF2E\.Presets\.Manage/,
   "the generator exposes one labeled Manage Presets control instead of edit icons");
@@ -319,8 +340,12 @@ assert.match(css, /--spf-brand-secondary:\s*#40256f/, "brand secondary is cited 
 assert.match(css, /--spf-warning:\s*#98503d/, "warning token is cited SF2e legendary orange");
 assert.match(css, /\.simplysf2e button\.spf-secondary\s*\{/, "quiet companion actions share HUD chrome");
 assert.match(css, /\.application\.simplysf2e \.window-header\s*\{/, "module windows restyle the Foundry header toward SF2e navy");
-assert.match(generator, /simplysf2e-generator\{\{#if monsterMode\}\} spf-mode-monster\{\{else if npcMode\}\} spf-mode-npc\{\{else if encounterMode\}\} spf-mode-encounter\{\{else if characterMode\}\} spf-mode-character\{\{else if reskinMode\}\} spf-mode-reskin\{\{\/if\}\}\{\{#if busy\}\} spf-busy\{\{\/if\}\}/,
-  "generator root must carry exactly one Neon Drift mode class and flag busy for HUD chrome without inventing progress copy");
+for (const [flag, mode] of [["monsterMode", "monster"], ["npcMode", "npc"], ["encounterMode", "encounter"], ["characterMode", "character"], ["reskinMode", "reskin"]]) {
+  assert.equal(windowBodyClassName("generator", { [flag]: true, busy: true }), `spf-window-body simplysf2e-generator spf-mode-${mode} spf-busy`,
+    "generator body must carry exactly one Neon Drift mode class and flag busy for HUD chrome without inventing progress copy");
+  assert.equal(windowBodyClassName("generator", { [flag]: true }), `spf-window-body simplysf2e-generator spf-mode-${mode}`,
+    "an idle generator body carries no busy class");
+}
 assert.match(generatorApp, /classList\?\.toggle\("spf-busy"/, "generator window must toggle busy chrome from context");
 assert.doesNotMatch(css, /#58180d|#a3512c|#d8c384/, "PF2e maroon/gold tokens must not remain");
 assert.match(css, /\.simplysf2e \.spf-progress-thinking/, "thinking must have a distinct phase treatment");
@@ -555,7 +580,7 @@ for (const hintKey of ["MonsterHint", "NpcHint", "EncounterHint", "CharacterHint
 // compendium sources add HUD card/accent treatment. Class-only changes:
 // no data-action binding or control structure is altered.
 for (const [name, template] of [
-  ["item forge", itemForge],
+  ["item forge", windowBodyClassName("itemforge", {})],
   ["preset manager", managePresets],
   ["provider setup", providerSetup],
   ["compendium sources", sources]
@@ -749,9 +774,14 @@ assert.deepEqual(
 // Window scrolling (QA 12r): Foundry clips .window-content, so every module
 // window's root part must fill it and scroll, or a short or resized window
 // hides its lower fields and buttons with no way to reach them.
+// The four tool windows get their body from SpfApp._replaceHTML, which
+// creates it once and renders the parts inside it (window-parts.mjs).
+assert.match(appBase, /let body = content\.querySelector\(":scope > \.spf-window-body"\);\s*if \(!body\) \{\s*body = document\.createElement\("div"\);\s*content\.replaceChildren\(body\);\s*\}\s*body\.className = this\._bodyClassName;\s*[\s\S]*?super\._replaceHTML\(result, body, options\);/,
+  "tool windows must render their parts inside one persistent spf-window-body");
+for (const windowId of ["generator", "itemforge", "shop", "treasure"]) {
+  assert.match(windowBodyClassName(windowId, {}), /^spf-window-body simplysf2e-generator\b/, `${windowId} body must carry spf-window-body`);
+}
 for (const [name, template] of [
-  ["generator", generator],
-  ["item forge", itemForge],
   ["provider setup", providerSetup],
   ["preset manager", managePresets],
   ["sources", sources]
@@ -773,8 +803,11 @@ assert.match(
   /\.window-content > \.spf-window-body\s*\{[^}]*max-height:\s*80vh;/s,
   "auto-height windows must cap at 80vh, then scroll"
 );
-for (const [name, app] of [["generator", generatorApp], ["item forge", itemForgeApp]]) {
-  assert.match(app, /templates\/[a-z-]+\.hbs`, scrollable: \[""\] \}/, `${name} must keep its scroll place across re-renders`);
+// The body element outlives every render, so its scroll place is kept
+// without a per-part scrollable entry.
+for (const [name, app, windowId] of [["generator", generatorApp, "generator"], ["item forge", itemForgeApp, "itemforge"]]) {
+  assert.ok(app.includes(`static WINDOW_ID = "${windowId}";`) && app.includes(`static PARTS = windowPartsConfig("${windowId}", MODULE_ID);`),
+    `${name} must render its parts inside the persistent body, which keeps its scroll place across re-renders`);
 }
 // Button rows scroll with the content (JT, 2026-10-08); only Sources pins its
 // Save/Reset row (audit S2). QA 12r.1, 12r.2.

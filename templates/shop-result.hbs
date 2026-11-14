@@ -1,0 +1,113 @@
+{{! Result part of the window: progress, error, previews and the empty
+    state. One root element, which takes no box of its own (.spf-part is
+    display: contents). }}
+<div class="spf-part spf-part-result">
+  {{#if busy}}{{> simplysf2e-progress}}{{/if}}
+
+  {{#if error}}
+    <div class="spf-error-notice notification error">
+      <p role="alert">{{error}}</p>
+      {{#if canReportBug}}
+      <button type="button" class="spf-secondary spf-bug-report" data-action="copyBugReport" data-tooltip="{{localize 'SIMPLYSF2E.BugReport.Tooltip'}}">
+        <i aria-hidden="true" class="fa-solid fa-bug"></i> {{localize "SIMPLYSF2E.BugReport.Copy"}}
+      </button>
+      {{/if}}
+    </div>
+  {{/if}}
+
+  {{#if showEmptyState}}
+    <p class="spf-empty">{{localize "SIMPLYSF2E.Shop.EmptyHint"}}</p>
+  {{/if}}
+
+  {{#if preview}}
+  <section class="spf-preview spf-card" aria-label="{{preview.concept.name}}">
+    <header class="spf-statblock-header">
+      <h2>{{preview.concept.name}}</h2>
+      <span class="spf-level">{{localize "SIMPLYSF2E.Shop.ShopLevel" level=preview.level}}</span>
+    </header>
+    <div class="spf-traits">
+      {{#each preview.categories}}<span class="spf-trait">{{localize this}}</span>{{/each}}
+    </div>
+    {{#if preview.concept.blurb}}<p class="spf-blurb"><em>{{preview.concept.blurb}}</em></p>{{/if}}
+    {{#if preview.concept.shopkeeper}}
+      <div class="spf-statline">
+        <span><strong>{{localize "SIMPLYSF2E.Shop.Shopkeeper"}}</strong> {{preview.concept.shopkeeper}}</span>
+      </div>
+    {{/if}}
+
+    <h3>{{localize "SIMPLYSF2E.Shop.StockHeading" count=preview.count}}</h3>
+    {{#if preview.hasStock}}
+    <div class="spf-table-wrap spf-shop-stock-wrap">
+      <table class="spf-table spf-shop-stock">
+        <thead>
+          <tr>
+            <th scope="col">{{localize "SIMPLYSF2E.Shop.ColItem"}}</th>
+            <th scope="col" class="spf-col-type">{{localize "SIMPLYSF2E.Shop.ColType"}}</th>
+            {{! Narrow windows show "Lvl"; the full label stays for assistive tech. }}
+            <th scope="col" class="spf-num"><span class="spf-col-full">{{localize "SIMPLYSF2E.Shop.ColLevel"}}</span><span class="spf-col-short" aria-hidden="true">{{localize "SIMPLYSF2E.Shop.ColLevelShort"}}</span></th>
+            <th scope="col" class="spf-num">{{localize "SIMPLYSF2E.Shop.ColPrice"}}</th>
+            <th scope="col" class="spf-num"><span class="spf-col-full">{{localize "SIMPLYSF2E.Shop.ColQtyFull"}}</span><span class="spf-col-short" aria-hidden="true">{{localize "SIMPLYSF2E.Shop.ColQty"}}</span></th>
+            <th scope="col"><span class="spf-sr-only">{{localize "SIMPLYSF2E.Shop.ColRemove"}}</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          {{#each preview.rows}}
+          <tr>
+            {{! Narrow windows hide the Type column and show the type as a secondary
+                line under the item name instead (one or the other is rendered visible). }}
+            <th scope="row"><span class="spf-item-name">{{this.name}}</span>{{#if this.rarity}} <span class="spf-trait spf-shop-rarity">{{this.rarity}}</span>{{/if}}<span class="spf-item-sub">{{localize this.typeLabel}}</span></th>
+            <td class="spf-col-type">{{localize this.typeLabel}}</td>
+            <td class="spf-num">{{this.level}}</td>
+            <td class="spf-num">{{this.price}}</td>
+            <td class="spf-num">{{this.quantity}}</td>
+            <td>
+              <button type="button" class="spf-icon-btn" data-action="removeStock" data-key="{{this.key}}" data-tooltip="{{localize 'SIMPLYSF2E.Shop.Remove'}}" aria-label="{{localize 'SIMPLYSF2E.Shop.RemoveItem' name=this.name}}" {{#if @root.busy}}disabled{{/if}}>
+                <i aria-hidden="true" class="fa-solid fa-xmark"></i>
+              </button>
+            </td>
+          </tr>
+          {{/each}}
+        </tbody>
+      </table>
+    </div>
+    <p class="spf-hint">{{localize "SIMPLYSF2E.Shop.StockTotal" total=preview.total}}</p>
+    {{else}}
+      <p class="notification warning" role="status">{{localize "SIMPLYSF2E.Shop.AllRemoved"}}</p>
+    {{/if}}
+    {{#if preview.dropped}}
+      <p class="spf-hint">{{localize "SIMPLYSF2E.Shop.Dropped" count=preview.dropped}}</p>
+    {{/if}}
+
+    {{#if preview.concept.description}}
+      <h3>{{localize "SIMPLYSF2E.Preview.Description"}}</h3>
+      <p class="spf-description">{{preview.concept.description}}</p>
+    {{/if}}
+
+    {{#if tokenReport}}
+      {{! Collapsed by default: the summary always carries the run total and the
+          cost line (incl. its "at least" / ≈ wording); the per-step report is one click away. }}
+      <details data-fold="tokens" class="spf-token-report spf-disclosure">
+        <summary>
+          <span class="spf-disclosure-label spf-token-line">
+            <span class="spf-token-heading">{{localize "SIMPLYSF2E.Tokens.Heading"}}</span>
+            <span class="spf-token-total">{{tokenReport.totalText}}</span>
+            {{#if tokenReport.costText}}<span class="spf-token-cost">{{tokenReport.costText}}</span>{{/if}}
+          </span>
+        </summary>
+        <ul class="spf-token-steps">
+          {{#each tokenReport.steps}}<li><strong>{{this.label}}</strong> — {{this.text}}</li>{{/each}}
+        </ul>
+      </details>
+    {{/if}}
+
+    <footer class="spf-actions">
+      <button type="button" class="spf-primary" data-action="createShop" {{#if busy}}disabled{{/if}}{{#unless preview.hasStock}} disabled{{/unless}}>
+        <i aria-hidden="true" class="fa-solid fa-store"></i> {{localize "SIMPLYSF2E.Shop.Create"}}
+      </button>
+      <button type="button" class="spf-danger" data-action="discard" {{#if busy}}disabled{{/if}}>
+        <i aria-hidden="true" class="fa-solid fa-trash"></i> {{localize "SIMPLYSF2E.Generator.Discard"}}
+      </button>
+    </footer>
+  </section>
+  {{/if}}
+</div>

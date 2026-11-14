@@ -9,6 +9,7 @@ import { readFile } from "node:fs/promises";
 import { readdirSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import vm from "node:vm";
+import * as windowParts from "./window-parts.mjs";
 import { progressView } from "./progress.mjs";
 import * as recentGenerations from "./recent-generations.mjs";
 
@@ -80,6 +81,8 @@ const context = vm.createContext({
             this.renders += 1;
             this.context = await this._prepareContext();
             this.element = makeForm(this.context.input);
+            // A full render replaces every part, so each one is bound again.
+            for (const part of ["status", "brief", "result"]) this._onPartRendered(part, this.element);
             this._onRender(this.context, {});
             return this;
           }
@@ -96,6 +99,7 @@ const generatorContext = Object.assign({}, ...await Promise.all(readdirSync(new 
   .filter((file) => file.endsWith(".mjs")).map((file) => import(`./generator-context/${file}`))));
 
 const mocks = {
+  ...windowParts,
   ...generatorContext,
   ...recentGenerations,
   progressView,
@@ -260,8 +264,10 @@ assert.match(render, /_keepFormBeforeRender\(\)/, "SpfApp.render reads the form 
 assert.ok(render.indexOf("_skipFormReadOnce = false") < render.indexOf("if (this._closed && !forced) return this"),
   "a dropped render still consumes the skip-once flag");
 assert.match(body(base, "_keepFormBeforeRender() {"), /if \(!this\.element\) return;/, "no read before the first render");
-assert.match(body(base, "_openProviderSetup() {"), /ProviderSetupApp\.open\(\(\) => this\.render\(\)\)/,
-  "the Provider Setup callback is a plain render (the base reads the form)");
+assert.match(body(base, "_openProviderSetup() {"), /ProviderSetupApp\.open\(\(\) => this\._renderStatus\(\)\)/,
+  "the Provider Setup callback re-renders the status strip");
+assert.match(body(base, "async _renderStatus() {"), /return this\.render\(this\.constructor\.WINDOW_ID \? \{ parts: \["status"\] \} : \{\}\);/,
+  "the status render goes through SpfApp.render (the base reads the form)");
 
 for (const signature of [
   "async #refitMemberLoot(member) {",
@@ -293,8 +299,8 @@ for (const [signature, note] of Object.entries(skipSites)) {
   assert.match(handler, /this\._skipFormReadOnce = true;[^\n]*\n\s*(?:await )?this\.render\(/, `${signature} skips the read right before its render`);
   assert.ok(handler.includes(note), `${signature} says why it skips`);
 }
-const onRender = body(source, "_onRender(context, options) {");
-assert.match(onRender, /this\.#exampleTick\+\+;\s*this\._skipFormReadOnce = true;[^\n]*\n\s*this\.render\(\);/, "the preset change skips the read");
+const onRender = body(source, "_onPartRendered(partId, element) {");
+assert.match(onRender, /this\.#exampleTick\+\+;\s*this\._skipFormReadOnce = true;[^\n]*\n\s*this\.render\(\{ parts: \["brief"\] \}\);/, "the preset change skips the read");
 assert.match(onRender, /const selectedMode = this\.#input\.mode;[\s\S]*?this\._skipFormReadOnce = true;\s*await this\.render\(\);/, "the mode switch skips the read");
 assert.equal((source.match(/this\._skipFormReadOnce = true/g) ?? []).length, Object.keys(skipSites).length + 2,
   "no other Generator path skips the form read");

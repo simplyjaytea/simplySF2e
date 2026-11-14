@@ -10,6 +10,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import vm from "node:vm";
+import * as windowParts from "./window-parts.mjs";
 import * as reroll from "./reroll.mjs";
 import * as recentGenerations from "./recent-generations.mjs";
 import { readdirSync } from "node:fs";
@@ -59,6 +60,7 @@ const createdWith = [];
 let reskinReply = { flavor: { blurb: "x" }, usage: { total: 1 } };
 const featRef = (id) => ({ packId: "sf2e.feats", _id: id });
 const mocks = {
+  ...windowParts,
   MODULE_ID: "simplysf2e",
   SETTINGS: { generatorInput: "generatorInput" }, getSetting: () => undefined,
   restoreGeneratorInput: (_saved, defaults) => defaults, rememberedInput: (input) => input,

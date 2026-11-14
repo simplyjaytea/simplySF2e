@@ -6,6 +6,7 @@ import { progressView } from "./progress.mjs";
 import { readFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import vm from "node:vm";
+import * as windowParts from "./window-parts.mjs";
 import * as recentGenerations from "./recent-generations.mjs";
 import { readdirSync } from "node:fs";
 import { reviewUnresolvedChoices } from "./choice-set.mjs";
@@ -74,6 +75,7 @@ const generatorContext = Object.assign({}, ...await Promise.all(readdirSync(new 
 const resolved = () => ({ ancestryDoc: { name: "Dwarf" }, classDoc: { name: mainClass },
   backgroundDoc: { name: "Warrior" }, featSlots: previewFeats.map(({ type, level, archetype }) => ({ type, level, archetype, candidates: [] })), feats: previewFeats, spells: [], equipment: [], loot: previewLoot });
 const mocks = {
+  ...windowParts,
   progressView,
   // The context builders moved out of generator-app.mjs (T-P4): the real ones, so the previews still build.
   ...generatorContext,

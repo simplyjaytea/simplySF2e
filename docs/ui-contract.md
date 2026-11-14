@@ -1,5 +1,7 @@
 # UI contract — context the templates now read
 
+> **Template paths (2026-11-14).** `generator.hbs`, `itemforge.hbs`, `shop.hbs` and `treasure.hbs` are now three part templates each: `<window>-status.hbs` (which includes `_statusbar.hbs`), `<window>-brief.hbs` (the form) and `<window>-result.hbs` (progress, error, previews). Where an entry below names the old file, look in the part that holds that region. The parts are listed in `scripts/window-parts.mjs`.
+
 Companion to `docs/ui-plan.md`. The UI branch (`work/T-UI`) changed the templates, CSS and harness fixtures; this file lists every context field the templates now read that the apps do not yet supply, so the integration worker can implement exactly this. **The fixtures in `tools/ui-preview/fixtures/` are the source of truth for shape and example values**; when this file and a fixture disagree, the fixture wins and this file is the bug.
 
 Conventions: the real `_prepareContext()` must return every key listed (null, `false` or `[]` when empty), because the harness treats an absent key as drift. "Supply in" names the existing method that should add the field. Behaviour the JS must add is listed under each item. Removed fields are listed explicitly; everything not mentioned is unchanged.

@@ -1,0 +1,121 @@
+{{! Result part of the window: progress, error, previews and the empty
+    state. One root element, which takes no box of its own (.spf-part is
+    display: contents). }}
+<div class="spf-part spf-part-result">
+  {{#if unavailableNote}}
+    <p class="notification warning" role="status">{{unavailableNote}}</p>
+  {{/if}}
+
+  {{#if busy}}{{> simplysf2e-progress}}{{/if}}
+
+  {{#if error}}
+    <div class="spf-error-notice notification error">
+      <p role="alert">{{error}}</p>
+      {{#if canReportBug}}
+      <button type="button" class="spf-secondary spf-bug-report" data-action="copyBugReport" data-tooltip="{{localize 'SIMPLYSF2E.BugReport.Tooltip'}}">
+        <i aria-hidden="true" class="fa-solid fa-bug"></i> {{localize "SIMPLYSF2E.BugReport.Copy"}}
+      </button>
+      {{/if}}
+    </div>
+  {{/if}}
+
+  {{#if showEmptyState}}
+    <p class="spf-empty">{{localize "SIMPLYSF2E.ItemForge.EmptyHint"}}</p>
+  {{/if}}
+
+  {{#if preview}}
+  <section class="spf-preview spf-card" aria-label="{{preview.concept.name}}">
+    <header class="spf-statblock-header">
+      <h2>{{preview.concept.name}}</h2>
+      <span class="spf-level">{{localize "SIMPLYSF2E.ItemForge.Item"}} {{preview.concept.level}}</span>
+    </header>
+    <div class="spf-traits">
+      {{#each preview.traits}}<span class="spf-trait">{{this}}</span>{{/each}}
+    </div>
+
+    {{#if preview.runed}}
+      <div class="spf-statline">
+        <span><strong>{{localize "SIMPLYSF2E.ItemForge.Price"}}</strong> {{preview.price}}</span>
+        {{#if preview.gradeLabel}}<span><strong>{{localize "SIMPLYSF2E.ItemForge.Grade"}}</strong> {{preview.gradeLabel}}</span>{{/if}}
+      </div>
+
+      {{#if preview.upgrades}}
+        <h3>{{localize "SIMPLYSF2E.ItemForge.RunesHeading"}}</h3>
+        <ul class="spf-list">
+          {{#each preview.upgrades}}
+            <li>{{this}}</li>
+          {{/each}}
+        </ul>
+      {{else}}{{#if preview.propertyRunes}}
+        <h3>{{localize "SIMPLYSF2E.ItemForge.RunesHeading"}}</h3>
+        <ul class="spf-list">
+          {{#each preview.propertyRunes}}
+            <li>{{this}}</li>
+          {{/each}}
+        </ul>
+      {{/if}}{{/if}}
+      {{#if preview.skippedNote}}
+        <p class="notification warning" role="status">{{preview.skippedNote}}</p>
+      {{/if}}
+    {{else}}
+      <div class="spf-statline">
+        <span><strong>{{localize "SIMPLYSF2E.ItemForge.Usage"}}</strong> {{preview.usage}}{{#if preview.invested}} ({{localize "SIMPLYSF2E.ItemForge.Invested"}}){{/if}}</span>
+        <span><strong>{{localize "SIMPLYSF2E.ItemForge.Bulk"}}</strong> {{preview.bulk}}</span>
+        <span><strong>{{localize "SIMPLYSF2E.ItemForge.Price"}}</strong> {{preview.price}}</span>
+      </div>
+
+      {{#if preview.hasEffects}}
+        <h3>{{localize "SIMPLYSF2E.ItemForge.EffectsHeading"}}</h3>
+        <ul class="spf-list">
+          {{#each preview.effects}}
+            <li>{{this}}</li>
+          {{/each}}
+        </ul>
+      {{else}}
+        {{#unless preview.activation}}
+          <p class="notification warning" role="status">{{localize "SIMPLYSF2E.ItemForge.NoEffects"}}</p>
+        {{/unless}}
+      {{/if}}
+
+      {{#if preview.activation}}
+        <h3>{{localize "SIMPLYSF2E.ItemForge.ActivationHeading"}}</h3>
+        <ul class="spf-list">
+          {{!-- describeActivation() returns plain text; Handlebars escapes it. --}}
+          <li>{{preview.activation}}</li>
+        </ul>
+      {{/if}}
+    {{/if}}
+
+    {{#if preview.concept.description}}
+      <h3>{{localize "SIMPLYSF2E.Preview.Description"}}</h3>
+      <p class="spf-description">{{preview.concept.description}}</p>
+    {{/if}}
+
+    {{#if tokenReport}}
+      {{! Collapsed by default: the summary always carries the run total and the
+          cost line (incl. its "at least" / ≈ wording); the per-step report is one click away. }}
+      <details data-fold="tokens" class="spf-token-report spf-disclosure">
+        <summary>
+          <span class="spf-disclosure-label spf-token-line">
+            <span class="spf-token-heading">{{localize "SIMPLYSF2E.Tokens.Heading"}}</span>
+            <span class="spf-token-total">{{tokenReport.totalText}}</span>
+            {{#if tokenReport.costText}}<span class="spf-token-cost">{{tokenReport.costText}}</span>{{/if}}
+          </span>
+        </summary>
+        <ul class="spf-token-steps">
+          {{#each tokenReport.steps}}<li><strong>{{this.label}}</strong> — {{this.text}}</li>{{/each}}
+        </ul>
+      </details>
+    {{/if}}
+
+    <footer class="spf-actions">
+      <button type="button" class="spf-primary" data-action="createItem" {{#if busy}}disabled{{/if}}>
+        <i aria-hidden="true" class="fa-solid fa-box-open"></i> {{localize "SIMPLYSF2E.ItemForge.CreateItem"}}
+      </button>
+      <button type="button" class="spf-danger" data-action="discard" {{#if busy}}disabled{{/if}}>
+        <i aria-hidden="true" class="fa-solid fa-trash"></i> {{localize "SIMPLYSF2E.Generator.Discard"}}
+      </button>
+    </footer>
+  </section>
+  {{/if}}
+</div>

@@ -4,6 +4,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import Handlebars from "handlebars";
+import { WINDOW_PARTS, windowBodyClassName } from "../../scripts/window-parts.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 export const REPO = join(here, "..", "..");
@@ -36,19 +37,25 @@ export function localize(key, data = {}) {
 }
 
 /** A fresh Handlebars environment so helper/partial state never leaks between runs. */
-export function createEnvironment() {
+export function createEnvironment(missing = null) {
   const hbs = Handlebars.create();
   hbs.registerHelper("localize", (key, options) => localize(key, options?.hash ?? {}));
   hbs.registerHelper("eq", (a, b) => a === b);
   hbs.registerPartial("simplysf2e-progress", readFileSync(join(REPO, "templates", "_progress.hbs"), "utf8"));
+  // The status strip takes hash arguments, so Handlebars hands it a plain copy
+  // of the context. Watch that copy again, or a key the strip reads and a
+  // fixture lacks would render blank without failing the run.
+  const statusbar = hbs.compile(readFileSync(join(REPO, "templates", "_statusbar.hbs"), "utf8"));
+  hbs.registerPartial("simplysf2e-statusbar", (context, options) =>
+    statusbar(missing ? watch(context, missing) : context, options));
   return hbs;
 }
 
 export const APPS = {
-  generator: { template: "generator.hbs", title: "SIMPLYSF2E.Generator.Title", icon: "fa-solid fa-microchip", tag: "form" },
-  itemforge: { template: "itemforge.hbs", title: "SIMPLYSF2E.ItemForge.Title", icon: "fa-solid fa-gears", tag: "form" },
-  shop: { template: "shop.hbs", title: "SIMPLYSF2E.Shop.Title", icon: "fa-solid fa-store", tag: "form" },
-  treasure: { template: "treasure.hbs", title: "SIMPLYSF2E.Treasure.Title", icon: "fa-solid fa-gem", tag: "form" },
+  generator: { title: "SIMPLYSF2E.Generator.Title", icon: "fa-solid fa-microchip", tag: "form" },
+  itemforge: { title: "SIMPLYSF2E.ItemForge.Title", icon: "fa-solid fa-gears", tag: "form" },
+  shop: { title: "SIMPLYSF2E.Shop.Title", icon: "fa-solid fa-store", tag: "form" },
+  treasure: { title: "SIMPLYSF2E.Treasure.Title", icon: "fa-solid fa-gem", tag: "form" },
   "provider-setup": { template: "provider-setup.hbs", title: "SIMPLYSF2E.ProviderSetup.Title", icon: "fa-solid fa-plug-circle-check", tag: "form" },
   sources: { template: "sources.hbs", title: "SIMPLYSF2E.Sources.Title", icon: "fa-solid fa-book-atlas", tag: "form" },
   "manage-presets": { template: "manage-presets.hbs", title: "SIMPLYSF2E.Presets.ManageTitle", icon: "fa-solid fa-bookmark", tag: "div" },
@@ -81,6 +88,25 @@ function watch(value, missing, path = "") {
 }
 
 /**
+ * The window content as Foundry builds it. A tool window (window-parts.mjs)
+ * renders each part template to one root element, marks it with its part id
+ * and puts the parts inside the body element `SpfApp._replaceHTML` creates.
+ * Every other window is a single template that carries its own body.
+ */
+function renderBody(hbs, fixture, app, missing) {
+  const context = watch(fixture.context, missing);
+  const spec = WINDOW_PARTS[fixture.app];
+  if (!spec) return hbs.compile(readFileSync(join(REPO, "templates", app.template), "utf8"))(context);
+  const parts = Object.entries(spec.parts).map(([partId, path]) => {
+    const html = hbs.compile(readFileSync(join(REPO, path), "utf8"))(context).trim();
+    const roots = html.replace(/<!--[\s\S]*?-->/g, "").match(/^<([a-z]+)\b/i);
+    if (!roots) throw new Error(`fixture ${fixture.id}: part "${partId}" must render one root element`);
+    return html.replace(/^<([a-z]+)\b/i, `<$1 data-application-part="${partId}"`);
+  });
+  return `<div class="${windowBodyClassName(fixture.app, fixture.context)}">\n${parts.join("\n")}\n</div>`;
+}
+
+/**
  * Render one fixture to a full HTML page.
  * A fixture may list `optionalKeys`: dotted paths (array levels written `[]`)
  * the real context genuinely omits though a template reads them, so they are
@@ -90,10 +116,9 @@ function watch(value, missing, path = "") {
 export function renderFixture(fixture, { cssBase = "/", width = 720 } = {}) {
   const app = APPS[fixture.app];
   if (!app) throw new Error(`fixture ${fixture.id}: unknown app "${fixture.app}"`);
-  const hbs = createEnvironment();
-  const source = readFileSync(join(REPO, "templates", app.template), "utf8");
   const missing = new Set();
-  const body = hbs.compile(source)(watch(fixture.context, missing));
+  const hbs = createEnvironment(missing);
+  const body = renderBody(hbs, fixture, app, missing);
   const title = localize(app.title);
   const tag = app.tag;
   const busy = fixture.context.busy ? " spf-busy" : "";

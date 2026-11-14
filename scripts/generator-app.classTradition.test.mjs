@@ -9,6 +9,7 @@ import { progressView } from "./progress.mjs";
 import { readFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import vm from "node:vm";
+import * as windowParts from "./window-parts.mjs";
 import { readdirSync } from "node:fs";
 import * as recentGenerations from "./recent-generations.mjs";
 import { reviewUnresolvedChoices } from "./choice-set.mjs";
@@ -61,6 +62,7 @@ const resolved = () => ({ ancestryDoc: { name: "Human" }, classDoc, backgroundDo
   featSlots: previewFeats.map(({ type, level, archetype }) => ({ type, level, archetype, candidates: [] })), feats: previewFeats,
   spells: [], equipment: [], loot: [], pathPlan });
 const mocks = {
+  ...windowParts,
   progressView,
   ...generatorContext,
   ...recentGenerations,

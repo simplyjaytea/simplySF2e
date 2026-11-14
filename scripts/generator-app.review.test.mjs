@@ -5,6 +5,7 @@ import { progressView } from "./progress.mjs";
 import { readFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import vm from "node:vm";
+import * as windowParts from "./window-parts.mjs";
 import * as recentGenerations from "./recent-generations.mjs";
 import { readdirSync } from "node:fs";
 import { reviewUnresolvedChoices } from "./choice-set.mjs";
@@ -73,6 +74,7 @@ const generatorContext = Object.assign({}, ...await Promise.all(readdirSync(new 
 const resolved = () => ({ ancestryDoc: { name: "Dwarf" }, classDoc: { name: "Fighter" },
   backgroundDoc: { name: "Warrior" }, featSlots: previewFeats.map(({ type, level, archetype }) => ({ type, level, archetype, candidates: [] })), feats: previewFeats, spells: [], equipment: [], loot: previewLoot });
 const mocks = {
+  ...windowParts,
   progressView,
   // The context builders moved out of generator-app.mjs (T-P4): the real ones, so the previews still build.
   ...generatorContext,
@@ -140,7 +142,7 @@ assert.equal(typeof actions.cancelGeneration, "function", "in-flight generation 
     querySelector: (selector) => selector.includes('name="mode"') ? npcRadio : null,
     querySelectorAll: (selector) => selector.includes('name="mode"') ? [npcRadio] : []
   };
-  modeApp._onRender({}, {});
+  modeApp._onPartRendered("brief", modeApp.element);
   await changeHandler();
   assert.equal(modeApp.context.npcMode, true, "the selected NPC mode must survive the re-render");
   assert.equal(focused, true, "the checked mode radio must regain focus without scrolling");

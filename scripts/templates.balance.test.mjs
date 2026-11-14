@@ -9,7 +9,7 @@ import { readdirSync, readFileSync } from "node:fs";
 
 const dir = new URL("../templates/", import.meta.url);
 const files = readdirSync(dir).filter((name) => name.endsWith(".hbs"));
-assert.ok(files.includes("generator.hbs"), "templates directory must be found");
+assert.ok(files.includes("generator-result.hbs"), "templates directory must be found");
 
 for (const file of files) {
   const source = readFileSync(new URL(file, dir), "utf8").replace(/\{\{!--[\s\S]*?--\}\}|\{\{![\s\S]*?\}\}/g, "");

@@ -9,7 +9,9 @@ import { readFile } from "node:fs/promises";
 const read = (path) => readFile(new URL(path, import.meta.url), "utf8");
 const generator = await read("./generator-app.mjs");
 const itemforge = await read("./itemforge-app.mjs");
-const template = await read("../templates/generator.hbs");
+// The Generator window renders three part templates (window-parts.mjs).
+const template = (await Promise.all(["status", "brief", "result"]
+  .map((part) => read(`../templates/generator-${part}.hbs`)))).join("\n");
 
 // A. Busy branch of runFromChat: from the busy check to its return.
 const start = generator.indexOf("async runFromChat(");

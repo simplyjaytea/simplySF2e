@@ -1,0 +1,44 @@
+<fieldset class="spf-inputs spf-card" {{#if busy}}disabled{{/if}}>
+  <legend>{{localize "SIMPLYSF2E.Shop.ConceptLegend"}}</legend>
+  <div class="form-group stacked">
+    <label for="spf-shop-prompt">{{localize "SIMPLYSF2E.Shop.Prompt"}}</label>
+    <textarea id="spf-shop-prompt" name="prompt" rows="3" placeholder="{{localize 'SIMPLYSF2E.Shop.PromptPlaceholder'}}">{{input.prompt}}</textarea>
+  </div>
+  <div class="spf-row spf-shop-optionrow">
+    <div class="form-group">
+      <label for="spf-shop-level">{{localize "SIMPLYSF2E.Shop.Level"}}</label>
+      <div class="spf-level-controls">
+        <button type="button" class="spf-icon-btn" data-action="levelDown" data-tooltip="{{localize 'SIMPLYSF2E.Generator.LevelDown'}}" aria-label="{{localize 'SIMPLYSF2E.Generator.LevelDown'}}">
+          <i aria-hidden="true" class="fa-solid fa-minus"></i>
+        </button>
+        <input id="spf-shop-level" type="number" name="level" min="{{minLevel}}" max="{{maxLevel}}" step="1" value="{{input.level}}" aria-describedby="spf-shop-level-hint">
+        <button type="button" class="spf-icon-btn" data-action="levelUp" data-tooltip="{{localize 'SIMPLYSF2E.Generator.LevelUp'}}" aria-label="{{localize 'SIMPLYSF2E.Generator.LevelUp'}}">
+          <i aria-hidden="true" class="fa-solid fa-plus"></i>
+        </button>
+      </div>
+      <p id="spf-shop-level-hint" class="spf-hint">{{localize "SIMPLYSF2E.Shop.LevelHint"}}</p>
+    </div>
+    <div class="form-group">
+      <label for="spf-shop-size">{{localize "SIMPLYSF2E.Shop.Size"}}</label>
+      <select id="spf-shop-size" name="size">
+        {{#each sizes}}
+          <option value="{{this.value}}" {{#if (eq this.value @root.input.size)}}selected{{/if}}>{{localize this.label count=this.count}}</option>
+        {{/each}}
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="spf-shop-rarity">{{localize "SIMPLYSF2E.Shop.Rarity"}}</label>
+      <select id="spf-shop-rarity" name="rarity">
+        {{#each rarities}}
+          <option value="{{this.value}}" {{#if (eq this.value @root.input.rarity)}}selected{{/if}}>{{localize this.label}}</option>
+        {{/each}}
+      </select>
+    </div>
+  </div>
+  <div class="spf-generate-row">
+    <button type="button" class="{{#if preview}}spf-secondary{{else}}spf-primary{{/if}}" data-action="generate" {{#if busy}}disabled{{/if}}>
+      <i aria-hidden="true" class="fa-solid fa-store"></i>
+      {{#if preview}}{{localize "SIMPLYSF2E.Shop.GenerateAnotherVersion"}}{{else}}{{localize "SIMPLYSF2E.Shop.Generate"}}{{/if}}
+    </button>
+  </div>
+</fieldset>

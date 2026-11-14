@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import vm from "node:vm";
+import * as windowParts from "./window-parts.mjs";
 import * as recentGenerations from "./recent-generations.mjs";
 import { completionManifest, assertComplete } from "./completion.mjs";
 import { normalizeConcept, normalizeLoot, parseCoins, parseScroll } from "./builder.mjs";
@@ -29,6 +30,7 @@ let abortController;
 let abortDuringResolve = false;
 const ref = { packId: "test.equipment", _id: "potion" };
 const mocks = {
+  ...windowParts,
   ...recentGenerations,
   MODULE_ID: "simplysf2e",
   SETTINGS: { generatorInput: "generatorInput" }, getSetting: () => undefined,

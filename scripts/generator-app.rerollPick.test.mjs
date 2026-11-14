@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import vm from "node:vm";
+import * as windowParts from "./window-parts.mjs";
 import { completionManifest, assertComplete } from "./completion.mjs";
 import * as reroll from "./reroll.mjs";
 import * as recentGenerations from "./recent-generations.mjs";
@@ -30,6 +31,7 @@ let lastPick = null;
 let spellArgs = null;
 let featArgs = null;
 const mocks = {
+  ...windowParts,
   MODULE_ID: "simplysf2e",
   SETTINGS: { generatorInput: "generatorInput" }, getSetting: () => undefined,
   restoreGeneratorInput: (_saved, defaults) => defaults, rememberedInput: (input) => input,

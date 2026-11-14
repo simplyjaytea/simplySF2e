@@ -11,6 +11,7 @@ import { readFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import { readdirSync } from "node:fs";
 import vm from "node:vm";
+import * as windowParts from "./window-parts.mjs";
 import * as builder from "./builder.mjs";
 import * as recentGenerations from "./recent-generations.mjs";
 import { composeEncounter } from "./encounter.mjs";
@@ -55,6 +56,7 @@ let pcLootCalls = 0;
 let pcLootDraft = [];
 let equipmentGp = 0;
 const mocks = {
+  ...windowParts,
   MODULE_ID: "simplysf2e",
   SETTINGS: { generatorInput: "generatorInput", apiBaseUrl: "apiBaseUrl" },
   getSetting: () => undefined,

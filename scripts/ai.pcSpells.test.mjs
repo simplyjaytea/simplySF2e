@@ -169,7 +169,9 @@ try {
 const generator = readFileSync(new URL("./generator-app.mjs", import.meta.url), "utf8");
 // The grounded spell pass moved to creature-pipeline.mjs with the creature chain.
 const pipeline = readFileSync(new URL("./creature-pipeline.mjs", import.meta.url), "utf8");
-const template = readFileSync(new URL("../templates/generator.hbs", import.meta.url), "utf8");
+// The Generator window renders three part templates (window-parts.mjs).
+const template = ["status", "brief", "result"]
+  .map((part) => readFileSync(new URL(`../templates/generator-${part}.hbs`, import.meta.url), "utf8")).join("\n");
 const locale = JSON.parse(readFileSync(new URL("../lang/en.json", import.meta.url), "utf8"));
 assert.match(generator, /pcSpellcastingProfile\(resolved\.classDoc\)/);
 assert.match(pipeline, /plannedPicks: selectionPicks/);
