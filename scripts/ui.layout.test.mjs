@@ -160,7 +160,7 @@ assert.match(
 );
 assert.match(
   css,
-  /\.window-content\s*\{[^}]*container:\s*spf-window \/ inline-size/s,
+  /\.window-content\s*\{[^}]*container:\s*spf-window spf-frame \/ inline-size/s,
   "the window content must be the size container, so narrow rules follow the window, not the viewport"
 );
 assert.match(
@@ -220,7 +220,7 @@ assert.doesNotMatch(generatorApp, /this\.#created = \{ name: actor\.name, actorI
   "generation failure handling must not fabricate a creation result from an unavailable actor");
 assert.match(generatorApp, /selectChoices: async \(groups\) =>[\s\S]*?selectCharacterChoices\([\s\S]*?this\._recordTokens\(label, usage, timing\)/,
   "character creation must use the grounded provider selector and record its usage");
-assert.match(generatorApp, /#endBusy\(\{ finishRun = false \} = \{\}\) \{\s*this\.#busy = false;\s*this\.#busyMessage = null;\s*if \(finishRun\) this\._finishRun\(\);\s*\}/,
+assert.match(generatorApp, /#endBusy\(\{ finishRun = false \} = \{\}\) \{\s*this\.#busy = false;\s*this\.#busyMessage = null;\s*this\.#briefOverride = null;[^\n]*\s*if \(finishRun\) this\._finishRun\(\);\s*\}/,
   "leaving the busy state must clear both native and AI progress state");
 assert.match(generatorApp, /async #createCharacterActor\(\) \{[\s\S]*?finally \{\s*this\.#endBusy\(\{ finishRun: true \}\);/,
   "character success and failure must clear both native and AI progress state");
@@ -248,7 +248,7 @@ for (const [name, template, createAction] of [
   );
   assert.match(
     template,
-    /SIMPLYSF2E\.Generator\.GenerateAnotherVersion/,
+    /SIMPLYSF2E\.(?:Generator|ItemForge)\.GenerateAnotherVersion/,
     `${name} preview must label Generate as another version`
   );
   assert.match(
@@ -776,7 +776,7 @@ assert.deepEqual(
 // hides its lower fields and buttons with no way to reach them.
 // The four tool windows get their body from SpfApp._replaceHTML, which
 // creates it once and renders the parts inside it (window-parts.mjs).
-assert.match(appBase, /let body = content\.querySelector\(":scope > \.spf-window-body"\);\s*if \(!body\) \{\s*body = document\.createElement\("div"\);\s*content\.replaceChildren\(body\);\s*\}\s*body\.className = this\._bodyClassName;\s*[\s\S]*?super\._replaceHTML\(result, body, options\);/,
+assert.match(appBase, /let body = content\.querySelector\(":scope > \.spf-window-body"\);\s*if \(!body\) \{\s*body = document\.createElement\("div"\);\s*content\.replaceChildren\(body\);\s*this\._resultState = null;[^\n]*\s*\}\s*body\.className = this\._bodyClassName;\s*[\s\S]*?super\._replaceHTML\(result, body, options\);/,
   "tool windows must render their parts inside one persistent spf-window-body");
 for (const windowId of ["generator", "itemforge", "shop", "treasure"]) {
   assert.match(windowBodyClassName(windowId, {}), /^spf-window-body simplysf2e-generator\b/, `${windowId} body must carry spf-window-body`);
@@ -809,15 +809,21 @@ for (const [name, app, windowId] of [["generator", generatorApp, "generator"], [
   assert.ok(app.includes(`static WINDOW_ID = "${windowId}";`) && app.includes(`static PARTS = windowPartsConfig("${windowId}", MODULE_ID);`),
     `${name} must render its parts inside the persistent body, which keeps its scroll place across re-renders`);
 }
-// Button rows scroll with the content (JT, 2026-10-08); only Sources pins its
-// Save/Reset row (audit S2). QA 12r.1, 12r.2.
+// Pinned rows: Sources keeps Save/Reset at the bottom edge (audit S2), and
+// since the console layout (JT approved the revamp plan on 2026-11-14, which
+// replaces his 2026-10-08 call that button rows scroll with the content) the
+// tool windows pin the form's run row and a result card's footer while their
+// card is in view. Nothing else pins. QA 12r.1, 12r.2, 19.3, 19.4.
 assert.match(
   css,
   /\.simplysf2e-sources > \.spf-actions\s*\{[^}]*position:\s*sticky;/s,
   "Sources keeps its Save/Reset row pinned"
 );
 for (const match of css.replace(/\/\*[\s\S]*?\*\//g, "").matchAll(/([^{}]+)\{[^}]*position:\s*sticky\s*[;}]/g)) {
-  assert.match(match[1], /simplysf2e-sources/, `only Sources may pin a row: ${match[1].trim()}`);
+  for (const selector of match[1].split(",").map((part) => part.trim())) {
+    assert.match(selector, /simplysf2e-sources|^\.simplysf2e \.spf-window-body\.simplysf2e-generator \.(?:spf-inputs > \.spf-generate-row|spf-preview > \.spf-actions)$/,
+      `only Sources and the console action bars may pin a row: ${selector}`);
+  }
 }
 
 // Truncated status-strip text stays readable on hover in both windows (QA 12r.5).

@@ -6,6 +6,7 @@ import {
   concept, computeStats, adjustedStats, localize
 } from "./_shared.mjs";
 import { signed } from "../../../scripts/text.mjs";
+import { briefFoldContext } from "../../../scripts/window-parts.mjs";
 import { THREATS } from "../../../scripts/encounter.mjs";
 import { TREASURE_AMOUNT_MULTIPLIER } from "../../../scripts/tables.mjs";
 import { expectedSheetStats, checkStats, describeStatCheck } from "../../../scripts/stat-check.mjs";
@@ -61,7 +62,7 @@ export function generatorContext(mode, patch = {}) {
   };
   const creatureMode = ["monster", "npc"].includes(mode);
   const { input: _ignored, ...rest } = patch;
-  return {
+  const context = {
     input,
     busy: false,
     busyMessage: null,
@@ -104,6 +105,11 @@ export function generatorContext(mode, patch = {}) {
     showEmptyState: true,
     ...rest
   };
+  // As _prepareContext() does: derived from the finished context. A fixture
+  // may pass briefFold itself to show the form opened by hand.
+  context.briefFold = rest.briefFold ?? briefFoldContext(context, { auto: Boolean(rest.briefAuto) });
+  delete context.briefAuto;
+  return context;
 }
 
 /** mapNamed / mapSpells / mapGear row shapes (rows.mjs). */
@@ -267,12 +273,40 @@ export default [
       app: "generator",
       ...(open ? { open } : {}),
       context: generatorContext("monster", {
-        input: { level: 4 }, showEmptyState: false, tokenReport,
+        // A long description, so the folded brief shows its one-line cut.
+        input: { level: 4, prompt: "A mercenary half-fused with a failing warp lattice, hired by smugglers who no longer trust it" }, showEmptyState: false, tokenReport,
         lastRunCost,
         preview: creaturePreview({ ...c, spellcasting: { tradition: "arcane", dcScale: "moderate", attackScale: "moderate" } }, RICH)
       })
     };
   }),
+  ...(() => {
+    // Console layout: the GM opened the folded brief over a preview (the
+    // handle reads "Hide form"), and a later run starts with the brief still
+    // folded (the form does not jump open around the progress card).
+    const c = concept({ rarity: "uncommon", specialAbilities: [], resistances: ["fire"], weaknesses: ["cold-iron"] });
+    const input = { level: 4, prompt: "A mercenary half-fused with a failing warp lattice" };
+    return [
+      {
+        id: "generator-brief-opened",
+        app: "generator",
+        context: generatorContext("monster", {
+          input, showEmptyState: false, lastRunCost: "Last run: 2,716 tokens",
+          tokenReport: TOKEN_REPORT,
+          preview: creaturePreview(c, RICH),
+          briefFold: { foldable: true, collapsed: false, hasResult: true }
+        })
+      },
+      {
+        id: "generator-busy-brief-folded",
+        app: "generator",
+        context: generatorContext("monster", {
+          input, busy: true, canCancel: true, showEmptyState: false, briefAuto: true,
+          progress: progressAt(MONSTER_STEPS, 1, { phase: "writing", percent: 12, detail: "Writing… ≈ 160 tokens" })
+        })
+      }
+    ];
+  })(),
   (() => {
     // Level -1, terrible scales, Weak adjustment: Perception, saves and skills go
     // negative, which is what the "+-1" bug shows. The strike bonus cannot: the

@@ -16,7 +16,7 @@ import { SourcesConfigApp } from "./sources-app.mjs";
 import { gpToCredits, assembleCurrency, splitCurrency } from "./currency.mjs";
 import { activeParty } from "./party.mjs";
 import { SpfApp } from "./app-base.mjs";
-import { windowPartsConfig } from "./window-parts.mjs";
+import { CONSOLE_HEIGHT, windowPartsConfig } from "./window-parts.mjs";
 import { progressView } from "./progress.mjs";
 import { jevKeySource } from "./jev.mjs";
 
@@ -36,7 +36,7 @@ export class TreasureApp extends SpfApp {
       icon: "fa-solid fa-gem",
       resizable: true
     },
-    position: { width: 720, height: "auto" },
+    position: { width: 720, height: CONSOLE_HEIGHT },
     actions: {
       generate: TreasureApp.#onGenerate,
       createTreasure: TreasureApp.#onCreateTreasure,

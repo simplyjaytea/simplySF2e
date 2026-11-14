@@ -975,10 +975,100 @@
   margin-top: var(--spf-space-md);
 }
 
-/* Reduced motion: last in this file so it outranks the pulse rules above. */
+/* Brief fold: once a result is on screen the form folds to one line (level,
+   then the description, cut with an ellipsis). The button is the fold's
+   handle; the fields stay in the form while they are hidden. */
+.simplysf2e button.spf-brief-summary {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--spf-space-md);
+  width: 100%;
+  height: auto;
+  min-height: var(--spf-icon-btn);
+  margin-top: var(--spf-space-md);
+  padding: var(--spf-space-xs) var(--spf-space-md);
+  border: 1px dashed var(--spf-border);
+  border-radius: var(--spf-radius);
+  background: transparent;
+  color: var(--spf-text-muted);
+  font-size: var(--spf-text-sm);
+  text-align: start;
+  overflow: hidden;
+}
+
+.simplysf2e .spf-brief-chevron {
+  flex: 0 0 auto;
+  transition: transform var(--spf-motion-fast) var(--spf-ease-out);
+}
+
+.simplysf2e .spf-brief-summary[aria-expanded="true"] .spf-brief-chevron {
+  transform: rotate(90deg);
+}
+
+.simplysf2e .spf-brief-level {
+  flex: 0 0 auto;
+  color: var(--spf-text);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.simplysf2e .spf-brief-prompt {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.simplysf2e .spf-brief-edit,
+.simplysf2e .spf-brief-hide {
+  flex: 0 0 auto;
+  color: var(--spf-brand-accent);
+  white-space: nowrap;
+}
+
+/* Open: the handle only offers to hide the form again. */
+.simplysf2e .spf-brief-summary[aria-expanded="true"] :is(.spf-brief-level, .spf-brief-prompt, .spf-brief-edit),
+.simplysf2e .spf-brief-summary[aria-expanded="false"] .spf-brief-hide {
+  display: none;
+}
+
+.simplysf2e .spf-brief-collapsed > .spf-brief-body {
+  display: none;
+}
+
+/* Unfold: the form fades in when the GM opens it (GeneratorApp toggleBrief). */
+.simplysf2e .spf-unfold {
+  animation: spf-unfold var(--spf-motion-fast) var(--spf-ease-out);
+}
+
+@keyframes spf-unfold {
+  from {
+    opacity: 0;
+    transform: translateY(calc(-0.5 * var(--spf-rise)));
+  }
+}
+
+/* Two panes: there is room for the whole form, so it never folds. */
+@container spf-frame (min-width: 900px) {
+  .simplysf2e .spf-brief-collapsed > .spf-brief-body {
+    display: block;
+  }
+
+  .simplysf2e button.spf-brief-summary {
+    display: none;
+  }
+}
+
+/* Reduced motion: last in this file so it outranks the animated rules above. */
 @media (prefers-reduced-motion: reduce) {
   .simplysf2e .spf-review-actions,
-  .simplysf2e .spf-stat-check-attention {
+  .simplysf2e .spf-stat-check-attention,
+  .simplysf2e .spf-unfold {
     animation: none;
+  }
+  .simplysf2e .spf-brief-chevron {
+    transition: none;
   }
 }

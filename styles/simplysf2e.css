@@ -28,6 +28,12 @@
    - Pulse ("waiting for you"): a panel that needs a GM decision.
    - Blink ("active step"): the current progress step only.
    - Scan lines ("standby"): empty-state panels only.
+   - Arrive ("this is new"): a result card rises in once when it comes on
+     screen; a re-render of a card already shown never replays it.
+   - Unfold ("you opened this"): the folded brief fades in when the GM
+     opens it.
+   - Motion never makes the GM wait: transform and opacity only, at most
+     --spf-motion long, off under prefers-reduced-motion.
    - Notch and corner ticks: outer cards only; nested panels are plain.
    - Uppercase + letter-spacing: labels only: legends, chips, status keys
      (table column headers, stat keys, token heading, fold titles); never
@@ -110,6 +116,12 @@
   /* Compact icon button (in-row remove, reroll dice, status-bar gear/test):
      1.5rem = 24px, the minimum pointer target (WCAG 2.5.8). */
   --spf-icon-btn-sm: 1.5rem;
+  /* Motion: two durations and one easing for everything that moves once
+     (arrive, unfold, the fold chevron). --spf-rise is how far a card travels. */
+  --spf-motion-fast: 120ms;
+  --spf-motion: 200ms;
+  --spf-ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --spf-rise: 0.5rem;
   /* Window reading surface behind every card. */
   --spf-window-bg: #0c1620;
   /* One step below the window surface: the pinned Sources action bar. */
@@ -168,7 +180,9 @@
 
 /* Keep reading surfaces plain; texture belongs to chrome and empty space. */
 .application.simplysf2e .window-content {
-  container: spf-window / inline-size;
+  /* spf-window: the width a layout answers to (in a two-pane window each
+     pane takes this name). spf-frame: always the whole window. */
+  container: spf-window spf-frame / inline-size;
   background: var(--spf-window-bg);
   color: var(--spf-text);
 }
@@ -1444,6 +1458,117 @@
 }
 
 /* --------------------------------------------------------------------------
+   Console layout of the four tool windows (their body carries
+   .simplysf2e-generator). The window opens at a fixed height and keeps it:
+   the body scrolls, the action bar of the card in view stays pinned to the
+   bottom edge, and a window dragged wide shows the form and the result side
+   by side.
+   -------------------------------------------------------------------------- */
+.application.simplysf2e .window-content > .spf-window-body.simplysf2e-generator {
+  max-height: none;
+  /* A control focused by Tab is never left under a pinned action bar. */
+  scroll-padding-bottom: calc(var(--spf-icon-btn) * 2);
+}
+
+/* Action bars: the run row of the form and the footer of a result card.
+   Pinned while their card is in view, opaque so text scrolls under them,
+   and as wide as the card (the negative margins cancel its padding). */
+.simplysf2e .spf-window-body.simplysf2e-generator .spf-inputs > .spf-generate-row,
+.simplysf2e .spf-window-body.simplysf2e-generator .spf-preview > .spf-actions {
+  position: sticky;
+  /* Flush with the body's edge: the offset cancels the body's own padding. */
+  bottom: calc(-1 * var(--spf-space-xs));
+  z-index: 1;
+  margin: var(--spf-space-md) calc(-1 * var(--spf-space-lg)) calc(-1 * var(--spf-space-md));
+  padding: var(--spf-space-md) var(--spf-space-lg);
+  border-top: 1px solid var(--spf-border);
+  background: linear-gradient(var(--spf-surface-raised), var(--spf-surface-raised)), var(--spf-window-bg);
+}
+
+/* The card's corner tick stays on top of its pinned bar. */
+.simplysf2e .spf-window-body.simplysf2e-generator .spf-card::after {
+  z-index: 2;
+}
+
+/* One-line status: the readiness summary sits on the connection row while
+   there is room and takes its own row when it is opened. */
+@container spf-frame (min-width: 600px) {
+  .simplysf2e .spf-statusbar {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .simplysf2e .spf-statusbar > .spf-provider-summary {
+    flex: 1 1 100%;
+  }
+
+  .simplysf2e .spf-statusbar > .spf-provider-summary:first-child {
+    flex: 1 1 26rem;
+  }
+
+  .simplysf2e .spf-statusbar > .spf-readiness:not([open]) {
+    flex: 0 1 auto;
+    border-top: 0;
+  }
+
+  /* On the shared row the state is the icon (check or minus); its word
+     stays in the markup for screen readers and shows again when opened. */
+  .simplysf2e .spf-statusbar > .spf-readiness:not([open]) :is(.spf-readiness-ok, .spf-readiness-off) {
+    font-size: 0;
+  }
+
+  .simplysf2e .spf-statusbar > .spf-readiness:not([open]) :is(.spf-readiness-ok, .spf-readiness-off) i {
+    font-size: var(--spf-text-sm);
+  }
+
+  .simplysf2e .spf-statusbar > .spf-readiness[open] {
+    flex: 1 1 100%;
+  }
+}
+
+/* Two panes: status across the top, the form on the left, the result on
+   the right. Each pane answers the narrow-window rules with its own width. */
+@container spf-frame (min-width: 900px) {
+  .simplysf2e .spf-window-body.simplysf2e-generator {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+    align-items: start;
+    align-content: start;
+  }
+
+  .simplysf2e .spf-window-body.simplysf2e-generator > .spf-part-status > * {
+    grid-column: 1 / -1;
+  }
+
+  .simplysf2e .spf-window-body.simplysf2e-generator > [data-application-part="brief"] {
+    grid-column: 1;
+    container: spf-window / inline-size;
+  }
+
+  .simplysf2e .spf-window-body.simplysf2e-generator > .spf-part-result {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spf-space-md);
+    grid-column: 2;
+    min-width: 0;
+    container: spf-window / inline-size;
+  }
+}
+
+/* Arrive: a result card rises in once (SpfApp._playResultArrival). */
+.simplysf2e .spf-arrive {
+  animation: spf-arrive var(--spf-motion) var(--spf-ease-out);
+}
+
+@keyframes spf-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(var(--spf-rise));
+  }
+}
+
+/* --------------------------------------------------------------------------
    Directory buttons (outside the app windows)
    -------------------------------------------------------------------------- */
 .spf-directory-row {
@@ -1496,6 +1621,13 @@
   .simplysf2e .spf-generate-row .spf-secondary {
     flex: 1 1 auto;
   }
+
+  /* The cards' side padding is tighter here; their action bars follow. */
+  .simplysf2e .spf-window-body.simplysf2e-generator .spf-inputs > .spf-generate-row,
+  .simplysf2e .spf-window-body.simplysf2e-generator .spf-preview > .spf-actions {
+    margin-inline: calc(-1 * var(--spf-space-md));
+    padding-inline: var(--spf-space-md);
+  }
 }
 
 /* --------------------------------------------------------------------------
@@ -1514,6 +1646,9 @@
     animation: none;
   }
   .simplysf2e .fa-spin {
+    animation: none;
+  }
+  .simplysf2e .spf-arrive {
     animation: none;
   }
 }
