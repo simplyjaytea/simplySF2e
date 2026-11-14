@@ -5,6 +5,8 @@ import {
   getJevRequestConfig,
   getProviderRequestConfig,
   getSetting,
+  interfaceSoundLevel,
+  interfaceSoundVolume,
   selectProviderConnection,
   SETTINGS
 } from "./settings.mjs";
@@ -25,6 +27,7 @@ import {
 import { coarsenTokenEstimate, lastRunTokenTotal } from "./tokens.mjs";
 import { formatCost, runCost } from "./cost.mjs";
 import { carryOpenFolds, resultArrives, windowBodyClassName } from "./window-parts.mjs";
+import { cueFor, nextCueState, playCue } from "./sounds.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -122,6 +125,8 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
    * `_finishRun()` drops the progress steps, with the exact error text shown.
    */
   _recordFailure(err, operation, shown) {
+    // A cancel the GM asked for is not an error cue (sounds.mjs cueFor).
+    this._failureCancelled = Boolean(err?.cancelled);
     try {
       this._failure = captureFailure(err, { operation, shown, progress: this._progress });
     } catch (captureErr) {
@@ -352,7 +357,10 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
    * Subclasses extend it and call super.
    */
   _onPartRendered(partId, element) {
-    if (partId === "result") this._playResultArrival(element);
+    if (partId === "result") {
+      this._playResultArrival(element);
+      this._playResultCue(element);
+    }
     if (partId !== "status") return;
     element.querySelector?.("[name='activeConnection']")?.addEventListener("change", (event) =>
       this._switchActiveConnection(event.currentTarget.value)
@@ -370,6 +378,28 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const arrives = resultArrives(now, this._resultState ?? null, { afterRun: this.constructor.ARRIVE_AFTER_RUN });
     this._resultState = now;
     if (arrives) card.classList?.add("spf-arrive");
+  }
+
+  /**
+   * Interface sounds (off by default): one cue when a run or create starts
+   * and one when it ends, decided by `cueFor` from what the result part
+   * showed before and shows now. Nothing waits for a sound and a sound can
+   * never fail a run (`playCue` does not throw).
+   */
+  _playResultCue(element) {
+    const card = element.querySelector?.(".spf-preview") ?? null;
+    const now = {
+      busy: Boolean(this._renderBusy),
+      kind: card ? (card.dataset?.result || "card") : "",
+      error: Boolean(element.querySelector?.(".spf-error-notice")),
+      cancelled: Boolean(this._failureCancelled)
+    };
+    const cue = cueFor(now, this._cueState ?? null);
+    this._cueState = nextCueState(now, this._cueState ?? null);
+    if (cue === "start") this._failureCancelled = false;
+    if (!cue) return;
+    const level = interfaceSoundLevel();
+    if (level !== "off") playCue(cue, { level, volume: interfaceSoundVolume() });
   }
 
   _onRender(context, options) {

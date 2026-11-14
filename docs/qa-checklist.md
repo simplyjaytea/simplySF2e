@@ -1041,3 +1041,25 @@ The Generator's five mode tiles stay on one row at every width and the selection
 | 21.9 | Tab through AI Provider Setup from top to bottom in a short window. | The focused field is never hidden under the pinned row. | AI Provider Setup | | |
 | 21.10 | Open What's new from the module settings, and open Welcome. | The content rises a few pixels and fades in once. Choosing a provider or testing a connection in Welcome does not replay it. | Welcome, What's new | | |
 | 21.11 | Turn on reduced motion and repeat 21.2 and 21.10. | No slide and no rise. Everything else works the same. | Generator, Welcome, What's new | | |
+
+## 22. UI revamp slice 6: interface sounds (2026-11-14)
+
+Four short synthesised cues, off by default, set per browser. They cannot be heard in the test harness, so every row here is a listening check. Nothing is sent to players.
+
+| ID | Step | Expected | Where | Result | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 22.1 | After updating, use the module as before without touching the settings. | No sound at all. Module settings show **Interface sounds: Off**. | All four tool windows | | |
+| 22.2 | In the module settings press **Test sounds**. | No window opens. A notice names the four cues and they play in order, well under a second each: one soft blip (run started), two rising notes (result ready), three rising notes (created), two low falling notes (error). This works while Interface sounds is Off. | Module settings | | |
+| 22.3 | Judge the four cues. | Each is short and soft, none clicks or distorts, and "result ready" and "error" are easy to tell apart without looking. Note any cue to retune or drop. | Module settings | | |
+| 22.4 | Set Interface sounds to **Normal**, save, and press **Preview first** in the Generator. | The blip when the run starts and the two rising notes when the preview appears. | Generator | | |
+| 22.5 | Press **Create actor** on that preview. | The blip, then the three rising notes when the created card appears. | Generator | | |
+| 22.6 | Use the one-click **Create monster**, and create a character (which ends on the review card). | One blip at the start and the three rising notes at the end, for both. | Generator | | |
+| 22.7 | Make a run fail (turn the connection off first). | The blip, then the two low falling notes when the error box appears. | Generator | | |
+| 22.8 | Start a run and press **Cancel**. | The blip at the start and nothing at the end. The next run sounds as normal. | Generator | | |
+| 22.9 | Reroll one pick, and press Reroll loot. | A blip and the two rising notes each time. Say if this is too much for a small action. | Generator | | |
+| 22.10 | Generate and create in Item Forge, Shop and Treasure. | Rising two notes when the draft appears; three rising notes when Create finishes and the draft clears. | Item Forge, Shop, Treasure | | |
+| 22.11 | Change the form, switch mode, press + or - on an encounter member, discard a preview, close and reopen a window with a stored preview. | Silence. Only a run or a create makes a sound. | All four tool windows | | |
+| 22.12 | Set Interface sounds to **Quiet** and repeat 22.4. | The same cues, clearly softer. | Generator | | |
+| 22.13 | Lower Foundry's **Interface** volume slider (playlists sidebar) to half, then to zero, and repeat 22.4. | The cues get quieter with the slider and are silent at zero. If they do not follow the slider, note it. | Generator | | |
+| 22.14 | With sounds on, have a player connected in another browser while you run and create. | The player hears nothing, and the player's module settings do not show Interface sounds or Test sounds. | Player client | | |
+| 22.15 | Open the browser console during 22.4 to 22.10. | No errors or warnings from the module about audio. | Console | | |

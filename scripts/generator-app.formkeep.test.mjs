@@ -10,6 +10,7 @@ import { readdirSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import vm from "node:vm";
 import * as windowParts from "./window-parts.mjs";
+import * as sounds from "./sounds.mjs";
 import { progressView } from "./progress.mjs";
 import * as recentGenerations from "./recent-generations.mjs";
 
@@ -100,6 +101,9 @@ const generatorContext = Object.assign({}, ...await Promise.all(readdirSync(new 
 
 const mocks = {
   ...windowParts,
+  ...sounds,
+  interfaceSoundLevel: () => "off",
+  interfaceSoundVolume: () => 1,
   ...generatorContext,
   ...recentGenerations,
   progressView,

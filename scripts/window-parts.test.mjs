@@ -8,6 +8,7 @@ import { readFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import vm from "node:vm";
 import * as windowParts from "./window-parts.mjs";
+import * as sounds from "./sounds.mjs";
 
 if (!vm.SourceTextModule) {
   const run = spawnSync(process.execPath, ["--experimental-vm-modules", import.meta.filename], { stdio: "inherit" });
@@ -120,6 +121,14 @@ function makeElement(tag = "div") {
 const partElement = (partId, ...folds) => Object.assign(makeElement(), { dataset: { applicationPart: partId }, folds });
 
 const superCalls = [];
+// Interface sounds: the level the fake client has set, and every cue the app asked for.
+let soundLevelNow = "off";
+const cuesPlayed = [];
+const cueMocks = {
+  interfaceSoundLevel: () => soundLevelNow,
+  interfaceSoundVolume: () => 0.5,
+  playCue: (name, options) => { cuesPlayed.push([name, options.level, options.volume]); return 1; }
+};
 const context = vm.createContext({
   console: { log() {}, warn() {}, error() {}, debug() {} },
   document: { createElement: (tag) => makeElement(tag) },
@@ -156,7 +165,7 @@ await appModule.link((specifier) => {
     .filter((match) => match[2] === specifier).flatMap((match) => match[1].split(",").map((name) => name.trim()));
   return new vm.SyntheticModule(imports, function () {
     for (const name of imports) {
-      this.setExport(name, windowParts[name] ?? (name === "MODULE_ID" ? "simplysf2e"
+      this.setExport(name, cueMocks[name] ?? windowParts[name] ?? sounds[name] ?? (name === "MODULE_ID" ? "simplysf2e"
         : name === "ProviderSetupApp" ? class {} : (() => { throw new Error(`Unexpected dependency: ${name}`); })));
     }
   }, { context });
@@ -336,7 +345,7 @@ assert.match(fnBody(source, "async _setStep(key) {"), /await this\.render\(this\
 
   // SpfApp plays it from the result part only, and the Generator opts out of the after-run case.
   const base = sources.base ?? readFileSync(new URL("scripts/app-base.mjs", root), "utf8");
-  assert.match(base, /if \(partId === "result"\) this\._playResultArrival\(element\);/);
+  assert.match(base, /if \(partId === "result"\) \{\s*this\._playResultArrival\(element\);\s*this\._playResultCue\(element\);\s*\}/);
   assert.match(base, /this\._resultState = null;\s+\/\/ a new frame/);
   assert.match(base, /if \(arrives\) card\.classList\?\.add\("spf-arrive"\);/);
   assert.match(sources.generator, /static ARRIVE_AFTER_RUN = false;/);
@@ -428,6 +437,54 @@ assert.match(fnBody(source, "async _setStep(key) {"), /await this\.render\(this\
   const opens = ["welcome", "whats-new", "provider-setup", "sources", "manage-presets", "generator", "itemforge", "shop", "treasure"]
     .filter((name) => /static ARRIVE_ON_OPEN = true;/.test(read(`scripts/${name}-app.mjs`)));
   assert.deepEqual(opens, ["welcome", "whats-new"]);
+}
+
+// 10. Slice 6: interface sounds. The result part decides the cue; nothing
+// plays while the setting is off, and a cancelled run is not an error.
+{
+  const result = ({ kind = null, error = false } = {}) => ({
+    querySelector: (selector) => selector === ".spf-preview" ? (kind === null ? null : { dataset: kind === "card" ? {} : { result: kind }, classList: { add() {} } })
+      : selector === ".spf-error-notice" ? (error ? {} : null) : null
+  });
+  const render = (app, busy, shown) => { app._renderBusy = busy; app._playResultCue(result(shown)); };
+  const app = new SpfApp();
+  cuesPlayed.length = 0;
+
+  // Off: the state is still tracked, but nothing is played.
+  soundLevelNow = "off";
+  render(app, false, {});
+  render(app, true, {});
+  render(app, false, { kind: "preview" });
+  assert.deepEqual(cuesPlayed, []);
+
+  soundLevelNow = "quiet";
+  render(app, true, { kind: "preview" });                 // Create pressed on a preview
+  render(app, true, { kind: "preview" });                 // a re-render mid-run is silent
+  render(app, false, { kind: "created" });
+  render(app, false, { kind: "created" });                // idle re-render is silent
+  assert.deepEqual(cuesPlayed, [["start", "quiet", 0.5], ["created", "quiet", 0.5]]);
+
+  // A run that fails sounds the error cue; a run the GM cancelled does not.
+  cuesPlayed.length = 0;
+  render(app, true, { kind: "created" });
+  app._recordFailure(new Error("boom"), "generation", "boom");
+  render(app, false, { error: true });
+  render(app, true, {});
+  app._recordFailure(Object.assign(new Error("stopped"), { cancelled: true }), "generation", "stopped");
+  render(app, false, { error: true });
+  render(app, true, {});
+  render(app, false, { kind: "preview" });
+  assert.deepEqual(cuesPlayed.map(([name]) => name), ["start", "error", "start", "start", "ready"],
+    "the cancel is silent, and the next run is not muted by it");
+
+  // Item Forge, Shop and Treasure consume the draft on create: card, then nothing.
+  cuesPlayed.length = 0;
+  const shop = new SpfApp();
+  render(shop, false, { kind: "card" });
+  render(shop, true, { kind: "card" });
+  render(shop, false, {});
+  assert.deepEqual(cuesPlayed.map(([name]) => name), ["start", "created"]);
+  soundLevelNow = "off";
 }
 
 console.log("window-parts.test.mjs: parts config, body classes, fold carry, the persistent body and the console layout hold");
