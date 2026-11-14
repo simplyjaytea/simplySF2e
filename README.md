@@ -141,8 +141,8 @@ Choose a mode with the buttons at the top: **Monster**, **NPC**, **Encounter**, 
 
 Every mode except Reskin has three ways to start:
 
-- **Generate monster / Generate NPC / Generate encounter / Generate character** generates **and creates** the result in one step, as long as every required compendium pick is matched.
-- **Preview plan** generates the same thing but only shows a preview. Nothing is written to the world until you press **Create actor** (or **Create all actors** for an encounter). **Discard** throws the preview away.
+- **Create monster / Create NPC / Create encounter / Create character** generates **and creates** the result in one step, as long as every required compendium pick is matched.
+- **Preview first** generates the same thing but only shows a preview. Nothing is written to the world until you press **Create actor** (or **Create all actors** for an encounter). **Discard** throws the preview away.
 - The **dice button** ignores your description and rolls a surprise concept at the chosen level. It always stops at the preview.
 
 **Recent previews** keeps the last five previews you moved away from, so a paid AI run is not lost when you generate again. **Open** brings one back in its own mode so you can review or create it, and the **x** removes it. Creating an actor takes its preview off the list. The list lasts until Foundry reloads.
@@ -214,7 +214,7 @@ Reskin gives an existing NPC new fiction. Its numbers stay the same unless you c
 1. Choose **Reskin**, or right-click an NPC in the Actors sidebar and choose **Reskin**.
 2. Drag an NPC from the Actors sidebar or from a bestiary compendium onto the drop zone. Drop another one to replace it. Only NPC actors are accepted.
 3. Describe the new look under **Reskin theme**.
-4. Press **Reskin creature**, or **Preview plan** to review first.
+4. Press **Reskin and create**, or **Preview first** to review before anything is created.
 
 The AI writes a new name, a read-aloud description and Recall Knowledge text, and may rename strikes and abilities. **Create reskinned copy** creates a new actor. Without a level change, its statistics, rules, traits and items are copied unchanged. The copy always starts fresh: full Hit Points, no conditions or effects, and owned by the GM only, even when the source is a damaged, player-owned actor in your world. The original creature is not modified.
 

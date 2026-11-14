@@ -15,7 +15,7 @@ import { createActivationMacro } from "./macro-templates.mjs";
 import { SourcesConfigApp } from "./sources-app.mjs";
 import { gpToCredits } from "./currency.mjs";
 import { SpfApp } from "./app-base.mjs";
-import { windowPartsConfig } from "./window-parts.mjs";
+import { CONSOLE_HEIGHT, windowPartsConfig } from "./window-parts.mjs";
 import { progressView } from "./progress.mjs";
 import { getPacksFor, describeMissingSources } from "./compendium.mjs";
 import { jevKeySource } from "./jev.mjs";
@@ -58,7 +58,7 @@ export class ItemForgeApp extends SpfApp {
       icon: "fa-solid fa-gears",
       resizable: true
     },
-    position: { width: 720, height: "auto" },
+    position: { width: 720, height: CONSOLE_HEIGHT },
     actions: {
       generate: ItemForgeApp.#onGenerate,
       createItem: ItemForgeApp.#onCreateItem,

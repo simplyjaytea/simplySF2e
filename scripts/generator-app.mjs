@@ -38,7 +38,7 @@ import { verifyCreatedActor } from "./post-create.mjs";
 import { classSpellTradition, manualNotesContent, supportedClassCandidates, isCompletePCClass } from "./pc-support.mjs";
 import { validateArchetypeSlotPlacement } from "./pc-prerequisites.mjs";
 import { SpfApp } from "./app-base.mjs";
-import { windowPartsConfig } from "./window-parts.mjs";
+import { CONSOLE_HEIGHT, briefFoldContext, windowPartsConfig } from "./window-parts.mjs";
 import { progressView } from "./progress.mjs";
 import { jevKeySource } from "./jev.mjs";
 import { esc, escAi } from "./text.mjs";
@@ -81,9 +81,10 @@ export class GeneratorApp extends SpfApp {
       icon: "fa-solid fa-microchip",
       resizable: true
     },
-    position: { width: 720, height: "auto" },
+    position: { width: 720, height: CONSOLE_HEIGHT },
     actions: {
       generate: GeneratorApp.#onGenerate,
+      toggleBrief: GeneratorApp.#onToggleBrief,
       previewPlan: GeneratorApp.#onPreviewPlan,
       generateRandom: GeneratorApp.#onGenerateRandom,
       createActor: GeneratorApp.#onCreateActor,
@@ -117,6 +118,9 @@ export class GeneratorApp extends SpfApp {
 
   static WINDOW_ID = "generator";
 
+  /** The draft is on screen while a run works and a reroll changes one row, so only a new kind of card arrives. */
+  static ARRIVE_AFTER_RUN = false;
+
   /** status, brief and result (window-parts.mjs); the body element that holds them scrolls. */
   static PARTS = windowPartsConfig("generator", MODULE_ID);
 
@@ -139,6 +143,9 @@ export class GeneratorApp extends SpfApp {
   #busyMessage = null;
   #error = null;
   #readinessOpen = false;
+  /** Brief fold (window-parts.mjs `briefFoldContext`): whether the last idle render had a result, and the GM's own toggle since the last run. */
+  #briefAuto = null;
+  #briefOverride = null;
   #concept = null;
   #resolved = null;
   /** Encounter mode result: {name, budget, spent, members: [...]}. */
@@ -277,7 +284,7 @@ export class GeneratorApp extends SpfApp {
     }) : null;
     const presetGroups = presetPickerGroups(this.#input.preset, getCustomPresets());
     this.#input.preset = presetGroups.selectedId;
-    return {
+    const context = {
       input: this.#input,
       busy: this.#busy,
       busyMessage: this.#busyMessage,
@@ -370,6 +377,9 @@ export class GeneratorApp extends SpfApp {
         && !(this.#input.mode === "character" && this.#pcConcept)
         && !(this.#input.mode === "reskin" && this.#reskinFlavor)
     };
+    context.briefFold = briefFoldContext(context, { auto: this.#briefAuto, override: this.#briefOverride });
+    if (!this.#busy) this.#briefAuto = context.briefFold.hasResult;
+    return context;
   }
 
   #buildReskinPreviewContext() {
@@ -746,6 +756,35 @@ export class GeneratorApp extends SpfApp {
       input.reskinLevel = this.#reskinTargetLevel();
     }
     return this._copyBugReport("Generator", input);
+  }
+
+  /**
+   * Fold or unfold the brief by hand. Only classes and text change, so the
+   * form keeps its values and focus and nothing is re-rendered. The choice
+   * holds until the next run or create ends (`#endBusy`).
+   */
+  static #onToggleBrief(_event, target) {
+    const brief = target?.closest?.(".spf-inputs");
+    if (!brief) return;
+    const collapsed = !brief.classList.contains("spf-brief-collapsed");
+    this.#briefOverride = collapsed;
+    brief.classList.toggle("spf-brief-collapsed", collapsed);
+    target.setAttribute("aria-expanded", String(!collapsed));
+    const body = brief.querySelector(".spf-brief-body");
+    if (collapsed) {
+      // The summary line repeats what the form holds now, not what it held at the last render.
+      const prompt = brief.querySelector("[name='prompt']")?.value?.trim() ?? "";
+      const level = brief.querySelector("[name='level']")?.value;
+      const promptLine = brief.querySelector(".spf-brief-prompt");
+      if (promptLine) promptLine.textContent = prompt;
+      const levelValue = brief.querySelector(".spf-brief-level-value");
+      if (levelValue && level !== undefined && level !== "") levelValue.textContent = level;
+    } else if (body) {
+      // Motion "unfold": the form fades in once; the class restarts the animation on each open.
+      body.classList.remove("spf-unfold");
+      void body.offsetWidth;
+      body.classList.add("spf-unfold");
+    }
   }
 
   static async #onGenerate() {
@@ -2086,6 +2125,7 @@ export class GeneratorApp extends SpfApp {
   #endBusy({ finishRun = false } = {}) {
     this.#busy = false;
     this.#busyMessage = null;
+    this.#briefOverride = null;   // a finished run or create puts the brief back on automatic
     if (finishRun) this._finishRun();
   }
 

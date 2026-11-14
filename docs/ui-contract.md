@@ -242,3 +242,16 @@ Templates: `templates/_progress.hbs`, `templates/welcome.hbs`. Supply in: `progr
 | `progress.totalElapsed` (new) | string | The done steps' `elapsedMs` summed and formatted; `""` before the first step finishes. Supplied for later use; not rendered on the card (the card's other lines are unchanged). | `generator-busy-progress`: `"1 m 18 s"` |
 
 The active step shows `SIMPLYSF2E.Progress.Running` ("running"), not a ticking time: a stream tick only patches the bar and the detail line (`_paintProgress`), and nothing re-renders the card on a timer. A step change also patches in place (`SpfApp._paintStepList` in `scripts/app-base.mjs`), so that method writes the same value (`stepElapsed(step)` or the running label) into `.spf-step-elapsed`. The Welcome connecting list has no timing data (WelcomeApp renders once when the check starts and once when it ends), so its first line shows the same "running" status value and the others stay dots.
+
+## UI revamp slice 3: brief fold and result arrival (2026-11-14)
+
+Generator only. Built by `briefFoldContext(context, { auto, override })` in `scripts/window-parts.mjs`, which the fixtures call too.
+
+| Field | Type | Meaning | Fixture values |
+| --- | --- | --- | --- |
+| `briefFold.foldable` | boolean | The fold line is rendered: the active mode shows a result (or a run began with one), and the mode is not Reskin. | `false` (`generator-empty-monster`, every Reskin fixture), `true` (`generator-monster-preview`) |
+| `briefFold.collapsed` | boolean | The form is folded to its one line. `foldable` and not opened by hand. | `true` (`generator-monster-preview`), `false` (`generator-brief-opened`) |
+| `briefFold.hasResult` | boolean | A preview, a completion card or a character review is in the context. Kept by the app as the next run's `auto`. | not read by the template |
+
+- The fold is a class (`spf-brief-collapsed`) on the brief's `<fieldset>` and a `<button data-action="toggleBrief" aria-expanded>`; the fields stay in the form. `toggleBrief` changes classes and the summary text only, never renders, and stores the choice in `#briefOverride` until `#endBusy`.
+- Each result card carries `data-result` (`preview`, `encounter`, `character`, `reskin`, `created`, `review`; Forge, Shop and Treasure cards have none and count as `card`). `SpfApp._playResultArrival` reads it after every render of the result part.

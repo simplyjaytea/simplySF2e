@@ -35,11 +35,17 @@ Read first: `references/anti-slop-checklist.md` in this folder (what generic AI-
 
 Generator, Item Forge, Shop and Treasure are three template parts each: `status` (the shared strip), `brief` (the form, root `<fieldset>`), `result` (progress, error, previews, empty state). `scripts/window-parts.mjs` lists them. Each part template has exactly one root element; the status and result roots are `.spf-part` wrappers that take no box (`display: contents`), so their children lay out as children of `.spf-window-body`. A new `<details>` in a brief or result needs a `data-fold="name"`, or it closes on every re-render. The body element and its classes (mode, busy) are created in JavaScript, not in a template.
 
+## Console layout and motion
+
+The tool windows open at a fixed height (`CONSOLE_HEIGHT`) and scroll inside the body. The form's run row and a result card's footer are pinned to the bottom edge (`position: sticky`), so keep the one primary action in those two places. `.window-content` carries two container names: query `spf-window` for "how wide is the space this layout has" (in a window 900 px or wider each pane is its own `spf-window`), and `spf-frame` only for rules about the whole window (the one-line status, the two panes). The Generator's form folds to one line once a result shows (`briefFoldContext` in `scripts/window-parts.mjs`); anything the GM must always see (a warning, a required choice) goes outside `.spf-brief-body` or in a mode that never folds.
+
+Motion that plays once uses the tokens `--spf-motion-fast`, `--spf-motion`, `--spf-ease-out` and `--spf-rise`, animates only `transform` and `opacity`, is started by a class the app adds (never by a rule that matches on every render, or it replays on each click) and is switched off in the file's reduced-motion block. Nothing waits for an animation. No staggered lists, no idle loops.
+
 ## Harness caveats to remember
 
 - No Foundry core CSS: judge layout, wrapping, overflow and tokens, not typography (the world uses Signika).
 - No module JavaScript runs: tooltips, `_onRender` listeners and focus management are invisible; open the saved `.html` in a browser for hover and focus checks.
-- The harness lifts the `80vh` body cap so nothing is hidden; the `-short` render puts it back.
+- The harness shows each window at its full content height so nothing is hidden; the `-short` render squeezes it to 360 px, which is where the pinned action bars show. It freezes animation and adds no app classes, so arrive and unfold are never in a PNG.
 - A template key missing from a fixture fails the run on purpose: the real builders return every key, so a missing key means a silent blank in a world.
 - Playwright must be pinned (`playwright@1.64.1`); `npm install` without `--no-save` drops it, and `tools/release-check.sh` does exactly that. Reinstall and run `node shoot.mjs` directly if release-check reports `Cannot find module 'playwright'`.
 

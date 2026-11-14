@@ -1,4 +1,4 @@
-<fieldset class="spf-inputs spf-card" {{#if busy}}disabled{{/if}}>
+<fieldset class="spf-inputs spf-card{{#if briefFold.collapsed}} spf-brief-collapsed{{/if}}" {{#if busy}}disabled{{/if}}>
   <legend>
     {{#if encounterMode}}
       {{localize "SIMPLYSF2E.Generator.EncounterLegend"}}
@@ -34,6 +34,20 @@
       <i aria-hidden="true" class="fa-solid fa-masks-theater"></i> {{localize "SIMPLYSF2E.Mode.Reskin"}}
     </label>
   </div>
+  {{! Once a result is on screen the form folds to this one line, so the
+      result gets the window (never in Reskin mode: see briefFoldContext).
+      The fields stay in the form; the fold only hides them. In a window
+      wide enough for two panes the form always shows and this line is hidden. }}
+  {{#if briefFold.foldable}}
+  <button type="button" class="spf-brief-summary" data-action="toggleBrief" aria-expanded="{{#if briefFold.collapsed}}false{{else}}true{{/if}}" aria-controls="spf-generator-brief-body">
+    <i aria-hidden="true" class="fa-solid fa-chevron-right spf-brief-chevron"></i>
+    <span class="spf-brief-level">{{#if encounterMode}}{{localize "SIMPLYSF2E.Generator.PartyLevel"}}{{else}}{{localize "SIMPLYSF2E.Generator.Level"}}{{/if}} <span class="spf-brief-level-value">{{input.level}}</span></span>
+    <span class="spf-brief-prompt">{{input.prompt}}</span>
+    <span class="spf-brief-edit">{{localize "SIMPLYSF2E.Generator.BriefEdit"}}</span>
+    <span class="spf-brief-hide">{{localize "SIMPLYSF2E.Generator.BriefHide"}}</span>
+  </button>
+  {{/if}}
+  <div class="spf-brief-body" id="spf-generator-brief-body">
   {{#if reskinMode}}
   <div class="spf-reskin-drop{{#if reskinSource}} spf-reskin-has-source{{/if}}" data-reskin-drop aria-describedby="spf-reskin-drop-hint">
     {{#if reskinSource}}
@@ -263,6 +277,7 @@
     </div>
   </details>
   {{/unless}}
+  </div>
   <div class="spf-generate-row">
     <button type="button" class="{{#if preview}}spf-secondary{{else if encounterPreview}}spf-secondary{{else if pcPreview}}spf-secondary{{else if reskinPreview}}spf-secondary{{else if created}}spf-secondary{{else if characterReview}}spf-secondary{{else}}spf-primary{{/if}}" data-action="generate" {{#if busy}}disabled{{/if}}>
       <i aria-hidden="true" class="fa-solid fa-bolt"></i>

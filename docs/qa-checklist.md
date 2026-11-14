@@ -49,7 +49,7 @@ Repeat 2.1-2.7 for **Level 1**, **Level 5** and **Level 12**. Use the same promp
 
 | # | Step | Expected | Where to look | Result | Evidence |
 |---|------|----------|---------------|--------|----------|
-| 2.1 | Generator → mode **NPC** (or **Monster**). Set Level (Increase/Decrease level buttons). Enter the prompt. Leave Monster Adjustment = Normal. Click **Generate NPC** (**Generate monster** in Monster mode). | Progress bar advances monotonically through concept, spells/abilities/equipment steps as applicable. A preview appears; nothing is created yet. | Generator preview | | |
+| 2.1 | Generator → mode **NPC** (or **Monster**). Set Level (Increase/Decrease level buttons). Enter the prompt. Leave Monster Adjustment = Normal. Click **Create NPC** (**Create monster** in Monster mode). | Progress bar advances monotonically through concept, spells/abilities/equipment steps as applicable. A preview appears; nothing is created yet. | Generator preview | | |
 | 2.2 | Read the preview: level, AC, HP, Perception, Fort/Ref/Will, strikes. | Level equals the requested level. The "N/M compendium matches" line is shown; unmatched entries show the "will be skipped" warning icon. | Preview | | |
 | 2.3 | Click **Create actor**. | Notification "Created actor "{name}"." and the completion panel (Content grounding counts). **Open sheet** works. | Notification, completion panel | | |
 | 2.4 | On the sheet, AC, HP, saves, Perception. | Roughly within the GM Core ranges for that level. Record: AC `__`, HP `__`, Fort/Ref/Will `__`, Perception `__`. | NPC sheet header and Main tab | | |
@@ -91,7 +91,7 @@ Use one prompt at level 5. The goal is to prove the adjustment is applied once (
 
 | # | Step | Expected | Where to look | Result | Evidence |
 |---|------|----------|---------------|--------|----------|
-| 4.1 | Generator → mode **Encounter**. Party level 3, Party size 4, Threat **Moderate**. Optionally enter a theme. Click **Generate encounter**. | Progress shows "Encounter design" then "Member i/N" steps. A plan appears with roles (Boss, Minion, etc.) and per-member counts. | Generator preview | | |
+| 4.1 | Generator → mode **Encounter**. Party level 3, Party size 4, Threat **Moderate**. Optionally enter a theme. Click **Create encounter**. | Progress shows "Encounter design" then "Member i/N" steps. A plan appears with roles (Boss, Minion, etc.) and per-member counts. | Generator preview | | |
 | 4.2 | Read the XP readout and treasure readout. | Total XP at or near the Moderate budget for the party (80 XP at party size 4); within-budget styling when under. Treasure in credits with thousands separators. | Preview | | |
 | 4.3 | Use "Add one" / "Remove one" on a member. | XP readout updates; "Remove one" at 0 skips that creature. | Preview | | |
 | 4.4 | Preview with Threat Trivial, Severe, Extreme and with party size 5. | Member counts and XP scale with threat and party size. Record XP: `__ / __ / __ / __`. | Preview | | |
@@ -107,10 +107,10 @@ Use one prompt at level 5. The goal is to prove the adjustment is applied once (
 | # | Step | Expected | Where to look | Result | Evidence |
 |---|------|----------|---------------|--------|----------|
 | 5.1 | Generator → mode **Reskin**. | "Reskin an existing creature" panel with "Drag an NPC here from the Actors sidebar or a bestiary compendium." | Generator | | |
-| 5.2 | Click **Reskin creature** with nothing dropped. | Warning "Drop an NPC onto the Reskin panel first." | Notification | | |
+| 5.2 | Click **Reskin and create** with nothing dropped. | Warning "Drop an NPC onto the Reskin panel first." | Notification | | |
 | 5.3 | Drag a world NPC (with strikes, abilities and at least one rule/effect) from the Actors sidebar onto the panel. | Panel shows the creature name and "Creature {level}". | Drop panel | | |
 | 5.4 | Drag a **character** onto the panel. | Rejected: "Only NPC creatures can be reskinned." | Notification | | |
-| 5.5 | Re-drop the NPC. Enter a theme (e.g. "a void-touched pirate enforcer who boards ships through airlocks"). Click **Reskin creature**. | Preview shows new description, "Read aloud", "Recall Knowledge", and "Renamed strikes and abilities" (or "No strikes or abilities were renamed."). Line shown: "Statistics, rules, traits, and items are copied unchanged. The original creature is not modified." | Preview | | |
+| 5.5 | Re-drop the NPC. Enter a theme (e.g. "a void-touched pirate enforcer who boards ships through airlocks"). Click **Reskin and create**. | Preview shows new description, "Read aloud", "Recall Knowledge", and "Renamed strikes and abilities" (or "No strikes or abilities were renamed."). Line shown: "Statistics, rules, traits, and items are copied unchanged. The original creature is not modified." | Preview | | |
 | 5.6 | Click **Create reskinned copy**. | A new actor appears; the original is untouched. | Actors directory | | |
 | 5.7 | Compare original and copy: level, AC, HP, saves, Perception, skills, speeds, IWR, traits, item count. | All identical. | Both sheets | | |
 | 5.8 | Compare items (Actions, Inventory, Spells). | Same item set. Only renamed strikes/abilities have new names; prose is new. | Both sheets | | |
@@ -180,7 +180,7 @@ Open the Forge from the Items tab **Item Forge** button. Pick the **Item type**,
 
 ## 7. Player Characters (all eight classes)
 
-Run each class at **level 1** and at one higher level (use **5**; record the level used). Mode **Character**. Pick the class preset (Envoy, Mystic, Operative, Solarian, Soldier, Witchwarper) or name the class in the prompt (Mechanic and Technomancer have no preset), set Level, click **Generate character**. Leave the Free Archetype setting off.
+Run each class at **level 1** and at one higher level (use **5**; record the level used). Mode **Character**. Pick the class preset (Envoy, Mystic, Operative, Solarian, Soldier, Witchwarper) or name the class in the prompt (Mechanic and Technomancer have no preset), set Level, click **Create character**. Leave the Free Archetype setting off.
 
 | Class | L1 PASS/FAIL | L5 PASS/FAIL | Notes / evidence |
 |-------|--------------|--------------|------------------|
@@ -207,7 +207,7 @@ Per class and level:
 | 7.8 | Equipment. | Gear priced in credits; armor/weapon readied only if trained, else a Loadout note (e.g. "An untrained armor item was left stowed."). | Inventory | | |
 | 7.9 | Class path items: Operative specialization skill feat and Sniper bonus feat chosen without a native prompt; Solarian has Solar Manifestations. | Cited L1 choices closed before creation; none blank. | Feats, Actions | | |
 | 7.10 | Level 18 character, Treasure amount Standard, no named loot picks. Create it, then add up the prices of all inventory items except the Credstick. | Credstick credits plus that sum is about 450,000 credits (45,000 gp), not about 100,000 credits plus the gear. | Character inventory | | |
-| 7.11 | Character preview on screen, clear the prompt, press **Generate another version**. | Only the "enter a prompt" warning appears. No actor is created and the old preview stays. | Character preview, Actors sidebar | | |
+| 7.11 | Character preview on screen, clear the prompt, press **Create another version**. | Only the "enter a prompt" warning appears. No actor is created and the old preview stays. | Character preview, Actors sidebar | | |
 | 7.12 | Level 1 character whose gear costs more than 150 credits (generate, then add up the equipment prices). | The sheet has no Credstick from loot. The browser console shows one warning that the drafted coin was dropped. | Character inventory, console | | |
 
 ### 7a. Mystic and Witchwarper spellcasting (both levels)
@@ -442,7 +442,7 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 | # | Do | Expect | Where | Pass | Notes |
 | --- | --- | --- | --- | --- | --- |
 | 12m.1 | Set the Generator to about 460 px wide. | The five modes sit on one row, icon above label; "Player Character" wraps to two lines inside its own segment and no label breaks mid-word. | Generator | | |
-| 12m.2 | Encounter and Character modes at the same width. | The Generate button label stays on one line; Preview plan drops to a second line if there is no room. | Generator | | |
+| 12m.2 | Encounter and Character modes at the same width. | The Generate button label stays on one line; Preview first drops to a second line if there is no room. | Generator | | |
 | 12m.3 | Item Forge at about 460 px. | Kind tiles sit two per row, so Generate and the preview are higher up. | Item Forge | | |
 | 12m.4 | Shrink the Generator under about 400 px. | Modes wrap into a grid again without overflow. | Generator | | |
 
@@ -490,8 +490,8 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 
 | # | Do | Expect | Where | Pass | Notes |
 | --- | --- | --- | --- | --- | --- |
-| 12r.1 | Generate a monster, then drag the Generator window's bottom edge up to about a third of the screen. | The window body scrolls with the mouse wheel down to the stat block's end. Create actor, Reroll loot (when the preview has loot) and Discard sit at the end of the preview and scroll with it. | Generator | | |
-| 12r.2 | Do the same with an Item Forge preview, AI Provider Setup, Manage presets (with several presets) and Compendium Sources. | Each window scrolls to its last field and its button row at the end. Only Sources keeps Save and Reset pinned at the bottom edge. Nothing is cut off. | Each window | | |
+| 12r.1 | Generate a monster, then drag the Generator window's bottom edge up to about a third of the screen. | The window body scrolls with the mouse wheel down to the stat block's end. Create actor, Reroll loot (when the preview has loot) and Discard stay pinned at the window's bottom edge while the preview is in view (changed 2026-11-14, see 19.3). | Generator | | |
+| 12r.2 | Do the same with an Item Forge preview, AI Provider Setup, Manage presets (with several presets) and Compendium Sources. | Each window scrolls to its last field. Item Forge pins its preview's button row like the Generator (19.3); Provider Setup and Manage presets keep their button row at the end; Sources keeps Save and Reset pinned. Nothing is cut off. | Each window | | |
 | 12r.3 | Shrink the Foundry browser window to a short height (about 600 px) and open each window fresh. | No window runs past the screen with unreachable content; each scrolls inside. In Sources, tabbing through the list never leaves the focused checkbox hidden under the pinned Save/Reset row, and Load models in Provider Setup keeps your scroll place. | Each window | | |
 | 12r.4 | With the Foundry browser window short (about 600 px), open Manage presets, then New Preset, then Import. | Both dialogs scroll to their Save/Import button; nothing is cut off. | Preset dialogs | | |
 | 12r.5 | Pick a connection or model with a long name, then hover the name, the model id and the last-run cost in both the Generator and the Item Forge status strip. | Each shows its full text in a tooltip when it is cut short with "...". | Generator, Item Forge | | |
@@ -706,7 +706,7 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 | --- | --- | --- | --- | --- | --- |
 | 13j.1 | In Reskin mode drop a level 3 bestiary NPC. | **New level** shows 3 and no table. | Generator | | |
 | 13j.2 | Press + until it shows 7. | A table lists AC, Max HP, Perception, saves, each strike and its damage, and Spell DC for casters, with the scale and the level 3 and level 7 values. | Generator | | |
-| 13j.3 | Write a theme and press **Preview plan**, then **Create reskinned copy**. | The preview header says Creature 7 and the note says the copy moved to level 7. The new actor's sheet shows level 7 and the numbers from the table; the original is unchanged. | Generator, new actor sheet | | |
+| 13j.3 | Write a theme and press **Preview first**, then **Create reskinned copy**. | The preview header says Creature 7 and the note says the copy moved to level 7. The new actor's sheet shows level 7 and the numbers from the table; the original is unchanged. | Generator, new actor sheet | | |
 | 13j.4 | On the new sheet, roll a strike and open a spell. | The attack bonus and damage match the table; spells keep their original ranks. | New actor sheet | | |
 | 13j.5 | Set the level back to the original and create a copy. | The copy keeps every number of the original (plain Reskin). | Generator | | |
 
@@ -714,7 +714,7 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 
 | # | Do | Expect | Where | Pass | Notes |
 | --- | --- | --- | --- | --- | --- |
-| 13k.1 | Generate a Severe encounter for a party of 5 with **Preview plan** and watch the progress list. | Creatures finish in a few overlapping waves instead of one after another; the run takes noticeably less time than before. | Generator | | |
+| 13k.1 | Generate a Severe encounter for a party of 5 with **Preview first** and watch the progress list. | Creatures finish in a few overlapping waves instead of one after another; the run takes noticeably less time than before. | Generator | | |
 | 13k.2 | Press Cancel while creatures are building. | Every creature stops; no preview and no actors. | Generator | | |
 | 13k.3 | Create the encounter. | Every member is created in the encounter folder, each with its own stats and gear. | Actors sidebar | | |
 
@@ -918,7 +918,7 @@ Generate a level 7 NPC with a limited cone breath (name "Frost Breath", cold), a
 | 15.24 | Monster preview with abilities that have descriptions; Encounter with no party; Reskin re-level at a narrow width. | The reroll die sits on the ability's name line. The no-party note and the re-level hint each take their own line under the control. | Generator | | |
 | 15.25 | Any run: watch the progress card. Welcome with no model chosen. | Steps are left-aligned. The disabled Connect button has an intact edge. | Progress card, Welcome | | |
 | 15.26 | Shop, Treasure, Item Forge with a preview on screen. | The token count shows once (in the Token usage fold), not also in the header strip. | Tool windows | | |
-| 15.27 | Read every button in every window. | Sentence case throughout ("Generate monster", "Create all actors", "Load models"). | All windows | | |
+| 15.27 | Read every button in every window. | Sentence case throughout ("Create monster", "Create all actors", "Load models"). | All windows | | |
 | 15.28 | Open What's new (`/sf2e whatsnew`). | Each note is a title with 2 to 5 bullets; "Fixes and a tidier setup" and "Tidier windows" are at the top; older notes sit under Earlier changes. | What's new | | |
 | 15.29 | Use a provider or model that rejects `stream_options` or `reasoning_effort` (an older OpenAI-compatible server); generate twice with the network tab open. | The first request negotiates (up to three POSTs); every later request to the same endpoint and model is one POST. A different model starts fresh. | Browser network tab | | |
 | 15.30 | Start a Monster run and cancel while text is streaming; then let a run hit the idle timeout (stop the local server mid-stream). | The token line counts the tokens that streamed before the stop (marked as an estimate). A dropped connection shows the network error message, not a raw browser error. | Token usage fold, error box | | |
@@ -973,3 +973,32 @@ No visual change is intended. Generator, Item Forge, Shop and Treasure render th
 | 18.10 | One full run in each mode: Monster, NPC, Encounter (one-click Generate creates the actors), Character, Reskin with a re-level. | Each run behaves as in v0.1.16, including the progress card's step list, times and the sheen moving across the bar. | Generator | | |
 | 18.11 | Generate and create one item in Item Forge, one shop and one hoard. | Each previews and creates as in v0.1.16. | Item Forge, Shop, Treasure | | |
 | 18.12 | Tab through the Generator from the connection select to Create. | Focus order follows the screen: strip, form, preview, buttons. A screen reader announces each progress step once. | Generator | | |
+
+## 19. UI revamp slice 3: console layout, honest labels, first motion (2026-11-14)
+
+The four tool windows open at a fixed height (700 px, resizable) and scroll inside it. The action bar of the card in view stays pinned to the bottom edge. The Generator's main button is renamed to say that it creates in one step. Button names in older rows of this checklist were updated to match.
+
+| ID | Step | Expected | Where | Result | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 19.1 | Open each of the four tool windows. | Each opens 720 px wide and about 700 px tall (less on a short screen, never off screen). The window can be resized taller, shorter and wider, and the body scrolls inside it. | All four tool windows | | |
+| 19.2 | Generate anything, then generate again with a longer or shorter result. | The window frame does not change size or move when the result appears or changes. | All four tool windows | | |
+| 19.3 | With a long preview on screen, scroll through it. | Create, Reroll loot and Discard stay pinned at the bottom edge while the card is in view. Text scrolls under the bar without showing through it. Nothing is left under the bar at the very end. | Generator, Item Forge, Shop, Treasure | | |
+| 19.4 | Open Advanced options in a short window (drag it to about 400 px tall). | The run row (Create monster, Preview first, the die) stays pinned at the bottom while the form is in view. Every field can still be reached by scrolling. | Generator | | |
+| 19.5 | Tab through a long preview from top to bottom. | A focused control is never hidden under the pinned bar. | Generator | | |
+| 19.6 | Read the status strip at the default width, then drag the window under 600 px wide. | At 720 px the connection, model, test and setup buttons and the Compendium and Jev marks share one row (a "Last run" line may wrap under the model). Under 600 px the readiness row sits on its own line with the words Ready and On. | All four tool windows | | |
+| 19.7 | Click the Compendium and Jev marks in the strip. | The readiness detail opens on its own full row with both gear buttons, and closes again. A missing source still shows as full warning rows, never folded. | All four tool windows | | |
+| 19.8 | In Monster mode type a prompt and press **Create monster**. | The actor is created in one step, as "Generate monster" did before. The empty panel's text says so: Create makes the actor in one step, Preview first shows it and creates nothing until confirmed. | Generator | | |
+| 19.9 | Press **Preview first** in each mode. | A preview appears and nothing is created until **Create actor**, **Create all actors** or **Create reskinned copy** is pressed. | Generator | | |
+| 19.10 | Read the main button in each mode, then with a preview on screen. | Create monster, Create NPC, Create encounter, Create character, Reskin and create; with a preview: Create another version. Item Forge still reads Generate and Generate another version, because it always previews first. | Generator, Item Forge | | |
+| 19.11 | Press **Preview first** in Monster mode. | When the preview arrives the form folds to one line: the level and the start of the description, then Edit. The mode tiles and the run row stay visible. | Generator | | |
+| 19.12 | Press the folded line, change the prompt, press it again. | The form opens with a short fade and the handle reads Hide form. Folding it again shows the new prompt text on the line. No field loses its value. | Generator | | |
+| 19.13 | With the form folded, press **Create another version**. | The run uses the values in the folded form. The form stays folded while the progress card shows. | Generator | | |
+| 19.14 | Open the folded form by hand, then run again. | The form stays open during the run and folds when the new result arrives. | Generator | | |
+| 19.15 | Discard the preview; switch to a mode with no result; cause an error (wrong key). | In each case the form is open again. | Generator | | |
+| 19.16 | Reskin mode: drop an NPC, change its level, press **Preview first**. | The form never folds in Reskin mode: the source, the re-level table and any "kept at the old level" line stay visible above the preview. | Generator | | |
+| 19.17 | Drag the Generator wider than about 900 px, with and without a preview. | The status strip spans the top, the form is on the left and the result on the right. The form is always open and the fold line is gone. Dragging it narrow again restores one column and the fold. | Generator | | |
+| 19.18 | Do the same in Item Forge, Shop and Treasure. | Same two panes. The shop and hoard tables use the right pane's width. | Item Forge, Shop, Treasure | | |
+| 19.19 | Watch a result appear: a preview, then the "created" card after Create. | The card rises a few pixels and fades in once, in about a fifth of a second. Pressing + or - on an encounter member, removing a shop row or rerolling one pick does not replay it. | All four tool windows | | |
+| 19.20 | Close the Generator with a preview on screen and open it again. | The stored preview is shown at once, without the rise. | Generator | | |
+| 19.21 | Turn on the operating system's reduced motion setting and repeat 19.12 and 19.19. | No rise, no fade, and the fold arrow does not rotate with a transition. Everything else works the same. | Generator | | |
+| 19.22 | Compare Create, Discard and the run row with v0.1.16 for click speed. | No click waits for an animation. | All four tool windows | | |

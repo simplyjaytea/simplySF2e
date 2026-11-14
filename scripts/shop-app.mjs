@@ -13,7 +13,7 @@ import { moveToGeneratedFolder } from "./folders.mjs";
 import { SourcesConfigApp } from "./sources-app.mjs";
 import { gpToCredits } from "./currency.mjs";
 import { SpfApp } from "./app-base.mjs";
-import { windowPartsConfig } from "./window-parts.mjs";
+import { CONSOLE_HEIGHT, windowPartsConfig } from "./window-parts.mjs";
 import { progressView } from "./progress.mjs";
 import { jevKeySource } from "./jev.mjs";
 
@@ -42,7 +42,7 @@ export class ShopApp extends SpfApp {
       icon: "fa-solid fa-store",
       resizable: true
     },
-    position: { width: 720, height: "auto" },
+    position: { width: 720, height: CONSOLE_HEIGHT },
     actions: {
       generate: ShopApp.#onGenerate,
       createShop: ShopApp.#onCreateShop,

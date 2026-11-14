@@ -25,3 +25,4 @@ Appended by the coordinator when a batch lands on `next`; copied into the PR bod
 | R4-BATCH (2026-11-10) | 16.1-16.13; 14h.1 examples reworded | 2026-11-10-kept-work |
 | UI revamp slice 1 (2026-11-14) | 17.1-17.6 | none (no GM-visible change) |
 | UI revamp slice 2 (2026-11-14) | 18.1-18.12 | 2026-11-14-steadier-windows |
+| UI revamp slice 3 (2026-11-14) | 19.1-19.22; button names updated across the checklist (Create monster, Preview first, Reskin and create) | 2026-11-14-console-layout |

@@ -24,7 +24,7 @@ import {
 } from "./progress.mjs";
 import { coarsenTokenEstimate, lastRunTokenTotal } from "./tokens.mjs";
 import { formatCost, runCost } from "./cost.mjs";
-import { carryOpenFolds, windowBodyClassName } from "./window-parts.mjs";
+import { carryOpenFolds, resultArrives, windowBodyClassName } from "./window-parts.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -86,6 +86,9 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
    * `.spf-window-body` element; null keeps Foundry's own single-root layout.
    */
   static WINDOW_ID = null;
+
+  /** Whether a result card that a finished run replaced in place plays its arrival (window-parts.mjs `resultArrives`). */
+  static ARRIVE_AFTER_RUN = true;
   /** Class attribute of the body element for the render in progress. */
   _bodyClassName = "spf-window-body";
   /** Exact token usage per AI call of the last generation: [{label, usage}]. */
@@ -308,6 +311,7 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
   async _renderHTML(context, options) {
     const windowId = this.constructor.WINDOW_ID;
     if (windowId) this._bodyClassName = windowBodyClassName(windowId, context);
+    this._renderBusy = Boolean(context?.busy);
     return super._renderHTML(context, options);
   }
 
@@ -324,6 +328,7 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!body) {
       body = document.createElement("div");
       content.replaceChildren(body);
+      this._resultState = null;   // a new frame: a stored result is shown, it does not arrive
     }
     body.className = this._bodyClassName;
     for (const [partId, element] of Object.entries(result)) {
@@ -345,10 +350,24 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
    * Subclasses extend it and call super.
    */
   _onPartRendered(partId, element) {
+    if (partId === "result") this._playResultArrival(element);
     if (partId !== "status") return;
     element.querySelector?.("[name='activeConnection']")?.addEventListener("change", (event) =>
       this._switchActiveConnection(event.currentTarget.value)
     );
+  }
+
+  /**
+   * Motion "arrive": the result card rises in once when it comes on screen
+   * (`resultArrives`). The class only starts a CSS animation (transform and
+   * opacity, off under reduced motion); nothing waits for it.
+   */
+  _playResultArrival(element) {
+    const card = element.querySelector?.(".spf-preview") ?? null;
+    const now = { busy: Boolean(this._renderBusy), kind: card ? (card.dataset?.result || "card") : "" };
+    const arrives = resultArrives(now, this._resultState ?? null, { afterRun: this.constructor.ARRIVE_AFTER_RUN });
+    this._resultState = now;
+    if (arrives) card.classList?.add("spf-arrive");
   }
 
   _onRender(context, options) {

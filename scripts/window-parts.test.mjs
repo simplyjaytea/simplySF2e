@@ -42,7 +42,7 @@ for (const windowId of Object.keys(WINDOW_PARTS)) {
   const read = (partId) => readFileSync(new URL(`templates/${windowId}-${partId}.hbs`, root), "utf8");
   assert.match(read("status"), /<div class="spf-part spf-part-status">\s*\{\{> simplysf2e-statusbar /);
   assert.match(read("result"), /<div class="spf-part spf-part-result">/);
-  assert.match(read("brief").trimStart(), /^<fieldset class="spf-inputs spf-card" \{\{#if busy\}\}disabled\{\{\/if\}\}>/);
+  assert.match(read("brief").trimStart(), /^<fieldset class="spf-inputs spf-card(?:\{\{#if briefFold\.collapsed\}\} spf-brief-collapsed\{\{\/if\}\})?" \{\{#if busy\}\}disabled\{\{\/if\}\}>/);
 }
 assert.match(readFileSync(new URL("styles/simplysf2e.css", root), "utf8"), /\.simplysf2e \.spf-part\s*\{\s*display:\s*contents;\s*\}/,
   "a part wrapper must take no box, so the body lays its children out as before");
@@ -302,4 +302,100 @@ assert.match(fnBody(source, "async _setStep(key) {"), /await this\.render\(this\
     "the busy flag changes only in #beginBusy and #endBusy");
 }
 
-console.log("window-parts.test.mjs: parts config, body classes, fold carry and the persistent body hold");
+// --- 8. Console layout: brief fold, arrival, fixed height, pinned bars ----------
+{
+  const { CONSOLE_HEIGHT, briefFoldContext, resultArrives } = windowParts;
+
+  // The brief folds once the active mode shows a result, and only then.
+  assert.deepEqual(briefFoldContext({}), { foldable: false, collapsed: false, hasResult: false });
+  for (const key of ["preview", "encounterPreview", "pcPreview", "created", "characterReview"]) {
+    assert.deepEqual(briefFoldContext({ [key]: {} }), { foldable: true, collapsed: true, hasResult: true }, `${key} folds the brief`);
+  }
+  // Reskin never folds: its brief holds the source and the re-level table.
+  assert.deepEqual(briefFoldContext({ reskinMode: true, reskinPreview: {} }), { foldable: false, collapsed: false, hasResult: true });
+  // The GM's own toggle wins until the next run ends.
+  assert.equal(briefFoldContext({ preview: {} }, { override: false }).collapsed, false);
+  assert.equal(briefFoldContext({ preview: {} }, { override: true }).collapsed, true);
+  assert.equal(briefFoldContext({}, { override: true }).collapsed, false, "nothing to fold away without a result");
+  // During a run the fold keeps the state the run started in.
+  assert.equal(briefFoldContext({ busy: true }, { auto: false }).foldable, false, "a first run leaves the form open");
+  assert.equal(briefFoldContext({ busy: true }, { auto: true }).collapsed, true, "a later run leaves the form folded");
+  assert.equal(briefFoldContext({ busy: true, preview: {} }, { auto: false }).collapsed, false, "a draft shown mid-run does not fold the form");
+  assert.equal(briefFoldContext({ busy: true }, { auto: true, override: false }).collapsed, false);
+
+  // A card arrives when its kind changes, never on a re-render, never on open.
+  assert.equal(resultArrives({ busy: false, kind: "preview" }, null), false, "a window that opens on a stored result is still");
+  assert.equal(resultArrives({ busy: false, kind: "preview" }, { busy: false, kind: "" }), true);
+  assert.equal(resultArrives({ busy: true, kind: "preview" }, { busy: true, kind: "" }), true, "the draft arrives when it first shows");
+  assert.equal(resultArrives({ busy: false, kind: "preview" }, { busy: true, kind: "preview" }), false, "the Generator's finished draft does not arrive twice");
+  assert.equal(resultArrives({ busy: false, kind: "created" }, { busy: true, kind: "preview" }), true);
+  assert.equal(resultArrives({ busy: false, kind: "preview" }, { busy: false, kind: "preview" }), false, "a member +/- re-render is still");
+  assert.equal(resultArrives({ busy: false, kind: "" }, { busy: false, kind: "preview" }), false);
+  assert.equal(resultArrives({ busy: false, kind: "card" }, { busy: true, kind: "card" }, { afterRun: true }), true, "a shop replaced by a run arrives");
+  assert.equal(resultArrives({ busy: true, kind: "card" }, { busy: true, kind: "card" }, { afterRun: true }), false);
+
+  // SpfApp plays it from the result part only, and the Generator opts out of the after-run case.
+  const base = sources.base ?? readFileSync(new URL("scripts/app-base.mjs", root), "utf8");
+  assert.match(base, /if \(partId === "result"\) this\._playResultArrival\(element\);/);
+  assert.match(base, /this\._resultState = null;\s+\/\/ a new frame/);
+  assert.match(base, /if \(arrives\) card\.classList\?\.add\("spf-arrive"\);/);
+  assert.match(sources.generator, /static ARRIVE_AFTER_RUN = false;/);
+
+  // Every tool window opens at the shared fixed height.
+  assert.ok(Number.isInteger(CONSOLE_HEIGHT) && CONSOLE_HEIGHT >= 600 && CONSOLE_HEIGHT <= 760);
+  for (const file of ["generator", "itemforge", "shop", "treasure"]) {
+    const app = readFileSync(new URL(`scripts/${file}-app.mjs`, root), "utf8");
+    assert.match(app, /position: \{ width: 720, height: CONSOLE_HEIGHT \},/, `${file} opens at the console height`);
+    assert.match(app, /resizable: true/, `${file} stays resizable`);
+  }
+
+  // The brief template: the fold hides fields without removing them from the
+  // form, the mode tiles and the run row stay outside it.
+  const brief = readFileSync(new URL("templates/generator-brief.hbs", root), "utf8");
+  const bodyStart = brief.indexOf('<div class="spf-brief-body" id="spf-generator-brief-body">');
+  const runRow = brief.indexOf('<div class="spf-generate-row">');
+  assert.ok(bodyStart > 0 && runRow > bodyStart);
+  assert.ok(brief.indexOf('class="spf-mode-toggle"') < bodyStart, "mode tiles are never folded away");
+  assert.ok(brief.indexOf('name="prompt"') > bodyStart && brief.lastIndexOf('name="prompt"') < runRow, "the prompt is inside the fold");
+  assert.match(brief.slice(bodyStart, runRow), /<\/details>\s*\{\{\/unless\}\}\s*<\/div>\s*$/, "the fold body closes right before the run row");
+  assert.match(brief, /\{\{#if briefFold\.foldable\}\}\s*<button type="button" class="spf-brief-summary" data-action="toggleBrief" aria-expanded="\{\{#if briefFold\.collapsed\}\}false\{\{else\}\}true\{\{\/if\}\}" aria-controls="spf-generator-brief-body">/);
+  assert.match(sources.generator, /toggleBrief: GeneratorApp\.#onToggleBrief,/);
+  assert.match(fnBody(sources.generator, "#endBusy({ finishRun = false } = {}) {"), /this\.#briefOverride = null;/);
+  assert.doesNotMatch(fnBody(sources.generator, "static #onToggleBrief(_event, target) {"), /\.render\(/, "a fold toggle never re-renders");
+
+  // The labels say what the buttons do: the main button creates in one click.
+  const lang = JSON.parse(readFileSync(new URL("lang/en.json", root), "utf8")).SIMPLYSF2E;
+  assert.match(fnBody(sources.generator, "static async #onGenerate() {"), /create: true/);
+  assert.match(fnBody(sources.generator, "static async #onPreviewPlan() {"), /create: false/);
+  for (const key of ["GenerateMonster", "GenerateNpc", "GenerateEncounter", "GenerateCharacter", "GenerateAnotherVersion"]) {
+    assert.match(lang.Generator[key], /^Create /, `${key} creates, and says so`);
+  }
+  assert.match(lang.Generator.GenerateReskin, /create/);
+  assert.equal(lang.Generator.PreviewPlan, "Preview first");
+  for (const key of ["EmptyHint", "EmptyHintReskin", "EmptyHintReskinReady"]) {
+    assert.match(lang.Generator[key], /in one step\. Preview first shows it here and creates nothing until you confirm\.$/, `${key} names both paths`);
+  }
+  // Item Forge previews first, so it keeps "Generate".
+  assert.match(readFileSync(new URL("templates/itemforge-brief.hbs", root), "utf8"), /SIMPLYSF2E\.ItemForge\.GenerateAnotherVersion/);
+  assert.match(lang.ItemForge.GenerateAnotherVersion, /^Generate /);
+
+  // CSS: pinned bars, no body cap, two panes, and motion that can be turned off.
+  const css = readFileSync(new URL("styles/simplysf2e.css", root), "utf8");
+  const generatorCss = readFileSync(new URL("styles/apps/generator.css", root), "utf8");
+  assert.match(css, /\.spf-window-body\.simplysf2e-generator \{\s*max-height: none;/);
+  assert.match(css, /\.spf-inputs > \.spf-generate-row,\s*\.simplysf2e \.spf-window-body\.simplysf2e-generator \.spf-preview > \.spf-actions \{\s*position: sticky;/);
+  assert.match(css, /@container spf-frame \(min-width: 900px\) \{\s*\.simplysf2e \.spf-window-body\.simplysf2e-generator \{\s*display: grid;/);
+  assert.match(generatorCss, /@container spf-frame \(min-width: 900px\) \{\s*\.simplysf2e \.spf-brief-collapsed > \.spf-brief-body \{\s*display: block;/, "two panes never hide the form");
+  const reduced = (text) => text.slice(text.lastIndexOf("@media (prefers-reduced-motion: reduce)"));
+  assert.match(reduced(css), /\.simplysf2e \.spf-arrive \{\s*animation: none;/);
+  assert.match(reduced(generatorCss), /\.simplysf2e \.spf-unfold \{\s*animation: none;/);
+  assert.match(reduced(generatorCss), /\.simplysf2e \.spf-brief-chevron \{\s*transition: none;/);
+  // One-time motion moves only transform and opacity.
+  for (const [name, text] of [["spf-arrive", css], ["spf-unfold", generatorCss]]) {
+    const frames = new RegExp(`@keyframes ${name} \\{([\\s\\S]*?)\\n\\}`).exec(text)?.[1] ?? "";
+    const props = [...frames.matchAll(/^\s+([a-z-]+):/gm)].map((m) => m[1]);
+    assert.ok(props.length > 0 && props.every((prop) => ["opacity", "transform"].includes(prop)), `${name} animates ${props.join(", ")}`);
+  }
+}
+
+console.log("window-parts.test.mjs: parts config, body classes, fold carry, the persistent body and the console layout hold");

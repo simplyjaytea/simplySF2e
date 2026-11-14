@@ -35,7 +35,7 @@
   {{/if}}
 
   {{#if created}}
-  <section class="spf-preview spf-card" aria-label="{{localize 'SIMPLYSF2E.Generator.CompleteTitle'}}">
+  <section class="spf-preview spf-card" data-result="created" aria-label="{{localize 'SIMPLYSF2E.Generator.CompleteTitle'}}">
     <header class="spf-statblock-header">
       <h2>{{localize "SIMPLYSF2E.Generator.CompleteTitle"}}</h2>
     </header>
@@ -90,7 +90,7 @@
   {{/if}}
 
   {{#if preview}}
-  <section class="spf-preview spf-card">
+  <section class="spf-preview spf-card" data-result="preview">
     <header class="spf-statblock-header">
       <h2>{{preview.concept.name}}</h2>
       <span class="spf-level">{{localize "SIMPLYSF2E.Generator.Creature"}} {{preview.stats.level}}</span>
@@ -246,7 +246,7 @@
   {{/if}}
 
   {{#if encounterPreview}}
-  <section class="spf-preview spf-card spf-encounter">
+  <section class="spf-preview spf-card spf-encounter" data-result="encounter">
     <header class="spf-statblock-header">
       <h2>{{encounterPreview.name}}</h2>
       {{! Budget chips: a visible label (XP / Credits) before the numbers, and an
@@ -316,7 +316,7 @@
   {{/if}}
 
   {{#if pcPreview}}
-  <section class="spf-preview spf-card spf-character">
+  <section class="spf-preview spf-card spf-character" data-result="character">
     <header class="spf-statblock-header">
       <h2>{{pcPreview.concept.name}}</h2>
       <span class="spf-level">{{localize "SIMPLYSF2E.Generator.Character"}} {{pcPreview.concept.level}}</span>
@@ -443,7 +443,7 @@
   </section>
   {{/if}}
   {{#if reskinPreview}}
-  <section class="spf-preview spf-card" aria-label="{{reskinPreview.name}}">
+  <section class="spf-preview spf-card" data-result="reskin" aria-label="{{reskinPreview.name}}">
     <header class="spf-statblock-header">
       <h2>{{reskinPreview.name}}</h2>
       <span class="spf-level">{{localize "SIMPLYSF2E.Generator.Creature"}} {{reskinPreview.level}}</span>
@@ -495,7 +495,7 @@
   </section>
   {{/if}}
   {{#if characterReview}}
-  <section class="spf-preview spf-card" aria-label="{{localize 'SIMPLYSF2E.Generator.ReviewTitle'}}">
+  <section class="spf-preview spf-card" data-result="review" aria-label="{{localize 'SIMPLYSF2E.Generator.ReviewTitle'}}">
     <header class="spf-statblock-header">
       <h2>{{localize "SIMPLYSF2E.Generator.ReviewTitle"}}</h2>
     </header>
