@@ -19,6 +19,16 @@ export const RELEASE_NOTES = [
     ]
   },
   {
+    id: "2026-11-14-lighter-requests",
+    title: "SIMPLYSF2E.WhatsNew.Note.LighterRequests.Title",
+    bullets: [
+      "SIMPLYSF2E.WhatsNew.Note.LighterRequests.B1",
+      "SIMPLYSF2E.WhatsNew.Note.LighterRequests.B2",
+      "SIMPLYSF2E.WhatsNew.Note.LighterRequests.B3",
+      "SIMPLYSF2E.WhatsNew.Note.LighterRequests.B4"
+    ]
+  },
+  {
     id: "2026-11-14-targeted-actions",
     title: "SIMPLYSF2E.WhatsNew.Note.TargetedActions.Title",
     bullets: [

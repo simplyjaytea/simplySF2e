@@ -67,7 +67,7 @@ try {
     { name: "Lay on Hands", candidate: { packId: "pf2e.spells", _id: "healing" } },
     { name: "Fire Ray", candidate: { packId: "pf2e.spells", _id: "fire" } }
   ], "focus spell selections retain only exact offered candidate references");
-  assert.match(requests.at(-1).messages.map((message) => message.content).join("\n"), /Available focus spells: S1 \| Fire Ray/,
+  assert.match(requests.at(-1).messages.map((message) => message.content).join("\n"), /Available focus spells: S1 Fire Ray/,
     "the model must receive short per-request focus IDs rather than unrestricted focus names");
   assert.doesNotMatch(requests.at(-1).messages.map((message) => message.content).join("\n"), /focus-fire|focus-healing/,
     "the catalog ids never reach the model; the issued id typed back (focus-fire) resolved nothing above");

@@ -67,6 +67,19 @@ export const toHtml = (text) => {
 };
 
 /**
+ * Search words the AI offered for a catalog lookup (spell themes): lowercase,
+ * trimmed, without duplicates, at most `max`. Anything that is not a short
+ * string is dropped. They only rank real catalog entries; they never name one.
+ */
+export function searchKeywords(raw, max = 8) {
+  const words = (Array.isArray(raw) ? raw : [])
+    .filter((word) => typeof word === "string")
+    .map((word) => word.toLowerCase().trim())
+    .filter((word) => word && word.length <= 40);
+  return [...new Set(words)].slice(0, max);
+}
+
+/**
  * Format a modifier with an explicit sign for display: 3 -> "+3", 0 -> "+0",
  * -2 -> "-2" (ASCII hyphen-minus). Display only: never feed the result back
  * into stats or actor data. Non-finite input returns "".

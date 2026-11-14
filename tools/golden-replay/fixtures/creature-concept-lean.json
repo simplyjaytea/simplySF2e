@@ -1,0 +1,61 @@
+{
+  "id": "creature-concept-lean",
+  "task": "creatureConcept",
+  "note": "The shapes the current schema asks for: gear as names, loot without a draft price, entries without null or empty keys, spell themes on the concept. One-line JSON, as the prompt requests.",
+  "args": {
+    "prompt": "a vesk siege marshal commanding a breached orbital station",
+    "level": 5,
+    "rarity": "common",
+    "allowSpellcasting": true,
+    "intent": "monster"
+  },
+  "responses": [
+    {
+      "choices": [
+        {
+          "message": {
+            "content": "{\"name\":\"Vesk Siege Marshal\",\"blurb\":\"A scarred vesk veteran who holds the breach until the last squad is through.\",\"description\":\"The marshal wears a patched boarding plate and carries a battering pike in one hand, an assault rifle slung across the other shoulder.\",\"readAloud\":\"A voice booms through the smoke: 'Line up, hold the corridor, and nothing gets past us.'\",\"recallKnowledge\":\"Vesk siege marshals are disciplined line-breakers, not duelists; they fight behind barricades and let their squad carry the flanks.\",\"size\":\"med\",\"traits\":[\"humanoid\",\"vesk\"],\"languages\":[\"common\",\"vesk\"],\"abilityScales\":{\"str\":\"high\",\"dex\":\"moderate\",\"con\":\"high\",\"int\":\"moderate\",\"wis\":\"low\",\"cha\":\"low\"},\"acScale\":\"high\",\"hpScale\":\"high\",\"perceptionScale\":\"moderate\",\"saveScales\":{\"fortitude\":\"high\",\"reflex\":\"moderate\",\"will\":\"low\"},\"speeds\":[{\"type\":\"land\",\"value\":25}],\"senses\":[],\"skills\":[{\"name\":\"athletics\",\"scale\":\"high\"},{\"name\":\"intimidation\",\"scale\":\"moderate\"}],\"strikes\":[{\"name\":\"battering pike\",\"type\":\"melee\",\"attackScale\":\"high\",\"damageScale\":\"high\",\"damageType\":\"piercing\",\"traits\":[\"reach\"]},{\"name\":\"assault rifle\",\"type\":\"ranged\",\"attackScale\":\"moderate\",\"damageScale\":\"moderate\",\"damageType\":\"piercing\",\"range\":60}],\"specialAbilities\":[{\"name\":\"Rally the Line\",\"description\":\"The marshal barks an order and the squad steadies itself.\"},{\"name\":\"Breach Brace\",\"description\":\"Bracing the pike against a bulkhead, the marshal becomes immovable.\"}],\"spellcasting\":{\"tradition\":\"occult\",\"dcScale\":\"high\",\"spells\":[{\"name\":\"Daze\",\"rank\":0}],\"keywords\":[\"Mental\",\"control\",\"mental\"]},\"focusSpells\":[],\"feats\":[\"Toughness\"],\"equipment\":[\"Assault Rifle\",\"Tactical Pike\",\"Boarding Plate\",\"Medpatch\"],\"loot\":[{\"name\":\"Credits\",\"quantity\":350},{\"name\":\"Trail Ration\",\"quantity\":3},{\"name\":\"Holo-Signet\",\"quantity\":1},{\"name\":\"Frag Grenade\",\"quantity\":2}],\"resistances\":[],\"weaknesses\":[],\"immunities\":[]}"
+          },
+          "finish_reason": "stop"
+        }
+      ],
+      "usage": {
+        "prompt_tokens": 900,
+        "completion_tokens": 420,
+        "total_tokens": 1320
+      }
+    }
+  ],
+  "expect": {
+    "ok": true,
+    "requestCount": 1,
+    "contains": [
+      "Vesk Siege Marshal",
+      "battering pike",
+      "Rally the Line"
+    ],
+    "lengths": {
+      "concept.strikes": 2,
+      "concept.specialAbilities": 2,
+      "concept.equipment": 4,
+      "concept.loot": 4,
+      "concept.spellcasting.keywords": 3
+    },
+    "equals": {
+      "concept.size": "med",
+      "concept.hpScale": "high",
+      "concept.spellcasting.tradition": "occult",
+      "concept.equipment.0": "Assault Rifle",
+      "concept.loot.0.quantity": 350
+    },
+    "bodyContains": [
+      "vesk siege marshal commanding a breached orbital station",
+      "leave out any key whose value would be null or []",
+      "Write the JSON on one line"
+    ],
+    "bodyExcludes": [
+      "legacy fallback",
+      "approximate price"
+    ]
+  }
+}

@@ -35,7 +35,7 @@
     "contains": ["Power Attack", "Cleave", "Intimidating Strike"],
     "excludes": ["Shield Block"],
     "lengths": { "feats": 3 },
-    "bodyExcludes": ["f1 | "],
-    "bodyContains": ["F1 | Power Attack", "First-draft feat ideas"]
+    "bodyExcludes": ["f1 Power Attack"],
+    "bodyContains": ["F1 Power Attack", "First-draft feat ideas"]
   }
 }
