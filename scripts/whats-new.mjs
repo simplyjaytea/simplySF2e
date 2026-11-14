@@ -19,6 +19,16 @@ export const RELEASE_NOTES = [
     ]
   },
   {
+    id: "2026-11-14-targeted-actions",
+    title: "SIMPLYSF2E.WhatsNew.Note.TargetedActions.Title",
+    bullets: [
+      "SIMPLYSF2E.WhatsNew.Note.TargetedActions.B1",
+      "SIMPLYSF2E.WhatsNew.Note.TargetedActions.B2",
+      "SIMPLYSF2E.WhatsNew.Note.TargetedActions.B3",
+      "SIMPLYSF2E.WhatsNew.Note.TargetedActions.B4"
+    ]
+  },
+  {
     id: "2026-11-14-interface-sounds",
     title: "SIMPLYSF2E.WhatsNew.Note.InterfaceSounds.Title",
     bullets: [

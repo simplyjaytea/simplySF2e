@@ -156,10 +156,20 @@ export const RARITY_DC_ADJUSTMENT = { common: 0, uncommon: 2, rare: 5, unique: 1
 export function identificationDC(level, rarity = "common") {
   // LEVEL_DC stops at 24, but an Elite level-24 creature is adjusted level 25.
   // pf2e src/module/dc.ts (v14-dev) line 63: `[25, 50],`; above 25 clamps to it.
-  // Below -1 the table's clamp keeps 13; dc.ts has no -2 entry and falls back to 14
-  // (dc.ts:124), left as is for JT.
-  const base = level >= 25 ? 50 : lookup(LEVEL_DC, level, "dc", []);
+  // Below -1 (a Weak level -1 creature) dc.ts has no entry and falls back to 14
+  // (`const dc = dcByLevel.get(level) ?? 14;`). The note follows it, so it shows the
+  // DC the NPC sheet's own Recall Knowledge section shows (JT, 2026-11-14).
+  const lv = Number(level);
+  const base = lv >= 25 ? 50 : lv < -1 ? 14 : lookup(LEVEL_DC, lv, "dc", []);
   return base + (RARITY_DC_ADJUSTMENT[rarity] ?? 0);
+}
+
+/** CITED: pf2e v14-dev src/module/recall-knowledge.ts creatureIdentificationDCs:
+ * `lore: [toKnowledgeDC(dc, rarity, "easy"), toKnowledgeDC(dc, rarity, "very-easy")]`,
+ * with dc.ts dcAdjustments easy -2 and very-easy -5 (GM Core pg. 54: an applicable
+ * Lore is easier, a specific Lore easier still). Lore DCs for a standard DC. */
+export function loreIdentificationDCs(dc) {
+  return { unspecific: dc - 2, specific: dc - 5 };
 }
 
 /* CITED SF2e (Starfinder GM Core pg. 123 "Resistances and Weaknesses") — Resistance benchmarks. */

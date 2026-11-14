@@ -24,7 +24,7 @@ const AREA_ONLY_DAMAGE_TYPES = AREA_BLAST_DAMAGE_TYPES.filter((type) => !ABILITY
 /** Schema enum for specialAbilities.damageType (null allowed). */
 export const ABILITY_DAMAGE_TYPE_SCHEMA = `${ALL_ABILITY_DAMAGE_TYPES.map((type) => `"${type}"`).join("|")}|null`;
 /** Which types apply to which ability kind, stated next to the schema enum. */
-export const ABILITY_DAMAGE_TYPE_NOTE = `glossary fills use ${ABILITY_DAMAGE_TYPES.join(", ")}; area-blast and aura use these and also ${AREA_ONLY_DAMAGE_TYPES.join(", ")} (area-blast and aura only, ignored for glossary abilities); required for area-blast and for aura damage`;
+export const ABILITY_DAMAGE_TYPE_NOTE = `glossary fills use ${ABILITY_DAMAGE_TYPES.join(", ")}; area-blast, aura and targeted use these and also ${AREA_ONLY_DAMAGE_TYPES.join(", ")} (templates only, ignored for glossary abilities); required for area-blast and for aura damage`;
 
 /**
  * Client for any OpenAI-compatible chat completions API (DeepSeek, OpenAI,
@@ -183,15 +183,16 @@ JSON schema (all keys required unless marked optional):
     {
       "name": string,
       "glossary": string|null, // EXACT published Starfinder 2e bestiary glossary ability name if this is one, else null
-      "description": string, // short flavor only, with no rules or numeric mechanics; area-blast or aura flavor accompanies the module-built mechanics
-      "abilityDcScale": "moderate"|"high"|null, // glossary, area-blast or aura DC scale; null = default (high for area-blast, moderate for aura)
+      "description": string, // short flavor only, with no rules or numeric mechanics; template flavor accompanies the module-built mechanics
+      "cost": "one"|"two"|"three"|"reaction"|"free"|"passive", // bespoke abilities: action cost; for a reaction or free action the description names the trigger
+      "abilityDcScale": "moderate"|"high"|null, // glossary or template DC scale; null = default (high for area-blast, else moderate)
       "damageType": ${ABILITY_DAMAGE_TYPE_SCHEMA}, // ${ABILITY_DAMAGE_TYPE_NOTE}
-      "template": "area-blast"|"aura"|null, // ONLY for a bespoke breath, blast or aura: "area-blast" or "aura" builds a working ability from these enum words; otherwise null
+      "template": "area-blast"|"aura"|"targeted"|null, // ONLY for a bespoke ability: builds a working ability from these enum words. "area-blast" = breath or blast; "aura"; "targeted" = an action against one creature that forces a save for damage, a condition or both; otherwise null
       "kind": "condition"|"damage"|null, // aura only: "condition" (save and a condition) or "damage" (damage each turn)
-      "condition": "frightened"|"sickened"|"clumsy"|"stupefied"|"enfeebled"|null, // aura with kind condition only
+      "condition": "frightened"|"sickened"|"clumsy"|"stupefied"|"enfeebled"|null, // aura with kind condition, or targeted
       "shape": "cone"|"line"|null, // area-blast only
-      "size": "small"|"medium"|"large"|null, // area-blast and aura; null = medium
-      "save": "reflex"|"fortitude"|"will"|null, // area-blast (default reflex) or aura damage (default fortitude); not used for aura conditions
+      "size": "small"|"medium"|"large"|null, // templates; null = medium; targeted: small = within reach, medium and large = at range
+      "save": "reflex"|"fortitude"|"will"|null, // area-blast (default reflex), aura damage (default fortitude) or targeted; not used for aura conditions
       "use": "at-will"|"limited"|null // area-blast only; null = at-will; "limited" when the creature must recharge it
     }
   ],
@@ -221,7 +222,7 @@ Design guidance (scale road maps):
 - Include spellcasting only when it truly fits the concept and the user allows it.
 - "focusSpells": only when the concept has spellcasting AND genuinely uses focus magic; leave [] otherwise. Uncommon, not the default.
 - Use published bestiary glossary abilities wherever they fit, copying exact names. The module selects them from the compendium afterward and keeps their real working automation; where a glossary ability is published without numbers, the module fills its DC, damage, size and distance from the creature's level, so never write numbers for glossary abilities.
-- For a bespoke cone or line breath or blast, set template to area-blast and choose its enum fields; never write its numbers or mechanics. For a bespoke aura that affects creatures around the creature, set template to aura, kind to condition or damage, and choose its enum fields; never write its numbers or mechanics. Other bespoke signature abilities remain short narrative-only descriptions. Use a published glossary aura instead when one fits.
+- For a bespoke cone or line breath or blast, set template to area-blast and choose its enum fields; never write its numbers or mechanics. For a bespoke aura that affects creatures around the creature, set template to aura, kind to condition or damage, and choose its enum fields; never write its numbers or mechanics. For a bespoke attack-like ability against one creature (a venom spit, a mind spike, a crushing grip), set template to targeted, a cost other than passive, and a damageType, a condition or both. Other bespoke signature abilities remain short narrative-only descriptions with their cost. Use a published glossary aura instead when one fits.
 - Traits, languages, senses and speeds must follow Starfinder 2e conventions.`;
 }
 
