@@ -38,7 +38,7 @@
     "contains": ["Rally", "Frightful Presence"],
     "excludes": ["forged", "Shield Block"],
     "lengths": { "abilities": 2 },
-    "bodyExcludes": ["a1 | ", "a3 | "],
-    "bodyContains": ["A1 | Rally", "A3 | Frightful Presence"]
+    "bodyExcludes": ["a1 Rally", "a3 Frightful Presence", " | "],
+    "bodyContains": ["A1 Rally", "A3 Frightful Presence"]
   }
 }

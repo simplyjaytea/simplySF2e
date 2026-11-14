@@ -33,7 +33,7 @@
     "nothingPicked": true,
     "excludes": ["forged", "Rally", "Shield Block"],
     "lengths": { "abilities": 0 },
-    "bodyContains": ["A1 | Rally", "A2 | Shield Block"],
+    "bodyContains": ["A1 Rally", "A2 Shield Block"],
     "bodyExcludes": [
       "c-c2YyZS5iZXN0aWFyeS1hYmlsaXR5LWdsb3NzYXJ5LXNyZAByYWxseQ",
       "c-c2YyZS5iZXN0aWFyeS1hYmlsaXR5LWdsb3NzYXJ5LXNyZABzaGllbGRibG9jaw",

@@ -2,7 +2,7 @@ import * as T from "./tables.mjs";
 import { getPacksFor, findEntry, getDocument, getIndexEntry, toItemData, priceToGp, unitPriceGp, isIssuedCandidate, placeholderState, placeholderDocFor } from "./compendium.mjs";
 import { ABILITY_DAMAGE_TYPES, ABILITY_DC_SCALES, fillBlocker, fillPlaceholderAbility, fillableSlug, hasPlaceholderValues, isFillableEntry } from "./ability-fill.mjs";
 import { buildModuleTemplate, isModuleTemplate, normalizeAreaBlast, normalizeAura } from "./ability-templates.mjs";
-import { slugify, capitalized, esc, escAi, toHtml } from "./text.mjs";
+import { slugify, capitalized, esc, escAi, toHtml, searchKeywords } from "./text.mjs";
 import { applyReskin, recallKnowledgeNote } from "./reskin.mjs";
 import { applyRerollPick } from "./reroll.mjs";
 import { isPlaceholderArt } from "./art.mjs";
@@ -486,6 +486,10 @@ export function normalizeConcept(raw, { level, rarity }) {
       maxRank: maxSpellRank,
       spells
     };
+    // Spell themes drafted with the concept; refineSpells searches the spell list with them
+    // and asks for them in a separate request only when the draft carried none.
+    const keywords = searchKeywords(c.spellcasting.keywords);
+    if (keywords.length) spellcasting.keywords = keywords;
   }
 
   // Traits are AI-free-invented; validate against the real installed PF2e

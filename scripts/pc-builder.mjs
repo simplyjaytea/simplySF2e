@@ -4,7 +4,7 @@ import {
   parseCoins, resolveLoot, resolveEquipment, resolveFocusSpells,
   buildEquipmentItems, buildLootItems, filterItemTypes, heightenedLevelFor, systemIcon
 } from "./builder.mjs";
-import { slugify, capitalized, toHtml } from "./text.mjs";
+import { slugify, capitalized, toHtml, searchKeywords } from "./text.mjs";
 import { preselectChoiceSets } from "./choice-set.mjs";
 import {
   PC_WEALTH_BY_LEVEL, buildFeatSlots, featSlotLocation, pcSpellcastingProfile, pcSpellPlan,
@@ -80,6 +80,9 @@ export function normalizePCConcept(raw, { level }) {
         rank: Math.min(Math.max(Math.round(Number(s.rank) || 0), 0), maxSpellRank)
       }));
     spellcasting = { tradition: c.spellcasting.tradition, dcScale: "high", maxRank: maxSpellRank, spells };
+    // Spell themes drafted with the concept (see refineSpells in creature-pipeline.mjs).
+    const keywords = searchKeywords(c.spellcasting.keywords);
+    if (keywords.length) spellcasting.keywords = keywords;
   }
 
   return {

@@ -1063,3 +1063,20 @@ Four short synthesised cues, off by default, set per browser. They cannot be hea
 | 22.13 | Lower Foundry's **Interface** volume slider (playlists sidebar) to half, then to zero, and repeat 22.4. | The cues get quieter with the slider and are silent at zero. If they do not follow the slider, note it. | Generator | | |
 | 22.14 | With sounds on, have a player connected in another browser while you run and create. | The player hears nothing, and the player's module settings do not show Interface sounds or Test sounds. | Player client | | |
 | 22.15 | Open the browser console during 22.4 to 22.10. | No errors or warnings from the module about audio. | Console | | |
+
+## 23t. Token cost (2026-11-14)
+
+The AI requests are shorter and the replies are asked for as one-line JSON. Offline numbers are in `tools/token-bench/README.md`; these rows check that a live model still answers well. Note the model you used.
+
+| ID | Step | Expected | Where | Result | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 23t.1 | With spellcasting allowed, preview a level 7 caster NPC and open **Token usage**. | The run finishes. There is no **Spell focus** row (it appears only when the model left out its spell themes), and the spells fit the concept. Note the run total. | Generator | | |
+| 23t.2 | Look at that preview's gear and loot. | Gear and loot are real items with sensible quantities (ammunition or consumables may be 2 to 5), loot has credits, and no more picks than usual are listed as not matched. | Generator | | |
+| 23t.3 | Preview "a dragon-like beast with a fire breath and a frightening presence". | The breath (cone or line) and any aura are built with numbers as before, and a glossary ability such as Frightful Presence is matched. | Generator | | |
+| 23t.4 | Create a level 5 character with a common ancestry in the prompt (for example a vesk soldier). | The heritage belongs to that ancestry or is a versatile one. The **Ancestry, background and class** row in Token usage is far smaller than before (about a third). | Generator | | |
+| 23t.5 | Create a character whose prompt names an ancestry above the rarity cap, or none at all. | The run finishes and the heritage fits the ancestry the character ended up with. | Generator | | |
+| 23t.6 | Generate a shop and a treasure hoard. | Stock and hoard mix item levels as before; nothing is listed as not on the offered list more often than usual (browser console). | Shop, Treasure | | |
+| 23t.7 | Reroll one spell, one feat or ability, and the loot on a creature preview. | Each reroll returns a real replacement. | Generator | | |
+| 23t.8 | Run a three-creature encounter. | All members are built; the total in Token usage is lower than the same encounter before the update. | Generator | | |
+| 23t.9 | Repeat 23t.1 on a local model if you use one. | The run finishes. The console does not show "generation attempt failed, retrying once" more often than before the update. | Generator | | |
+| 23t.10 | Open the browser console during 23t.4. | No error or warning about a compendium index field. | Console | | |

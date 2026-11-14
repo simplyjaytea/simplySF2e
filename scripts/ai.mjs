@@ -36,6 +36,10 @@ export const ABILITY_DAMAGE_TYPE_NOTE = `glossary fills use ${ABILITY_DAMAGE_TYP
    to Pathfinder memory unless told to use the installed Starfinder 2e names. */
 const REMASTER_NOTE = `using CURRENT Starfinder 2e published names from the installed sf2e compendium, never Pathfinder or invented names`;
 
+/* Appended to every JSON task's system prompt (requestJSON). Indentation and line breaks
+   are output tokens the module pays for and then throws away when it parses the reply. */
+export const COMPACT_JSON_NOTE = "Write the JSON on one line: no indentation and no line breaks.";
+
 // Jev may omit `usage`; a zero entry keeps the step (and its timing) in the token report.
 const NO_TOKENS = Object.freeze({ prompt: 0, completion: 0, total: 0, estimated: false });
 
@@ -132,7 +136,7 @@ export function lootGuide(amount, subject = "creature") {
     ? "a DISTINCT set of items bought with MOST of their starting wealth (not everyday adventuring gear, which is handled separately — spend the bulk of the budget on worthwhile gear, keeping only a modest credit reserve rather than leaving most of it unspent)"
     : "3-8 items dropped on defeat";
   const hoardTrigger = subject === "character" ? "the character's backstory" : "the creature's description";
-  return `${amountNote} ${origin}; "value" is the approximate price of ONE unit in credits (legacy fallback: 1 gp = 10 credits; used when an item has no compendium match). Currency: use "Credits" or "Credstick" with quantity = the number of credits (e.g. {"name": "Credits", "quantity": 350, "value": 1}), scaled to level and rarity. For crafting or raw-materials hauls, "UPB" is also currency at the same per-unit value. Do not write gold, silver, or platinum pieces. Spell gems (Starfinder 2e has no scrolls): "Spell Gem of {exact Starfinder 2e spell name} (Rank {n})" with a real non-cantrip spell and a rank it exists at, castable at the ${subject}'s level (rank <= ceil((level+2)/2)). Other items MUST be EXACT published item names ${REMASTER_NOTE}, including a grade word when the published name already has one; NO invented items, invented grade suffixes, or fundamental-rune prefixes. Prefer a smaller set of DISTINCT items over padding the count — never repeat the same item to hit a number. Include 1-2 currency entries, 1-2 consumables, and 1-2 treasure or magic items of the ${subject}'s level or lower (adjusted per the amount guidance above). EXCEPTION: if ${hoardTrigger} or the GM's request explicitly calls for abundant loot (a hoard, riches, a wealthy creature, "lots of loot", etc.), scale UP to roughly 12-20 items with proportionally more currency, treasure, and magic-item entries regardless of the amount setting; otherwise stay within the guidance above.`;
+  return `${amountNote} ${origin}. Currency: use "Credits" or "Credstick" with quantity = the number of credits (e.g. {"name": "Credits", "quantity": 350}), scaled to level and rarity; for crafting or raw-materials hauls "UPB" is also currency. Do not write gold, silver, or platinum pieces. Spell gems (Starfinder 2e has no scrolls): "Spell Gem of {exact Starfinder 2e spell name} (Rank {n})" with a real non-cantrip spell and a rank it exists at, castable at the ${subject}'s level (rank <= ceil((level+2)/2)). Other items MUST be EXACT published item names ${REMASTER_NOTE}, including a grade word when the published name already has one; NO invented items, invented grade suffixes, or fundamental-rune prefixes. Prefer fewer DISTINCT items over padding the count; never repeat an item. Include 1-2 currency entries, 1-2 consumables, and 1-2 treasure or magic items of the ${subject}'s level or lower (adjusted per the amount guidance above). EXCEPTION: if ${hoardTrigger} or the GM's request explicitly calls for abundant loot (a hoard, riches, a wealthy creature, "lots of loot"), scale UP to roughly 12-20 items with proportionally more currency, treasure, and magic-item entries regardless of the amount setting.`;
 }
 
 /**
@@ -140,6 +144,33 @@ export function lootGuide(amount, subject = "creature") {
  * "loot" schema field's guidance depends on the GM's Treasure amount setting
  * — see lootGuide() above.
  */
+/* The same rule for the grounding steps, which only pick from a list: a short form, because
+   it is repeated in every selection request of a run. */
+const GM_SELECTION_PRIORITY = "The GM's explicit concept constraints override first-draft ideas and default counts: when the GM asks for none or few of something, choose none or few, and never add filler.";
+
+/** One catalog entry as the model sees it: the short ID, then the exact name. */
+const catalogEntry = (candidate) => `${candidate.id} ${candidate.name}`;
+
+/**
+ * An item catalog grouped by type and item level, one line per group
+ * (`weapon L3: E1 Assault Rifle; E2 Laser Rifle`). The level is written once
+ * per line, not once per item. Candidate order is kept inside each line.
+ */
+function itemCatalog(candidates) {
+  const types = new Map();
+  for (const candidate of candidates) {
+    const level = Math.max(Number(candidate.level) || 0, 0);
+    if (!types.has(candidate.type)) types.set(candidate.type, new Map());
+    const levels = types.get(candidate.type);
+    if (!levels.has(level)) levels.set(level, []);
+    levels.get(level).push(catalogEntry(candidate));
+  }
+  return [...types.entries()].flatMap(([type, levels]) => [...levels.entries()]
+    .sort(([a], [b]) => a - b)
+    .map(([level, entries]) => `${type} L${level}: ${entries.join("; ")}`)).join("\n");
+}
+const ITEM_CATALOG_HEADING = "Available items (type and item level, then ID and name):";
+
 const GM_CONCEPT_PRIORITY = "The GM's explicit concept constraints override preset suggestions and default item/spell counts. If the GM requests no equipment, no loot, or no spellcasting, omit that category (use [] or null). For a minimal concept, use a small relevant selection and do not add filler. Spellcasting being allowed is permission, never a requirement. Equipment and loot are distinct holdings: do not repeat carried gear as extra loot unless the GM explicitly requests spares. Preserve these constraints when refining the draft.";
 
 function systemPrompt(amount) {
@@ -149,7 +180,7 @@ ${GM_CONCEPT_PRIORITY}
 
 Respond with a SINGLE JSON object only. No markdown fences, no commentary.
 
-JSON schema (all keys required unless marked optional):
+JSON schema (all top-level keys required). Inside "senses", "strikes" and "specialAbilities" entries, leave out any key whose value would be null or [].
 {
   "name": string, // evocative creature name
   "blurb": string, // one-line tagline
@@ -198,12 +229,13 @@ JSON schema (all keys required unless marked optional):
   "spellcasting": null | {
     "tradition": "arcane"|"divine"|"occult"|"primal",
     "dcScale": "extreme"|"high"|"moderate",
-    "spells": [ { "name": string, "rank": number } ] // rank 0 = cantrip; real Starfinder 2e spell names as a first draft (${REMASTER_NOTE}; the final list is chosen from the compendium in a second step); max rank = ceil(level/2)
+    "spells": [ { "name": string, "rank": number } ], // rank 0 = cantrip; real Starfinder 2e spell names as a first draft (${REMASTER_NOTE}; the final list is chosen from the compendium in a second step); max rank = ceil(level/2)
+    "keywords": string[] // 3-6 lowercase words for the KINDS of spells that fit, used to search the real spell list: traits ("fire", "mental", "illusion") and purposes ("healing", "control", "debuff")
   },
   "focusSpells": string[], // EXACT published Starfinder 2e focus spell names (they carry the "focus" trait), 1-3 names, ONLY when "spellcasting" is also set — [] otherwise; first draft, grounded against the real compendium afterward
   "feats": string[], // EXACT published Starfinder 2e feat names for creatures with class-like training (soldiers, operatives); [] for beasts, mindless creatures, and anything untrained; max 3. IMPORTANT: when a feat grants a distinct attack or Strike-based action, ALSO add a strike named after the feat to "strikes" — same weapon and damageType as the base strike it modifies, damageScale one step higher (extreme stays extreme), plus the feat's traits — and keep the feat in "feats" too.
-  "equipment": [ { "name": string, "quantity": number, "value": number } ], // 3-8 logical carried items with EXACT Starfinder 2e item names (${REMASTER_NOTE}), drawn from: the weapons it wields; sensible consumables; and everyday adventuring gear it would plausibly carry. NO coins or currency here — those belong only in "loot". "value" is the approximate price of ONE unit in credits (legacy fallback: 1 gp = 10 credits), used only as a fallback when the name finds no compendium match. Include armor only when the creature would plausibly wear it (skip beasts, oozes, mindless and naturally-armored creatures), and pick armor that roughly fits its AC and level. At level 2+, consider ONE magic item appropriate to its level; copy a published graded name when the catalog lists one. Do not invent fundamental-rune prefixes. [] for beasts and mindless creatures.
-  "loot": [ { "name": string, "quantity": number, "value": number } ], // ${lootGuide(amount)}
+  "equipment": string[], // 3-8 carried items as EXACT Starfinder 2e item names (${REMASTER_NOTE}): the weapons it wields, sensible consumables, and everyday adventuring gear; a first draft, the final gear is chosen from the compendium in a second step. NO coins or currency here — those belong only in "loot". Include armor only when the creature would plausibly wear it (skip beasts, oozes, mindless and naturally-armored creatures), roughly fitting its AC and level. At level 2+, consider ONE magic item appropriate to its level; copy a published graded name when one exists, and never invent fundamental-rune prefixes. [] for beasts and mindless creatures.
+  "loot": [ { "name": string, "quantity": number } ], // ${lootGuide(amount)}
   "resistances": [ { "type": string } ], // damage types only, values computed from tables; [] if none
   "weaknesses": [ { "type": string } ],
   "immunities": string[] // lowercase damage-type or effect slugs; [] if none
@@ -265,13 +297,16 @@ async function requestJSON(args) {
     if (!usage) return;
     total = combineUsage(total, usage);
   };
+  // Last in the system prompt, so the text before it stays one stable prefix for provider caches.
+  const system = `${args.system}\n\n${COMPACT_JSON_NOTE}`;
   for (let attempt = 0; attempt < 2; attempt++) {
     throwIfGenerationCancelled(args.signal);
     try {
       const requestArgs = attempt === 0
-        ? { ...args, retryBudget }
+        ? { ...args, system, retryBudget }
         : {
             ...args,
+            system,
             retryBudget,
             retryAttempt: attempt,
             user: `${args.user}\n\nIMPORTANT RETRY: the previous response was truncated, invalid, or incomplete. Return one complete JSON object with every required field. No commentary.`
@@ -339,7 +374,7 @@ Respond with a SINGLE JSON object and nothing else. No markdown fences, no comme
 
 JSON schema (loot key required):
 {
-  "loot": [ { "name": string, "quantity": number, "value": number } ]
+  "loot": [ { "name": string, "quantity": number } ]
 }
 
 Loot should be ${lootGuide(amount)}`;
@@ -378,7 +413,7 @@ Respond with a SINGLE JSON object and nothing else. No markdown fences, no comme
 
 JSON schema (loot key required):
 {
-  "loot": [ { "name": string, "quantity": number, "value": number } ]
+  "loot": [ { "name": string, "quantity": number } ]
 }
 
 ${lootGuide(amount, "character")} Favor items that reinforce the character's class and concept (a caster's backup spell gem, a martial's signature weapon, skill-focused utility gear) over generic treasure — this represents deliberate purchases, not random battlefield loot. When the character's level affords it, spend on a published graded item whose catalog name already includes the grade (Commercial, Tactical, Advanced, …) rather than inventing a rune prefix or an unpublished grade suffix.`;
@@ -466,10 +501,11 @@ JSON schema (all keys required unless marked optional):
   "skillPriorities": string[], // optional ordered core-skill preferences, most important first; choose unique slugs from: ${CORE_SKILLS.join(", ")}. Match the concept and intended role. Never provide ranks, counts, scores, or new Lore skills; the module allocates legal training and increases
   "spellcasting": null | {
     "tradition": "arcane"|"divine"|"occult"|"primal",
-    "spells": [ { "name": string, "rank": number } ] // rank 0 = cantrip; real Starfinder 2e spell names as a first draft (${REMASTER_NOTE}; the final list is chosen from the compendium in a second step)
+    "spells": [ { "name": string, "rank": number } ], // rank 0 = cantrip; real Starfinder 2e spell names as a first draft (${REMASTER_NOTE}; the final list is chosen from the compendium in a second step)
+    "keywords": string[] // 3-6 lowercase words for the KINDS of spells that fit, used to search the real spell list: traits ("fire", "mental", "illusion") and purposes ("healing", "control", "debuff")
   }, // null if the class you chose isn't a caster, or spellcasting is disallowed
   "focusSpells": string[], // EXACT published Starfinder 2e focus spell names (they carry the "focus" trait) granted by this character's class/subclass, 1-3 names, [] if none apply — first draft, grounded against the real compendium afterward. Independent of "spellcasting": include focus spells when the class grants them, even if the class has no spell slots
-${multiclassLine}  "equipment": [ { "name": string, "quantity": number, "value": number } ] // 4-8 first-draft carried items with EXACT Starfinder 2e item names (${REMASTER_NOTE}) fitting the class, level and concept — include starting armor appropriate to the class's armor proficiency when they would wear armor, a weapon, useful mundane gear, AND at least 1-2 level-appropriate magic items (a potion or elixir) when the character's level plausibly affords them; lightly-armored casters may deliberately carry no armor. When the level affords it, pick a published graded item whose catalog name already includes the grade; do not invent a rune prefix or unpublished grade suffix. Also include skill-supporting gear matching the character's likely trained skills, plus general utility items. Inspiration only, the final picks are chosen from the compendium in a second step
+${multiclassLine}  "equipment": string[] // 4-8 first-draft carried items as EXACT Starfinder 2e item names (${REMASTER_NOTE}) fitting the class, level and concept — include starting armor appropriate to the class's armor proficiency when they would wear armor, a weapon, useful mundane gear, AND at least 1-2 level-appropriate magic items (a potion or elixir) when the character's level plausibly affords them; lightly-armored casters may deliberately carry no armor. When the level affords it, pick a published graded item whose catalog name already includes the grade; do not invent a rune prefix or unpublished grade suffix. Also include skill-supporting gear matching the character's likely trained skills, plus general utility items. Inspiration only, the final picks are chosen from the compendium in a second step
 }
 
 Design guidance:
@@ -662,16 +698,16 @@ export async function selectSpells({ concept, candidates, focusCandidates = [], 
   const byRank = new Map();
   for (const c of candidates) {
     if (!byRank.has(c.rank)) byRank.set(c.rank, []);
-    const label = `${c.id} | ${c.name}`;
+    const label = catalogEntry(c);
     byRank.get(c.rank).push(pcPlan && preparationMode === "spontaneous" && maxRank === 10
       ? `${label} [${c.rarity ?? "unknown rarity"}]` : label);
   }
   const list = [...byRank.entries()]
     .map(([rank, names]) => `${pcPlan ? PC_SPELL_RANKS[rank] : rank === 0 ? "Cantrips" : `Rank ${rank}`}: ${names.join("; ")}`)
     .join("\n");
-  const focusList = focusCandidates.map((candidate) => `${candidate.id} | ${candidate.name} (Rank ${candidate.rank})`).join("; ");
+  const focusList = focusCandidates.map((candidate) => `${catalogEntry(candidate)} (Rank ${candidate.rank})`).join("; ");
 
-  const system = `${GM_CONCEPT_PRIORITY}\n\nYou are selecting spells for a Starfinder 2e ${pcPlan ? "player character" : "creature"}. Choose ONLY IDs from the provided list (the list is already ${REMASTER_NOTE}). Respond with a single JSON object and nothing else:
+  const system = `${GM_SELECTION_PRIORITY}\n\nYou are selecting spells for a Starfinder 2e ${pcPlan ? "player character" : "creature"}. Choose ONLY IDs from the provided list (the list is already ${REMASTER_NOTE}). Respond with a single JSON object and nothing else:
 { "spells": [ { "id": string, "rank": ${pcPlan ? 'string, "signature": "regular" | "signature"' : "number"} } ], "focusSpellIds": string[] }
 ${pcPlan
     ? `"rank" must be one of these enum slugs, never a number: ${PC_SPELL_RANKS.slice(0, maxRank + 1).join(", ")}. Use cantrip only for cantrips; ranked spells use their listed rank or a higher allowed rank to heighten.`
@@ -698,7 +734,7 @@ ${focusCandidates.length ? "Choose up to three focusSpellIds only from the provi
       ? `First-draft spell ideas (use as inspiration, but the final picks MUST come from the list): ${concept.spellcasting.spells.map((s) => s.name).join(", ")}`
       : null,
     "",
-    "Available spells:",
+    "Available spells (ID then name):",
     list,
     focusCandidates.length ? `Available focus spells: ${focusList}` : null
   ].filter((line) => line !== null).join("\n");
@@ -792,16 +828,9 @@ export async function selectEquipment({ concept, candidates, onProgress, signal,
     };
   }
   const started = Date.now();
-  const byType = new Map();
-  for (const c of candidates) {
-    if (!byType.has(c.type)) byType.set(c.type, []);
-    byType.get(c.type).push(`${c.id} | ${c.name}${c.level > 0 ? ` (L${c.level})` : ""}`);
-  }
-  const list = [...byType.entries()]
-    .map(([type, names]) => `${type}: ${names.join("; ")}`)
-    .join("\n");
+  const list = itemCatalog(candidates);
 
-  const system = `${GM_CONCEPT_PRIORITY}\n\nYou are selecting carried equipment for a Starfinder 2e creature. Choose ONLY IDs from the provided list. Respond with a single JSON object and nothing else:
+  const system = `${GM_SELECTION_PRIORITY}\n\nYou are selecting carried equipment for a Starfinder 2e creature. Choose ONLY IDs from the provided list. Respond with a single JSON object and nothing else:
 { "equipment": [ { "id": string, "quantity": number } ] }
 ${GRADE_NAME_NOTE}
 Pick the logical items the creature would carry: the weapons it wields (match its strikes), sensible consumables, and everyday adventuring gear it would plausibly use. Include armor only when the creature would plausibly wear it (skip beasts, oozes, mindless and naturally-armored creatures), and pick armor that roughly fits its role and level. Pick each DISTINCT item at most once — a smaller focused set is fine; never repeat an item or add filler to reach a count. NO coins or currency. "quantity" is usually 1; use 2-5 only for ammunition and stackable consumables.`;
@@ -819,7 +848,7 @@ Pick the logical items the creature would carry: the weapons it wields (match it
       ? `First-draft equipment ideas (use as inspiration, but the final picks MUST come from the list): ${concept.equipment.map((e) => e.name).join(", ")}`
       : null,
     "",
-    "Available items:",
+    ITEM_CATALOG_HEADING,
     list
   ].filter((line) => line !== null).join("\n");
 
@@ -865,16 +894,9 @@ export async function selectLoot({ concept, candidates, scrollCandidates = [], o
     return { loot: jev.loot, omitted: false, usage: jev.usage ?? NO_TOKENS, timing: { source: "jev", ms: jev.ms } };
   }
   const started = Date.now();
-  const byType = new Map();
-  for (const c of candidates) {
-    if (!byType.has(c.type)) byType.set(c.type, []);
-    byType.get(c.type).push(`${c.id} | ${c.name}${c.level > 0 ? ` (L${c.level})` : ""}`);
-  }
-  const list = [...byType.entries()]
-    .map(([type, names]) => `${type}: ${names.join("; ")}`)
-    .join("\n");
+  const list = itemCatalog(candidates);
 
-  const system = `${GM_CONCEPT_PRIORITY}\n\nYou are selecting dropped loot for a Starfinder 2e creature. Choose ONLY IDs from the provided lists. Coins are module-built and retain their first-draft quantities automatically. A spell gem must use an offered spell ID and a rank no lower than that spell's base rank. Respond with a single JSON object and nothing else:
+  const system = `${GM_SELECTION_PRIORITY}\n\nYou are selecting dropped loot for a Starfinder 2e creature. Choose ONLY IDs from the provided lists. Coins are module-built and retain their first-draft quantities automatically. A spell gem must use an offered spell ID and a rank no lower than that spell's base rank. Respond with a single JSON object and nothing else:
 { "loot": [ { "id": string, "quantity": number }, { "gemSpellId": string, "rank": number, "quantity": number } ] }
 ${GRADE_NAME_NOTE}
 Recreate the first-draft haul: replace each non-coin entry with the closest valid item or spell gem spell. Keep the draft's quantities. Drop an entry only when nothing available comes close.`;
@@ -887,8 +909,8 @@ Recreate the first-draft haul: replace each non-coin entry with the closest vali
     `First-draft loot (recreate this haul from the list): ${concept.loot.map((l) => `${l.name} x${l.quantity}`).join(", ")}`,
     concept.equipment?.length ? `Already carried equipment: ${concept.equipment.map((item) => item.name).join(", ")}` : null,
     "",
-    "Available items:", list,
-    scrollCandidates.length ? `Available spell gem spells (ID | name | base rank): ${scrollCandidates.map((s) => `${s.id} | ${s.name} | ${s.rank}`).join("; ")}` : null
+    ITEM_CATALOG_HEADING, list,
+    scrollCandidates.length ? `Available spell gem spells (ID and name, then base rank): ${scrollCandidates.map((s) => `${catalogEntry(s)} (${s.rank})`).join("; ")}` : null
   ].filter((line) => line !== null).join("\n");
 
   const { data: parsed, usage } = await requestJSON({
@@ -924,6 +946,30 @@ Recreate the first-draft haul: replace each non-coin entry with the closest vali
 }
 
 /**
+ * The heritages worth offering next to a first-draft ancestry. When the draft
+ * names exactly one offered ancestry, only that ancestry's own heritages and
+ * the versatile ones (no ancestry link) are kept: a heritage of another
+ * ancestry can never be a legal pick for it, and the full list is several
+ * times longer than the rest of the request. Anything unclear (no unique
+ * ancestry match, no ancestry link on the list, no heritage of its own) keeps
+ * the full list.
+ * @returns {{heritages: object[], ancestry: object|null}} `ancestry` is set only when the list was narrowed
+ */
+export function heritagesForDraftAncestry(draftAncestry, ancestryCandidates, heritageCandidates) {
+  const all = { heritages: heritageCandidates, ancestry: null };
+  const wanted = String(draftAncestry ?? "").trim().toLocaleLowerCase();
+  if (!wanted) return all;
+  const matches = ancestryCandidates.filter((a) => String(a?.name ?? "").trim().toLocaleLowerCase() === wanted);
+  const ancestry = matches.length === 1 ? matches[0] : null;
+  if (!ancestry?.uuid) return all;
+  if (!heritageCandidates.some((h) => h?.ancestryUuid === ancestry.uuid)) return all;
+  return {
+    heritages: heritageCandidates.filter((h) => !h?.ancestryUuid || h.ancestryUuid === ancestry.uuid),
+    ancestry
+  };
+}
+
+/**
  * Ground a PC's first-draft ancestry/heritage/background/class against the
  * real compendium lists in ONE call — the ABC counterpart of selectSpells/
  * selectEquipment/selectLoot: choose ONLY from the provided lists, retaining
@@ -939,6 +985,11 @@ Recreate the first-draft haul: replace each non-coin entry with the closest vali
 export async function selectAncestryBackgroundClass({
   concept, ancestryCandidates, backgroundCandidates, classCandidates, heritageCandidates = [], onProgress, signal
 }) {
+  const narrowed = heritagesForDraftAncestry(concept.ancestry, ancestryCandidates, heritageCandidates);
+  heritageCandidates = narrowed.heritages;
+  const heritageScope = narrowed.ancestry
+    ? ` for ${narrowed.ancestry.name}, the first-draft ancestry (if you choose another ancestry, use null for heritageId)`
+    : "";
   const encoder = createCandidateEncoder("C");
   ancestryCandidates = encoder.encode(ancestryCandidates);
   heritageCandidates = encoder.encode(heritageCandidates);
@@ -954,10 +1005,10 @@ export async function selectAncestryBackgroundClass({
     concept.backstory ? `Backstory: ${concept.backstory}` : null,
     `First-draft ideas (use as inspiration, but the final picks MUST come from the lists below): ancestry "${concept.ancestry}", heritage "${concept.heritage ?? "none"}", background "${concept.background}", class "${concept.class}", key ability "${concept.keyAbility}"`,
     "",
-    `Available ancestries (ID | name): ${ancestryCandidates.map((a) => `${a.id} | ${a.name}`).join("; ")}`,
-    heritageCandidates.length ? `Available heritages (ID | name): ${heritageCandidates.map((h) => `${h.id} | ${h.name}`).join("; ")}` : null,
-    `Available backgrounds (ID | name): ${backgroundCandidates.map((b) => `${b.id} | ${b.name}`).join("; ")}`,
-    `Available classes (ID | name): ${classCandidates.map((c) => `${c.id} | ${c.name}`).join("; ")}`
+    `Available ancestries (ID then name): ${ancestryCandidates.map(catalogEntry).join("; ")}`,
+    heritageCandidates.length ? `Available heritages${heritageScope} (ID then name): ${heritageCandidates.map(catalogEntry).join("; ")}` : null,
+    `Available backgrounds (ID then name): ${backgroundCandidates.map(catalogEntry).join("; ")}`,
+    `Available classes (ID then name): ${classCandidates.map(catalogEntry).join("; ")}`
   ].filter((line) => line !== null).join("\n");
 
   const { data: parsed, usage } = await requestJSON({
@@ -1005,7 +1056,7 @@ export async function selectFeats({ concept, slots, onProgress, signal, jevConfi
     };
   }
   const started = Date.now();
-  const catalogLines = encoded.catalog.map(({ id, name }) => `${id} | ${name}`).join("\n");
+  const catalogLines = encoded.catalog.map(catalogEntry).join("\n");
   const slotLines = encoded.slots.map((slot) =>
     `${slot.number} | ${slot.type} | level ${slot.level} | ${slot.ids.join(",")}`
   ).join("\n");
@@ -1019,7 +1070,7 @@ Include exactly one entry per slot number (1 to ${slots.length}). Never use an I
     concept.blurb ? `Blurb: ${concept.blurb}` : null,
     concept.feats?.length ? `First-draft feat wishlist (inspiration only, final picks MUST come from each slot's own list): ${concept.feats.join(", ")}` : null,
     "",
-    "Feat catalog (ID | exact name):",
+    "Feat catalog (ID then exact name):",
     catalogLines,
     "",
     "Slots (number | type | character level | allowed IDs):",
@@ -1047,8 +1098,8 @@ export async function selectCreatureFeats({ concept, candidates, onProgress, sig
     return { feats: jev.feats, omitted: jev.omitted, usage: jev.usage ?? NO_TOKENS, timing: { source: "jev", ms: jev.ms } };
   }
   const started = Date.now();
-  const catalog = candidates.map((candidate) => `${candidate.id} | ${candidate.name}`).join("\n");
-  const system = `${GM_CONCEPT_PRIORITY}\n\nYou are selecting up to ${maximum} published Starfinder 2e class feats for a creature. Choose ONLY IDs from the provided catalog. Return a single JSON object and nothing else:
+  const catalog = candidates.map(catalogEntry).join("\n");
+  const system = `${GM_SELECTION_PRIORITY}\n\nYou are selecting up to ${maximum} published Starfinder 2e class feats for a creature. Choose ONLY IDs from the provided catalog. Return a single JSON object and nothing else:
 { "featIds": string[] }
 Choose feats that fit the creature's role and tactics. Do not choose a feat more than once. It is valid to choose fewer than ${maximum}; return { "featIds": [] } when none fit.`;
   const user = [
@@ -1058,7 +1109,7 @@ Choose feats that fit the creature's role and tactics. Do not choose a feat more
     concept.description ? `Description: ${concept.description}` : null,
     `First-draft feat ideas (inspiration only): ${concept.feats.map((feat) => typeof feat === "string" ? feat : feat.name).join(", ")}`,
     "",
-    "Feat catalog (ID | exact name):",
+    "Feat catalog (ID then exact name):",
     catalog
   ].filter((line) => line !== null).join("\n");
   const { data: parsed, usage } = await requestJSON({
@@ -1094,8 +1145,8 @@ export async function selectCreatureAbilities({ concept, candidates, onProgress,
     return { abilities: jev.abilities, usage: jev.usage ?? NO_TOKENS, timing: { source: "jev", ms: jev.ms } };
   }
   const started = Date.now();
-  const catalog = candidates.map((candidate) => `${candidate.id} | ${candidate.name}`).join("\n");
-  const system = `${GM_CONCEPT_PRIORITY}\n\nYou are selecting up to ${maximum} published Starfinder 2e bestiary actions for a creature. Choose ONLY IDs from the catalog. Return a single JSON object and nothing else:
+  const catalog = candidates.map(catalogEntry).join("\n");
+  const system = `${GM_SELECTION_PRIORITY}\n\nYou are selecting up to ${maximum} published Starfinder 2e bestiary actions for a creature. Choose ONLY IDs from the catalog. Return a single JSON object and nothing else:
 { "abilityIds": string[] }
 Choose the actions that fit the creature's role and tactics. Omit a proposed ability when no published action fits; it will remain labeled narrative-only, with no custom mechanics.`;
   const user = [
@@ -1105,7 +1156,7 @@ Choose the actions that fit the creature's role and tactics. Omit a proposed abi
     concept.description ? `Description: ${concept.description}` : null,
     `Draft ability ideas: ${concept.specialAbilities.map((ability) => ability.glossary ?? ability.name).join(", ")}`,
     "",
-    "Bestiary action catalog (ID | exact name):",
+    "Bestiary action catalog (ID then exact name):",
     catalog
   ].filter((line) => line !== null).join("\n");
   const { data: parsed, usage } = await requestJSON({
@@ -1156,8 +1207,8 @@ export async function selectRerollPick({ concept, kind, current, candidates, onP
     .map((pick) => (typeof pick === "string" ? pick : pick?.name))
     .filter((name) => name && name !== current);
   const catalog = candidates.map((candidate) => kind === "spell"
-    ? `${candidate.id} | ${candidate.name} (${candidate.rank === 0 ? "cantrip" : `rank ${candidate.rank}`})`
-    : `${candidate.id} | ${candidate.name}`).join("\n");
+    ? `${catalogEntry(candidate)} (${candidate.rank === 0 ? "cantrip" : `rank ${candidate.rank}`})`
+    : catalogEntry(candidate)).join("\n");
   const system = `You are replacing ONE ${label} on a Starfinder 2e creature. The GM wants something different from the current pick. Choose exactly one ID from the provided catalog; never invent one. Return a single JSON object and nothing else:
 { "id": string }
 Choose the option that best fits the creature's role, theme and tactics and does not repeat what it already has.`;
@@ -1171,7 +1222,7 @@ Choose the option that best fits the creature's role, theme and tactics and does
     `Replacing: ${current}`,
     others.length ? `Already has (do not repeat): ${others.join(", ")}` : null,
     "",
-    "Catalog (ID | exact name):",
+    "Catalog (ID then exact name):",
     catalog
   ].filter((line) => line !== null).join("\n");
   const { data: parsed, usage } = await requestJSON({ task: AI_TASK.REROLL_PICK, system, user, onProgress, signal });
@@ -1522,12 +1573,7 @@ export async function selectShopStock({ concept, candidates, count, gmPrompt = "
   const encoder = createCandidateEncoder("S");
   const issued = candidates;
   candidates = encoder.encode(candidates);
-  const byType = new Map();
-  for (const c of candidates) {
-    if (!byType.has(c.type)) byType.set(c.type, []);
-    byType.get(c.type).push(`${c.id} | ${c.name}${c.level > 0 ? ` (L${c.level})` : ""}`);
-  }
-  const list = [...byType.entries()].map(([type, names]) => `${type}: ${names.join("; ")}`).join("\n");
+  const list = itemCatalog(candidates);
   const system = `You stock a Starfinder 2e shop. Choose ONLY IDs from the provided list. Respond with a single JSON object and nothing else:
 { "ids": string[] }
 Pick exactly ${count} DISTINCT items (fewer only if the list is shorter) that this shop would plausibly sell, matching its theme and keeper. Mix price points and item levels so customers of different means find something. Never repeat an ID.`;
@@ -1539,7 +1585,7 @@ Pick exactly ${count} DISTINCT items (fewer only if the list is shorter) that th
     concept.description ? `Description: ${concept.description}` : null,
     concept.keywords.length ? `Sells: ${concept.keywords.join(", ")}` : null,
     "",
-    "Available items:",
+    ITEM_CATALOG_HEADING,
     list
   ].filter((line) => line !== null).join("\n");
   const { data, usage } = await requestJSON({
@@ -1595,12 +1641,7 @@ export async function selectTreasureItems({ concept, candidates, count, amount =
   const encoder = createCandidateEncoder("T");
   const issued = candidates;
   candidates = encoder.encode(candidates);
-  const byType = new Map();
-  for (const c of candidates) {
-    if (!byType.has(c.type)) byType.set(c.type, []);
-    byType.get(c.type).push(`${c.id} | ${c.name}${c.level > 0 ? ` (L${c.level})` : ""}`);
-  }
-  const list = [...byType.entries()].map(([type, names]) => `${type}: ${names.join("; ")}`).join("\n");
+  const list = itemCatalog(candidates);
   const scale = amount === "level"
     ? "a whole level of adventuring (many items, a few of them notable)"
     : "a single encounter (a few modest items; save the best for later)";
@@ -1613,7 +1654,7 @@ Pick up to ${count} DISTINCT items this hoard would plausibly contain, matching 
     concept.description ? `Description: ${concept.description}` : null,
     concept.keywords.length ? `Likely contents: ${concept.keywords.join(", ")}` : null,
     "",
-    "Available items:",
+    ITEM_CATALOG_HEADING,
     list
   ].filter((line) => line !== null).join("\n");
   const { data, usage } = await requestJSON({
