@@ -49,7 +49,7 @@ assert.ok(system.includes(ABILITY_DAMAGE_TYPE_NOTE), "the prompt carries the exp
 for (const type of ABILITY_DAMAGE_TYPES) assert.ok(ABILITY_DAMAGE_TYPE_NOTE.includes(type), `glossary type ${type} is named`);
 for (const type of ["spirit", "mental", "force", "void"]) {
   assert.ok(!ABILITY_DAMAGE_TYPES.includes(type), `${type} is not a glossary type`);
-  assert.ok(ABILITY_DAMAGE_TYPE_NOTE.includes(`${type}`) && ABILITY_DAMAGE_TYPE_NOTE.includes("area-blast and aura only"), `${type} is named as area-blast and aura only`);
+  assert.ok(ABILITY_DAMAGE_TYPE_NOTE.includes(`${type}`) && ABILITY_DAMAGE_TYPE_NOTE.includes("templates only"), `${type} is named as templates only`);
 }
 
 // Drift guard: a validator list edit must reach the prompt. Checked by recomputing the

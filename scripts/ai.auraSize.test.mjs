@@ -24,6 +24,6 @@ reply = { name: "Mystic", description: "A mystic", abilityScales: {}, saveScales
 await generateConcept({ prompt: gmPrompt, level: 4, rarity: "common", allowSpellcasting: true, preset: "Wizard" });
 assert.equal(requests.length, 1, "one request");
 const system = requests[0].messages[0].content;
-assert.match(system, /"size": "small"\|"medium"\|"large"\|null, \/\/ area-blast and aura; null = medium/,
+assert.match(system, /"size": "small"\|"medium"\|"large"\|null, \/\/ templates; null = medium/,
   "the prompt offers size for auras as well as area blasts");
 console.log("ai.auraSize: ok");

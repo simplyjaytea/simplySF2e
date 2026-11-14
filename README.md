@@ -170,10 +170,10 @@ Use **Monster** for a creature (a "xenobiology specimen") and **NPC** for a pers
 The AI chooses only descriptive scales such as "high AC" or "low HP". SimplySF2e turns those into numbers using the *Starfinder GM Core* Building Creatures tables. Spells, feats, equipment and loot are each picked from a short list of real compendium entries. Abilities can come from the compendium, a module-built template or narrative text. The preview marks each pick:
 
 - a check mark means it matched a real compendium item;
-- **Module-built** marks a working Area Blast or Aura made by SimplySF2e;
-- **Narrative only** marks an ability the AI made up on purpose. It is flavor text with no mechanics, and it is allowed.
+- **Module-built** marks a working Area Blast, Aura or targeted action made by SimplySF2e;
+- **Narrative only** marks an ability the AI made up on purpose. It is flavor text with no mechanics, and it is allowed. It still shows its action cost on the sheet.
 
-A module-built **Area Blast** gives a bespoke breath or blast a cone or line, damage and a save DC. A limited blast includes a recharge roll. A module-built **Aura** calls for a save when a creature enters or starts its turn there, then describes a condition or damage. Its radius appears on the canvas, and you apply the result. The module supplies the numbers from *GM Core* tables and published creatures.
+A module-built **Area Blast** gives a bespoke breath or blast a cone or line, damage and a save DC. A limited blast includes a recharge roll. A module-built **Aura** calls for a save when a creature enters or starts its turn there, then describes a condition or damage. Its radius appears on the canvas, and you apply the result. A module-built **targeted action** is a bespoke ability used on one creature: it costs one to three actions, a reaction or a free action, and its text carries a clickable save with damage, a condition or both. The module supplies the numbers from *GM Core* tables and published creatures.
 
 The glossary abilities **Constrict**, **Greater Constrict**, **Swallow Whole**, **Engulf**, **Trample**, **Frightful Presence** and **Stench** also get level-appropriate values. SimplySF2e fills their damage, DCs, sizes and aura radii. Trample uses the creature's own melee Strike. If a glossary ability cannot be filled safely, its working version is left out. Safe flavor text may remain as **Narrative only**. The browser console names the ability.
 

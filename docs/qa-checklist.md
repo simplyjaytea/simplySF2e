@@ -1064,6 +1064,25 @@ Four short synthesised cues, off by default, set per browser. They cannot be hea
 | 22.14 | With sounds on, have a player connected in another browser while you run and create. | The player hears nothing, and the player's module settings do not show Interface sounds or Test sounds. | Player client | | |
 | 22.15 | Open the browser console during 22.4 to 22.10. | No errors or warnings from the module about audio. | Console | | |
 
+## 26. Rollable abilities and Recall Knowledge (2026-11-14)
+
+Bespoke abilities against one creature are built as working actions, narrative abilities carry their action cost, and the Recall Knowledge note lists Lore DCs. Numbers come from the tables already used for Area Blast and Aura. None of this has run in Foundry.
+
+| ID | Step | Expected | Where | Result | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 26.1 | Generate three or four monsters whose concept suggests a single-target trick (for example "a spitting acid lizard", "a psychic stalker that paralyses prey with fear"). | At least one ability in the preview is labelled **Module-built** and is neither a cone, a line nor an aura. | Generator | | |
+| 26.2 | Create that monster and open its sheet. | The ability sits under its action cost (one, two or three actions, reaction or free action) with the matching icon, and has no "Narrative:" prefix. | NPC sheet | | |
+| 26.3 | Expand the ability on the sheet and press its save and damage buttons. | The save button rolls or prompts the named save against the printed DC; the damage button rolls the printed dice with the damage type. Nothing shows as raw `@Check` or `@Damage` text. | NPC sheet, chat | | |
+| 26.4 | Send the ability to chat from the sheet. | The chat card shows the same text with working save and damage buttons, and the action glyph. | Chat | | |
+| 26.5 | Look at the ability's traits. | Only real traits show (for example Fire, or Emotion, Fear, Mental for frightened). No raw slug and no warning in the console. | NPC sheet, console | | |
+| 26.6 | Judge the numbers on two creatures of different level (for example 3 and 12). | DC and damage rise with level and look right beside the creature's Strikes. Note if single-target damage reads too low: it uses the Area Damage table on purpose. | NPC sheet | | |
+| 26.7 | Find a **Narrative only** ability on a created monster. | It is still named "Narrative: ..." and has no rolls, and it now sits under the action cost its text implies instead of always under passives. | NPC sheet | | |
+| 26.8 | Open the public notes of a created monster and compare with the sheet's own Recall Knowledge section. | The note's skill DC equals the sheet's standard DC. The line "Applicable Lore DC ...; specific Lore DC ..." equals the sheet's two Lore DCs. | NPC sheet | | |
+| 26.9 | Repeat 26.8 for an uncommon or rare monster and for one created as Elite or Weak. | The DCs still match the sheet (rarity adds 2, 5 or 10; Elite and Weak move the level by one). | NPC sheet | | |
+| 26.10 | Create a Weak level -1 monster. | The note shows DC 14, the same as the sheet. | NPC sheet | | |
+| 26.11 | Reskin a monster made in 26.2 with a new level, and create the copy. | The preview lists the targeted action as rebuilt; on the copy its DC and damage match the new level and its action cost is unchanged. | Generator, NPC sheet | | |
+| 26.12 | Watch the token report on a monster run before and after this update. | The creature prompt is about 150 tokens longer per run. Say if that is not worth it. | Generator | | |
+
 ## 23t. Token cost (2026-11-14)
 
 The AI requests are shorter and the replies are asked for as one-line JSON. Offline numbers are in `tools/token-bench/README.md`; these rows check that a live model still answers well. Note the model you used.

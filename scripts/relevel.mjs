@@ -37,7 +37,7 @@
  */
 import * as T from "./tables.mjs";
 import { fullHealthHp } from "./builder.mjs";
-import { buildModuleTemplate } from "./ability-templates.mjs";
+import { buildModuleTemplate, abilityFromBuilt } from "./ability-templates.mjs";
 import { fillBlocker, fillPlaceholderAbility } from "./ability-fill.mjs";
 
 export const RELEVEL_MIN = T.MIN_LEVEL;
@@ -181,12 +181,8 @@ export function rebuildModuleAbilities(data, to, { sources = {} } = {}) {
     const built = item?.flags?.simplysf2e?.built;
     if (!built || !item.system) continue; // unflagged items are never touched (published or older)
     const base = { id: item._id, name: item.name, kind: built.kind };
-    if (built.kind === "area-blast" || built.kind === "aura") {
-      const ability = {
-        name: item.name,
-        description: built.flavor ?? "",
-        ...(built.kind === "aura" ? { aura: built.spec } : { areaBlast: built.spec })
-      };
+    const ability = abilityFromBuilt(built.kind, built.spec, { name: item.name, description: built.flavor ?? "" });
+    if (ability) {
       const fresh = buildModuleTemplate(ability, { level: to });
       if (!fresh) {
         const outside = to < RELEVEL_MIN || to > RELEVEL_MAX;

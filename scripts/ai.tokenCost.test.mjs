@@ -80,7 +80,8 @@ try {
     strikes: [{ name: "jaws", type: "melee", attackScale: "high", damageScale: "moderate", damageType: "piercing", traits: [], range: null, attackEffects: [] }],
     specialAbilities: [
       { name: "Vacuum Hide", glossary: null, description: "Plated hide.", abilityDcScale: null, damageType: null, template: null, kind: null, condition: null, shape: null, size: null, save: null, use: null },
-      { name: "Star Flare", glossary: null, description: "A cone of light.", abilityDcScale: "high", damageType: "fire", template: "area-blast", kind: null, condition: null, shape: "cone", size: null, save: null, use: "limited" }
+      { name: "Star Flare", glossary: null, description: "A cone of light.", abilityDcScale: "high", damageType: "fire", template: "area-blast", kind: null, condition: null, shape: "cone", size: null, save: null, use: "limited" },
+      { name: "Dread Stare", glossary: null, description: "A cold look.", cost: "two", abilityDcScale: null, damageType: null, template: "targeted", kind: null, condition: "frightened", shape: null, size: null, save: null, use: null }
     ],
     equipment: [{ name: "Laser Pistol", quantity: 1, value: 150 }],
     loot: [{ name: "Credits", quantity: 90, value: 1 }, { name: "Serum of Healing", quantity: 2, value: 120 }]
@@ -91,7 +92,8 @@ try {
     strikes: [{ name: "jaws", type: "melee", attackScale: "high", damageScale: "moderate", damageType: "piercing" }],
     specialAbilities: [
       { name: "Vacuum Hide", description: "Plated hide." },
-      { name: "Star Flare", description: "A cone of light.", abilityDcScale: "high", damageType: "fire", template: "area-blast", shape: "cone", use: "limited" }
+      { name: "Star Flare", description: "A cone of light.", abilityDcScale: "high", damageType: "fire", template: "area-blast", shape: "cone", use: "limited" },
+      { name: "Dread Stare", description: "A cold look.", cost: "two", template: "targeted", condition: "frightened" }
     ],
     equipment: ["Laser Pistol"],
     loot: [{ name: "Credits", quantity: 90 }, { name: "Serum of Healing", quantity: 2 }]
@@ -105,6 +107,7 @@ try {
   const fromLean = normalizeConcept(lean, { level: 4, rarity: "common" });
   assert.deepEqual(strip(fromLean), strip(fromVerbose), "left-out keys read as null or [] everywhere but the dropped draft price");
   assert.ok(fromLean.specialAbilities[1].areaBlast, "an area blast written without its null keys is still built");
+  assert.ok(fromLean.specialAbilities[2].targeted, "and so is a targeted action");
   assert.deepEqual(fromLean.equipment, [{ name: "Laser Pistol", quantity: 1, value: 0 }]);
   assert.deepEqual(fromLean.loot[1], { name: "Serum of Healing", quantity: 2, value: 0 });
 

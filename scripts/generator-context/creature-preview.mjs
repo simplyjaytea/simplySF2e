@@ -20,7 +20,7 @@ export function buildCreaturePreviewContext(concept, resolved) {
     // A module-built area blast shows the Module-built label (no compendium source), not the narrative label.
     narrative: Boolean(ability.narrative),
     // A working area blast is module-built, not narrative-only (its own preview label).
-    moduleBuilt: Boolean(ability.areaBlast || ability.aura),
+    moduleBuilt: Boolean(ability.areaBlast || ability.aura || ability.targeted),
     description: ability.description,
     index,
     rerollable: rerollable("ability", index)

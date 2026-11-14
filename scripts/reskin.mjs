@@ -10,6 +10,7 @@
  */
 import { esc, escAi, plainAiText, toHtml, capitalized } from "./text.mjs";
 import { fullHealthHp } from "./builder.mjs";
+import { loreIdentificationDCs } from "./tables.mjs";
 
 /** Item types whose display name Reskin may change (NPC strikes and abilities). */
 export const RENAMEABLE_TYPES = Object.freeze(["melee", "action"]);
@@ -98,7 +99,11 @@ export function recallKnowledgeNote(skills, dc, text) {
   const checks = list.length
     ? list.map((skill) => `<strong>${esc(capitalized(skill))}</strong> @Check[type:${skill}|dc:${dc}]`).join(" or ")
     : `<strong>DC ${dc}</strong>`;
-  return `<h3>Recall Knowledge</h3><p>${checks}: ${escAi(text)}</p>`;
+  // Lore DCs as the NPC sheet lists them (tables.mjs loreIdentificationDCs). A Lore skill
+  // has no fixed slug to roll, so these are plain numbers.
+  const lore = loreIdentificationDCs(dc);
+  const loreLine = `<p><em>Applicable Lore DC ${lore.unspecific}; specific Lore DC ${lore.specific}.</em></p>`;
+  return `<h3>Recall Knowledge</h3><p>${checks}: ${escAi(text)}</p>${loreLine}`;
 }
 
 /** Embedded item types that are live state, not part of the creature. */
