@@ -83,7 +83,7 @@ const SHIPPED_IDS = [
   "2026-10-11-treasure", "2026-10-11-relevel"
 ];
 for (const id of SHIPPED_IDS) assert.ok(ids.includes(id), `shipped note id ${id} was removed or renamed`);
-assert.equal(RELEASE_NOTES[0].id, "2026-11-14-mode-tiles");
+assert.equal(RELEASE_NOTES[0].id, "2026-11-14-interface-sounds");
 assert.ok(RELEASE_NOTES[0].bullets.length <= 5);
 // Never stored: a new install starts with everything seen; a GM already set
 // up (welcome not opening) is upgrading and sees every note once.

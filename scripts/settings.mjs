@@ -23,6 +23,7 @@ export const SETTINGS = {
   whatsNewSeen: "whatsNewSeen",
   whatsNewDisabled: "whatsNewDisabled",
   generatorInput: "generatorInput",
+  interfaceSounds: "interfaceSounds",
   settingsSchema: "settingsSchema"
 };
 
@@ -61,7 +62,33 @@ export async function migrateSettings(steps = SETTINGS_MIGRATIONS) {
   await game.settings.set(MODULE_ID, SETTINGS.settingsSchema, SETTINGS_SCHEMA);
 }
 
-export function registerSettings(SourcesConfigApp, ProviderSetupApp, WelcomeApp, WhatsNewApp) {
+export function registerSettings(SourcesConfigApp, ProviderSetupApp, WelcomeApp, WhatsNewApp, SoundTestApp) {
+  // Interface sounds: per browser, off by default. Only this client hears
+  // them; nothing is sent to players. The values are sounds.mjs SOUND_LEVELS.
+  game.settings.register(MODULE_ID, SETTINGS.interfaceSounds, {
+    name: "SIMPLYSF2E.Settings.InterfaceSounds.Name",
+    hint: "SIMPLYSF2E.Settings.InterfaceSounds.Hint",
+    scope: "client",
+    config: true,
+    restricted: true,
+    type: String,
+    choices: {
+      off: "SIMPLYSF2E.Settings.InterfaceSounds.Off",
+      quiet: "SIMPLYSF2E.Settings.InterfaceSounds.Quiet",
+      normal: "SIMPLYSF2E.Settings.InterfaceSounds.Normal"
+    },
+    default: "off"
+  });
+  if (SoundTestApp) {
+    game.settings.registerMenu(MODULE_ID, "soundTestMenu", {
+      name: "SIMPLYSF2E.Sounds.MenuName",
+      label: "SIMPLYSF2E.Sounds.MenuLabel",
+      hint: "SIMPLYSF2E.Sounds.MenuHint",
+      icon: "fa-solid fa-volume-high",
+      type: SoundTestApp,
+      restricted: true
+    });
+  }
   if (WelcomeApp) {
     game.settings.registerMenu(MODULE_ID, "welcomeMenu", {
       name: "SIMPLYSF2E.Welcome.MenuName",
@@ -340,6 +367,28 @@ export function registerSettings(SourcesConfigApp, ProviderSetupApp, WelcomeApp,
 
 export function getSetting(key) {
   return game.settings.get(MODULE_ID, key);
+}
+
+/**
+ * Foundry's own Interface volume (the slider in the playlists sidebar), 0 to
+ * 1, so the module's cues follow it. 1 when the core setting cannot be read.
+ */
+export function interfaceSoundVolume() {
+  try {
+    const volume = Number(game.settings.get("core", "globalInterfaceVolume"));
+    return Number.isFinite(volume) ? Math.min(1, Math.max(0, volume)) : 1;
+  } catch {
+    return 1;
+  }
+}
+
+/** The Interface sounds level of this browser; "off" when the setting cannot be read. */
+export function interfaceSoundLevel() {
+  try {
+    return game.settings.get(MODULE_ID, SETTINGS.interfaceSounds) || "off";
+  } catch {
+    return "off";
+  }
 }
 
 const SECRET_QUERY_NAMES = new Set([

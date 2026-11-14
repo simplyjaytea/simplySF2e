@@ -9,6 +9,7 @@ import { ProviderSetupApp } from "./provider-setup-app.mjs";
 import { WelcomeApp } from "./welcome-app.mjs";
 import { shouldAutoOpenWelcome } from "./welcome.mjs";
 import { WhatsNewApp } from "./whats-new-app.mjs";
+import { SoundTestApp } from "./sound-test-app.mjs";
 import { RELEASE_NOTES, unseenNotes, initialSeenIds, shouldAutoOpenWhatsNew } from "./whats-new.mjs";
 
 let app = null;
@@ -109,7 +110,7 @@ function addDirectoryButton(html, { markerClass, icon, label, onClick, placement
 }
 
 Hooks.once("init", () => {
-  registerSettings(SourcesConfigApp, ProviderSetupApp, WelcomeApp, WhatsNewApp);
+  registerSettings(SourcesConfigApp, ProviderSetupApp, WelcomeApp, WhatsNewApp, SoundTestApp);
   if (!Handlebars.helpers.eq) {
     Handlebars.registerHelper("eq", (a, b) => a === b);
   }

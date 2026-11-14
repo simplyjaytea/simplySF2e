@@ -45,10 +45,23 @@
         "Name": "Run deadline (minutes)",
         "Hint": "Minutes before a run times out (default 5). Set 0 to turn the limit off."
       },
+      "InterfaceSounds": {
+        "Name": "Interface sounds",
+        "Hint": "Short cues when a run starts, a result is ready, something is created, or a run fails. Only you hear them, and they follow Foundry's Interface volume. Off by default.",
+        "Off": "Off",
+        "Quiet": "Quiet",
+        "Normal": "Normal"
+      },
       "FreeArchetype": {
         "Name": "Free Archetype variant rule",
         "Hint": "When enabled, one-click characters gain the variant's extra archetype feat slot at each even level. Picks are validated staged: candidate-time prerequisite filtering plus slot-placement checks, and unprovable placements are left unresolved instead of guessed."
       }
+    },
+    "Sounds": {
+      "MenuName": "Test interface sounds",
+      "MenuLabel": "Test sounds",
+      "MenuHint": "Plays the four cues in order: run started, result ready, created, error. Works even while Interface sounds is off.",
+      "TestPlaying": "Playing the four cues: run started, result ready, created, error."
     },
     "ProviderSetup": {
       "Title": "AI Provider Setup",
@@ -211,6 +224,12 @@
       "Disable": "Don't show for updates",
       "Earlier": "Earlier changes ({count})",
       "Note": {
+        "InterfaceSounds": {
+          "Title": "Optional interface sounds",
+          "B1": "Short cues can mark a run starting, a result ready, a create and an error.",
+          "B2": "They are off until you turn on Interface sounds in the module settings.",
+          "B3": "Press Test sounds there to hear all four first. Only you hear them."
+        },
         "ModeTiles": {
           "Title": "Mode tiles on one row",
           "B1": "The five Generator modes stay on one row, even in a narrow window.",
