@@ -16,13 +16,13 @@ node tools/token-bench/measure.mjs --verbose     # print every prompt and reply
 
 ## 2026-11-14: before and after the token-cost pass
 
-`gpt-tokenizer` o200k, sf2e 1.7.0 packs (`52dfeee`). "Before" is `main` at `f91b000`.
+`gpt-tokenizer` o200k, sf2e 1.7.0 packs (`52dfeee`). "Before" is `main` at `bd47434`.
 
 | Scenario | Calls | Prompt tokens | Reply tokens | Total |
 | --- | --- | --- | --- | --- |
-| Monster, level 3 | 2 → 2 | 3,675 → 3,528 (-4%) | 928 → 518 (-44%) | 4,603 → 4,046 (-12%) |
-| NPC caster, level 7 | 7 → 6 | 8,947 → 7,893 (-12%) | 2,128 → 1,085 (-49%) | 11,075 → 8,978 (-19%) |
-| Encounter, 3 creatures | 12 → 11 | 14,911 → 13,525 (-9%) | 3,324 → 1,722 (-48%) | 18,235 → 15,247 (-16%) |
+| Monster, level 3 | 2 → 2 | 3,792 → 3,645 (-4%) | 928 → 518 (-44%) | 4,720 → 4,163 (-12%) |
+| NPC caster, level 7 | 7 → 6 | 9,064 → 8,010 (-12%) | 2,128 → 1,085 (-49%) | 11,192 → 9,095 (-19%) |
+| Encounter, 3 creatures | 12 → 11 | 15,145 → 13,759 (-9%) | 3,324 → 1,722 (-48%) | 18,469 → 15,481 (-16%) |
 | Character, first 3 calls | 3 → 3 | 7,331 → 4,167 (-43%) | 904 → 546 (-40%) | 8,235 → 4,713 (-43%) |
 | Shop, level 6 | 2 → 2 | 1,147 → 1,108 (-3%) | 296 → 218 (-26%) | 1,443 → 1,326 (-8%) |
 | Treasure, level 6 | 2 → 2 | 1,171 → 1,109 (-5%) | 185 → 131 (-29%) | 1,356 → 1,240 (-9%) |
