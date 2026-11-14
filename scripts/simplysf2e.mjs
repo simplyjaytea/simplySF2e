@@ -113,11 +113,13 @@ Hooks.once("init", () => {
   if (!Handlebars.helpers.eq) {
     Handlebars.registerHelper("eq", (a, b) => a === b);
   }
-  // Shared progress-bar markup between the generator and item forge windows —
-  // registered once here so both HandlebarsApplicationMixin apps can
-  // {{> simplysf2e-progress}} instead of duplicating the block.
+  // Shared markup of the tool windows, registered once here so each
+  // HandlebarsApplicationMixin app can include it instead of duplicating the
+  // block: {{> simplysf2e-progress}} (the progress card) and
+  // {{> simplysf2e-statusbar}} (connection, model, readiness, key warning).
   foundry.applications.handlebars.loadTemplates({
-    "simplysf2e-progress": `modules/${MODULE_ID}/templates/_progress.hbs`
+    "simplysf2e-progress": `modules/${MODULE_ID}/templates/_progress.hbs`,
+    "simplysf2e-statusbar": `modules/${MODULE_ID}/templates/_statusbar.hbs`
   });
 });
 

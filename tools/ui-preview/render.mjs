@@ -36,11 +36,17 @@ export function localize(key, data = {}) {
 }
 
 /** A fresh Handlebars environment so helper/partial state never leaks between runs. */
-export function createEnvironment() {
+export function createEnvironment(missing = null) {
   const hbs = Handlebars.create();
   hbs.registerHelper("localize", (key, options) => localize(key, options?.hash ?? {}));
   hbs.registerHelper("eq", (a, b) => a === b);
   hbs.registerPartial("simplysf2e-progress", readFileSync(join(REPO, "templates", "_progress.hbs"), "utf8"));
+  // The status strip takes hash arguments, so Handlebars hands it a plain copy
+  // of the context. Watch that copy again, or a key the strip reads and a
+  // fixture lacks would render blank without failing the run.
+  const statusbar = hbs.compile(readFileSync(join(REPO, "templates", "_statusbar.hbs"), "utf8"));
+  hbs.registerPartial("simplysf2e-statusbar", (context, options) =>
+    statusbar(missing ? watch(context, missing) : context, options));
   return hbs;
 }
 
@@ -90,9 +96,9 @@ function watch(value, missing, path = "") {
 export function renderFixture(fixture, { cssBase = "/", width = 720 } = {}) {
   const app = APPS[fixture.app];
   if (!app) throw new Error(`fixture ${fixture.id}: unknown app "${fixture.app}"`);
-  const hbs = createEnvironment();
-  const source = readFileSync(join(REPO, "templates", app.template), "utf8");
   const missing = new Set();
+  const hbs = createEnvironment(missing);
+  const source = readFileSync(join(REPO, "templates", app.template), "utf8");
   const body = hbs.compile(source)(watch(fixture.context, missing));
   const title = localize(app.title);
   const tag = app.tag;

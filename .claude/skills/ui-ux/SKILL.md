@@ -48,6 +48,6 @@ Read first: `references/anti-slop-checklist.md` in this folder (what generic AI-
 | Shop / Treasure | `templates/shop.hbs`, `templates/treasure.hbs` | `styles/apps/shop.css`, `styles/apps/treasure.css` | `fixtures/shop.mjs`, `fixtures/treasure.mjs` | `scripts/shop-app.mjs`, `scripts/treasure-app.mjs` |
 | Provider Setup, Sources, Manage Presets | `templates/provider-setup.hbs`, `templates/sources.hbs`, `templates/manage-presets.hbs` | `styles/apps/<same>.css` | `fixtures/dialogs.mjs` | `scripts/<same>-app.mjs` |
 | Welcome, What's new | `templates/welcome.hbs`, `templates/whats-new.hbs` | `styles/apps/welcome.css`, `styles/apps/whats-new.css` | `fixtures/welcome.mjs`, `fixtures/whats-new.mjs` | `scripts/welcome-app.mjs`, `scripts/whats-new-app.mjs` |
-| Shared shell (connection switch, token report, progress bar) | `templates/_progress.hbs` + per-app partials | `styles/simplysf2e.css` | `fixtures/_shared.mjs` | `scripts/app-base.mjs` |
+| Shared shell (connection switch, token report, progress bar) | `templates/_statusbar.hbs`, `templates/_progress.hbs` | `styles/simplysf2e.css` | `fixtures/_shared.mjs` | `scripts/app-base.mjs` |
 
 Fixture paths are under `tools/ui-preview/`.

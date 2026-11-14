@@ -23,3 +23,4 @@ Appended by the coordinator when a batch lands on `next`; copied into the PR bod
 | BATCH-17 (2026-11-09) | none new (12ae.6 reworded; Create/Delete refusal is checked with 12ae.5) | 2026-11-09-hunt-fixes |
 | R3-BATCH (2026-11-10) | 15.1-15.31; reworded 14f.3; button names updated across the checklist (sentence case) | 2026-11-10-review-fixes, 2026-11-10-tidier-windows |
 | R4-BATCH (2026-11-10) | 16.1-16.13; 14h.1 examples reworded | 2026-11-10-kept-work |
+| UI revamp slice 1 (2026-11-14) | 17.1-17.6 | none (no GM-visible change) |

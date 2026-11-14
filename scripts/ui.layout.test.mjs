@@ -8,9 +8,23 @@ import { readFile } from "node:fs/promises";
 const root = new URL("../", import.meta.url);
 const read = (path) => readFile(new URL(path, root), "utf8");
 
+// The four tool windows include the shared status strip as a partial. The
+// checks below read each window as the GM sees it, so the include is replaced
+// by the partial's markup first; a window that drops the include fails here.
+const statusbar = await read("templates/_statusbar.hbs");
+const withStatusbar = (name, template) => {
+  const include = /\{\{> simplysf2e-statusbar [^}]*\}\}/g;
+  assert.equal(template.match(include)?.length, 1, `${name} must include the shared status strip exactly once`);
+  // The include stays: its arguments carry the window's own strings.
+  return template.replace(include, (match) => `${match}\n${statusbar}`);
+};
+assert.match(await read("scripts/simplysf2e.mjs"), /"simplysf2e-statusbar": `modules\/\$\{MODULE_ID\}\/templates\/_statusbar\.hbs`/,
+  "the entry point must register the shared status strip partial");
+for (const name of ["shop", "treasure"]) withStatusbar(name, await read(`templates/${name}.hbs`));
+
 const [generator, itemForge, providerSetup, managePresets, sources, progress, generatorApp, itemForgeApp, appBase, css, langJson, creaturePipeline] = await Promise.all([
-  read("templates/generator.hbs"),
-  read("templates/itemforge.hbs"),
+  read("templates/generator.hbs").then((template) => withStatusbar("generator", template)),
+  read("templates/itemforge.hbs").then((template) => withStatusbar("item forge", template)),
   read("templates/provider-setup.hbs"),
   read("templates/manage-presets.hbs"),
   read("templates/sources.hbs"),

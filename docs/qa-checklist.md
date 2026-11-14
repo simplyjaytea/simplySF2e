@@ -941,3 +941,16 @@ Generate a level 7 NPC with a limited cone breath (name "Frost Breath", cold), a
 | 16.11 | Any run. | Step times read "0.8s", "12s", "1m 05s". | Progress card | | |
 | 16.12 | Change Equipment sources, save, open Item Forge (Wondrous) without reloading. | The passive-effect choices come from the new packs. | Item Forge | | |
 | 16.13 | GitHub: try to push to `main` directly. | Refused: a pull request with a passing `verify` check is required. | GitHub | | |
+
+## 17. UI revamp slice 1: shared status strip (2026-11-14)
+
+No visual change is intended. The status strip of the Generator, Item Forge, Shop and Treasure windows is now one shared template (`templates/_statusbar.hbs`).
+
+| ID | Step | Expected | Where | Result | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 17.1 | Open the Generator, Item Forge, Shop and Treasure. Press F12 and read the console. | Each window opens with its status strip (connection, model, Compendium and Jev row). No "partial could not be found" error in the console. | All four tool windows | | |
+| 17.2 | With two saved connections, switch the connection in the Generator's strip. | The other three open windows show the new connection and model. Typed prompts stay. | All four tool windows | | |
+| 17.3 | Press Test connection (signal icon), then the gear. | The test reports the provider, model and tokens. The gear opens Provider Setup. | Any tool window | | |
+| 17.4 | Open the Compendium and Jev row in each window. | The Compendium line reads the window's own sentence (the Generator names the pack count). The books button opens Sources. | All four tool windows | | |
+| 17.5 | Generate a shop, then look at the strip while the preview is open; do the same in the Generator. | Shop, Treasure and Forge hide "Last run" while the preview's Token usage line is on screen. The Generator keeps showing it. | Shop, Generator | | |
+| 17.6 | Remove the API key (or use a world with none) and open each window. | The key warning shows under the strip in all four windows, with the Authorize button where it applied before. | All four tool windows | | |
