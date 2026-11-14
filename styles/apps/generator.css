@@ -100,7 +100,21 @@
 /* Motion "slide": after a mode switch the app names the tile the marker
    left (--spf-mode-from) and adds this class once. */
 .simplysf2e .spf-mode-toggle.spf-slide::before {
-  animation: spf-slide var(--spf-motion) var(--spf-ease-out);
+  animation: spf-slide var(--spf-motion-slow) var(--spf-ease-out);
+}
+
+/* The icon of the tile the marker lands on pops, and a tile's icon lifts
+   under the pointer. */
+.simplysf2e .spf-mode-toggle label > i {
+  transition: transform var(--spf-motion-fast) var(--spf-ease-out);
+}
+
+.simplysf2e .spf-mode-toggle label:not(.spf-mode-active):hover > i {
+  transform: translateY(-2px) scale(1.12);
+}
+
+.simplysf2e .spf-mode-toggle.spf-slide label.spf-mode-active > i {
+  animation: spf-pop var(--spf-motion-slow) var(--spf-ease-pop) 60ms backwards;
 }
 
 @keyframes spf-slide {
@@ -468,16 +482,57 @@
   margin-left: var(--spf-space-md);
 }
 
-/* The single creature's stat strip: the encounter member's grid, one row
-   of six in a window with room and the member's 3 + 3 in a narrow one. It
-   has no rule of its own; the traits above and the statline below frame it. */
+/* The single creature's stat strip: six readout tiles, one row in a window
+   with room and 3 + 3 in a narrow one. Each tile is a HUD readout: a small
+   label over a large number, lit along its top edge. */
 .simplysf2e .spf-member-stats.spf-stat-strip {
   grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: var(--spf-space-sm);
   max-width: none;
-  margin: var(--spf-space-sm) 0;
+  margin: var(--spf-space-md) 0;
   padding-top: 0;
   border-top: 0;
   font-size: var(--spf-text-md);
+}
+
+.simplysf2e .spf-member-stats.spf-stat-strip > div {
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  padding: var(--spf-space-xs) var(--spf-space-sm) var(--spf-space-sm);
+  border: 1px solid var(--spf-border);
+  border-top: 2px solid var(--spf-brand-accent);
+  border-radius: var(--spf-radius-sm);
+  background: var(--spf-console);
+  box-shadow: var(--spf-inset-glow);
+}
+
+.simplysf2e .spf-member-stats.spf-stat-strip dt {
+  min-width: 0;
+  font-size: var(--spf-text-xs);
+}
+
+.simplysf2e .spf-member-stats.spf-stat-strip dd {
+  font-size: var(--spf-text-lg);
+  line-height: 1.2;
+  text-shadow: 0 0 10px color-mix(in srgb, var(--spf-brand-accent) 55%, transparent);
+}
+
+/* The tiles land one after another when their card arrives. */
+.simplysf2e .spf-preview.spf-arrive .spf-stat-strip > div {
+  animation: spf-pop var(--spf-motion-slow) var(--spf-ease-pop) backwards;
+}
+
+.simplysf2e .spf-preview.spf-arrive .spf-stat-strip > div:nth-child(1) { animation-delay: 120ms; }
+.simplysf2e .spf-preview.spf-arrive .spf-stat-strip > div:nth-child(2) { animation-delay: 160ms; }
+.simplysf2e .spf-preview.spf-arrive .spf-stat-strip > div:nth-child(3) { animation-delay: 200ms; }
+.simplysf2e .spf-preview.spf-arrive .spf-stat-strip > div:nth-child(4) { animation-delay: 240ms; }
+.simplysf2e .spf-preview.spf-arrive .spf-stat-strip > div:nth-child(5) { animation-delay: 280ms; }
+.simplysf2e .spf-preview.spf-arrive .spf-stat-strip > div:nth-child(6) { animation-delay: 320ms; }
+
+/* The name of what was made carries a soft glow. */
+.simplysf2e .spf-preview .spf-statblock-header h2:not(.spf-status-title) {
+  text-shadow: 0 0 14px color-mix(in srgb, var(--spf-brand-accent) 45%, transparent);
 }
 
 /* --------------------------------------------------------------------------
@@ -703,6 +758,11 @@
   gap: var(--spf-space-sm);
   padding: var(--spf-space-xs) 0 var(--spf-space-xs) var(--spf-space-sm);
   border-left: 2px solid var(--spf-recent-accent);
+  transition: background-color var(--spf-motion-fast) var(--spf-ease-out);
+}
+
+.simplysf2e .spf-recent-row:hover {
+  background-color: color-mix(in srgb, var(--spf-recent-accent) 10%, transparent);
 }
 
 .simplysf2e .spf-recent-icon {
@@ -769,7 +829,37 @@
 }
 
 .simplysf2e .spf-status-title i {
+  position: relative;
+  display: inline-block;
   color: var(--spf-success-fg);
+}
+
+/* Burst: when the created or review card arrives its icon pops and a ring
+   opens out from it once. */
+.simplysf2e .spf-preview.spf-arrive .spf-status-title i {
+  animation: spf-pop var(--spf-motion-slow) var(--spf-ease-pop) 100ms backwards;
+}
+
+.simplysf2e .spf-preview.spf-arrive .spf-status-title i::after {
+  content: "";
+  position: absolute;
+  inset: -0.25em;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  opacity: 0;
+  animation: spf-ring var(--spf-motion-sweep) ease-out 200ms;
+  pointer-events: none;
+}
+
+@keyframes spf-ring {
+  from {
+    opacity: 0.9;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 0;
+    transform: scale(2.6);
+  }
 }
 
 /* Flash ("this just changed"): the row a reroll replaced lights once and its
@@ -821,8 +911,25 @@
 /* Pulse: rows the GM should look at after Create (keyframe in
    simplysf2e.css; reduced motion stops it at the end of this file). */
 .simplysf2e .spf-stat-check-attention {
-  border-left-color: var(--spf-warning);
+  position: relative;
+  border-left-color: var(--spf-border);
+}
+
+/* The rail is its own layer, so the pulse changes opacity and repaints nothing. */
+.simplysf2e .spf-stat-check-attention::before,
+.simplysf2e .spf-review-actions::before {
+  content: "";
+  position: absolute;
+  top: -1px;
+  bottom: 0;
+  left: -3px;
+  width: 3px;
+  background: var(--spf-warning);
   animation: spf-await-pulse 2.6s ease-in-out infinite;
+}
+
+.simplysf2e .spf-review-actions::before {
+  background: var(--spf-amber);
 }
 
 .simplysf2e .spf-stat-check h3 {
@@ -985,9 +1092,10 @@
   padding: var(--spf-space-sm) 0 var(--spf-space-sm) var(--spf-space-md);
   border: 0;
   border-top: 1px solid var(--spf-border);
-  border-left: 3px solid var(--spf-amber);
-  /* Pulse: required choices and warnings wait for the GM. */
-  animation: spf-await-pulse 2.6s ease-in-out infinite;
+  /* Pulse: required choices and warnings wait for the GM. The amber rail
+     is the ::before above; this border is what it fades down to. */
+  position: relative;
+  border-left: 3px solid var(--spf-border);
 }
 
 .simplysf2e .spf-review-actions h3 {
@@ -1125,9 +1233,24 @@
 
 /* Reduced motion: last in this file so it outranks the animated rules above. */
 @media (prefers-reduced-motion: reduce) {
-  .simplysf2e .spf-review-actions,
-  .simplysf2e .spf-stat-check-attention {
+  .simplysf2e .spf-review-actions::before,
+  .simplysf2e .spf-stat-check-attention::before {
     animation: none;
+  }
+  .simplysf2e .spf-preview.spf-arrive .spf-stat-strip > div,
+  .simplysf2e .spf-preview.spf-arrive .spf-status-title i,
+  .simplysf2e .spf-mode-toggle.spf-slide label.spf-mode-active > i {
+    animation: none;
+  }
+  .simplysf2e .spf-preview.spf-arrive .spf-status-title i::after {
+    display: none;
+  }
+  .simplysf2e .spf-mode-toggle label > i,
+  .simplysf2e .spf-recent-row {
+    transition: none;
+  }
+  .simplysf2e .spf-mode-toggle label:not(.spf-mode-active):hover > i {
+    transform: none;
   }
   .simplysf2e .spf-unfold {
     animation: none;

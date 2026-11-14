@@ -845,7 +845,7 @@ Generate a level 7 NPC with a limited cone breath (name "Frost Breath", cold), a
 
 | # | Step | Expected | Where to look | Result | Evidence |
 |---|------|----------|---------------|--------|----------|
-| 14e.1 | Open the Generator and leave it idle for a few seconds. | Nothing moves. The window frame has no outer glow. Only the main action (Generate, magenta) and the active mode tile glow. | Generator | | |
+| 14e.1 | Open the Generator and leave it idle for a few seconds. | Nothing moves. The window frame has no outer glow. The main action (magenta) and the active mode tile glow; with a result on screen its name and its stat readouts carry a soft glow too. | Generator | | |
 | 14e.2 | Switch through all five modes. | Only the active mode tile and the line under a preview's name take the mode colour. The status bar, the level and budget chips, the recent preview rows and the Reskin drop zone stay cyan. | Generator | | |
 | 14e.3 | Start a Generate run and watch the progress card. | The card has a steady cyan inner glow and does not pulse. The fill has a moving sheen. Only the current step's dot blinks. The window header edge is solid magenta with no glow. | Generator, Item Forge, Shop, Treasure | | |
 | 14e.4 | Press Cancel during a run. | While it cancels, the sheen stops and the card loses its glow. | Generator | | |
@@ -1063,3 +1063,28 @@ Four short synthesised cues, off by default, set per browser. They cannot be hea
 | 22.13 | Lower Foundry's **Interface** volume slider (playlists sidebar) to half, then to zero, and repeat 22.4. | The cues get quieter with the slider and are silent at zero. If they do not follow the slider, note it. | Generator | | |
 | 22.14 | With sounds on, have a player connected in another browser while you run and create. | The player hears nothing, and the player's module settings do not show Interface sounds or Test sounds. | Player client | | |
 | 22.15 | Open the browser console during 22.4 to 22.10. | No errors or warnings from the module about audio. | Console | | |
+
+## 23. UI pop round: flashier motion, stat readouts (2026-11-14)
+
+JT asked for the UI to pop (2026-11-14). Results now arrive with more show, the six stats are readout tiles, and buttons answer the pointer. Everything is started by something happening (a result, a hover, a press), nothing moves while the window is idle, and reduced motion turns all of it off. The harness cannot show motion, so these are all live looks.
+
+| ID | Step | Expected | Where | Result | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 23.1 | Open each module window. | The content rises and fades in once as the window opens. Later changes inside the window do not replay it. | Any module window | | |
+| 23.2 | Press **Preview first** in Monster mode and watch the result arrive. | The card rises in; a line of light runs down it once; a bright streak runs along the rule under the name; the sections follow each other in from top to bottom. It all settles in about half a second. | Generator | | |
+| 23.3 | While that plays, press **Create actor** or **Discard** straight away. | The buttons are there and work from the first moment. Nothing waits for the animation. | Generator | | |
+| 23.4 | Look at the six stats once the card has settled. | Six tiles, each a small label over a large glowing number, lit along the top edge: AC, HP, Per, Fort, Ref, Will. They landed one after another with a small bounce. Every number matches the created actor's sheet. | Generator | | |
+| 23.5 | Narrow the window to about 460 px. | The tiles sit 3 + 3 and no number is cut off. | Generator | | |
+| 23.6 | Create an actor, and finish a character (review card). | The card is swept by a green line, its title icon pops and a ring opens out from it once. | Generator | | |
+| 23.7 | Preview an encounter; generate a shop and a hoard. | Encounter members come in one after another. The first rows of the stock or hoard table fade in one after another, then the rest together. A table of 20 rows or more still settles within half a second. | Generator, Shop, Treasure | | |
+| 23.8 | Reroll one pick, press + or - on an encounter member, remove a shop row. | None of the arrival show replays. Only the rerolled row flashes, as before. | Generator, Shop | | |
+| 23.9 | Make a run fail. | The red error box gives one short sideways shake as it appears, and its text is readable throughout. A run you cancel does not shake. | All four tool windows | | |
+| 23.10 | Move the pointer onto the main magenta button, then away and back. | A glint of light crosses the button each time the pointer arrives. A disabled main button shows none. | Any module window | | |
+| 23.11 | Press and hold any button. | It gives slightly under the pointer and springs back on release. The click still registers normally. | Any module window | | |
+| 23.12 | Hover an icon button (the gear, a + or -, a reroll die), and Tab to one. | The icon grows a little; a reroll die also turns a quarter. | Any module window | | |
+| 23.13 | Hover the mode tiles, then switch mode. | The icon of an unselected tile lifts under the pointer. On a switch the marker slides and the chosen tile's icon pops. | Generator | | |
+| 23.14 | Run a generation and watch the progress bar. | The filled part ends in a bright cap. The sheen and the step blink work as before. | All four tool windows | | |
+| 23.15 | Finish a character that has choices to review, and create a creature whose stat check needs attention. | The amber (or orange) rail on the left of the panel pulses as before. The panel's text does not fade with it. | Generator | | |
+| 23.16 | Leave each window idle for ten seconds, with and without a result on screen. | Nothing moves. | Any module window | | |
+| 23.17 | Turn on reduced motion and repeat 23.1, 23.2, 23.6, 23.9, 23.10, 23.11 and 23.13. | No rise, sweep, streak, stagger, pop, ring, shake, glint, press or lift. Everything appears at once in its final state and works the same. | Any module window | | |
+| 23.18 | Use the windows for a few minutes on your normal machine while a scene is running. | No stutter when a result arrives and no dropped frames in the scene. Say so if any effect feels slow or too much, and which. | Any module window | | |

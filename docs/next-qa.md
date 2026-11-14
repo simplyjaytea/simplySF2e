@@ -29,3 +29,4 @@ Appended by the coordinator when a batch lands on `next`; copied into the PR bod
 | UI revamp slice 4 (2026-11-14) | 20.1-20.14; 12p.1 reworded (skipped gear is named on a line, not struck through) | 2026-11-14-result-cards |
 | UI revamp slice 5 (2026-11-14) | 21.1-21.11; 12m.1 and 12m.4 reworded (mode tiles never wrap) | 2026-11-14-mode-tiles |
 | UI revamp slice 6 (2026-11-14) | 22.1-22.15 (all listening checks) | 2026-11-14-interface-sounds |
+| UI pop round (2026-11-14) | 23.1-23.18 (all live looks); 14e.1 reworded | 2026-11-14-pop |

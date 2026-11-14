@@ -126,7 +126,15 @@
   /* A flash has to be noticed, so it alone runs longer. */
   --spf-motion-flash: 400ms;
   --spf-ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
-  --spf-rise: 0.5rem;
+  /* Pop (JT, 2026-11-14: "I want it to pop"): a longer entrance, an easing
+     that overshoots a little for things that land (icons, stat tiles), the
+     gap between staggered sections, and the readout size of a stat tile. */
+  --spf-motion-slow: 320ms;
+  --spf-motion-sweep: 560ms;
+  --spf-ease-pop: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --spf-stagger: 35ms;
+  --spf-text-lg: 1.2rem;
+  --spf-rise: 0.75rem;
   /* Window reading surface behind every card. */
   --spf-window-bg: #0c1620;
   /* One step below the window surface: the pinned Sources action bar. */
@@ -1071,7 +1079,7 @@
 /* Pulse: "waiting for you". The left rail of a panel that needs a GM
    decision fades to the divider colour and back (generator.css). */
 @keyframes spf-await-pulse {
-  50% { border-left-color: var(--spf-border); }
+  50% { opacity: 0.25; }
 }
 
 @keyframes spf-telemetry-blink {
@@ -1586,17 +1594,229 @@
   }
 }
 
-/* Arrive: a result card rises in once (SpfApp._playResultArrival), and so
-   does the content of Welcome and What's new when the window opens. */
-.simplysf2e .spf-arrive {
-  animation: spf-arrive var(--spf-motion) var(--spf-ease-out);
+/* Arrive: a result card rises in once (SpfApp._playResultArrival). Open:
+   the content of every window does the same once when the window opens
+   (SpfApp._onRender); it has its own class so nothing inside it mistakes an
+   open window for an arriving card. */
+.simplysf2e .spf-arrive,
+.simplysf2e .spf-open {
+  animation: spf-arrive var(--spf-motion-slow) var(--spf-ease-out);
 }
 
 @keyframes spf-arrive {
   from {
     opacity: 0;
-    transform: translateY(var(--spf-rise));
+    transform: translateY(var(--spf-rise)) scale(0.985);
   }
+}
+
+/* --------------------------------------------------------------------------
+   Pop: the flashier layer over the calm one (JT, 2026-11-14). Every rule
+   here animates transform or opacity only, is started by an event (a card
+   arriving, a hover, a press) and never by time passing, and is switched
+   off in the reduced-motion block below. Nothing here delays a control:
+   the action bar of a card is never part of a stagger.
+   -------------------------------------------------------------------------- */
+
+/* Reveal: the sections of an arriving card follow it in, top to bottom.
+   Ten steps, then the rest together, so the longest card settles in about
+   half a second however many sections it has. */
+.simplysf2e .spf-preview.spf-arrive > :not(.spf-actions, .spf-scan) {
+  --spf-i: 10;
+  animation: spf-reveal var(--spf-motion) var(--spf-ease-out) backwards;
+  animation-delay: calc(var(--spf-i) * var(--spf-stagger));
+}
+
+.simplysf2e .spf-preview.spf-arrive > :nth-child(1) { --spf-i: 0; }
+.simplysf2e .spf-preview.spf-arrive > :nth-child(2) { --spf-i: 1; }
+.simplysf2e .spf-preview.spf-arrive > :nth-child(3) { --spf-i: 2; }
+.simplysf2e .spf-preview.spf-arrive > :nth-child(4) { --spf-i: 3; }
+.simplysf2e .spf-preview.spf-arrive > :nth-child(5) { --spf-i: 4; }
+.simplysf2e .spf-preview.spf-arrive > :nth-child(6) { --spf-i: 5; }
+.simplysf2e .spf-preview.spf-arrive > :nth-child(7) { --spf-i: 6; }
+.simplysf2e .spf-preview.spf-arrive > :nth-child(8) { --spf-i: 7; }
+.simplysf2e .spf-preview.spf-arrive > :nth-child(9) { --spf-i: 8; }
+.simplysf2e .spf-preview.spf-arrive > :nth-child(10) { --spf-i: 9; }
+
+@keyframes spf-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(0.4rem);
+  }
+}
+
+/* Scan: one line of light runs down a card as it arrives. The app adds the
+   element and removes it when the sweep ends (SpfApp._playResultArrival).
+   The moving part is as tall as the card, lit only along its lower edge,
+   so its travel is a percentage and needs no measuring. */
+.simplysf2e .spf-scan {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.simplysf2e .spf-scan::before {
+  --spf-scan-color: var(--spf-brand-accent);
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 90%, color-mix(in srgb, var(--spf-scan-color) 16%, transparent) 97.5%, color-mix(in srgb, var(--spf-scan-color) 85%, transparent) 99.7%, transparent);
+  transform: translateY(-100%);
+  animation: spf-scan var(--spf-motion-sweep) ease-in-out forwards;
+}
+
+/* Created and review cards are swept in the success colour. */
+.simplysf2e .spf-preview:is([data-result="created"], [data-result="review"]) > .spf-scan::before {
+  --spf-scan-color: var(--spf-success-fg);
+}
+
+@keyframes spf-scan {
+  from {
+    opacity: 1;
+    transform: translateY(-100%);
+  }
+  80% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(2%);
+  }
+}
+
+/* Streak: light runs along the rule under an arriving card's name, then fades. */
+.simplysf2e .spf-statblock-header {
+  position: relative;
+}
+
+.simplysf2e .spf-preview.spf-arrive .spf-statblock-header::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: -2px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--spf-text));
+  transform-origin: left;
+  opacity: 0;
+  animation: spf-streak var(--spf-motion-sweep) var(--spf-ease-out) 80ms;
+  pointer-events: none;
+}
+
+@keyframes spf-streak {
+  from {
+    opacity: 1;
+    transform: scaleX(0);
+  }
+  70% {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+  to {
+    opacity: 0;
+    transform: scaleX(1);
+  }
+}
+
+/* Members of an encounter and the first rows of a shop or hoard table come
+   in one after another (opacity only for table rows). */
+.simplysf2e .spf-preview.spf-arrive .spf-encounter-members > li {
+  animation: spf-reveal var(--spf-motion) var(--spf-ease-out) backwards;
+}
+
+.simplysf2e .spf-preview.spf-arrive .spf-encounter-members > li:nth-child(1) { animation-delay: 100ms; }
+.simplysf2e .spf-preview.spf-arrive .spf-encounter-members > li:nth-child(2) { animation-delay: 160ms; }
+.simplysf2e .spf-preview.spf-arrive .spf-encounter-members > li:nth-child(3) { animation-delay: 220ms; }
+.simplysf2e .spf-preview.spf-arrive .spf-encounter-members > li:nth-child(4) { animation-delay: 280ms; }
+.simplysf2e .spf-preview.spf-arrive .spf-encounter-members > li:nth-child(n + 5) { animation-delay: 340ms; }
+
+.simplysf2e .spf-preview.spf-arrive .spf-table tbody tr {
+  animation: spf-fade var(--spf-motion) ease-out backwards;
+}
+
+.simplysf2e .spf-preview.spf-arrive .spf-table tbody tr:nth-child(1) { animation-delay: 80ms; }
+.simplysf2e .spf-preview.spf-arrive .spf-table tbody tr:nth-child(2) { animation-delay: 110ms; }
+.simplysf2e .spf-preview.spf-arrive .spf-table tbody tr:nth-child(3) { animation-delay: 140ms; }
+.simplysf2e .spf-preview.spf-arrive .spf-table tbody tr:nth-child(4) { animation-delay: 170ms; }
+.simplysf2e .spf-preview.spf-arrive .spf-table tbody tr:nth-child(5) { animation-delay: 200ms; }
+.simplysf2e .spf-preview.spf-arrive .spf-table tbody tr:nth-child(6) { animation-delay: 230ms; }
+.simplysf2e .spf-preview.spf-arrive .spf-table tbody tr:nth-child(7) { animation-delay: 260ms; }
+.simplysf2e .spf-preview.spf-arrive .spf-table tbody tr:nth-child(n + 8) { animation-delay: 290ms; }
+
+@keyframes spf-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Pop: something lands with a small overshoot (a status icon, a stat tile). */
+@keyframes spf-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+}
+
+/* Shake: an error box that just appeared (SpfApp._playResultCue). Small
+   enough that the text stays readable throughout. */
+.simplysf2e .spf-shake {
+  animation: spf-shake var(--spf-motion-slow) ease-in-out;
+}
+
+@keyframes spf-shake {
+  20% { transform: translateX(-5px); }
+  40% { transform: translateX(4px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(2px); }
+}
+
+/* Press: every button in a window gives a little under the pointer. No
+   transition of its own, so Foundry's button transitions are left alone. */
+.simplysf2e .window-content button:not(:disabled):active {
+  transform: scale(0.97);
+}
+
+/* Glint: light crosses the primary action when the pointer reaches it. The
+   way back has no transition, so the glint is ready for the next hover. */
+.simplysf2e button.spf-primary {
+  position: relative;
+  overflow: hidden;
+}
+
+.simplysf2e button.spf-primary:not(:disabled)::after {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: 40%;
+  background: linear-gradient(100deg, transparent, var(--spf-sheen), transparent);
+  opacity: 0.55;
+  transform: translateX(-130%) skewX(-18deg);
+  pointer-events: none;
+}
+
+.simplysf2e button.spf-primary:not(:disabled):hover::after {
+  transform: translateX(300%) skewX(-18deg);
+  transition: transform var(--spf-motion-sweep) var(--spf-ease-out);
+}
+
+/* Icon buttons: the icon grows under the pointer; a reroll die also turns. */
+.simplysf2e .spf-icon-btn > i {
+  transition: transform var(--spf-motion-fast) var(--spf-ease-out);
+}
+
+.simplysf2e .spf-icon-btn:not(:disabled):is(:hover, :focus-visible) > i {
+  transform: scale(1.18);
+}
+
+.simplysf2e .spf-icon-btn.spf-reroll-pick:not(:disabled):is(:hover, :focus-visible) > i {
+  transform: rotate(90deg) scale(1.18);
+}
+
+/* The running bar ends in a bright cap, so its leading edge reads at a glance. */
+.simplysf2e .spf-progress-fill {
+  border-right: 2px solid var(--spf-on-fill);
 }
 
 /* --------------------------------------------------------------------------
@@ -1679,8 +1899,33 @@
   .simplysf2e .fa-spin {
     animation: none;
   }
-  .simplysf2e .spf-arrive {
+  .simplysf2e .spf-arrive,
+  .simplysf2e .spf-open {
     animation: none;
+  }
+  .simplysf2e .spf-preview.spf-arrive > :not(.spf-actions, .spf-scan),
+  .simplysf2e .spf-preview.spf-arrive .spf-statblock-header::after,
+  .simplysf2e .spf-preview.spf-arrive .spf-encounter-members > li,
+  .simplysf2e .spf-preview.spf-arrive .spf-table tbody tr,
+  .simplysf2e .spf-shake {
+    animation: none;
+  }
+  .simplysf2e .spf-scan {
+    display: none;
+  }
+  .simplysf2e .spf-scan::before {
+    animation: none;
+  }
+  .simplysf2e .spf-icon-btn > i,
+  .simplysf2e button.spf-primary:not(:disabled):hover::after {
+    transition: none;
+  }
+  .simplysf2e .window-content button:not(:disabled):active,
+  .simplysf2e .spf-icon-btn:not(:disabled):is(:hover, :focus-visible) > i {
+    transform: none;
+  }
+  .simplysf2e button.spf-primary:not(:disabled)::after {
+    display: none;
   }
 }
 
