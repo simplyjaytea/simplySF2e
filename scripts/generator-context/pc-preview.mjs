@@ -7,7 +7,7 @@ import { ABILITY_KEYS, projectAttributeModifiers, projectSkillRanks } from "../p
 import { COMPLETE_PC_CLASS_SLUGS, getMulticlassDedicationSlug } from "../pc-support.mjs";
 import { stagedActorContext } from "../pc-prerequisites.mjs";
 import { capitalized } from "../text.mjs";
-import { mapSpells, mapGear, matchSummary, pcFeatRows, emptyFeatSlots, skillName } from "./rows.mjs";
+import { mapSpells, mapGear, matchSummary, unmatchedRows, pcFeatRows, emptyFeatSlots, skillName } from "./rows.mjs";
 
 export function buildPCPreviewContext(concept, resolved) {
   if (!concept) return null;
@@ -45,6 +45,7 @@ export function buildPCPreviewContext(concept, resolved) {
     spells,
     equipment,
     loot,
+    unmatched: unmatchedRows({ feats, spells, equipment, loot }),
     matchSummary: matchSummary([ancestry], heritage ? [heritage] : [], [background], [pcClass],
       feats.filter((feat) => !feat.empty), spells, equipment, loot)
   };

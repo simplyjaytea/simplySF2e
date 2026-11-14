@@ -340,6 +340,12 @@ assert.match(fnBody(source, "async _setStep(key) {"), /await this\.render\(this\
   assert.match(base, /this\._resultState = null;\s+\/\/ a new frame/);
   assert.match(base, /if \(arrives\) card\.classList\?\.add\("spf-arrive"\);/);
   assert.match(sources.generator, /static ARRIVE_AFTER_RUN = false;/);
+  // Flash: set only on a successful reroll, played once by the result part, never while busy.
+  assert.match(sources.generator, /this\.#manifest = manifest;\s*this\.#flashPick = '\[data-section="loot"\]';\s*\} catch/);
+  assert.match(sources.generator, /this\.#manifest = manifest;\s*this\.#flashPick = `\[data-action="rerollPick"\]\[data-kind="\$\{kind\}"\]\[data-index="\$\{index\}"\]`;\s*\} catch/);
+  assert.equal(sources.generator.match(/this\.#flashPick = [^n]/g).length, 2, "nothing else starts a flash");
+  assert.match(sources.generator, /if \(partId === "result"\) this\.#playFlash\(element\);/);
+  assert.match(sources.generator, /#playFlash\(element\) \{\s*if \(this\.#busy \|\| !this\.#flashPick\) return;\s*const selector = this\.#flashPick;\s*this\.#flashPick = null;/);
 
   // Every tool window opens at the shared fixed height.
   assert.ok(Number.isInteger(CONSOLE_HEIGHT) && CONSOLE_HEIGHT >= 600 && CONSOLE_HEIGHT <= 760);
@@ -390,8 +396,9 @@ assert.match(fnBody(source, "async _setStep(key) {"), /await this\.render\(this\
   assert.match(reduced(css), /\.simplysf2e \.spf-arrive \{\s*animation: none;/);
   assert.match(reduced(generatorCss), /\.simplysf2e \.spf-unfold \{\s*animation: none;/);
   assert.match(reduced(generatorCss), /\.simplysf2e \.spf-brief-chevron \{\s*transition: none;/);
+  assert.match(reduced(generatorCss), /\.simplysf2e \.spf-flash::after,\s*\.simplysf2e \.spf-flash \.spf-reroll-pick i \{\s*animation: none;/);
   // One-time motion moves only transform and opacity.
-  for (const [name, text] of [["spf-arrive", css], ["spf-unfold", generatorCss]]) {
+  for (const [name, text] of [["spf-arrive", css], ["spf-unfold", generatorCss], ["spf-flash", generatorCss], ["spf-turn", generatorCss]]) {
     const frames = new RegExp(`@keyframes ${name} \\{([\\s\\S]*?)\\n\\}`).exec(text)?.[1] ?? "";
     const props = [...frames.matchAll(/^\s+([a-z-]+):/gm)].map((m) => m[1]);
     assert.ok(props.length > 0 && props.every((prop) => ["opacity", "transform"].includes(prop)), `${name} animates ${props.join(", ")}`);

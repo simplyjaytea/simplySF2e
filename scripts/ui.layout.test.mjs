@@ -723,15 +723,24 @@ for (const [mode, flag] of [["monster", "monsterMode"], ["npc", "npcMode"], ["en
     `${mode} mode toggle must carry its per-mode class alongside the active state`
   );
 }
-assert.match(generator, /<div class="spf-statgrid">[\s\S]*?spf-statline spf-defenses[\s\S]*?preview\.iwr\.weaknesses/,
-  "monster preview must group defenses and IWR statlines inside the stat grid");
+assert.match(generator, /<dl class="spf-member-stats spf-stat-strip">(?:\s*<div[^>]*><dt>.*?<\/dd><\/div>){6}\s*<\/dl>/,
+  "monster preview must show AC, HP, Perception and the three saves in one six-cell stat strip");
+assert.doesNotMatch(generator, /spf-statgrid|spf-defenses|spf-dropped/,
+  "the old stat grid, defenses line and struck-through rows are gone");
 for (const key of ["immunities", "resistances", "weaknesses"]) {
   assert.match(
     generator,
     new RegExp(`preview\\.iwr\\.${key}`),
-    `monster preview must retain its ${key} statline inside the stat grid`
+    `monster preview must retain its ${key} statline`
   );
 }
+// Unmatched picks: one line under each list, never a struck-through row.
+for (const list of ["spells", "feats", "equipment", "loot"]) {
+  const lines = generator.match(new RegExp(`\\{\\{#if (?:preview|pcPreview)\\.unmatched\\.${list}\\.length\\}\\}\\s*<p class="spf-unmatched-line"`, "g")) ?? [];
+  assert.equal(lines.length, 2, `${list} must have an unmatched line in the creature and the character preview`);
+}
+assert.match(generator, /class="spf-unmatched-line"[^>]*>\s*<i aria-hidden="true" class="fa-solid fa-circle-exclamation spf-unmatched"><\/i>\s*<strong>\{\{localize "SIMPLYSF2E\.Preview\.NotMatched"\}\}<\/strong>/,
+  "the unmatched line says so in words, not by colour alone");
 assert.match(css, /--spf-neon:\s*#ff2e88/, "neon magenta token must be defined");
 assert.match(css, /--spf-amber:\s*#ffb347/, "amber token must be defined");
 assert.match(css, /--spf-cut:/, "notch cut token must be defined");
@@ -743,7 +752,8 @@ for (const mode of ["monster", "npc", "encounter", "character"]) {
   );
 }
 assert.match(css, /\.simplysf2e \.spf-statusbar\s*\{/, "statusbar strip must be styled");
-assert.match(css, /\.simplysf2e \.spf-statgrid\s*\{/, "stat grid must be styled");
+assert.match(css, /\.simplysf2e \.spf-member-stats\.spf-stat-strip \{\s*grid-template-columns: repeat\(6,/, "stat strip is one row of six");
+assert.match(css, /@container spf-window \(max-width: 520px\) \{[\s\S]*?\.spf-member-stats\.spf-stat-strip \{\s*grid-template-columns: repeat\(3,/, "stat strip folds to 3 + 3 in a narrow window");
 assert.match(css, /\.simplysf2e \.spf-card\s*\{[^}]*clip-path:/s, "cards must be notched via clip-path");
 assert.match(
   css,

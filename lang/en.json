@@ -211,6 +211,13 @@
       "Disable": "Don't show for updates",
       "Earlier": "Earlier changes ({count})",
       "Note": {
+        "ResultCards": {
+          "Title": "Result cards that read at a glance",
+          "B1": "A creature preview opens with one row: AC, HP, Perception and the three saves.",
+          "B2": "Picks with no compendium match are named on one line under their list.",
+          "B3": "A rerolled pick lights up once, so you can see what changed.",
+          "B4": "Reroll dice are quieter until you point at them."
+        },
         "ConsoleLayout": {
           "Title": "A console that keeps its shape",
           "B1": "The four tool windows keep one height, and Create and Discard stay pinned at the bottom.",
@@ -907,6 +914,8 @@
       "FromCompendium": "Pulled from a bestiary ability glossary pack",
       "Custom": "Custom",
       "NotFound": "No compendium match found. This entry will be skipped",
+      "NotMatched": "Not matched, skipped",
+      "Senses": "Senses",
       "Found": "Matched a real compendium item",
       "MatchSummary": "{matched}/{total} compendium matches",
       "SpellGem": "Spell gem of {name} (rank {rank})",
