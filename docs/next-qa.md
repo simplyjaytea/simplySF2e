@@ -27,3 +27,4 @@ Appended by the coordinator when a batch lands on `next`; copied into the PR bod
 | UI revamp slice 2 (2026-11-14) | 18.1-18.12 | 2026-11-14-steadier-windows |
 | UI revamp slice 3 (2026-11-14) | 19.1-19.22; button names updated across the checklist (Create monster, Preview first, Reskin and create) | 2026-11-14-console-layout |
 | UI revamp slice 4 (2026-11-14) | 20.1-20.14; 12p.1 reworded (skipped gear is named on a line, not struck through) | 2026-11-14-result-cards |
+| UI revamp slice 5 (2026-11-14) | 21.1-21.11; 12m.1 and 12m.4 reworded (mode tiles never wrap) | 2026-11-14-mode-tiles |

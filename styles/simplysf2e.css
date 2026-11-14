@@ -109,6 +109,7 @@
      heading that lost its uppercase and needs the size back. */
   --spf-text-md: 1rem;
   --spf-text-sm: 0.85rem;
+  --spf-text-2xs: 0.7rem;
   --spf-text-xs: 0.78rem;
   --spf-font-display: var(--font-sans, "Signika", sans-serif);
   --spf-font-mono: var(--font-monospace, ui-monospace, "Cascadia Code", monospace);
@@ -432,6 +433,26 @@
 .simplysf2e .spf-hud-actions {
   border-top: 1px solid var(--spf-border);
   padding-top: var(--spf-space-md);
+}
+
+/* The five small windows (Welcome, AI Provider Setup, Sources, Manage
+   Presets, What's new) keep their button row in view while the content
+   scrolls, as Sources always did (audit S2) and as the tool windows' action
+   bars do. The negative offset matches the body's padding so the bar sits
+   flush with the window's lower edge; it is opaque so text scrolls under it. */
+.simplysf2e .spf-window-body.spf-hud > .spf-actions {
+  position: sticky;
+  bottom: calc(var(--spf-space-xs) * -1);
+  z-index: 1;
+  margin-top: 0;
+  padding: var(--spf-space-sm) 0 var(--spf-space-xs);
+  border-top: 1px solid var(--spf-border);
+  background: color-mix(in srgb, var(--spf-brand-dark) 40%, var(--spf-window-bg-deep));
+}
+
+/* Keyboard focus scrolls a control clear of the pinned row. */
+.simplysf2e .spf-window-body.spf-hud {
+  scroll-padding-block-end: 3.5rem;
 }
 
 /* --------------------------------------------------------------------------
@@ -1565,7 +1586,8 @@
   }
 }
 
-/* Arrive: a result card rises in once (SpfApp._playResultArrival). */
+/* Arrive: a result card rises in once (SpfApp._playResultArrival), and so
+   does the content of Welcome and What's new when the window opens. */
 .simplysf2e .spf-arrive {
   animation: spf-arrive var(--spf-motion) var(--spf-ease-out);
 }

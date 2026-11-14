@@ -38,11 +38,15 @@
 /* --------------------------------------------------------------------------
    Segmented mode switch
    -------------------------------------------------------------------------- */
-/* Equal segments in wide windows; wraps into a grid when the window is too
-   narrow for every label (auto-fit, no breakpoint needed). */
+/* Five equal tiles on one row at every width (icon over label when narrow).
+   The selection is one marker behind the tiles, placed by the mode class on
+   the window body, so a mode switch moves it instead of redrawing a tile. */
 .simplysf2e .spf-mode-toggle {
+  --spf-mode-index: 0;
+  --spf-tile-accent: var(--spf-brand-accent);
+  position: relative;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(7rem, 100%), 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: var(--spf-space-2xs);
   margin-bottom: var(--spf-space-md);
   padding: var(--spf-space-2xs);
@@ -52,7 +56,61 @@
   box-shadow: var(--spf-inset-glow);
 }
 
+.simplysf2e .simplysf2e-generator.spf-mode-monster .spf-mode-toggle {
+  --spf-mode-index: 0;
+  --spf-tile-accent: var(--spf-mode-monster);
+}
+
+.simplysf2e .simplysf2e-generator.spf-mode-npc .spf-mode-toggle {
+  --spf-mode-index: 1;
+  --spf-tile-accent: var(--spf-mode-npc);
+}
+
+.simplysf2e .simplysf2e-generator.spf-mode-encounter .spf-mode-toggle {
+  --spf-mode-index: 2;
+  --spf-tile-accent: var(--spf-mode-encounter);
+}
+
+.simplysf2e .simplysf2e-generator.spf-mode-character .spf-mode-toggle {
+  --spf-mode-index: 3;
+  --spf-tile-accent: var(--spf-mode-character);
+}
+
+.simplysf2e .simplysf2e-generator.spf-mode-reskin .spf-mode-toggle {
+  --spf-mode-index: 4;
+  --spf-tile-accent: var(--spf-mode-reskin);
+}
+
+/* The marker: one fifth of the track, moved a whole tile and gap per step.
+   It glows in the active mode's accent with a violet undercurrent. */
+.simplysf2e .spf-mode-toggle::before {
+  content: "";
+  position: absolute;
+  inset-block: var(--spf-space-2xs);
+  left: var(--spf-space-2xs);
+  width: calc((100% - 6 * var(--spf-space-2xs)) / 5);
+  transform: translateX(calc(var(--spf-mode-index) * (100% + var(--spf-space-2xs))));
+  border: 1px solid var(--spf-tile-accent);
+  border-radius: var(--spf-radius-sm);
+  background: color-mix(in srgb, var(--spf-tile-accent) 26%, var(--spf-window-bg));
+  box-shadow: inset 0 0 0 1px var(--spf-tile-accent), 0 0 12px color-mix(in srgb, var(--spf-tile-accent) 45%, transparent);
+  pointer-events: none;
+}
+
+/* Motion "slide": after a mode switch the app names the tile the marker
+   left (--spf-mode-from) and adds this class once. */
+.simplysf2e .spf-mode-toggle.spf-slide::before {
+  animation: spf-slide var(--spf-motion) var(--spf-ease-out);
+}
+
+@keyframes spf-slide {
+  from {
+    transform: translateX(calc(var(--spf-mode-from) * (100% + var(--spf-space-2xs))));
+  }
+}
+
 .simplysf2e .spf-mode-toggle label {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -73,17 +131,15 @@
   border-color: var(--spf-border);
 }
 
-/* Active selectors glow cyan with a violet undercurrent. */
+/* The active tile sits on the marker: bright text, accent icon, no box of its own. */
 .simplysf2e .spf-mode-toggle label.spf-mode-active {
   color: var(--spf-text);
-  background: color-mix(in srgb, var(--spf-brand-mid) 72%, var(--spf-window-bg));
-  border-color: var(--spf-brand-accent);
-  box-shadow: inset 0 0 0 1px var(--spf-brand-accent), var(--spf-glow), inset 0 0 14px color-mix(in srgb, var(--spf-brand-secondary) 38%, transparent);
-  text-shadow: 0 0 8px color-mix(in srgb, var(--spf-brand-accent) 65%, transparent);
+  border-color: transparent;
+  text-shadow: 0 0 8px color-mix(in srgb, var(--spf-tile-accent) 65%, transparent);
 }
 
 .simplysf2e .spf-mode-toggle label.spf-mode-active > i {
-  color: var(--spf-brand-accent);
+  color: var(--spf-tile-accent);
 }
 
 .simplysf2e .spf-mode-toggle input[type="radio"] {
@@ -96,62 +152,6 @@
   clip: rect(0 0 0 0);
   white-space: nowrap;
   border: 0;
-}
-
-/* Each active segment glows in its own per-mode accent. */
-.simplysf2e .spf-mode-toggle label.spf-mode-monster.spf-mode-active {
-  border-color: var(--spf-mode-monster);
-  background: color-mix(in srgb, var(--spf-mode-monster) 26%, var(--spf-window-bg));
-  box-shadow: inset 0 0 0 1px var(--spf-mode-monster), 0 0 12px color-mix(in srgb, var(--spf-mode-monster) 45%, transparent);
-  text-shadow: 0 0 8px color-mix(in srgb, var(--spf-mode-monster) 65%, transparent);
-}
-
-.simplysf2e .spf-mode-toggle label.spf-mode-npc.spf-mode-active {
-  border-color: var(--spf-mode-npc);
-  background: color-mix(in srgb, var(--spf-mode-npc) 26%, var(--spf-window-bg));
-  box-shadow: inset 0 0 0 1px var(--spf-mode-npc), 0 0 12px color-mix(in srgb, var(--spf-mode-npc) 45%, transparent);
-  text-shadow: 0 0 8px color-mix(in srgb, var(--spf-mode-npc) 65%, transparent);
-}
-
-.simplysf2e .spf-mode-toggle label.spf-mode-encounter.spf-mode-active {
-  border-color: var(--spf-mode-encounter);
-  background: color-mix(in srgb, var(--spf-mode-encounter) 26%, var(--spf-window-bg));
-  box-shadow: inset 0 0 0 1px var(--spf-mode-encounter), 0 0 12px color-mix(in srgb, var(--spf-mode-encounter) 45%, transparent);
-  text-shadow: 0 0 8px color-mix(in srgb, var(--spf-mode-encounter) 65%, transparent);
-}
-
-.simplysf2e .spf-mode-toggle label.spf-mode-character.spf-mode-active {
-  border-color: var(--spf-mode-character);
-  background: color-mix(in srgb, var(--spf-mode-character) 26%, var(--spf-window-bg));
-  box-shadow: inset 0 0 0 1px var(--spf-mode-character), 0 0 12px color-mix(in srgb, var(--spf-mode-character) 45%, transparent);
-  text-shadow: 0 0 8px color-mix(in srgb, var(--spf-mode-character) 65%, transparent);
-}
-
-.simplysf2e .spf-mode-toggle label.spf-mode-monster.spf-mode-active > i {
-  color: var(--spf-mode-monster);
-}
-
-.simplysf2e .spf-mode-toggle label.spf-mode-npc.spf-mode-active > i {
-  color: var(--spf-mode-npc);
-}
-
-.simplysf2e .spf-mode-toggle label.spf-mode-encounter.spf-mode-active > i {
-  color: var(--spf-mode-encounter);
-}
-
-.simplysf2e .spf-mode-toggle label.spf-mode-character.spf-mode-active > i {
-  color: var(--spf-mode-character);
-}
-
-.simplysf2e .spf-mode-toggle label.spf-mode-reskin.spf-mode-active {
-  border-color: var(--spf-mode-reskin);
-  background: color-mix(in srgb, var(--spf-mode-reskin) 26%, var(--spf-window-bg));
-  box-shadow: inset 0 0 0 1px var(--spf-mode-reskin), 0 0 12px color-mix(in srgb, var(--spf-mode-reskin) 45%, transparent);
-  text-shadow: 0 0 8px color-mix(in srgb, var(--spf-mode-reskin) 65%, transparent);
-}
-
-.simplysf2e .spf-mode-toggle label.spf-mode-reskin.spf-mode-active > i {
-  color: var(--spf-mode-reskin);
 }
 
 /* --------------------------------------------------------------------------
@@ -651,9 +651,12 @@
    Narrow windows (down to 360px)
    -------------------------------------------------------------------------- */
 @container spf-window (max-width: 520px) {
+  /* Mode tiles keep one row: the icon moves above a smaller label. */
   .simplysf2e .spf-mode-toggle label {
-    gap: var(--spf-space-xs);
-    padding-inline: var(--spf-space-xs);
+    flex-direction: column;
+    gap: var(--spf-space-2xs);
+    padding: var(--spf-space-xs) 0;
+    font-size: var(--spf-text-xs);
   }
 
   .simplysf2e .spf-member-stats.spf-stat-strip {
@@ -661,16 +664,10 @@
   }
 }
 
-/* Wrap modes at narrow window sizes without shrinking their labels. */
-@container spf-window (max-width: 520px) {
-  .simplysf2e .spf-mode-toggle {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@container spf-window (min-width: 400px) and (max-width: 520px) {
-  .simplysf2e .spf-mode-toggle {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+/* The narrowest window (360 px): the longest labels still fit their tile. */
+@container spf-window (max-width: 400px) {
+  .simplysf2e .spf-mode-toggle label {
+    font-size: var(--spf-text-2xs);
   }
 }
 
@@ -1137,6 +1134,9 @@
   }
   .simplysf2e .spf-flash::after,
   .simplysf2e .spf-flash .spf-reroll-pick i {
+    animation: none;
+  }
+  .simplysf2e .spf-mode-toggle.spf-slide::before {
     animation: none;
   }
   .simplysf2e .spf-brief-chevron {

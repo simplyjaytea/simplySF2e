@@ -396,13 +396,38 @@ assert.match(fnBody(source, "async _setStep(key) {"), /await this\.render\(this\
   assert.match(reduced(css), /\.simplysf2e \.spf-arrive \{\s*animation: none;/);
   assert.match(reduced(generatorCss), /\.simplysf2e \.spf-unfold \{\s*animation: none;/);
   assert.match(reduced(generatorCss), /\.simplysf2e \.spf-brief-chevron \{\s*transition: none;/);
+  assert.match(reduced(generatorCss), /\.simplysf2e \.spf-mode-toggle\.spf-slide::before \{\s*animation: none;/);
   assert.match(reduced(generatorCss), /\.simplysf2e \.spf-flash::after,\s*\.simplysf2e \.spf-flash \.spf-reroll-pick i \{\s*animation: none;/);
   // One-time motion moves only transform and opacity.
-  for (const [name, text] of [["spf-arrive", css], ["spf-unfold", generatorCss], ["spf-flash", generatorCss], ["spf-turn", generatorCss]]) {
+  for (const [name, text] of [["spf-arrive", css], ["spf-unfold", generatorCss], ["spf-flash", generatorCss], ["spf-turn", generatorCss], ["spf-slide", generatorCss]]) {
     const frames = new RegExp(`@keyframes ${name} \\{([\\s\\S]*?)\\n\\}`).exec(text)?.[1] ?? "";
     const props = [...frames.matchAll(/^\s+([a-z-]+):/gm)].map((m) => m[1]);
     assert.ok(props.length > 0 && props.every((prop) => ["opacity", "transform"].includes(prop)), `${name} animates ${props.join(", ")}`);
   }
+}
+
+// 9. Slice 5: the mode marker slides only on a real mode change, and Welcome
+// and What's new rise once per open.
+{
+  const { MODE_ORDER, modeSlideFrom } = await import("./window-parts.mjs");
+  assert.deepEqual(MODE_ORDER, ["monster", "npc", "encounter", "character", "reskin"]);
+  assert.equal(modeSlideFrom(null, "monster"), null, "the first render does not slide");
+  assert.equal(modeSlideFrom("npc", "npc"), null, "a re-render in the same mode does not slide");
+  assert.equal(modeSlideFrom("monster", "reskin"), 0);
+  assert.equal(modeSlideFrom("reskin", "npc"), 4);
+  assert.equal(modeSlideFrom("npc", null), null, "a brief without tiles does not slide");
+  assert.equal(modeSlideFrom("bogus", "npc"), null);
+  const read = (path) => readFileSync(new URL(path, root), "utf8");
+  const generatorApp = read("scripts/generator-app.mjs");
+  assert.match(generatorApp, /if \(partId !== "brief"\) return;\s*this\.#playModeSlide\(element\);/);
+  assert.match(generatorApp, /const from = modeSlideFrom\(this\.#modeShown, mode\);\s*this\.#modeShown = mode;\s*if \(from === null\) return;\s*toggle\.style\.setProperty\("--spf-mode-from", String\(from\)\);\s*toggle\.classList\.add\("spf-slide"\);/);
+  const appBase = read("scripts/app-base.mjs");
+  assert.match(appBase, /static ARRIVE_ON_OPEN = false;/);
+  assert.match(appBase, /this\._keysElement = this\.element;\s*if \(this\.constructor\.ARRIVE_ON_OPEN\) this\.element\.querySelector\?\.\("\.spf-window-body"\)\?\.classList\?\.add\("spf-arrive"\);/,
+    "the rise is added once per window frame, never on a re-render");
+  const opens = ["welcome", "whats-new", "provider-setup", "sources", "manage-presets", "generator", "itemforge", "shop", "treasure"]
+    .filter((name) => /static ARRIVE_ON_OPEN = true;/.test(read(`scripts/${name}-app.mjs`)));
+  assert.deepEqual(opens, ["welcome", "whats-new"]);
 }
 
 console.log("window-parts.test.mjs: parts config, body classes, fold carry, the persistent body and the console layout hold");

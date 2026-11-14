@@ -819,23 +819,43 @@ for (const [name, app, windowId] of [["generator", generatorApp, "generator"], [
   assert.ok(app.includes(`static WINDOW_ID = "${windowId}";`) && app.includes(`static PARTS = windowPartsConfig("${windowId}", MODULE_ID);`),
     `${name} must render its parts inside the persistent body, which keeps its scroll place across re-renders`);
 }
-// Pinned rows: Sources keeps Save/Reset at the bottom edge (audit S2), and
-// since the console layout (JT approved the revamp plan on 2026-11-14, which
+// Pinned rows: Sources always kept Save/Reset at the bottom edge (audit S2).
+// Since the console layout (JT approved the revamp plan on 2026-11-14, which
 // replaces his 2026-10-08 call that button rows scroll with the content) the
 // tool windows pin the form's run row and a result card's footer while their
-// card is in view. Nothing else pins. QA 12r.1, 12r.2, 19.3, 19.4.
+// card is in view, and the five small windows share one pinned button row.
+// Nothing else pins. QA 12r.1, 12r.2, 19.3, 19.4, 21.6.
 assert.match(
   css,
-  /\.simplysf2e-sources > \.spf-actions\s*\{[^}]*position:\s*sticky;/s,
-  "Sources keeps its Save/Reset row pinned"
+  /\.simplysf2e \.spf-window-body\.spf-hud > \.spf-actions\s*\{[^}]*position:\s*sticky;[^}]*background:/s,
+  "the small windows keep their button row pinned and opaque"
 );
+for (const [name, template] of [["provider setup", providerSetup], ["manage presets", managePresets], ["sources", sources]]) {
+  assert.match(template, /^<div class="spf-window-body [a-z0-9-]+ spf-hud">[\s\S]*\n  <footer class="spf-actions[^"]*">[\s\S]*<\/footer>\s*<\/div>\s*$/,
+    `${name} ends with its button row as a direct child of the body, which is what the pinned rule matches`);
+}
 for (const match of css.replace(/\/\*[\s\S]*?\*\//g, "").matchAll(/([^{}]+)\{[^}]*position:\s*sticky\s*[;}]/g)) {
   for (const selector of match[1].split(",").map((part) => part.trim())) {
-    assert.match(selector, /simplysf2e-sources|^\.simplysf2e \.spf-window-body\.simplysf2e-generator \.(?:spf-inputs > \.spf-generate-row|spf-preview > \.spf-actions)$/,
-      `only Sources and the console action bars may pin a row: ${selector}`);
+    assert.match(selector, /^\.simplysf2e \.spf-window-body\.spf-hud > \.spf-actions$|^\.simplysf2e \.spf-window-body\.simplysf2e-generator \.(?:spf-inputs > \.spf-generate-row|spf-preview > \.spf-actions)$/,
+      `only the small windows' button row and the console action bars may pin a row: ${selector}`);
   }
 }
-
+// Mode tiles: one row of five at every width, one marker for the selection.
+{
+  const plain = css.replace(/\/\*[\s\S]*?\*\//g, "");
+  const columns = [...plain.matchAll(/\.spf-mode-toggle \{[^}]*grid-template-columns:\s*([^;]+);/g)].map((m) => m[1]);
+  assert.deepEqual(columns, ["repeat(5, minmax(0, 1fr))"], "the mode tiles never wrap to a second row");
+  assert.match(plain, /@container spf-window \(max-width: 520px\) \{\s*\.simplysf2e \.spf-mode-toggle label \{\s*flex-direction: column;/, "narrow tiles put the icon over the label");
+  ["monster", "npc", "encounter", "character", "reskin"].forEach((mode, index) => {
+    assert.match(plain, new RegExp(`\\.simplysf2e-generator\\.spf-mode-${mode} \\.spf-mode-toggle \\{\\s*--spf-mode-index: ${index};\\s*--spf-tile-accent: var\\(--spf-mode-${mode}\\);`),
+      `${mode} places the marker on tile ${index} in its own accent`);
+    assert.match(generator.slice(generator.indexOf("spf-mode-toggle")).split("</label>")[index], new RegExp(`name="mode" value="${mode}"`),
+      `${mode} is tile ${index} in the template`);
+  });
+  assert.match(plain, /\.spf-mode-toggle::before \{[^}]*transform: translateX\(calc\(var\(--spf-mode-index\) \* \(100% \+ var\(--spf-space-2xs\)\)\)\);[^}]*pointer-events: none;/s,
+    "the marker is placed by a transform and never takes a click");
+  assert.doesNotMatch(plain, /label\.spf-mode-(?:monster|npc|encounter|character|reskin)\.spf-mode-active/, "tiles have no per-mode active rule of their own");
+}
 // Truncated status-strip text stays readable on hover in both windows (QA 12r.5).
 for (const [name, template] of [["generator", generator], ["item forge", itemForge]]) {
   assert.match(template, /<strong data-tooltip-text="\{\{#if connectionName\}\}/, `${name} must show the full connection name on hover`);

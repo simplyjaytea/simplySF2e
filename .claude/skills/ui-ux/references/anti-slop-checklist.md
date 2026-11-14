@@ -34,7 +34,7 @@ What "AI slop" looks like in a Foundry module, and the check that catches it. Ru
 - [ ] Text contrast at least 4.5:1 and control boundaries at least 3:1 on the dark surface. Check with a picker on the PNG, do not assume.
 - [ ] Visible focus ring on every interactive element; tab order matches visual order; icon-only buttons carry `aria-label`; decorative icons beside text carry `aria-hidden="true"`.
 - [ ] Colour is never the only signal: a warning has an icon or a word; a selected state has a non-colour cue.
-- [ ] Motion only from the module's vocabulary (sheen = working, pulse = awaiting the GM, blink = active step, arrive = a new result card, unfold = the GM opened the form, flash = the one row a reroll replaced) and only while a run works, a GM action is awaited or something just changed; nothing animates idle and nothing waits for an animation. Respect `prefers-reduced-motion` and reserve space so nothing shifts.
+- [ ] Motion only from the module's vocabulary (sheen = working, pulse = awaiting the GM, blink = active step, arrive = a new result card, unfold = the GM opened the form, flash = the one row a reroll replaced, slide = the mode marker moving to the tile the GM picked) and only while a run works, a GM action is awaited or something just changed; nothing animates idle and nothing waits for an animation. Respect `prefers-reduced-motion` and reserve space so nothing shifts.
 
 ## 6. Icons
 
