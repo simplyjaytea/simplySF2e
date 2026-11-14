@@ -5,6 +5,7 @@ import { progressView } from "./progress.mjs";
 import { readFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import vm from "node:vm";
+import * as windowParts from "./window-parts.mjs";
 
 if (!vm.SourceTextModule) {
   const run = spawnSync(process.execPath, ["--experimental-vm-modules", import.meta.filename], { stdio: "inherit" });
@@ -60,6 +61,7 @@ class MockSpfApp {
   _finishRun() { this.abort = null; }
 }
 const mocks = {
+  ...windowParts,
   progressView,
   getPacksFor: () => ["sf2e.equipment"],
   describeMissingSources: () => "",

@@ -24,6 +24,7 @@ import {
 } from "./progress.mjs";
 import { coarsenTokenEstimate, lastRunTokenTotal } from "./tokens.mjs";
 import { formatCost, runCost } from "./cost.mjs";
+import { carryOpenFolds, windowBodyClassName } from "./window-parts.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -79,6 +80,14 @@ export async function refreshOtherConnectionViews(self) {
  * Subclasses use `_tokenUsage`/`_progress` and the `_`-prefixed helpers.
  */
 export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
+  /**
+   * The window's entry in WINDOW_PARTS (window-parts.mjs). A subclass that
+   * sets it renders its parts (status, brief, result) inside one persistent
+   * `.spf-window-body` element; null keeps Foundry's own single-root layout.
+   */
+  static WINDOW_ID = null;
+  /** Class attribute of the body element for the render in progress. */
+  _bodyClassName = "spf-window-body";
   /** Exact token usage per AI call of the last generation: [{label, usage}]. */
   _tokenUsage = [];
   _progress = null;
@@ -287,11 +296,55 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
     await refreshOtherConnectionViews(this);
   }
 
-  _onRender(context, options) {
-    super._onRender?.(context, options);
-    this.element?.querySelector?.("[name='activeConnection']")?.addEventListener("change", (event) =>
+  /** Remember the body classes this render's context asks for, before the parts are built. */
+  async _renderHTML(context, options) {
+    const windowId = this.constructor.WINDOW_ID;
+    if (windowId) this._bodyClassName = windowBodyClassName(windowId, context);
+    return super._renderHTML(context, options);
+  }
+
+  /**
+   * Tool windows keep one `.spf-window-body` element for their whole life and
+   * swap parts inside it. Foundry's own replacement runs against that element,
+   * so a part that was not re-rendered keeps its DOM, focus and listeners, and
+   * the body keeps its scroll position. Open folds are carried into the new
+   * markup, and each new part element gets its listeners exactly once.
+   */
+  _replaceHTML(result, content, options) {
+    if (!this.constructor.WINDOW_ID) return super._replaceHTML(result, content, options);
+    let body = content.querySelector(":scope > .spf-window-body");
+    if (!body) {
+      body = document.createElement("div");
+      content.replaceChildren(body);
+    }
+    body.className = this._bodyClassName;
+    for (const [partId, element] of Object.entries(result)) {
+      carryOpenFolds(body.querySelector(`:scope > [data-application-part="${partId}"]`), element);
+    }
+    super._replaceHTML(result, body, options);
+    for (const [partId, element] of Object.entries(result)) {
+      try {
+        this._onPartRendered(partId, element);
+      } catch (err) {
+        console.error(`${MODULE_ID} | could not bind the "${partId}" part`, err);
+      }
+    }
+  }
+
+  /**
+   * Bind listeners on a part element that was just put in the window. It runs
+   * once per element: a part that a render leaves alone is not bound again.
+   * Subclasses extend it and call super.
+   */
+  _onPartRendered(partId, element) {
+    if (partId !== "status") return;
+    element.querySelector?.("[name='activeConnection']")?.addEventListener("change", (event) =>
       this._switchActiveConnection(event.currentTarget.value)
     );
+  }
+
+  _onRender(context, options) {
+    super._onRender?.(context, options);
     // The frame survives re-renders but not close and reopen, so bind once per frame.
     if (this._keysElement !== this.element && this.element?.addEventListener) {
       this._keysElement = this.element;

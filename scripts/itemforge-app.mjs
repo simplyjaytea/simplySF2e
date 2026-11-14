@@ -15,6 +15,7 @@ import { createActivationMacro } from "./macro-templates.mjs";
 import { SourcesConfigApp } from "./sources-app.mjs";
 import { gpToCredits } from "./currency.mjs";
 import { SpfApp } from "./app-base.mjs";
+import { windowPartsConfig } from "./window-parts.mjs";
 import { progressView } from "./progress.mjs";
 import { getPacksFor, describeMissingSources } from "./compendium.mjs";
 import { jevKeySource } from "./jev.mjs";
@@ -74,9 +75,10 @@ export class ItemForgeApp extends SpfApp {
     }
   };
 
-  static PARTS = {
-    body: { template: `modules/${MODULE_ID}/templates/itemforge.hbs`, scrollable: [""] }
-  };
+  static WINDOW_ID = "itemforge";
+
+  /** status, brief and result (window-parts.mjs); the body element that holds them scrolls. */
+  static PARTS = windowPartsConfig("itemforge", MODULE_ID);
 
   /** Form values, kept across re-renders. "kind": "wondrous"|"augmentation"|"crystal"|"weapon"|"armor". */
   #input = { prompt: "", level: 4, rarity: "common", kind: "wondrous" };
@@ -98,9 +100,10 @@ export class ItemForgeApp extends SpfApp {
   /** Effect kinds with no real exemplar in this world (set after first scan). */
   #unavailableKinds = null;
 
-  _onRender(context, options) {
-    super._onRender?.(context, options);
-    this.element?.querySelector("details[data-readiness]")?.addEventListener("toggle", (event) => {
+  _onPartRendered(partId, element) {
+    super._onPartRendered?.(partId, element);
+    if (partId !== "status") return;
+    element.querySelector("details[data-readiness]")?.addEventListener("toggle", (event) => {
       this.#readinessOpen = event.currentTarget.open;
     });
   }

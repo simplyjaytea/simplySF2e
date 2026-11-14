@@ -38,6 +38,7 @@ import { verifyCreatedActor } from "./post-create.mjs";
 import { classSpellTradition, manualNotesContent, supportedClassCandidates, isCompletePCClass } from "./pc-support.mjs";
 import { validateArchetypeSlotPlacement } from "./pc-prerequisites.mjs";
 import { SpfApp } from "./app-base.mjs";
+import { windowPartsConfig } from "./window-parts.mjs";
 import { progressView } from "./progress.mjs";
 import { jevKeySource } from "./jev.mjs";
 import { esc, escAi } from "./text.mjs";
@@ -114,9 +115,10 @@ export class GeneratorApp extends SpfApp {
     }
   };
 
-  static PARTS = {
-    body: { template: `modules/${MODULE_ID}/templates/generator.hbs`, scrollable: [""] }
-  };
+  static WINDOW_ID = "generator";
+
+  /** status, brief and result (window-parts.mjs); the body element that holds them scrolls. */
+  static PARTS = windowPartsConfig("generator", MODULE_ID);
 
   /** Form values, kept across re-renders. */
   #input = {
@@ -517,18 +519,28 @@ export class GeneratorApp extends SpfApp {
     this.#readForm();
   }
 
-  /**
-   * Re-render when the preset or mode changes so the delete button, the
-   * Random/Encounter forms, and the cycling example placeholder track them.
-   */
   _onRender(context, options) {
     super._onRender?.(context, options);
-    this.#relevelShownFor = this.#reskinSource;
     this.element?.classList?.toggle("spf-busy", Boolean(context?.busy));
-    this.element.querySelector("details[data-readiness]")?.addEventListener("toggle", (event) => {
-      this.#readinessOpen = event.currentTarget.open;
-    });
-    this.element.querySelector('select[name="preset"]')?.addEventListener("change", () => {
+  }
+
+  /**
+   * Listeners of a part that was just rendered. The status part carries the
+   * readiness fold; the brief re-renders when the preset or mode changes so
+   * the Random/Encounter forms and the cycling example placeholder track them.
+   */
+  _onPartRendered(partId, element) {
+    super._onPartRendered?.(partId, element);
+    if (partId === "status") {
+      element.querySelector("details[data-readiness]")?.addEventListener("toggle", (event) => {
+        this.#readinessOpen = event.currentTarget.open;
+      });
+      return;
+    }
+    if (partId !== "brief") return;
+    // The re-level box on screen now belongs to this source.
+    this.#relevelShownFor = this.#reskinSource;
+    element.querySelector('select[name="preset"]')?.addEventListener("change", () => {
       this.#readForm();
       // Restore the preset's saved generator defaults into the live form —
       // only the fields the preset actually defines (built-ins and older
@@ -544,8 +556,8 @@ export class GeneratorApp extends SpfApp {
       this.render();
     });
     // The render reads the form first, so the new re-level is kept.
-    this.element.querySelector('input[name="reskinLevel"]')?.addEventListener("change", () => this.render());
-    const dropZone = this.element.querySelector("[data-reskin-drop]");
+    element.querySelector('input[name="reskinLevel"]')?.addEventListener("change", () => this.render());
+    const dropZone = element.querySelector("[data-reskin-drop]");
     if (dropZone) {
       dropZone.addEventListener("dragover", (event) => {
         event.preventDefault();
@@ -558,7 +570,7 @@ export class GeneratorApp extends SpfApp {
         this.#onReskinDrop(event);
       });
     }
-    for (const radio of this.element.querySelectorAll('input[name="mode"]')) {
+    for (const radio of element.querySelectorAll('input[name="mode"]')) {
       radio.addEventListener("change", async () => {
         this.#readForm();
         const selectedMode = this.#input.mode;

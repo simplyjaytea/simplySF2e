@@ -1,285 +1,7 @@
-<div class="spf-window-body simplysf2e-generator{{#if monsterMode}} spf-mode-monster{{else if npcMode}} spf-mode-npc{{else if encounterMode}} spf-mode-encounter{{else if characterMode}} spf-mode-character{{else if reskinMode}} spf-mode-reskin{{/if}}{{#if busy}} spf-busy{{/if}}">
-  {{> simplysf2e-statusbar appId="generator" hideLastRunWithReport=false sourcesDetail=(localize "SIMPLYSF2E.Generator.SourcesReady" packCount=sourcePackCount)}}
-
-  <fieldset class="spf-inputs spf-card" {{#if busy}}disabled{{/if}}>
-    <legend>
-      {{#if encounterMode}}
-        {{localize "SIMPLYSF2E.Generator.EncounterLegend"}}
-      {{else if characterMode}}
-        {{localize "SIMPLYSF2E.Generator.CharacterLegend"}}
-      {{else if npcMode}}
-        {{localize "SIMPLYSF2E.Generator.NpcLegend"}}
-      {{else if reskinMode}}
-        {{localize "SIMPLYSF2E.Generator.ReskinLegend"}}
-      {{else}}
-        {{localize "SIMPLYSF2E.Generator.ConceptLegend"}}
-      {{/if}}
-    </legend>
-    <div class="spf-mode-toggle" role="radiogroup" aria-label="{{localize 'SIMPLYSF2E.Generator.ModeLabel'}}">
-      <label class="spf-mode-monster{{#if monsterMode}} spf-mode-active{{/if}}" data-tooltip="{{localize 'SIMPLYSF2E.Mode.MonsterHint'}}">
-        <input type="radio" name="mode" value="monster" {{#if monsterMode}}checked{{/if}}>
-        <i aria-hidden="true" class="fa-solid fa-dna"></i> {{localize "SIMPLYSF2E.Mode.Monster"}}
-      </label>
-      <label class="spf-mode-npc{{#if npcMode}} spf-mode-active{{/if}}" data-tooltip="{{localize 'SIMPLYSF2E.Mode.NpcHint'}}">
-        <input type="radio" name="mode" value="npc" {{#if npcMode}}checked{{/if}}>
-        <i aria-hidden="true" class="fa-solid fa-id-badge"></i> {{localize "SIMPLYSF2E.Mode.Npc"}}
-      </label>
-      <label class="spf-mode-encounter{{#if encounterMode}} spf-mode-active{{/if}}" data-tooltip="{{localize 'SIMPLYSF2E.Mode.EncounterHint'}}">
-        <input type="radio" name="mode" value="encounter" {{#if encounterMode}}checked{{/if}}>
-        <i aria-hidden="true" class="fa-solid fa-crosshairs"></i> {{localize "SIMPLYSF2E.Mode.Encounter"}}
-      </label>
-      <label class="spf-mode-character{{#if characterMode}} spf-mode-active{{/if}}" data-tooltip="{{localize 'SIMPLYSF2E.Mode.CharacterHint'}}">
-        <input type="radio" name="mode" value="character" {{#if characterMode}}checked{{/if}}>
-        <i aria-hidden="true" class="fa-solid fa-user-astronaut"></i> {{localize "SIMPLYSF2E.Mode.Character"}}
-      </label>
-      <label class="spf-mode-reskin{{#if reskinMode}} spf-mode-active{{/if}}" data-tooltip="{{localize 'SIMPLYSF2E.Mode.ReskinHint'}}">
-        <input type="radio" name="mode" value="reskin" {{#if reskinMode}}checked{{/if}}>
-        <i aria-hidden="true" class="fa-solid fa-masks-theater"></i> {{localize "SIMPLYSF2E.Mode.Reskin"}}
-      </label>
-    </div>
-    {{#if reskinMode}}
-    <div class="spf-reskin-drop{{#if reskinSource}} spf-reskin-has-source{{/if}}" data-reskin-drop aria-describedby="spf-reskin-drop-hint">
-      {{#if reskinSource}}
-        {{#if reskinSource.img}}<img src="{{reskinSource.img}}" alt="">{{else}}<i class="fa-solid fa-masks-theater" aria-hidden="true"></i>{{/if}}
-        <span class="spf-reskin-source">
-          <strong data-tooltip-text="{{reskinSource.name}}">{{reskinSource.name}}</strong>
-          <span>{{localize "SIMPLYSF2E.Generator.ReskinSourceLevel" level=reskinSource.level}}</span>
-          <span id="spf-reskin-drop-hint" class="spf-hint">{{localize "SIMPLYSF2E.Generator.ReskinDropReplace"}}</span>
-        </span>
-      {{else}}
-        <i class="fa-solid fa-masks-theater" aria-hidden="true"></i>
-        <span id="spf-reskin-drop-hint">{{localize "SIMPLYSF2E.Generator.ReskinDropHint"}}</span>
-      {{/if}}
-    </div>
-    {{#if reskinRelevel}}
-    <div class="spf-relevel">
-      <div class="form-group">
-        <label for="spf-reskin-level">{{localize "SIMPLYSF2E.Relevel.Label"}}</label>
-        <div class="spf-level-controls">
-          <button type="button" class="spf-icon-btn" data-action="reskinLevelDown" data-tooltip="{{localize 'SIMPLYSF2E.Generator.LevelDown'}}" aria-label="{{localize 'SIMPLYSF2E.Generator.LevelDown'}}" {{#if busy}}disabled{{/if}}>
-            <i aria-hidden="true" class="fa-solid fa-minus"></i>
-          </button>
-          <input id="spf-reskin-level" type="number" name="reskinLevel" min="{{reskinRelevel.min}}" max="{{reskinRelevel.max}}" step="1" value="{{reskinRelevel.level}}" aria-describedby="spf-reskin-level-hint">
-          <button type="button" class="spf-icon-btn" data-action="reskinLevelUp" data-tooltip="{{localize 'SIMPLYSF2E.Generator.LevelUp'}}" aria-label="{{localize 'SIMPLYSF2E.Generator.LevelUp'}}" {{#if busy}}disabled{{/if}}>
-            <i aria-hidden="true" class="fa-solid fa-plus"></i>
-          </button>
-        </div>
-        <p id="spf-reskin-level-hint" class="spf-hint">{{localize "SIMPLYSF2E.Relevel.Hint"}}</p>
-      </div>
-      {{#if reskinRelevel.changed}}
-        {{#if reskinRelevel.hasRows}}
-        {{! One table so old and new values line up: plain stats first, then each
-            Strike as a group (its short name) with Attack and Damage rows. }}
-        <div class="spf-relevel-scroll">
-          <table class="spf-relevel-table">
-            <thead><tr>
-              <th scope="col">{{localize "SIMPLYSF2E.Relevel.Stat"}}</th>
-              <th scope="col">{{localize "SIMPLYSF2E.Relevel.Scale"}}</th>
-              <th scope="col" class="spf-num">{{localize "SIMPLYSF2E.Relevel.AtLevel" level=reskinRelevel.from}}</th>
-              <th scope="col" class="spf-num">{{localize "SIMPLYSF2E.Relevel.AtLevel" level=reskinRelevel.level}}</th>
-            </tr></thead>
-            {{#if reskinRelevel.rows.length}}
-            <tbody>
-              {{#each reskinRelevel.rows}}<tr><th scope="row">{{this.label}}</th><td>{{this.scale}}</td><td class="spf-num">{{this.from}}</td><td class="spf-num spf-relevel-new">{{this.to}}</td></tr>{{/each}}
-            </tbody>
-            {{/if}}
-            {{#each reskinRelevel.strikes}}
-            <tbody class="spf-relevel-strike">
-              <tr class="spf-relevel-group"><th scope="colgroup" colspan="4"><i aria-hidden="true" class="fa-solid fa-hand-fist"></i> {{this.name}}</th></tr>
-              {{#if this.attack}}<tr><th scope="row" class="spf-relevel-sub">{{localize "SIMPLYSF2E.Relevel.AttackRow"}}</th><td>{{this.attack.scale}}</td><td class="spf-num">{{this.attack.from}}</td><td class="spf-num spf-relevel-new">{{this.attack.to}}</td></tr>{{/if}}
-              {{#if this.damage}}<tr><th scope="row" class="spf-relevel-sub">{{localize "SIMPLYSF2E.Relevel.DamageRow"}}</th><td>{{this.damage.scale}}</td><td class="spf-num">{{this.damage.from}}</td><td class="spf-num spf-relevel-new">{{this.damage.to}}</td></tr>{{/if}}
-            </tbody>
-            {{/each}}
-          </table>
-        </div>
-        {{/if}}
-        {{! Rebuilt and kept-at-old-level abilities always stay visible. }}
-        {{#if reskinRelevel.abilities.length}}
-        <ul class="spf-relevel-abilities">
-          {{#each reskinRelevel.abilities}}<li{{#if this.kept}} class="spf-relevel-kept"{{/if}}><i aria-hidden="true" class="fa-solid {{#if this.kept}}fa-triangle-exclamation{{else}}fa-rotate{{/if}}"></i> <span>{{this.label}}</span></li>{{/each}}
-        </ul>
-        {{/if}}
-        <details class="spf-disclosure spf-relevel-unchanged">
-          <summary><span class="spf-disclosure-label">{{localize "SIMPLYSF2E.Relevel.UnchangedSummary"}}</span></summary>
-          <p class="spf-hint">{{localize "SIMPLYSF2E.Relevel.Unchanged"}}</p>
-        </details>
-      {{/if}}
-    </div>
-    {{/if}}
-    {{/if}}
-    <div class="form-group stacked">
-      {{#if encounterMode}}
-        <label for="spf-generator-prompt">{{localize "SIMPLYSF2E.Generator.EncounterTheme"}}</label>
-        <textarea id="spf-generator-prompt" name="prompt" rows="3" placeholder="{{localize 'SIMPLYSF2E.Generator.EncounterThemePlaceholder'}}">{{input.prompt}}</textarea>
-      {{else if characterMode}}
-        <label for="spf-generator-prompt">{{localize "SIMPLYSF2E.Generator.CharacterPrompt"}}</label>
-        <textarea id="spf-generator-prompt" name="prompt" rows="3" placeholder="{{localize 'SIMPLYSF2E.Generator.CharacterPromptPlaceholder'}}">{{input.prompt}}</textarea>
-      {{else if reskinMode}}
-        <label for="spf-generator-prompt">{{localize "SIMPLYSF2E.Generator.ReskinPrompt"}}</label>
-        <textarea id="spf-generator-prompt" name="prompt" rows="3" placeholder="{{localize 'SIMPLYSF2E.Generator.ReskinPromptPlaceholder'}}">{{input.prompt}}</textarea>
-      {{else if npcMode}}
-        <label for="spf-generator-prompt">{{localize "SIMPLYSF2E.Generator.NpcPrompt"}}</label>
-        <textarea id="spf-generator-prompt" name="prompt" rows="3" placeholder="{{localize 'SIMPLYSF2E.Generator.NpcPromptPlaceholder'}}">{{input.prompt}}</textarea>
-      {{else}}
-        <label for="spf-generator-prompt">{{localize "SIMPLYSF2E.Generator.Prompt"}}</label>
-        <textarea id="spf-generator-prompt" name="prompt" rows="3" placeholder="{{promptPlaceholder}}">{{input.prompt}}</textarea>
-      {{/if}}
-    </div>
-    {{#unless reskinMode}}
-    <div class="spf-level-primary">
-      <div class="form-group">
-        <label for="spf-generator-level">{{#if encounterMode}}{{localize "SIMPLYSF2E.Generator.PartyLevel"}}{{else}}{{localize "SIMPLYSF2E.Generator.Level"}}{{/if}}</label>
-        <div class="spf-level-controls">
-          <button type="button" class="spf-icon-btn" data-action="levelDown" data-tooltip="{{localize 'SIMPLYSF2E.Generator.LevelDown'}}" aria-label="{{localize 'SIMPLYSF2E.Generator.LevelDown'}}">
-            <i aria-hidden="true" class="fa-solid fa-minus"></i>
-          </button>
-          <input id="spf-generator-level" type="number" name="level" min="{{levelMin}}" max="{{levelMax}}" step="1" value="{{input.level}}">
-          <button type="button" class="spf-icon-btn" data-action="levelUp" data-tooltip="{{localize 'SIMPLYSF2E.Generator.LevelUp'}}" aria-label="{{localize 'SIMPLYSF2E.Generator.LevelUp'}}">
-            <i aria-hidden="true" class="fa-solid fa-plus"></i>
-          </button>
-        </div>
-        {{#if encounterMode}}
-        <div class="spf-party-fill">
-          <button type="button" class="spf-secondary spf-use-party" data-action="useParty" data-tooltip="{{localize 'SIMPLYSF2E.Party.UseTooltip'}}" {{#if busy}}disabled{{/if}}{{#unless party}} disabled{{/unless}}><i aria-hidden="true" class="fa-solid fa-users"></i> {{localize "SIMPLYSF2E.Party.Use"}}</button>
-          <span class="spf-party-note">{{#if party}}{{localize "SIMPLYSF2E.Party.Summary" name=party.name count=party.count level=party.level}}{{else}}{{localize "SIMPLYSF2E.Party.None"}}{{/if}}</span>
-        </div>
-        {{/if}}
-      </div>
-    </div>
-    <details class="spf-advanced">
-      <summary>{{localize "SIMPLYSF2E.Generator.Advanced"}}</summary>
-      <div class="spf-advanced-content">
-        {{! One stable slot in every mode: presets guide every pipeline. Creation,
-            duplication, export, and deletion live in the dedicated manager. }}
-        <div class="form-group spf-preset stacked">
-          <label for="spf-generator-preset">{{localize "SIMPLYSF2E.Generator.Preset"}}</label>
-          <div class="spf-preset-controls">
-            <select id="spf-generator-preset" name="preset" aria-describedby="spf-generator-preset-trust">
-              <option value="" {{#if nonePresetSelected}}selected{{/if}}>{{localize "SIMPLYSF2E.Presets.None"}}</option>
-              <optgroup label="{{localize 'SIMPLYSF2E.Presets.StandardGroup'}}">
-                {{#each standardPresets}}
-                  <option value="{{this.id}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
-                {{/each}}
-              </optgroup>
-              {{#if archetypePresets.length}}
-              <optgroup label="{{localize 'SIMPLYSF2E.Presets.ArchetypesGroup'}}">
-                {{#each archetypePresets}}
-                  <option value="{{this.id}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
-                {{/each}}
-              </optgroup>
-              {{/if}}
-              {{#if customPresets.length}}
-              <optgroup label="{{localize 'SIMPLYSF2E.Presets.CustomGroup'}}">
-                {{#each customPresets}}
-                  <option value="{{this.id}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
-                {{/each}}
-              </optgroup>
-              {{/if}}
-            </select>
-            <button type="button" data-action="managePresets">
-              <i class="fa-solid fa-bookmark" aria-hidden="true"></i> {{localize "SIMPLYSF2E.Presets.Manage"}}
-            </button>
-          </div>
-          <p id="spf-generator-preset-trust" class="spf-hint spf-preset-trust" role="note">{{localize "SIMPLYSF2E.Presets.FlavorGuide"}}</p>
-        </div>
-        <div class="spf-row">
-      {{! Stable shared column order in every mode: Level → Rarity (a cap in
-          Character mode) → Treasure amount → Allow spellcasting. The level
-          remains prominent above; encounter-specific controls append here. }}
-      {{#if characterMode}}
-        <div class="form-group">
-          <label for="spf-generator-rarity-cap" data-tooltip="{{localize 'SIMPLYSF2E.Generator.RarityCapTooltip'}}">{{localize "SIMPLYSF2E.Generator.RarityCap"}}</label>
-          <select id="spf-generator-rarity-cap" name="rarityCap">
-            {{#each rarities}}
-              <option value="{{this.value}}" {{#if (eq this.value @root.input.rarityCap)}}selected{{/if}}>{{localize this.label}}</option>
-            {{/each}}
-          </select>
-        </div>
-      {{else}}
-        <div class="form-group">
-          <label for="spf-generator-rarity">{{localize "SIMPLYSF2E.Generator.Rarity"}}</label>
-          <select id="spf-generator-rarity" name="rarity">
-            {{#each rarities}}
-              <option value="{{this.value}}" {{#if (eq this.value @root.input.rarity)}}selected{{/if}}>{{localize this.label}}</option>
-            {{/each}}
-          </select>
-        </div>
-      {{/if}}
-      {{#if multiclassPicker}}
-        <div class="form-group">
-          <label for="spf-generator-multiclass" data-tooltip="{{localize 'SIMPLYSF2E.Generator.MulticlassTooltip'}}">{{localize "SIMPLYSF2E.Generator.Multiclass"}}</label>
-          <select id="spf-generator-multiclass" name="multiclass">
-            {{#each multiclassPicker.options}}
-              <option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
-            {{/each}}
-          </select>
-        </div>
-      {{/if}}
-      {{! Elite/Weak applies to a single Monster/NPC only; encounter members ignore it. }}
-      {{#unless characterMode}}{{#unless encounterMode}}
-      <div class="form-group">
-        <label for="spf-generator-adjustment">{{localize "SIMPLYSF2E.Generator.Adjustment"}}</label>
-        <select id="spf-generator-adjustment" name="adjustment">
-          <option value="" {{#unless input.adjustment}}selected{{/unless}}>{{localize "SIMPLYSF2E.Generator.AdjustmentNormal"}}</option>
-          <option value="elite" {{#if (eq input.adjustment "elite")}}selected{{/if}}>{{localize "SIMPLYSF2E.Generator.AdjustmentElite"}}</option>
-          <option value="weak" {{#if (eq input.adjustment "weak")}}selected{{/if}}>{{localize "SIMPLYSF2E.Generator.AdjustmentWeak"}}</option>
-        </select>
-      </div>
-      {{/unless}}{{/unless}}
-      <div class="form-group">
-        <label for="spf-generator-treasure-amount">{{localize "SIMPLYSF2E.Generator.TreasureAmount"}}</label>
-        <select id="spf-generator-treasure-amount" name="treasureAmount">
-          {{#each treasureAmounts}}
-            <option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{localize this.label}}</option>
-          {{/each}}
-        </select>
-      </div>
-      <div class="form-group spf-checkbox">
-        <label>
-          <input type="checkbox" name="allowSpellcasting" {{#if input.allowSpellcasting}}checked{{/if}}>
-          {{localize "SIMPLYSF2E.Generator.AllowSpellcasting"}}
-        </label>
-      </div>
-      {{#if encounterMode}}
-        <div class="form-group">
-          <label for="spf-generator-party-size">{{localize "SIMPLYSF2E.Generator.PartySize"}}</label>
-          <div class="spf-level-controls">
-            <button type="button" class="spf-icon-btn" data-action="partyDown" data-tooltip="{{localize 'SIMPLYSF2E.Generator.PartySizeDown'}}" aria-label="{{localize 'SIMPLYSF2E.Generator.PartySizeDown'}}">
-              <i aria-hidden="true" class="fa-solid fa-minus"></i>
-            </button>
-            <input id="spf-generator-party-size" type="number" name="partySize" min="1" max="8" step="1" value="{{input.partySize}}">
-            <button type="button" class="spf-icon-btn" data-action="partyUp" data-tooltip="{{localize 'SIMPLYSF2E.Generator.PartySizeUp'}}" aria-label="{{localize 'SIMPLYSF2E.Generator.PartySizeUp'}}">
-              <i aria-hidden="true" class="fa-solid fa-plus"></i>
-            </button>
-          </div>
-        </div>
-        <div class="form-group">
-          <label for="spf-generator-threat">{{localize "SIMPLYSF2E.Generator.Threat"}}</label>
-          <select id="spf-generator-threat" name="threat">
-            {{#each threats}}
-              <option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{localize this.label}}</option>
-            {{/each}}
-          </select>
-        </div>
-      {{/if}}
-        </div>
-      </div>
-    </details>
-    {{/unless}}
-    <div class="spf-generate-row">
-      <button type="button" class="{{#if preview}}spf-secondary{{else if encounterPreview}}spf-secondary{{else if pcPreview}}spf-secondary{{else if reskinPreview}}spf-secondary{{else if created}}spf-secondary{{else if characterReview}}spf-secondary{{else}}spf-primary{{/if}}" data-action="generate" {{#if busy}}disabled{{/if}}>
-        <i aria-hidden="true" class="fa-solid fa-bolt"></i>
-        {{#if preview}}{{localize "SIMPLYSF2E.Generator.GenerateAnotherVersion"}}{{else if encounterPreview}}{{localize "SIMPLYSF2E.Generator.GenerateAnotherVersion"}}{{else if pcPreview}}{{localize "SIMPLYSF2E.Generator.GenerateAnotherVersion"}}{{else if reskinPreview}}{{localize "SIMPLYSF2E.Generator.GenerateAnotherVersion"}}{{else}}{{#if monsterMode}}{{localize "SIMPLYSF2E.Generator.GenerateMonster"}}{{else if npcMode}}{{localize "SIMPLYSF2E.Generator.GenerateNpc"}}{{else if encounterMode}}{{localize "SIMPLYSF2E.Generator.GenerateEncounter"}}{{else if reskinMode}}{{localize "SIMPLYSF2E.Generator.GenerateReskin"}}{{else}}{{localize "SIMPLYSF2E.Generator.GenerateCharacter"}}{{/if}}{{/if}}
-      </button>
-      <button type="button" class="spf-secondary" data-action="previewPlan" {{#if busy}}disabled{{/if}}>{{localize "SIMPLYSF2E.Generator.PreviewPlan"}}</button>
-      {{#unless reskinMode}}
-      <button type="button" class="spf-random-button" data-action="generateRandom" data-tooltip="{{localize randomTooltipKey}}" aria-label="{{localize randomTooltipKey}}" {{#if busy}}disabled{{/if}}>
-        <i aria-hidden="true" class="fa-solid fa-dice-d20"></i>
-      </button>
-      {{/unless}}
-    </div>
-  </fieldset>
-
+{{! Result part of the window: progress, error, previews and the empty
+    state. One root element, which takes no box of its own (.spf-part is
+    display: contents). }}
+<div class="spf-part spf-part-result">
   {{#if busy}}{{> simplysf2e-progress}}{{/if}}
 
   {{#if error}}
@@ -331,7 +53,7 @@
       <div class="spf-stat-check {{#if created.statCheck.problems}}spf-stat-check-attention{{else}}spf-stat-check-ok{{/if}}">
         <h3><i aria-hidden="true" class="fa-solid {{#if created.statCheck.problems}}fa-triangle-exclamation{{else}}fa-circle-check{{/if}}"></i> {{localize "SIMPLYSF2E.StatCheck.Heading"}}</h3>
         {{#each created.statCheck.creatures}}
-          <details {{#if this.problems}}open{{/if}}>
+          <details data-fold="stat-check" {{#if this.problems}}open{{/if}}>
             <summary>{{this.summary}}</summary>
             <ul class="spf-list">
               {{#each this.rows}}<li class="spf-stat-row spf-stat-{{this.status}}">{{this.text}}</li>{{/each}}
@@ -343,7 +65,7 @@
     {{#if tokenReport}}
       {{! Collapsed by default: the summary always carries the run total and the
           cost line (incl. its "at least" / ≈ wording); the per-step report is one click away. }}
-      <details class="spf-token-report spf-disclosure">
+      <details data-fold="tokens" class="spf-token-report spf-disclosure">
         <summary>
           <span class="spf-disclosure-label spf-token-line">
             <span class="spf-token-heading">{{localize "SIMPLYSF2E.Tokens.Heading"}}</span>
@@ -493,7 +215,7 @@
     {{#if tokenReport}}
       {{! Collapsed by default: the summary always carries the run total and the
           cost line (incl. its "at least" / ≈ wording); the per-step report is one click away. }}
-      <details class="spf-token-report spf-disclosure">
+      <details data-fold="tokens" class="spf-token-report spf-disclosure">
         <summary>
           <span class="spf-disclosure-label spf-token-line">
             <span class="spf-token-heading">{{localize "SIMPLYSF2E.Tokens.Heading"}}</span>
@@ -569,7 +291,7 @@
     {{#if tokenReport}}
       {{! Collapsed by default: the summary always carries the run total and the
           cost line (incl. its "at least" / ≈ wording); the per-step report is one click away. }}
-      <details class="spf-token-report spf-disclosure">
+      <details data-fold="tokens" class="spf-token-report spf-disclosure">
         <summary>
           <span class="spf-disclosure-label spf-token-line">
             <span class="spf-token-heading">{{localize "SIMPLYSF2E.Tokens.Heading"}}</span>
@@ -696,7 +418,7 @@
     {{#if tokenReport}}
       {{! Collapsed by default: the summary always carries the run total and the
           cost line (incl. its "at least" / ≈ wording); the per-step report is one click away. }}
-      <details class="spf-token-report spf-disclosure">
+      <details data-fold="tokens" class="spf-token-report spf-disclosure">
         <summary>
           <span class="spf-disclosure-label spf-token-line">
             <span class="spf-token-heading">{{localize "SIMPLYSF2E.Tokens.Heading"}}</span>
@@ -749,7 +471,7 @@
     {{#if tokenReport}}
       {{! Collapsed by default: the summary always carries the run total and the
           cost line (incl. its "at least" / ≈ wording); the per-step report is one click away. }}
-      <details class="spf-token-report spf-disclosure">
+      <details data-fold="tokens" class="spf-token-report spf-disclosure">
         <summary>
           <span class="spf-disclosure-label spf-token-line">
             <span class="spf-token-heading">{{localize "SIMPLYSF2E.Tokens.Heading"}}</span>
@@ -787,25 +509,25 @@
       <h3><i aria-hidden="true" class="fa-solid fa-triangle-exclamation"></i> {{localize "SIMPLYSF2E.Generator.ReviewActionsHeading" count=characterReview.actionCount}}</h3>
       <ul class="spf-review-list">
         {{#each characterReview.choices}}
-          <li><details class="spf-disclosure spf-review-action">
+          <li><details data-fold="review-action" class="spf-disclosure spf-review-action">
             <summary><span class="spf-disclosure-label">{{localize "SIMPLYSF2E.Generator.ReviewChoiceTitle" item=this.itemName}}</span></summary>
             <p><em class="spf-review-prompt">{{localize this.prompt}}</em> {{localize "SIMPLYSF2E.Generator.ReviewChoiceDetail"}}</p>
           </details></li>
         {{/each}}
         {{#each characterReview.skills.warnings}}
-          <li><details class="spf-disclosure spf-review-action">
+          <li><details data-fold="review-action" class="spf-disclosure spf-review-action">
             <summary><span class="spf-disclosure-label">{{this.title}}</span></summary>
             <p>{{this.detail}}</p>
           </details></li>
         {{/each}}
         {{#each characterReview.skills.loadoutWarnings}}
-          <li><details class="spf-disclosure spf-review-action">
+          <li><details data-fold="review-action" class="spf-disclosure spf-review-action">
             <summary><span class="spf-disclosure-label">{{this.title}}</span></summary>
             <p>{{this.detail}}</p>
           </details></li>
         {{/each}}
         {{#if characterReview.incomplete}}
-          <li><details class="spf-disclosure spf-review-action">
+          <li><details data-fold="review-action" class="spf-disclosure spf-review-action">
             <summary><span class="spf-disclosure-label">{{localize "SIMPLYSF2E.Generator.ReviewIncompleteTitle"}}</span></summary>
             <p>{{localize "SIMPLYSF2E.Generator.ReviewIncomplete"}}</p>
           </details></li>

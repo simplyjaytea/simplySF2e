@@ -100,6 +100,13 @@ try {
         }
         if (FREEZE) await page.addStyleTag({ content: FREEZE_CSS });
         await page.locator(".application").screenshot({ path: join(OUT, `${name}.png`) });
+        // A part template must render exactly one root element, or Foundry refuses the render.
+        const strayRoots = await page.evaluate(() => {
+          const body = document.querySelector(".window-content > .spf-window-body");
+          if (!body?.querySelector(":scope > [data-application-part]")) return 0;
+          return body.querySelectorAll(":scope > :not([data-application-part])").length;
+        });
+        if (strayRoots) problems.push(`${name}: ${strayRoots} element(s) sit beside the part roots; each part template must have one root`);
         const overflow = await page.evaluate(() => {
           const content = document.querySelector(".window-content");
           return content.scrollWidth > content.clientWidth + 1 ? content.scrollWidth - content.clientWidth : 0;

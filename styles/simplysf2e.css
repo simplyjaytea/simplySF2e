@@ -453,6 +453,13 @@
   overflow: hidden;
 }
 
+/* The tool windows render their parts (status, brief, result) as children
+   of the body. A part wrapper takes no box of its own, so its children lay
+   out as the body's own flex items. */
+.simplysf2e .spf-part {
+  display: contents;
+}
+
 .application.simplysf2e .window-content > .spf-window-body {
   flex: 1 1 auto;
   min-height: 0;

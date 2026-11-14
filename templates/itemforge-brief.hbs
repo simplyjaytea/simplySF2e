@@ -1,0 +1,48 @@
+<fieldset class="spf-inputs spf-card" {{#if busy}}disabled{{/if}}>
+  <legend>{{localize "SIMPLYSF2E.ItemForge.ConceptLegend"}}</legend>
+  {{! Compact kind switch: all five kinds equally visible as one segmented
+      row; the selected kind's description shows once below. The selected
+      button carries aria-pressed, a frame and a thick underline bar, not
+      colour alone; each button's tooltip holds its own description. }}
+  <div class="spf-kind-choices" role="group" aria-label="{{localize 'SIMPLYSF2E.ItemForge.Kind'}}">
+    {{#each kinds}}
+      <button type="button" class="spf-kind-choice {{#if this.selected}}spf-kind-selected{{/if}}" data-action="selectKind" data-kind="{{this.value}}" aria-pressed="{{this.selected}}" data-tooltip="{{localize this.hint}}" {{#if this.selected}}aria-describedby="spf-kind-hint"{{/if}} {{#if @root.busy}}disabled{{/if}}>
+        <i class="fa-solid {{this.icon}}" aria-hidden="true"></i>
+        <span class="spf-kind-label">{{localize this.short}}</span>
+      </button>
+    {{/each}}
+  </div>
+  <p id="spf-kind-hint" class="spf-kind-hint">{{#each kinds}}{{#if this.selected}}<strong>{{localize this.label}}:</strong> {{localize this.hint}}{{/if}}{{/each}}</p>
+  <div class="form-group stacked">
+    <label for="spf-itemforge-prompt">{{localize "SIMPLYSF2E.ItemForge.Prompt"}}</label>
+    <textarea id="spf-itemforge-prompt" name="prompt" rows="3" placeholder="{{promptPlaceholder}}">{{input.prompt}}</textarea>
+  </div>
+  <div class="spf-row spf-itemforge-levelrow">
+    <div class="form-group">
+      <label for="spf-itemforge-level">{{localize "SIMPLYSF2E.ItemForge.Level"}}</label>
+      <div class="spf-level-controls">
+        <button type="button" class="spf-icon-btn" data-action="levelDown" data-tooltip="{{localize 'SIMPLYSF2E.Generator.LevelDown'}}" aria-label="{{localize 'SIMPLYSF2E.Generator.LevelDown'}}">
+          <i aria-hidden="true" class="fa-solid fa-minus"></i>
+        </button>
+        <input id="spf-itemforge-level" type="number" name="level" min="{{minLevel}}" max="{{maxLevel}}" step="1" value="{{input.level}}">
+        <button type="button" class="spf-icon-btn" data-action="levelUp" data-tooltip="{{localize 'SIMPLYSF2E.Generator.LevelUp'}}" aria-label="{{localize 'SIMPLYSF2E.Generator.LevelUp'}}">
+          <i aria-hidden="true" class="fa-solid fa-plus"></i>
+        </button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label for="spf-itemforge-rarity">{{localize "SIMPLYSF2E.Generator.Rarity"}}</label>
+      <select id="spf-itemforge-rarity" name="rarity">
+        {{#each rarities}}
+          <option value="{{this.value}}" {{#if (eq this.value @root.input.rarity)}}selected{{/if}}>{{localize this.label}}</option>
+        {{/each}}
+      </select>
+    </div>
+  </div>
+  <div class="spf-generate-row">
+    <button type="button" class="{{#if preview}}spf-secondary{{else}}spf-primary{{/if}}" data-action="generate" {{#if busy}}disabled{{/if}}>
+      <i aria-hidden="true" class="fa-solid fa-bolt"></i>
+      {{#if preview}}{{localize "SIMPLYSF2E.Generator.GenerateAnotherVersion"}}{{else}}{{localize "SIMPLYSF2E.Generator.Generate"}}{{/if}}
+    </button>
+  </div>
+</fieldset>

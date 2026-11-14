@@ -13,6 +13,7 @@ import { moveToGeneratedFolder } from "./folders.mjs";
 import { SourcesConfigApp } from "./sources-app.mjs";
 import { gpToCredits } from "./currency.mjs";
 import { SpfApp } from "./app-base.mjs";
+import { windowPartsConfig } from "./window-parts.mjs";
 import { progressView } from "./progress.mjs";
 import { jevKeySource } from "./jev.mjs";
 
@@ -58,9 +59,10 @@ export class ShopApp extends SpfApp {
     }
   };
 
-  static PARTS = {
-    body: { template: `modules/${MODULE_ID}/templates/shop.hbs`, scrollable: [""] }
-  };
+  static WINDOW_ID = "shop";
+
+  /** status, brief and result (window-parts.mjs); the body element that holds them scrolls. */
+  static PARTS = windowPartsConfig("shop", MODULE_ID);
 
   #input = { prompt: "", level: 3, size: "standard", rarity: "common" };
   #busy = false;
@@ -75,9 +77,10 @@ export class ShopApp extends SpfApp {
   /** Picks dropped because the AI returned an ID that was not offered. */
   #dropped = 0;
 
-  _onRender(context, options) {
-    super._onRender?.(context, options);
-    this.element?.querySelector("details[data-readiness]")?.addEventListener("toggle", (event) => {
+  _onPartRendered(partId, element) {
+    super._onPartRendered?.(partId, element);
+    if (partId !== "status") return;
+    element.querySelector("details[data-readiness]")?.addEventListener("toggle", (event) => {
       this.#readinessOpen = event.currentTarget.open;
     });
   }

@@ -1,0 +1,6 @@
+{{! Status part of the window: the shared strip. Re-rendered when the
+    connection, readiness or last run changes. One root element, which
+    takes no box of its own (.spf-part is display: contents). }}
+<div class="spf-part spf-part-status">
+  {{> simplysf2e-statusbar appId="shop" hideLastRunWithReport=true sourcesDetail=(localize "SIMPLYSF2E.Shop.SourcesDetail")}}
+</div>

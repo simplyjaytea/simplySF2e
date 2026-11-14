@@ -16,6 +16,7 @@ import { SourcesConfigApp } from "./sources-app.mjs";
 import { gpToCredits, assembleCurrency, splitCurrency } from "./currency.mjs";
 import { activeParty } from "./party.mjs";
 import { SpfApp } from "./app-base.mjs";
+import { windowPartsConfig } from "./window-parts.mjs";
 import { progressView } from "./progress.mjs";
 import { jevKeySource } from "./jev.mjs";
 
@@ -55,9 +56,10 @@ export class TreasureApp extends SpfApp {
     }
   };
 
-  static PARTS = {
-    body: { template: `modules/${MODULE_ID}/templates/treasure.hbs`, scrollable: [""] }
-  };
+  static WINDOW_ID = "treasure";
+
+  /** status, brief and result (window-parts.mjs); the body element that holds them scrolls. */
+  static PARTS = windowPartsConfig("treasure", MODULE_ID);
 
   #input = { prompt: "", level: 3, partySize: 4, amount: "encounter", rarity: "common" };
   #busy = false;
@@ -76,9 +78,10 @@ export class TreasureApp extends SpfApp {
   /** Picks dropped: not offered, unpriced, or over budget. */
   #dropped = 0;
 
-  _onRender(context, options) {
-    super._onRender?.(context, options);
-    this.element?.querySelector("details[data-readiness]")?.addEventListener("toggle", (event) => {
+  _onPartRendered(partId, element) {
+    super._onPartRendered?.(partId, element);
+    if (partId !== "status") return;
+    element.querySelector("details[data-readiness]")?.addEventListener("toggle", (event) => {
       this.#readinessOpen = event.currentTarget.open;
     });
   }
