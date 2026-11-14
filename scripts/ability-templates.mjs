@@ -199,14 +199,158 @@ export function buildAura(spec, { level, name, flavor = "" } = {}) {
   };
 }
 
-/** True for an ability the module builds as a template (area blast or aura). */
+/* -------------------- Targeted action (T-TARGET, JT 2026-11-14) --------------------
+ * A bespoke single-target ability the creature uses on one creature: a save, with damage,
+ * a condition, or both. Built from enum words like the two templates above; every number
+ * is one the module already uses for them, so no new balance value is introduced.
+ * G1 cost: one, two or three actions, a reaction or a free action (never passive).
+ * G2 range: small = the creature's reach; medium 30 feet; large 60 feet (the B1 cone steps).
+ * G3 DC: SPELL_DC (GM Core pg. 126) at abilityDcScale, default moderate (as A2).
+ * G4 damage: AREA_DAMAGE unlimited (GM Core pg. 128: "based on a 2-action activity ...
+ *    Single actions should deal much less damage"). Two or three actions use the creature's
+ *    level; one action, a reaction or a free action use max(level - 2, -1), the A5 step.
+ *    Basic save.
+ * G5 condition: the A4 value. Frightened and sickened end by their own rules; clumsy,
+ *    stupefied and enfeebled last 1 round. The save defaults to the condition's A3 save.
+ * G6 traits come from the enums only: an energy damage type that is also a trait, and
+ *    emotion, fear, mental for frightened (as the published Frightful Presence).
+ * G7 item shape: the Area Blast scaffold (type action, category offensive, no rules).
+ */
+export const ABILITY_COSTS = Object.freeze(["one", "two", "three", "reaction", "free", "passive"]);
+const COST_ACTION = Object.freeze({
+  one: Object.freeze({ actionType: "action", actions: 1 }),
+  two: Object.freeze({ actionType: "action", actions: 2 }),
+  three: Object.freeze({ actionType: "action", actions: 3 }),
+  reaction: Object.freeze({ actionType: "reaction", actions: null }),
+  free: Object.freeze({ actionType: "free", actions: null }),
+  passive: Object.freeze({ actionType: "passive", actions: null })
+});
+
+/** The sheet's action data for a cost word, or null for anything that is not one. */
+export function costAction(cost) {
+  return Object.hasOwn(COST_ACTION, cost) ? COST_ACTION[cost] : null;
+}
+
+export const TARGETED_COSTS = Object.freeze(["one", "two", "three", "reaction", "free"]);
+const TARGETED_RANGE = Object.freeze({ small: null, medium: 30, large: 60 });
+/** Damage types that are also action traits (v14-dev static/lang/en.json PF2E.TraitX; physical types are not). */
+const DAMAGE_TRAITS = new Set(["acid", "cold", "electricity", "fire", "force", "mental", "poison", "sonic", "spirit", "void"]);
+const CONDITION_TRAITS = Object.freeze({ frightened: Object.freeze(["emotion", "fear", "mental"]) });
+const TIMED_CONDITIONS = new Set(["clumsy", "stupefied", "enfeebled"]);
+const ACTION_ICONS = Object.freeze({ 1: "OneAction", 2: "TwoActions", 3: "ThreeActions", reaction: "Reaction", free: "FreeAction", passive: "Passive" });
+
+/** The system's icon for an action cost (systems/sf2e/icons/actions). */
+export function actionCostIcon(actionType, actions) {
+  const key = actionType === "action" ? (ACTION_ICONS[actions] ? actions : 1) : actionType;
+  return `systems/sf2e/icons/actions/${ACTION_ICONS[key] ?? "Passive"}.webp`;
+}
+
+/**
+ * The clean targeted-action spec from the AI's raw ability, or null (fail closed: any
+ * invalid enum, or neither a damage type nor a condition).
+ * @returns {{cost: string, size: string, save: string, abilityDcScale: string, damageType: string|null, condition: string|null}|null}
+ */
+export function normalizeTargeted(raw) {
+  if (raw?.template !== "targeted") return null;
+  const size = raw.size ?? "medium";
+  const abilityDcScale = raw.abilityDcScale ?? "moderate";
+  const damageType = raw.damageType ?? null;
+  const condition = raw.condition ?? null;
+  if (!TARGETED_COSTS.includes(raw.cost)) return null;
+  if (!AREA_BLAST_SIZES.includes(size) || !AREA_BLAST_DC_SCALES.includes(abilityDcScale)) return null;
+  if (damageType === null && condition === null) return null;
+  if (damageType !== null && !AREA_BLAST_DAMAGE_TYPES.includes(damageType)) return null;
+  if (condition !== null && !AURA_CONDITIONS.includes(condition)) return null;
+  const save = raw.save ?? (condition ? AURA_CONDITION_SAVE[condition] : "reflex");
+  if (!AURA_SAVES.includes(save)) return null;
+  return { cost: raw.cost, size, save, abilityDcScale, damageType, condition };
+}
+
+/**
+ * Item data for a targeted action at this level, or null (level outside the tables, or an
+ * invalid spec). The description has no placeholder tokens.
+ * @param {object} spec from normalizeTargeted
+ * @param {{level: number, name?: string, flavor?: string}} creature
+ */
+export function buildTargeted(spec, { level, name, flavor = "" } = {}) {
+  const lv = Number(level);
+  if (!spec || !Number.isInteger(lv) || lv < MIN_LEVEL || lv > MAX_LEVEL) return null;
+  const action = TARGETED_COSTS.includes(spec.cost) ? costAction(spec.cost) : null;
+  if (!action || !(spec.size in TARGETED_RANGE)) return null;
+  const dc = lookup(SPELL_DC, lv, spec.abilityDcScale, []);
+  const label = plainAiText(name) || "Ability";
+  const rawFlavor = String(flavor ?? "");
+  const text = /[@\[\]{}]/.test(rawFlavor) ? "" : plainAiText(rawFlavor);
+  const lead = text ? `${esc(text)} ` : "";
+  const range = TARGETED_RANGE[spec.size];
+  const target = range ? `one creature within ${range} feet` : "one creature within its reach";
+  const parts = [`${lead}The creature targets ${target}.`];
+  if (spec.damageType) {
+    const heavy = action.actions >= 2;
+    const dice = lookup(AREA_DAMAGE, heavy ? lv : Math.max(lv - 2, -1), "unlimited", []);
+    parts.push(`The target takes @Damage[${dice}[${spec.damageType}]] damage (@Check[${spec.save}|dc:${dc}|basic] save).`);
+  }
+  if (spec.condition) {
+    const value = auraConditionValue(lv, spec.condition);
+    const duration = TIMED_CONDITIONS.has(spec.condition) ? " for 1 round" : "";
+    parts.push(spec.damageType
+      ? `On a failed save, the target also becomes ${spec.condition} ${value}${duration}.`
+      : `The target must attempt a @Check[${spec.save}|dc:${dc}] save. On a failure, it becomes ${spec.condition} ${value}${duration}.`);
+  }
+  const traits = [
+    ...(DAMAGE_TRAITS.has(spec.damageType) ? [spec.damageType] : []),
+    ...(CONDITION_TRAITS[spec.condition] ?? [])
+  ];
+  return {
+    name: label,
+    type: "action",
+    img: actionCostIcon(action.actionType, action.actions),
+    system: {
+      actionType: { value: action.actionType },
+      actions: { value: action.actions },
+      category: "offensive",
+      rules: [],
+      slug: null,
+      traits: { value: [...new Set(traits)].sort() },
+      description: { value: `<p>${parts.join(" ")}</p>` }
+    }
+  };
+}
+
+/** The provenance kind of a module-built template, or null. */
+export function templateKind(ability) {
+  if (ability?.areaBlast) return "area-blast";
+  if (ability?.aura) return "aura";
+  if (ability?.targeted) return "targeted";
+  return null;
+}
+
+/** The template's saved spec (the enum words it is rebuilt from), or null. */
+export function templateSpec(ability) {
+  return ability?.areaBlast ?? ability?.aura ?? ability?.targeted ?? null;
+}
+
+/** An ability with its template spec under the key for `kind` (re-level rebuilds from it). */
+export function abilityFromBuilt(kind, spec, { name, description = "" } = {}) {
+  const key = { "area-blast": "areaBlast", aura: "aura", targeted: "targeted" }[kind];
+  return key ? { name, description, [key]: spec } : null;
+}
+
+/** The same ability with no template, kept as narrative only. */
+export function withoutTemplate(ability) {
+  return { ...ability, areaBlast: null, aura: null, targeted: null, narrative: true };
+}
+
+/** True for an ability the module builds as a template (area blast, aura or targeted action). */
 export function isModuleTemplate(ability) {
-  return Boolean(ability?.areaBlast || ability?.aura);
+  return templateKind(ability) !== null;
 }
 
 /** The item for a module-built template at this level, or null (fail closed). */
 export function buildModuleTemplate(ability, { level }) {
-  if (ability?.areaBlast) return buildAreaBlast(ability.areaBlast, { level, name: ability.name, flavor: ability.description });
-  if (ability?.aura) return buildAura(ability.aura, { level, name: ability.name, flavor: ability.description });
+  const creature = { level, name: ability?.name, flavor: ability?.description };
+  if (ability?.areaBlast) return buildAreaBlast(ability.areaBlast, creature);
+  if (ability?.aura) return buildAura(ability.aura, creature);
+  if (ability?.targeted) return buildTargeted(ability.targeted, creature);
   return null;
 }

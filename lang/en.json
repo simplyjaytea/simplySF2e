@@ -224,6 +224,13 @@
       "Disable": "Don't show for updates",
       "Earlier": "Earlier changes ({count})",
       "Note": {
+        "TargetedActions": {
+          "Title": "Abilities you can roll",
+          "B1": "A bespoke ability against one creature now rolls: a save with damage, a condition or both.",
+          "B2": "Narrative-only abilities show their action cost: one to three actions, a reaction or free.",
+          "B3": "Recall Knowledge notes add the DCs for an applicable Lore and a specific Lore.",
+          "B4": "Re-levelling a copy rebuilds these abilities for the new level."
+        },
         "InterfaceSounds": {
           "Title": "Optional interface sounds",
           "B1": "Short cues can mark a run starting, a result ready, a create and an error.",
