@@ -211,6 +211,12 @@
       "Disable": "Don't show for updates",
       "Earlier": "Earlier changes ({count})",
       "Note": {
+        "ModeTiles": {
+          "Title": "Mode tiles on one row",
+          "B1": "The five Generator modes stay on one row, even in a narrow window.",
+          "B2": "The selection marker slides to the mode you pick.",
+          "B3": "Setup, Presets, Welcome and What's new keep their buttons in view while you scroll."
+        },
         "ResultCards": {
           "Title": "Result cards that read at a glance",
           "B1": "A creature preview opens with one row: AC, HP, Perception and the three saves.",

@@ -38,7 +38,7 @@ import { verifyCreatedActor } from "./post-create.mjs";
 import { classSpellTradition, manualNotesContent, supportedClassCandidates, isCompletePCClass } from "./pc-support.mjs";
 import { validateArchetypeSlotPlacement } from "./pc-prerequisites.mjs";
 import { SpfApp } from "./app-base.mjs";
-import { CONSOLE_HEIGHT, briefFoldContext, windowPartsConfig } from "./window-parts.mjs";
+import { CONSOLE_HEIGHT, briefFoldContext, modeSlideFrom, windowPartsConfig } from "./window-parts.mjs";
 import { progressView } from "./progress.mjs";
 import { jevKeySource } from "./jev.mjs";
 import { esc, escAi } from "./text.mjs";
@@ -148,6 +148,8 @@ export class GeneratorApp extends SpfApp {
   #briefOverride = null;
   /** Selector of what a finished reroll replaced; the next idle render of the result flashes it once. */
   #flashPick = null;
+  /** The mode whose tile the selection marker was last drawn on. */
+  #modeShown = null;
   #concept = null;
   #resolved = null;
   /** Encounter mode result: {name, budget, spent, members: [...]}. */
@@ -551,6 +553,7 @@ export class GeneratorApp extends SpfApp {
     }
     if (partId === "result") this.#playFlash(element);
     if (partId !== "brief") return;
+    this.#playModeSlide(element);
     // The re-level box on screen now belongs to this source.
     this.#relevelShownFor = this.#reskinSource;
     element.querySelector('select[name="preset"]')?.addEventListener("change", () => {
@@ -759,6 +762,21 @@ export class GeneratorApp extends SpfApp {
       input.reskinLevel = this.#reskinTargetLevel();
     }
     return this._copyBugReport("Generator", input);
+  }
+
+  /**
+   * Motion "slide": after a mode switch the selection marker starts from the
+   * tile it left. Only a custom property and a class are set; the tiles are
+   * already in their final state, so nothing waits for it.
+   */
+  #playModeSlide(element) {
+    const toggle = element.querySelector?.(".spf-mode-toggle");
+    const mode = toggle?.querySelector?.('input[name="mode"]:checked')?.value ?? null;
+    const from = modeSlideFrom(this.#modeShown, mode);
+    this.#modeShown = mode;
+    if (from === null) return;
+    toggle.style.setProperty("--spf-mode-from", String(from));
+    toggle.classList.add("spf-slide");
   }
 
   /**

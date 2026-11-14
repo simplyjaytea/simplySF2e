@@ -48,6 +48,8 @@ export class WhatsNewApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
   };
 
+  static ARRIVE_ON_OPEN = true;
+
   static PARTS = {
     body: { template: `modules/${MODULE_ID}/templates/whats-new.hbs`, scrollable: [""] }
   };

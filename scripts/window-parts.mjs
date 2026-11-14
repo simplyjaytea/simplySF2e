@@ -159,3 +159,17 @@ export function resultArrives(now, before, { afterRun = false } = {}) {
   if (now.kind !== before.kind) return true;
   return Boolean(afterRun && before.busy && !now.busy);
 }
+
+/** The Generator's mode tiles in the order the template renders them. */
+export const MODE_ORDER = ["monster", "npc", "encounter", "character", "reskin"];
+
+/**
+ * Motion "slide": the tile the selection marker leaves when the mode changes.
+ * Returns that tile's index, or null when nothing should move (the first
+ * render, the same mode again, an unknown mode).
+ */
+export function modeSlideFrom(before, now) {
+  const from = MODE_ORDER.indexOf(before);
+  const to = MODE_ORDER.indexOf(now);
+  return from < 0 || to < 0 || from === to ? null : from;
+}

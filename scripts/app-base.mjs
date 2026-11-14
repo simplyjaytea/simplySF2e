@@ -89,6 +89,8 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   /** Whether a result card that a finished run replaced in place plays its arrival (window-parts.mjs `resultArrives`). */
   static ARRIVE_AFTER_RUN = true;
+  /** Whether the window's content rises in once each time the window opens (Welcome, What's new). Never on a re-render. */
+  static ARRIVE_ON_OPEN = false;
   /** Class attribute of the body element for the render in progress. */
   _bodyClassName = "spf-window-body";
   /** Exact token usage per AI call of the last generation: [{label, usage}]. */
@@ -375,6 +377,7 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // The frame survives re-renders but not close and reopen, so bind once per frame.
     if (this._keysElement !== this.element && this.element?.addEventListener) {
       this._keysElement = this.element;
+      if (this.constructor.ARRIVE_ON_OPEN) this.element.querySelector?.(".spf-window-body")?.classList?.add("spf-arrive");
       this.element.addEventListener("keydown", (event) => {
         if (event.key !== "Enter" || !(event.ctrlKey || event.metaKey) || event.isComposing) return;
         const generate = this.element.querySelector("[data-action='generate']");

@@ -441,10 +441,10 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 
 | # | Do | Expect | Where | Pass | Notes |
 | --- | --- | --- | --- | --- | --- |
-| 12m.1 | Set the Generator to about 460 px wide. | The five modes sit on one row, icon above label; "Player Character" wraps to two lines inside its own segment and no label breaks mid-word. | Generator | | |
+| 12m.1 | Set the Generator to about 460 px wide. | The five modes sit on one row, icon above label, and no label breaks mid-word or is cut off. | Generator | | |
 | 12m.2 | Encounter and Character modes at the same width. | The Generate button label stays on one line; Preview first drops to a second line if there is no room. | Generator | | |
 | 12m.3 | Item Forge at about 460 px. | Kind tiles sit two per row, so Generate and the preview are higher up. | Item Forge | | |
-| 12m.4 | Shrink the Generator under about 400 px. | Modes wrap into a grid again without overflow. | Generator | | |
+| 12m.4 | Shrink the Generator under about 400 px. | The five modes stay on one row with a slightly smaller label; nothing overflows or is cut off. | Generator | | |
 
 ## 12n. Jev indicator and token report (J6)
 
@@ -1023,3 +1023,21 @@ The single creature preview leads with one strip of six numbers. Picks the compe
 | 20.12 | Compare the section headings (Abilities, Spells, Feats, Equipment, Loot, Description) in Generator, Item Forge, Shop and Treasure previews. | One size and colour everywhere, each with the same space above it. | All four tool windows | | |
 | 20.13 | Create a creature, and finish a character review. | The card's title has an icon (a check for created, a clipboard for review) beside the words. | Generator | | |
 | 20.14 | Turn on reduced motion and repeat 20.9 and 20.10. | No flash and no turn. The reroll works the same. | Generator | | |
+
+## 21. UI revamp slice 5: mode tiles, small windows (2026-11-14)
+
+The Generator's five mode tiles stay on one row at every width and the selection is one marker that slides. Welcome, AI Provider Setup, Manage Presets and What's new keep their button row in view, as Sources already did. Welcome and What's new rise in once when they open.
+
+| ID | Step | Expected | Where | Result | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 21.1 | Open the Generator at its default width and switch through the five modes. | The selected tile is marked by a bordered, glowing box in that mode's colour, with brighter text and a coloured icon. The other tiles are plain. | Generator | | |
+| 21.2 | Switch mode with a click, then with the arrow keys. | The marker slides from the old tile to the new one in about a fifth of a second. The form below is already the new mode's form; nothing waits for the slide. Focus stays on the chosen tile. | Generator | | |
+| 21.3 | Narrow the window to about 460 px, then to its minimum. | Five tiles on one row, icon above label. No label is cut off, and the marker still sits exactly on the selected tile. | Generator | | |
+| 21.4 | Change anything else in the form (a preset, the level, Advanced options) and run a preview. | The marker does not move or replay its slide. | Generator | | |
+| 21.5 | Drag the window wide (two panes) and switch mode. | The marker sits on the selected tile in the left pane and slides as before. | Generator | | |
+| 21.6 | Open AI Provider Setup and make the window short, or use a small screen. Scroll the fields. | Save & test, Save without testing and Close stay at the bottom edge while the fields scroll under them. No text shows through the row. | AI Provider Setup | | |
+| 21.7 | Do the same in Welcome, Manage Presets and What's new. | Each window's button row stays at the bottom edge. In a window tall enough to show everything, the row sits where it did before. | Welcome, Manage Presets, What's new | | |
+| 21.8 | Open Sources. | Save and Reset are pinned exactly as in v0.1.16. | Sources | | |
+| 21.9 | Tab through AI Provider Setup from top to bottom in a short window. | The focused field is never hidden under the pinned row. | AI Provider Setup | | |
+| 21.10 | Open What's new from the module settings, and open Welcome. | The content rises a few pixels and fades in once. Choosing a provider or testing a connection in Welcome does not replay it. | Welcome, What's new | | |
+| 21.11 | Turn on reduced motion and repeat 21.2 and 21.10. | No slide and no rise. Everything else works the same. | Generator, Welcome, What's new | | |
