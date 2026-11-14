@@ -45,6 +45,19 @@ export function mapGear(list, skipped = [], category = null) {
 }
 
 /**
+ * The picks of each list that found no compendium match, for the "Not
+ * matched" line that closes a preview section. A row keeps its `index` and
+ * `rerollable`, so the line's reroll die targets the same slot as before.
+ * An empty PC feat slot is not a miss and stays in its list.
+ * @param {Record<string, Array<{found: boolean, empty?: boolean}>>} lists
+ * @returns {Record<string, object[]>} the same keys, unmatched rows only
+ */
+export function unmatchedRows(lists) {
+  return Object.fromEntries(Object.entries(lists).map(([key, rows]) =>
+    [key, (rows ?? []).filter((row) => !row.found && !row.empty)]));
+}
+
+/**
  * Aggregate "found vs. total" across every generated category — issue #52:
  * the GM had no summary of how much of a generation actually grounded
  * against the real compendium vs. fell back to AI-estimated custom items,

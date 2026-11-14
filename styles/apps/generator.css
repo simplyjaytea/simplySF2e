@@ -404,7 +404,7 @@
 }
 
 /* Positive per-item compendium-match indicator (issue #52) — the counterpart
-   to .spf-dropped's warning icon and .spf-custom's pill, shown when an
+   to the "Not matched" line's warning icon and .spf-custom's pill, shown when an
    entry DID resolve to a real compendium document instead of only ever
    flagging the negative case. */
 .simplysf2e .spf-match {
@@ -436,21 +436,30 @@
   padding: 0 var(--spf-space-xs);
 }
 
-/* Spells, feats and gear that failed to resolve are left off the actor —
-   struck through and red to read as "won't appear". */
-.simplysf2e .spf-dropped {
+/* Spells, feats and gear that failed to resolve are left off the actor.
+   They close their section on one line: a warning icon, the words "Not
+   matched, skipped", then each name (with its reroll die where it has one). */
+.simplysf2e .spf-unmatched-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--spf-space-2xs) var(--spf-space-md);
+  margin: var(--spf-space-2xs) 0 0;
   color: var(--spf-text-muted);
-  text-decoration: line-through;
+  font-size: var(--spf-text-sm);
 }
 
-.simplysf2e .spf-dropped .spf-rank {
-  opacity: 1;
+.simplysf2e .spf-unmatched-line strong {
+  color: var(--spf-danger-fg);
+  font-weight: 700;
 }
 
-.simplysf2e .spf-dropped i,
+.simplysf2e .spf-unmatched-pick {
+  white-space: nowrap;
+}
+
 .simplysf2e i.spf-unmatched {
   color: var(--spf-danger-fg);
-  text-decoration: none;
 }
 
 .simplysf2e .spf-ability-desc {
@@ -459,17 +468,16 @@
   margin-left: var(--spf-space-md);
 }
 
-/* Monster preview stat grid: defenses + IWR statlines in two columns of at
-   least ~14rem, collapsing to one column in narrow windows. */
-.simplysf2e .spf-statgrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
-  gap: var(--spf-space-xs) var(--spf-space-md);
-}
-
-/* Immunities, resistances and weaknesses span the grid, so they do not strand one line in a column. */
-.simplysf2e .spf-statgrid > .spf-statline:not(.spf-defenses) {
-  grid-column: 1 / -1;
+/* The single creature's stat strip: the encounter member's grid, one row
+   of six in a window with room and the member's 3 + 3 in a narrow one. It
+   has no rule of its own; the traits above and the statline below frame it. */
+.simplysf2e .spf-member-stats.spf-stat-strip {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  max-width: none;
+  margin: var(--spf-space-sm) 0;
+  padding-top: 0;
+  border-top: 0;
+  font-size: var(--spf-text-md);
 }
 
 /* --------------------------------------------------------------------------
@@ -648,8 +656,8 @@
     padding-inline: var(--spf-space-xs);
   }
 
-  .simplysf2e .spf-statgrid {
-    grid-template-columns: 1fr;
+  .simplysf2e .spf-member-stats.spf-stat-strip {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
@@ -740,8 +748,65 @@
   white-space: nowrap;
 }
 
-.simplysf2e .spf-dropped .spf-reroll-pick i {
-  color: inherit;
+/* The die is on every rerollable row, so it stays quiet: no box until the
+   pointer or the keyboard reaches it (JT, 2026-11-14). The icon itself is
+   always visible. */
+.simplysf2e button.spf-reroll-pick:not(:hover, :focus-visible) {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+.simplysf2e button.spf-reroll-pick:not(:hover, :focus-visible) i {
+  color: var(--spf-text-muted);
+}
+
+/* A status card (created, character review) is not a creature: its title
+   is smaller than a name and carries a state icon. */
+.simplysf2e .spf-statblock-header h2.spf-status-title {
+  display: flex;
+  align-items: center;
+  gap: var(--spf-space-md);
+  font-size: var(--spf-text-md);
+  color: var(--spf-text-muted);
+}
+
+.simplysf2e .spf-status-title i {
+  color: var(--spf-success-fg);
+}
+
+/* Flash ("this just changed"): the row a reroll replaced lights once and its
+   die turns once (GeneratorApp #flashPick). The light is an overlay whose
+   opacity animates; the row itself does not move. */
+.simplysf2e .spf-flash {
+  position: relative;
+}
+
+.simplysf2e .spf-flash::after {
+  content: "";
+  position: absolute;
+  inset: 0 calc(-1 * var(--spf-space-xs));
+  border-radius: var(--spf-radius);
+  background: var(--spf-brand-soft);
+  opacity: 0;
+  pointer-events: none;
+  animation: spf-flash var(--spf-motion-flash) ease-out;
+}
+
+.simplysf2e .spf-flash .spf-reroll-pick i {
+  animation: spf-turn var(--spf-motion) var(--spf-ease-out);
+}
+
+@keyframes spf-flash {
+  from {
+    opacity: 1;
+  }
+}
+
+@keyframes spf-turn {
+  from {
+    transform: rotate(-180deg);
+  }
 }
 
 /* Stat check after Create: one collapsible list per new creature; rows that
@@ -1064,8 +1129,14 @@
 /* Reduced motion: last in this file so it outranks the animated rules above. */
 @media (prefers-reduced-motion: reduce) {
   .simplysf2e .spf-review-actions,
-  .simplysf2e .spf-stat-check-attention,
+  .simplysf2e .spf-stat-check-attention {
+    animation: none;
+  }
   .simplysf2e .spf-unfold {
+    animation: none;
+  }
+  .simplysf2e .spf-flash::after,
+  .simplysf2e .spf-flash .spf-reroll-pick i {
     animation: none;
   }
   .simplysf2e .spf-brief-chevron {

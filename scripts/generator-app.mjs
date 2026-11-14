@@ -146,6 +146,8 @@ export class GeneratorApp extends SpfApp {
   /** Brief fold (window-parts.mjs `briefFoldContext`): whether the last idle render had a result, and the GM's own toggle since the last run. */
   #briefAuto = null;
   #briefOverride = null;
+  /** Selector of what a finished reroll replaced; the next idle render of the result flashes it once. */
+  #flashPick = null;
   #concept = null;
   #resolved = null;
   /** Encounter mode result: {name, budget, spent, members: [...]}. */
@@ -547,6 +549,7 @@ export class GeneratorApp extends SpfApp {
       });
       return;
     }
+    if (partId === "result") this.#playFlash(element);
     if (partId !== "brief") return;
     // The re-level box on screen now belongs to this source.
     this.#relevelShownFor = this.#reskinSource;
@@ -756,6 +759,20 @@ export class GeneratorApp extends SpfApp {
       input.reskinLevel = this.#reskinTargetLevel();
     }
     return this._copyBugReport("Generator", input);
+  }
+
+  /**
+   * Motion "flash": after a reroll, light the row it replaced once (the loot
+   * list after Reroll loot). Only a class is added; nothing waits for it, and
+   * a failed or cancelled reroll leaves nothing to flash.
+   */
+  #playFlash(element) {
+    if (this.#busy || !this.#flashPick) return;
+    const selector = this.#flashPick;
+    this.#flashPick = null;
+    const hit = element.querySelector?.(selector);
+    const row = hit?.matches?.("button") ? hit.closest("li, .spf-unmatched-pick") : hit;
+    row?.classList?.add("spf-flash");
   }
 
   /**
@@ -1956,6 +1973,7 @@ export class GeneratorApp extends SpfApp {
       this.#concept = concept;
       this.#resolved = resolved;
       this.#manifest = manifest;
+      this.#flashPick = '[data-section="loot"]';
     } catch (err) {
       this.#noteGenerationFailure(err, "loot reroll");
     } finally {
@@ -2038,6 +2056,7 @@ export class GeneratorApp extends SpfApp {
       this.#concept = next;
       this.#resolved = resolved;
       this.#manifest = manifest;
+      this.#flashPick = `[data-action="rerollPick"][data-kind="${kind}"][data-index="${index}"]`;
     } catch (err) {
       this.#noteGenerationFailure(err, "pick reroll");
     } finally {

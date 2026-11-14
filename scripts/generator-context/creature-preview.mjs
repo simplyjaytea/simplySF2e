@@ -4,7 +4,7 @@
 import { computeStats, adjustedStats } from "../builder.mjs";
 import { rerollTarget } from "../reroll.mjs";
 import { signed } from "../text.mjs";
-import { mapNamed, mapSpells, mapGear, matchSummary, feetText } from "./rows.mjs";
+import { mapNamed, mapSpells, mapGear, matchSummary, unmatchedRows, feetText } from "./rows.mjs";
 
 export function buildCreaturePreviewContext(concept, resolved) {
   if (!concept) return null;
@@ -57,6 +57,7 @@ export function buildCreaturePreviewContext(concept, resolved) {
     feats,
     equipment,
     loot,
+    unmatched: unmatchedRows({ spells, feats, equipment, loot }),
     matchSummary: matchSummary(
       abilities.map((a) => ({ found: a.fromGlossary, narrative: a.narrative || a.moduleBuilt })), spells, feats, equipment, loot
     ),

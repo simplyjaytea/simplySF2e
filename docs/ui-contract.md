@@ -255,3 +255,16 @@ Generator only. Built by `briefFoldContext(context, { auto, override })` in `scr
 
 - The fold is a class (`spf-brief-collapsed`) on the brief's `<fieldset>` and a `<button data-action="toggleBrief" aria-expanded>`; the fields stay in the form. `toggleBrief` changes classes and the summary text only, never renders, and stores the choice in `#briefOverride` until `#endBusy`.
 - Each result card carries `data-result` (`preview`, `encounter`, `character`, `reskin`, `created`, `review`; Forge, Shop and Treasure cards have none and count as `card`). `SpfApp._playResultArrival` reads it after every render of the result part.
+
+## UI revamp slice 4: unmatched picks (2026-11-14)
+
+Generator creature and character previews. Built by `unmatchedRows(lists)` in `scripts/generator-context/rows.mjs`, which the fixtures call too.
+
+| Field | Type | Meaning | Fixture values |
+| --- | --- | --- | --- |
+| `preview.unmatched.spells` / `.feats` / `.equipment` / `.loot` | row[] | The rows of that list with `found: false` and no `empty` flag, same objects and order as the list itself. Always an array. | two of four non-empty in `generator-monster-preview` |
+| `pcPreview.unmatched.feats` / `.spells` / `.equipment` / `.loot` | row[] | The same for a character. An empty feat slot (`empty: true`) is not in it. | `generator-character-multiclass-unplaced` |
+
+- The template lists only `found` rows (and, for a character, `empty` feat slots), then one `<p class="spf-unmatched-line">` per list when its array is non-empty. Creature spells and feats keep their reroll die on that line, with the same `data-kind` and `data-index` as before.
+- The lists themselves (`preview.spells` and so on) are unchanged, so the match summary and the completion card count as before.
+- The Loot `<ul>` carries `data-section="loot"`; the app flashes it after Reroll loot and the row of a rerolled pick after a pick reroll (`#flashPick`, `#playFlash`).

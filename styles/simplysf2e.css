@@ -32,8 +32,10 @@
      screen; a re-render of a card already shown never replays it.
    - Unfold ("you opened this"): the folded brief fades in when the GM
      opens it.
+   - Flash ("this just changed"): the row a reroll replaced lights once.
    - Motion never makes the GM wait: transform and opacity only, at most
-     --spf-motion long, off under prefers-reduced-motion.
+     --spf-motion long (a flash: --spf-motion-flash), off under
+     prefers-reduced-motion.
    - Notch and corner ticks: outer cards only; nested panels are plain.
    - Uppercase + letter-spacing: labels only: legends, chips, status keys
      (table column headers, stat keys, token heading, fold titles); never
@@ -120,6 +122,8 @@
      (arrive, unfold, the fold chevron). --spf-rise is how far a card travels. */
   --spf-motion-fast: 120ms;
   --spf-motion: 200ms;
+  /* A flash has to be noticed, so it alone runs longer. */
+  --spf-motion-flash: 400ms;
   --spf-ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
   --spf-rise: 0.5rem;
   /* Window reading surface behind every card. */
@@ -1410,13 +1414,18 @@
   font-size: 0.95em;
 }
 
+/* Three levels in a result card: the name (h2), a section label (h3:
+   smaller than body text, cyan, with more room above than below, so each
+   section reads as a group) and the rows. Sentence case, never uppercase. */
 .simplysf2e .spf-preview h3 {
-  margin: var(--spf-space-md) 0 var(--spf-space-2xs) 0;
+  margin: var(--spf-space-lg) 0 var(--spf-space-xs) 0;
   border-bottom: 1px solid var(--spf-border);
   font-family: var(--spf-font-display);
-  font-size: var(--spf-text-md);
+  font-size: var(--spf-text-sm);
   font-weight: 700;
   font-variant: normal;
+  letter-spacing: 0.02em;
+  color: var(--spf-brand-accent);
 }
 
 .simplysf2e .spf-list {

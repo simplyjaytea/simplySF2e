@@ -7,6 +7,7 @@ import {
 } from "./_shared.mjs";
 import { signed } from "../../../scripts/text.mjs";
 import { briefFoldContext } from "../../../scripts/window-parts.mjs";
+import { unmatchedRows } from "../../../scripts/generator-context/rows.mjs";
 import { THREATS } from "../../../scripts/encounter.mjs";
 import { TREASURE_AMOUNT_MULTIPLIER } from "../../../scripts/tables.mjs";
 import { expectedSheetStats, checkStats, describeStatCheck } from "../../../scripts/stat-check.mjs";
@@ -115,6 +116,9 @@ export function generatorContext(mode, patch = {}) {
 /** mapNamed / mapSpells / mapGear row shapes (rows.mjs). */
 const named = (name, found = true) => ({ name, found });
 const spell = (name, rank, found = true, signature = false) => ({ name, rank, found, signature });
+const PC_SPELLS = [spell("Telepathic Bond", 2, true, true), spell("Soothe", 1, false)];
+const PC_EQUIPMENT = [named("Tactical Pistol (commercial)"), named("Explorer's Clothing", false)];
+const PC_LOOT = [named("Credstick (300 credits)")];
 
 /** Context of buildCreaturePreviewContext() (creature-preview.mjs) for a (possibly adjusted) creature concept. */
 function creaturePreview(c, { abilities = [], spells = [], feats = [], equipment = [], loot = [] } = {}) {
@@ -144,6 +148,7 @@ function creaturePreview(c, { abilities = [], spells = [], feats = [], equipment
     senses: c.senses.map((s) => [s.type, s.acuity, s.range ? `${s.range} ft.` : null].filter(Boolean).join(" ")).join(", "),
     languages: c.languages.join(", "),
     abilities, spells, feats, equipment, loot,
+    unmatched: unmatchedRows({ spells, feats, equipment, loot }),
     matchSummary: total ? { matched, total, text: localize("SIMPLYSF2E.Preview.MatchSummary", { matched, total }) } : null,
     iwr: {
       immunities: c.immunities.join(", "),
@@ -194,9 +199,10 @@ function characterPreview(id, { feats, emptyFeatNotice = null, multiclass = null
         signatureSummary: localize("SIMPLYSF2E.Preview.PCSignaturePlan", { selected: 1, total: 2 }),
         feats,
         emptyFeatNotice,
-        spells: [spell("Telepathic Bond", 2, true, true), spell("Soothe", 1, false)],
-        equipment: [named("Tactical Pistol (commercial)"), named("Explorer's Clothing", false)],
-        loot: [named("Credstick (300 credits)")],
+        spells: PC_SPELLS,
+        equipment: PC_EQUIPMENT,
+        loot: PC_LOOT,
+        unmatched: unmatchedRows({ feats, spells: PC_SPELLS, equipment: PC_EQUIPMENT, loot: PC_LOOT }),
         matchSummary: { matched: 7, total: 10, text: localize("SIMPLYSF2E.Preview.MatchSummary", { matched: 7, total: 10 }) },
         multiclass
       }

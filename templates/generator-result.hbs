@@ -37,7 +37,7 @@
   {{#if created}}
   <section class="spf-preview spf-card" data-result="created" aria-label="{{localize 'SIMPLYSF2E.Generator.CompleteTitle'}}">
     <header class="spf-statblock-header">
-      <h2>{{localize "SIMPLYSF2E.Generator.CompleteTitle"}}</h2>
+      <h2 class="spf-status-title"><i aria-hidden="true" class="fa-solid fa-circle-check"></i> {{localize "SIMPLYSF2E.Generator.CompleteTitle"}}</h2>
     </header>
     <p>{{#if created.inFolder}}{{#if (eq created.count 1)}}{{localize "SIMPLYSF2E.Generator.CreatedOneInFolder" name=created.name}}{{else}}{{localize "SIMPLYSF2E.Generator.CreatedAll" name=created.name count=created.count}}{{/if}}{{else if (eq created.count 1)}}{{localize "SIMPLYSF2E.Generator.Created" name=created.name}}{{else}}{{localize "SIMPLYSF2E.Generator.CompleteSummary" name=created.name count=created.count}}{{/if}}</p>
     {{#if created.grounding.total}}
@@ -101,8 +101,20 @@
       {{#each preview.traits}}<span class="spf-trait">{{this}}</span>{{/each}}
     </div>
 
+    {{! The same labelled strip as an encounter member, so AC, HP and the
+        saves sit in the same place in both views. Abbreviated labels keep
+        their full name for assistive tech and on hover. }}
+    <dl class="spf-member-stats spf-stat-strip">
+      <div title="{{localize 'SIMPLYSF2E.Preview.ACFull'}}"><dt><span aria-hidden="true">{{localize "SIMPLYSF2E.Preview.AC"}}</span><span class="spf-sr-only">{{localize "SIMPLYSF2E.Preview.ACFull"}}</span></dt><dd>{{preview.stats.ac}}</dd></div>
+      <div title="{{localize 'SIMPLYSF2E.Preview.HPFull'}}"><dt><span aria-hidden="true">{{localize "SIMPLYSF2E.Preview.HP"}}</span><span class="spf-sr-only">{{localize "SIMPLYSF2E.Preview.HPFull"}}</span></dt><dd>{{preview.stats.hp}}</dd></div>
+      <div title="{{localize 'SIMPLYSF2E.Preview.Perception'}}"><dt><span aria-hidden="true">{{localize "SIMPLYSF2E.Preview.PerceptionShort"}}</span><span class="spf-sr-only">{{localize "SIMPLYSF2E.Preview.Perception"}}</span></dt><dd>{{preview.display.perception}}</dd></div>
+      <div title="{{localize 'SIMPLYSF2E.Preview.FortFull'}}"><dt><span aria-hidden="true">{{localize "SIMPLYSF2E.Preview.Fort"}}</span><span class="spf-sr-only">{{localize "SIMPLYSF2E.Preview.FortFull"}}</span></dt><dd>{{preview.display.saves.fortitude}}</dd></div>
+      <div title="{{localize 'SIMPLYSF2E.Preview.RefFull'}}"><dt><span aria-hidden="true">{{localize "SIMPLYSF2E.Preview.Ref"}}</span><span class="spf-sr-only">{{localize "SIMPLYSF2E.Preview.RefFull"}}</span></dt><dd>{{preview.display.saves.reflex}}</dd></div>
+      <div><dt>{{localize "SIMPLYSF2E.Preview.Will"}}</dt><dd>{{preview.display.saves.will}}</dd></div>
+    </dl>
+
     <div class="spf-statline">
-      <span><strong>{{localize "SIMPLYSF2E.Preview.Perception"}}</strong> {{preview.display.perception}}{{#if preview.senses}}; {{preview.senses}}{{/if}}</span>
+      {{#if preview.senses}}<span><strong>{{localize "SIMPLYSF2E.Preview.Senses"}}</strong> {{preview.senses}}</span>{{/if}}
       {{#if preview.languages}}<span><strong>{{localize "SIMPLYSF2E.Preview.Languages"}}</strong> {{preview.languages}}</span>{{/if}}
       {{#if preview.stats.skills.length}}
         <span><strong>{{localize "SIMPLYSF2E.Preview.Skills"}}</strong>
@@ -110,19 +122,9 @@
         </span>
       {{/if}}
     </div>
-
-    <div class="spf-statgrid">
-    <div class="spf-statline spf-defenses">
-      <span><strong>{{localize "SIMPLYSF2E.Preview.AC"}}</strong> {{preview.stats.ac}}</span>
-      <span><strong>{{localize "SIMPLYSF2E.Preview.Fort"}}</strong> {{preview.display.saves.fortitude}}</span>
-      <span><strong>{{localize "SIMPLYSF2E.Preview.Ref"}}</strong> {{preview.display.saves.reflex}}</span>
-      <span><strong>{{localize "SIMPLYSF2E.Preview.Will"}}</strong> {{preview.display.saves.will}}</span>
-      <span><strong>{{localize "SIMPLYSF2E.Preview.HP"}}</strong> {{preview.stats.hp}}</span>
-    </div>
     {{#if preview.iwr.immunities}}<div class="spf-statline"><span><strong>{{localize "SIMPLYSF2E.Preview.Immunities"}}</strong> {{preview.iwr.immunities}}</span></div>{{/if}}
     {{#if preview.iwr.resistances}}<div class="spf-statline"><span><strong>{{localize "SIMPLYSF2E.Preview.Resistances"}}</strong> {{preview.iwr.resistances}}</span></div>{{/if}}
     {{#if preview.iwr.weaknesses}}<div class="spf-statline"><span><strong>{{localize "SIMPLYSF2E.Preview.Weaknesses"}}</strong> {{preview.iwr.weaknesses}}</span></div>{{/if}}
-    </div>
 
     <div class="spf-statline">
       <span><strong>{{localize "SIMPLYSF2E.Preview.Speed"}}</strong> {{preview.speeds}}</span>
@@ -155,56 +157,87 @@
       </ul>
     {{/if}}
 
+    {{! Each section lists the picks that matched; the ones that did not
+        close the section on one "Not matched" line, each still with its
+        reroll die (unmatchedRows, rows.mjs). }}
     {{#if preview.concept.spellcasting}}
       <h3>{{localize "SIMPLYSF2E.Preview.Spells"}}
         <span class="spf-spell-dc">{{localize "SIMPLYSF2E.Preview.DC"}} {{preview.stats.spellDC}}, {{localize "SIMPLYSF2E.Preview.Attack"}} {{preview.display.spellAttack}} ({{preview.concept.spellcasting.tradition}})</span>
       </h3>
       <ul class="spf-list spf-inline">
-        {{#each preview.spells}}
-          <li class="{{#unless this.found}}spf-dropped{{/unless}}">
+        {{#each preview.spells}}{{#if this.found}}
+          <li>
             {{this.name}} <span class="spf-rank">({{#if this.rank}}{{localize "SIMPLYSF2E.Preview.Rank"}} {{this.rank}}{{else}}{{localize "SIMPLYSF2E.Preview.Cantrip"}}{{/if}})</span>
-            {{#if this.found}}<i class="fa-solid fa-circle-check spf-match" role="img" aria-label="{{localize 'SIMPLYSF2E.Preview.Found'}}" title="{{localize 'SIMPLYSF2E.Preview.Found'}}"></i>{{else}}<i class="fa-solid fa-circle-exclamation spf-unmatched" role="img" aria-label="{{localize 'SIMPLYSF2E.Preview.NotFound'}}" title="{{localize 'SIMPLYSF2E.Preview.NotFound'}}"></i>{{/if}}
+            <i class="fa-solid fa-circle-check spf-match" role="img" aria-label="{{localize 'SIMPLYSF2E.Preview.Found'}}" title="{{localize 'SIMPLYSF2E.Preview.Found'}}"></i>
             {{#if this.rerollable}}<button type="button" class="spf-icon-btn spf-reroll-pick" data-action="rerollPick" data-kind="spell" data-index="{{this.index}}" data-tooltip="{{localize 'SIMPLYSF2E.Generator.RerollPickTooltip'}}" aria-label="{{localize 'SIMPLYSF2E.Generator.RerollPickLabel' name=this.name}}" {{#if @root.busy}}disabled{{/if}}><i aria-hidden="true" class="fa-solid fa-dice-d20"></i></button>{{/if}}
           </li>
-        {{/each}}
+        {{/if}}{{/each}}
       </ul>
+      {{#if preview.unmatched.spells.length}}
+      <p class="spf-unmatched-line" data-tooltip="{{localize 'SIMPLYSF2E.Preview.NotFound'}}">
+        <i aria-hidden="true" class="fa-solid fa-circle-exclamation spf-unmatched"></i>
+        <strong>{{localize "SIMPLYSF2E.Preview.NotMatched"}}</strong>
+        {{#each preview.unmatched.spells}}<span class="spf-unmatched-pick">{{this.name}} <span class="spf-rank">({{#if this.rank}}{{localize "SIMPLYSF2E.Preview.Rank"}} {{this.rank}}{{else}}{{localize "SIMPLYSF2E.Preview.Cantrip"}}{{/if}})</span>{{#if this.rerollable}}<button type="button" class="spf-icon-btn spf-reroll-pick" data-action="rerollPick" data-kind="spell" data-index="{{this.index}}" data-tooltip="{{localize 'SIMPLYSF2E.Generator.RerollPickTooltip'}}" aria-label="{{localize 'SIMPLYSF2E.Generator.RerollPickLabel' name=this.name}}" {{#if @root.busy}}disabled{{/if}}><i aria-hidden="true" class="fa-solid fa-dice-d20"></i></button>{{/if}}</span>{{/each}}
+      </p>
+      {{/if}}
     {{/if}}
 
     {{#if preview.feats.length}}
       <h3>{{localize "SIMPLYSF2E.Preview.Feats"}}</h3>
       <ul class="spf-list spf-inline">
-        {{#each preview.feats}}
-          <li class="{{#unless this.found}}spf-dropped{{/unless}}">
+        {{#each preview.feats}}{{#if this.found}}
+          <li>
             {{this.name}}
-            {{#if this.found}}<i class="fa-solid fa-circle-check spf-match" role="img" aria-label="{{localize 'SIMPLYSF2E.Preview.Found'}}" title="{{localize 'SIMPLYSF2E.Preview.Found'}}"></i>{{else}}<i class="fa-solid fa-circle-exclamation spf-unmatched" role="img" aria-label="{{localize 'SIMPLYSF2E.Preview.NotFound'}}" title="{{localize 'SIMPLYSF2E.Preview.NotFound'}}"></i>{{/if}}
+            <i class="fa-solid fa-circle-check spf-match" role="img" aria-label="{{localize 'SIMPLYSF2E.Preview.Found'}}" title="{{localize 'SIMPLYSF2E.Preview.Found'}}"></i>
             {{#if this.rerollable}}<button type="button" class="spf-icon-btn spf-reroll-pick" data-action="rerollPick" data-kind="feat" data-index="{{this.index}}" data-tooltip="{{localize 'SIMPLYSF2E.Generator.RerollPickTooltip'}}" aria-label="{{localize 'SIMPLYSF2E.Generator.RerollPickLabel' name=this.name}}" {{#if @root.busy}}disabled{{/if}}><i aria-hidden="true" class="fa-solid fa-dice-d20"></i></button>{{/if}}
           </li>
-        {{/each}}
+        {{/if}}{{/each}}
       </ul>
+      {{#if preview.unmatched.feats.length}}
+      <p class="spf-unmatched-line" data-tooltip="{{localize 'SIMPLYSF2E.Preview.NotFound'}}">
+        <i aria-hidden="true" class="fa-solid fa-circle-exclamation spf-unmatched"></i>
+        <strong>{{localize "SIMPLYSF2E.Preview.NotMatched"}}</strong>
+        {{#each preview.unmatched.feats}}<span class="spf-unmatched-pick">{{this.name}}{{#if this.rerollable}}<button type="button" class="spf-icon-btn spf-reroll-pick" data-action="rerollPick" data-kind="feat" data-index="{{this.index}}" data-tooltip="{{localize 'SIMPLYSF2E.Generator.RerollPickTooltip'}}" aria-label="{{localize 'SIMPLYSF2E.Generator.RerollPickLabel' name=this.name}}" {{#if @root.busy}}disabled{{/if}}><i aria-hidden="true" class="fa-solid fa-dice-d20"></i></button>{{/if}}</span>{{/each}}
+      </p>
+      {{/if}}
     {{/if}}
 
     {{#if preview.equipment.length}}
       <h3>{{localize "SIMPLYSF2E.Preview.Equipment"}}</h3>
       <ul class="spf-list spf-inline">
-        {{#each preview.equipment}}
-          <li class="{{#unless this.found}}spf-dropped{{/unless}}">
+        {{#each preview.equipment}}{{#if this.found}}
+          <li>
             {{this.name}}
-            {{#if this.found}}<i class="fa-solid fa-circle-check spf-match" role="img" aria-label="{{localize 'SIMPLYSF2E.Preview.Found'}}" title="{{localize 'SIMPLYSF2E.Preview.Found'}}"></i>{{else}}<i class="fa-solid fa-circle-exclamation spf-unmatched" role="img" aria-label="{{localize 'SIMPLYSF2E.Preview.NotFound'}}" title="{{localize 'SIMPLYSF2E.Preview.NotFound'}}"></i>{{/if}}
+            <i class="fa-solid fa-circle-check spf-match" role="img" aria-label="{{localize 'SIMPLYSF2E.Preview.Found'}}" title="{{localize 'SIMPLYSF2E.Preview.Found'}}"></i>
           </li>
-        {{/each}}
+        {{/if}}{{/each}}
       </ul>
+      {{#if preview.unmatched.equipment.length}}
+      <p class="spf-unmatched-line" data-tooltip="{{localize 'SIMPLYSF2E.Preview.NotFound'}}">
+        <i aria-hidden="true" class="fa-solid fa-circle-exclamation spf-unmatched"></i>
+        <strong>{{localize "SIMPLYSF2E.Preview.NotMatched"}}</strong>
+        {{#each preview.unmatched.equipment}}<span class="spf-unmatched-pick">{{this.name}}</span>{{/each}}
+      </p>
+      {{/if}}
     {{/if}}
 
     {{#if preview.loot.length}}
       <h3>{{localize "SIMPLYSF2E.Preview.Loot"}}</h3>
-      <ul class="spf-list spf-inline">
-        {{#each preview.loot}}
-          <li class="{{#unless this.found}}spf-dropped{{/unless}}">
+      <ul class="spf-list spf-inline" data-section="loot">
+        {{#each preview.loot}}{{#if this.found}}
+          <li>
             {{this.name}}
-            {{#if this.found}}<i class="fa-solid fa-circle-check spf-match" role="img" aria-label="{{localize 'SIMPLYSF2E.Preview.Found'}}" title="{{localize 'SIMPLYSF2E.Preview.Found'}}"></i>{{else}}<i class="fa-solid fa-circle-exclamation spf-unmatched" role="img" aria-label="{{localize 'SIMPLYSF2E.Preview.NotFound'}}" title="{{localize 'SIMPLYSF2E.Preview.NotFound'}}"></i>{{/if}}
+            <i class="fa-solid fa-circle-check spf-match" role="img" aria-label="{{localize 'SIMPLYSF2E.Preview.Found'}}" title="{{localize 'SIMPLYSF2E.Preview.Found'}}"></i>
           </li>
-        {{/each}}
+        {{/if}}{{/each}}
       </ul>
+      {{#if preview.unmatched.loot.length}}
+      <p class="spf-unmatched-line" data-tooltip="{{localize 'SIMPLYSF2E.Preview.NotFound'}}">
+        <i aria-hidden="true" class="fa-solid fa-circle-exclamation spf-unmatched"></i>
+        <strong>{{localize "SIMPLYSF2E.Preview.NotMatched"}}</strong>
+        {{#each preview.unmatched.loot}}<span class="spf-unmatched-pick">{{this.name}}</span>{{/each}}
+      </p>
+      {{/if}}
     {{/if}}
 
     {{#if preview.concept.description}}
@@ -357,13 +390,25 @@
     {{#if pcPreview.feats.length}}
       <h3>{{localize "SIMPLYSF2E.Preview.Feats"}}</h3>
       <ul class="spf-list spf-inline">
-        {{#each pcPreview.feats}}
-          <li class="{{#unless this.found}}{{#unless this.empty}}spf-dropped{{/unless}}{{/unless}}">
+        {{#each pcPreview.feats}}{{#if this.found}}
+          <li>
             {{this.name}}
-            {{#if this.empty}}<i class="fa-solid fa-circle-info" role="img" aria-label="{{localize 'SIMPLYSF2E.Preview.EmptyFeatSlot'}}" title="{{localize 'SIMPLYSF2E.Preview.EmptyFeatSlot'}}"></i>{{else if this.found}}<i class="fa-solid fa-circle-check spf-match" role="img" aria-label="{{localize 'SIMPLYSF2E.Preview.Found'}}" title="{{localize 'SIMPLYSF2E.Preview.Found'}}"></i>{{else}}<i class="fa-solid fa-circle-exclamation spf-unmatched" role="img" aria-label="{{localize 'SIMPLYSF2E.Preview.NotFound'}}" title="{{localize 'SIMPLYSF2E.Preview.NotFound'}}"></i>{{/if}}
+            <i class="fa-solid fa-circle-check spf-match" role="img" aria-label="{{localize 'SIMPLYSF2E.Preview.Found'}}" title="{{localize 'SIMPLYSF2E.Preview.Found'}}"></i>
           </li>
-        {{/each}}
+        {{else if this.empty}}
+          <li>
+            {{this.name}}
+            <i class="fa-solid fa-circle-info" role="img" aria-label="{{localize 'SIMPLYSF2E.Preview.EmptyFeatSlot'}}" title="{{localize 'SIMPLYSF2E.Preview.EmptyFeatSlot'}}"></i>
+          </li>
+        {{/if}}{{/each}}
       </ul>
+      {{#if pcPreview.unmatched.feats.length}}
+      <p class="spf-unmatched-line" data-tooltip="{{localize 'SIMPLYSF2E.Preview.NotFound'}}">
+        <i aria-hidden="true" class="fa-solid fa-circle-exclamation spf-unmatched"></i>
+        <strong>{{localize "SIMPLYSF2E.Preview.NotMatched"}}</strong>
+        {{#each pcPreview.unmatched.feats}}<span class="spf-unmatched-pick">{{this.name}}</span>{{/each}}
+      </p>
+      {{/if}}
       {{#if pcPreview.emptyFeatNotice}}<p class="notification warning" role="status">{{pcPreview.emptyFeatNotice}}</p>{{/if}}
     {{/if}}
 
@@ -376,38 +421,59 @@
     {{#if pcPreview.concept.spellcasting}}
       <h3>{{localize "SIMPLYSF2E.Preview.Spells"}} <span class="spf-spell-dc">({{pcPreview.concept.spellcasting.tradition}})</span></h3>
       <ul class="spf-list spf-inline">
-        {{#each pcPreview.spells}}
-          <li class="{{#unless this.found}}spf-dropped{{/unless}}">
+        {{#each pcPreview.spells}}{{#if this.found}}
+          <li>
             {{this.name}} <span class="spf-rank">({{#if this.rank}}{{localize "SIMPLYSF2E.Preview.Rank"}} {{this.rank}}{{else}}{{localize "SIMPLYSF2E.Preview.Cantrip"}}{{/if}})</span>
             {{#if this.signature}}<span class="spf-rank">({{localize "SIMPLYSF2E.Preview.Signature"}})</span>{{/if}}
-            {{#if this.found}}<i class="fa-solid fa-circle-check spf-match" role="img" aria-label="{{localize 'SIMPLYSF2E.Preview.Found'}}" title="{{localize 'SIMPLYSF2E.Preview.Found'}}"></i>{{else}}<i class="fa-solid fa-circle-exclamation spf-unmatched" role="img" aria-label="{{localize 'SIMPLYSF2E.Preview.NotFound'}}" title="{{localize 'SIMPLYSF2E.Preview.NotFound'}}"></i>{{/if}}
+            <i class="fa-solid fa-circle-check spf-match" role="img" aria-label="{{localize 'SIMPLYSF2E.Preview.Found'}}" title="{{localize 'SIMPLYSF2E.Preview.Found'}}"></i>
           </li>
-        {{/each}}
+        {{/if}}{{/each}}
       </ul>
+      {{#if pcPreview.unmatched.spells.length}}
+      <p class="spf-unmatched-line" data-tooltip="{{localize 'SIMPLYSF2E.Preview.NotFound'}}">
+        <i aria-hidden="true" class="fa-solid fa-circle-exclamation spf-unmatched"></i>
+        <strong>{{localize "SIMPLYSF2E.Preview.NotMatched"}}</strong>
+        {{#each pcPreview.unmatched.spells}}<span class="spf-unmatched-pick">{{this.name}} <span class="spf-rank">({{#if this.rank}}{{localize "SIMPLYSF2E.Preview.Rank"}} {{this.rank}}{{else}}{{localize "SIMPLYSF2E.Preview.Cantrip"}}{{/if}})</span></span>{{/each}}
+      </p>
+      {{/if}}
     {{/if}}
 
     {{#if pcPreview.equipment.length}}
       <h3>{{localize "SIMPLYSF2E.Preview.Equipment"}}</h3>
       <ul class="spf-list spf-inline">
-        {{#each pcPreview.equipment}}
-          <li class="{{#unless this.found}}spf-dropped{{/unless}}">
+        {{#each pcPreview.equipment}}{{#if this.found}}
+          <li>
             {{this.name}}
-            {{#if this.found}}<i class="fa-solid fa-circle-check spf-match" role="img" aria-label="{{localize 'SIMPLYSF2E.Preview.Found'}}" title="{{localize 'SIMPLYSF2E.Preview.Found'}}"></i>{{else}}<i class="fa-solid fa-circle-exclamation spf-unmatched" role="img" aria-label="{{localize 'SIMPLYSF2E.Preview.NotFound'}}" title="{{localize 'SIMPLYSF2E.Preview.NotFound'}}"></i>{{/if}}
+            <i class="fa-solid fa-circle-check spf-match" role="img" aria-label="{{localize 'SIMPLYSF2E.Preview.Found'}}" title="{{localize 'SIMPLYSF2E.Preview.Found'}}"></i>
           </li>
-        {{/each}}
+        {{/if}}{{/each}}
       </ul>
+      {{#if pcPreview.unmatched.equipment.length}}
+      <p class="spf-unmatched-line" data-tooltip="{{localize 'SIMPLYSF2E.Preview.NotFound'}}">
+        <i aria-hidden="true" class="fa-solid fa-circle-exclamation spf-unmatched"></i>
+        <strong>{{localize "SIMPLYSF2E.Preview.NotMatched"}}</strong>
+        {{#each pcPreview.unmatched.equipment}}<span class="spf-unmatched-pick">{{this.name}}</span>{{/each}}
+      </p>
+      {{/if}}
     {{/if}}
 
     {{#if pcPreview.loot.length}}
       <h3>{{localize "SIMPLYSF2E.Preview.Loot"}}</h3>
       <ul class="spf-list spf-inline">
-        {{#each pcPreview.loot}}
-          <li class="{{#unless this.found}}spf-dropped{{/unless}}">
+        {{#each pcPreview.loot}}{{#if this.found}}
+          <li>
             {{this.name}}
-            {{#if this.found}}<i class="fa-solid fa-circle-check spf-match" role="img" aria-label="{{localize 'SIMPLYSF2E.Preview.Found'}}" title="{{localize 'SIMPLYSF2E.Preview.Found'}}"></i>{{else}}<i class="fa-solid fa-circle-exclamation spf-unmatched" role="img" aria-label="{{localize 'SIMPLYSF2E.Preview.NotFound'}}" title="{{localize 'SIMPLYSF2E.Preview.NotFound'}}"></i>{{/if}}
+            <i class="fa-solid fa-circle-check spf-match" role="img" aria-label="{{localize 'SIMPLYSF2E.Preview.Found'}}" title="{{localize 'SIMPLYSF2E.Preview.Found'}}"></i>
           </li>
-        {{/each}}
+        {{/if}}{{/each}}
       </ul>
+      {{#if pcPreview.unmatched.loot.length}}
+      <p class="spf-unmatched-line" data-tooltip="{{localize 'SIMPLYSF2E.Preview.NotFound'}}">
+        <i aria-hidden="true" class="fa-solid fa-circle-exclamation spf-unmatched"></i>
+        <strong>{{localize "SIMPLYSF2E.Preview.NotMatched"}}</strong>
+        {{#each pcPreview.unmatched.loot}}<span class="spf-unmatched-pick">{{this.name}}</span>{{/each}}
+      </p>
+      {{/if}}
     {{/if}}
 
     {{#if pcPreview.concept.backstory}}
@@ -497,7 +563,7 @@
   {{#if characterReview}}
   <section class="spf-preview spf-card" data-result="review" aria-label="{{localize 'SIMPLYSF2E.Generator.ReviewTitle'}}">
     <header class="spf-statblock-header">
-      <h2>{{localize "SIMPLYSF2E.Generator.ReviewTitle"}}</h2>
+      <h2 class="spf-status-title"><i aria-hidden="true" class="fa-solid fa-clipboard-check"></i> {{localize "SIMPLYSF2E.Generator.ReviewTitle"}}</h2>
     </header>
     <p class="spf-subtitle">{{characterReview.actorName}}</p>
     {{! The snapshot caveat appears once; each warning below is a short action

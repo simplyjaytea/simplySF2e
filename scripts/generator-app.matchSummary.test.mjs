@@ -87,4 +87,21 @@ assert.equal(preview.display.strikes[0].bonusText, "-1");
 assert.equal(preview.display.spellAttack, "-1");
 assert.equal(preview.stats.perception, -1, "raw stats must stay numeric");
 assert.equal(preview.stats.strikes[0].bonus, -1);
+// unmatchedRows: the picks the compendium did not resolve, per list, in order.
+// An empty slot is a slot to fill, not a failed pick, and matched rows stay out.
+{
+  const lists = {
+    spells: [{ name: "A", found: true }, { name: "B", found: false }, { name: "C", found: false }],
+    feats: [{ name: "", found: false, empty: true }, { name: "D", found: false }],
+    loot: [{ name: "E", found: true }],
+    equipment: undefined
+  };
+  const out = rows.unmatchedRows(lists);
+  assert.deepEqual(Object.keys(out), ["spells", "feats", "loot", "equipment"]);
+  assert.deepEqual(out.spells.map((row) => row.name), ["B", "C"]);
+  assert.deepEqual(out.feats.map((row) => row.name), ["D"]);
+  assert.deepEqual(out.loot, []);
+  assert.deepEqual(out.equipment, [], "a missing list reads as nothing unmatched");
+  assert.equal(out.spells[0], lists.spells[1], "rows are passed through, not copied");
+}
 console.log("generator-app.matchSummary.test.mjs: production preview and summary assertions passed");

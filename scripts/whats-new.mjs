@@ -9,6 +9,16 @@
 /** Newest first. title and each bullet are i18n keys in lang/en.json; a note has 2 to 5 bullets. */
 export const RELEASE_NOTES = [
   {
+    id: "2026-11-14-result-cards",
+    title: "SIMPLYSF2E.WhatsNew.Note.ResultCards.Title",
+    bullets: [
+      "SIMPLYSF2E.WhatsNew.Note.ResultCards.B1",
+      "SIMPLYSF2E.WhatsNew.Note.ResultCards.B2",
+      "SIMPLYSF2E.WhatsNew.Note.ResultCards.B3",
+      "SIMPLYSF2E.WhatsNew.Note.ResultCards.B4"
+    ]
+  },
+  {
     id: "2026-11-14-console-layout",
     title: "SIMPLYSF2E.WhatsNew.Note.ConsoleLayout.Title",
     bullets: [

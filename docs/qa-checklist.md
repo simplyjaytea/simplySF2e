@@ -475,7 +475,7 @@ Things the preview harness cannot show: real Foundry fonts, tooltips and a scree
 
 | # | Do | Expect | Where | Pass | Notes |
 | --- | --- | --- | --- | --- | --- |
-| 12p.1 | Generate a monster whose prompt names gear the sf2e packs lack (e.g. "a goblin scavenger with a rusted dagger"). | Generation finishes. Any gear with no published match shows struck through with the warning icon in Equipment or Loot; no "Generation is incomplete" error. | Preview | | |
+| 12p.1 | Generate a monster whose prompt names gear the sf2e packs lack (e.g. "a goblin scavenger with a rusted dagger"). | Generation finishes. Any gear with no published match is named on the "Not matched, skipped" line under Equipment or Loot, with the warning icon; no "Generation is incomplete" error. | Preview | | |
 | 12p.2 | Create it. | The actor has only real compendium items. The completion card shows "Skipped gear with no published match: N" when anything was skipped. Console shows `skipped equipment "<name>"`. | Inventory, chat card, console | | |
 | 12p.3 | Reroll loot on a preview, then generate a PC. | Neither fails on unmatched loot or equipment; skipped items show the same way. | Preview | | |
 | 12p.4 | Generate "a scavenger who fights with a rusted dagger" at level 1. | Equipment lists a real knife-group weapon (usually Knife) instead of skipping the dagger. | Preview | | |
@@ -1002,3 +1002,24 @@ The four tool windows open at a fixed height (700 px, resizable) and scroll insi
 | 19.20 | Close the Generator with a preview on screen and open it again. | The stored preview is shown at once, without the rise. | Generator | | |
 | 19.21 | Turn on the operating system's reduced motion setting and repeat 19.12 and 19.19. | No rise, no fade, and the fold arrow does not rotate with a transition. Everything else works the same. | Generator | | |
 | 19.22 | Compare Create, Discard and the run row with v0.1.16 for click speed. | No click waits for an animation. | All four tool windows | | |
+
+## 20. UI revamp slice 4: result cards (2026-11-14)
+
+The single creature preview leads with one strip of six numbers. Picks the compendium did not match are named on one line under their list instead of being struck through. Section headings in every preview are one size and colour. A rerolled pick flashes once.
+
+| ID | Step | Expected | Where | Result | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 20.1 | Preview a monster (Preview first). | Under the traits, one row reads AC, HP, Per, Fort, Ref, Will with their values, in the same order and style as an encounter member. Hovering a short label shows its full name. | Generator | | |
+| 20.2 | Narrow the window to about 460 px. | The strip folds to two rows of three (AC HP Per / Fort Ref Will). Nothing is cut off and the window does not scroll sideways. | Generator | | |
+| 20.3 | Read the lines under the strip. | Senses, Languages and Skills, then Immunities, Resistances and Weaknesses where the creature has any, then Speed and the strikes. Every value shown in v0.1.16 is still there. | Generator | | |
+| 20.4 | Preview a monster or character whose prompt names a spell, feat or item the packs lack. | The list shows only matched picks. Under it one line reads "Not matched, skipped" with the warning icon and names each skipped pick (spells with their rank). Nothing is struck through. | Generator | | |
+| 20.5 | On that line, press the die beside an unmatched spell or feat (monster or NPC). | The pick is rerolled exactly as before. If the new pick matches, it moves up into the list. | Generator | | |
+| 20.6 | Create that creature. | The completion card's counts (Skipped gear, matches) are the same as in v0.1.16 for the same picks. | Generator | | |
+| 20.7 | Preview a character with an empty feat slot. | The empty slot stays in the Feats list with its info icon and text; it is not on the "Not matched" line. | Generator | | |
+| 20.8 | Look at the reroll dice in a preview without touching them. | Each die is a plain muted icon with no box. Hover or Tab to one and it gets its border and background back; it is still a button and still has its tooltip. | Generator | | |
+| 20.9 | Reroll one pick. | When the new pick arrives its row is lit once for under half a second and its die turns half a circle. The rest of the card does not move or replay its rise. | Generator | | |
+| 20.10 | Press Reroll loot. | The Loot list is lit once when the new loot arrives. | Generator | | |
+| 20.11 | Cancel a reroll, or make one fail (turn the connection off first). | Nothing flashes, then or on the next click. | Generator | | |
+| 20.12 | Compare the section headings (Abilities, Spells, Feats, Equipment, Loot, Description) in Generator, Item Forge, Shop and Treasure previews. | One size and colour everywhere, each with the same space above it. | All four tool windows | | |
+| 20.13 | Create a creature, and finish a character review. | The card's title has an icon (a check for created, a clipboard for review) beside the words. | Generator | | |
+| 20.14 | Turn on reduced motion and repeat 20.9 and 20.10. | No flash and no turn. The reroll works the same. | Generator | | |
