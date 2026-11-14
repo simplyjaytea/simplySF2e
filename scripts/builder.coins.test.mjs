@@ -8,7 +8,7 @@ import { priceToGp } from "./compendium.mjs";
 import {
   parseCoins, currencyQuantity, isCoinageDocument, isCurrencyDocument,
   assembleCurrency, resolveCurrencyTemplate, CREDSTICK_SOURCE, UPB_SOURCE,
-  CREDIT_UNIT_GP, DENOMINATION_RATES, gpToCredits
+  CREDIT_UNIT_GP, DENOMINATION_RATES, gpToCredits, CURRENCY_ITEM_MAX
 } from "./currency.mjs";
 
 globalThis.game = {
@@ -207,6 +207,79 @@ assert.equal(resolveCurrencyTemplate("Gold Pieces"), null);
   assert.equal(padded[0].quantity, 500, "an existing credit line is increased to close the gap");
   const trimmed = await applyTreasureBudget(structuredClone(loot), 4);
   assert.equal(trimmed[0].quantity, 40, "over-budget credit lines shrink");
+}
+
+// Padding above the cap clamps at CURRENCY_ITEM_MAX (one Credstick) and warns once.
+{
+  const warnings = [];
+  const realWarn = console.warn;
+  console.warn = (...args) => warnings.push(args.join(" "));
+  let padded;
+  try {
+    padded = await applyTreasureBudget([], 1056000);
+  } finally {
+    console.warn = realWarn;
+  }
+  const sticks = padded.filter((line) => line.name === "Credstick");
+  assert.equal(sticks.length, 1, "one Credstick for the largest NPC target");
+  assert.equal(sticks[0].quantity, CURRENCY_ITEM_MAX, "padding clamps at the cap");
+  assert.ok(Math.abs(sticks[0].quantity * sticks[0].value - 500000) < 1e-6, "the clamped Credstick is 500,000 gp");
+  assert.equal(warnings.length, 1, "the clamp warns once");
+  assert.ok(warnings[0].includes("clamped"), "the warning names the clamp");
+}
+
+// A 20,000 gp target (above the old 100,000-credit ceiling) is met in full on one Credstick, no clamp, no warning.
+{
+  const warnings = [];
+  const realWarn = console.warn;
+  console.warn = (...args) => warnings.push(args.join(" "));
+  let padded;
+  try {
+    padded = await applyTreasureBudget([], 20000);
+  } finally {
+    console.warn = realWarn;
+  }
+  const sticks = padded.filter((line) => line.name === "Credstick");
+  assert.equal(sticks.length, 1, "one Credstick");
+  assert.equal(sticks[0].quantity, 200000, "20,000 gp at 0.1 gp per credit is 200,000 credits, above the old 100,000 ceiling");
+  assert.ok(Math.abs(sticks[0].quantity * sticks[0].value - 20000) < 1e-6, "the Credstick is worth the full target");
+  assert.equal(warnings.length, 0, "below the cap, no warning");
+}
+
+// Loot that already holds a Credstick line takes the existing-line branch: clamp and warn the same way.
+{
+  const warnings = [];
+  const realWarn = console.warn;
+  console.warn = (...args) => warnings.push(args.join(" "));
+  let padded;
+  try {
+    padded = await applyTreasureBudget([{ name: "Credstick", quantity: 1, resolvedValue: CREDIT_UNIT_GP, entry: { currency: "credits" } }], 1056000);
+  } finally {
+    console.warn = realWarn;
+  }
+  const sticks = padded.filter((line) => line.name === "Credstick");
+  assert.equal(sticks.length, 1, "still one Credstick line");
+  assert.equal(sticks[0].quantity, CURRENCY_ITEM_MAX, "an existing Credstick line clamps at the cap");
+  assert.equal(warnings.length, 1, "the existing-line clamp warns once");
+  assert.ok(warnings[0].includes("clamped"), "the warning names the clamp");
+}
+
+// The same existing line padded to 50 gp stays under the cap and warns nothing.
+{
+  const warnings = [];
+  const realWarn = console.warn;
+  console.warn = (...args) => warnings.push(args.join(" "));
+  let padded;
+  try {
+    padded = await applyTreasureBudget([{ name: "Credstick", quantity: 1, resolvedValue: CREDIT_UNIT_GP, entry: { currency: "credits" } }], 50);
+  } finally {
+    console.warn = realWarn;
+  }
+  const sticks = padded.filter((line) => line.name === "Credstick");
+  assert.equal(sticks.length, 1, "still one Credstick line");
+  assert.equal(sticks[0].quantity, 500, "49.9 gp gap becomes 499 more credits at 0.1 gp each");
+  assert.ok(sticks[0].quantity < CURRENCY_ITEM_MAX, "below the cap");
+  assert.equal(warnings.length, 0, "no clamp, no warning");
 }
 
 console.log("builder.coins.test.mjs: credits/UPB templates, gold-to-credit mapping, and budget padding passed");

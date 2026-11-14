@@ -133,7 +133,9 @@ export function spontaneousSpellSlots(level) {
 // mystic-spellcasting.json says Wisdom; witchwarper-spellcasting.json says Charisma
 // or Intelligence "depending on which you chose for your key attribute" (class
 // keyAbility.value ["cha","int"]), so null leaves ability to the chosen key attribute.
-// Tradition comes from connection or paradox. Both features grant "three 1st-rank spells".
+// Tradition comes from connection or paradox: null here, and pc-support.mjs
+// classSpellTradition reads it from the planned option's own rule (fail closed).
+// Both features grant "three 1st-rank spells".
 // PF2e casters never match: sf2e class documents are Compendium.sf2e.* and the
 // Pathfinder titles are not sf2e publications.
 export const REMASTER_SPELLCASTERS = [

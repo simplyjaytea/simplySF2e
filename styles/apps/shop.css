@@ -15,97 +15,17 @@
   margin: var(--spf-space-xs) 0 0;
 }
 
-/* The stock table scrolls sideways inside its own box on a narrow window,
-   so the window body never does. */
-.simplysf2e .spf-shop-stock-wrap {
-  max-width: 100%;
-  overflow-x: auto;
-  border: 1px solid var(--spf-border);
-  border-radius: var(--spf-radius);
-}
+/* The stock table's shared rules (.spf-table, .spf-table-wrap) live in
+   simplysf2e.css; this file keeps the Type column and the column widths. */
 
-.simplysf2e .spf-shop-stock {
-  width: 100%;
-  margin: 0;
-  border-collapse: collapse;
-  font-size: var(--spf-text-sm);
-  background: var(--spf-surface);
-}
-
-.simplysf2e .spf-shop-stock th,
-.simplysf2e .spf-shop-stock td {
-  padding: var(--spf-space-sm) var(--spf-space-md);
-  text-align: left;
-  vertical-align: middle;
-  border-bottom: 1px solid var(--spf-grid-line);
-}
-
-.simplysf2e .spf-shop-stock thead th {
-  color: var(--spf-text-muted);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  font-size: var(--spf-text-xs);
-  background: var(--spf-surface-raised);
-  border-bottom: 1px solid var(--spf-border);
-  white-space: nowrap;
-}
-
-.simplysf2e .spf-shop-stock tbody th {
-  font-weight: 600;
-  color: var(--spf-text);
-}
-
-.simplysf2e .spf-shop-stock tbody tr:hover {
-  background: var(--spf-brand-soft);
-}
-
-.simplysf2e .spf-shop-stock .spf-num {
-  text-align: right;
-  font-family: var(--spf-font-mono);
-  white-space: nowrap;
-}
-
-.simplysf2e .spf-shop-stock td:last-child {
-  width: calc(var(--spf-icon-btn) + var(--spf-space-md) * 2);
-  text-align: right;
-}
-
-.simplysf2e .spf-shop-rarity {
-  margin-left: var(--spf-space-xs);
-  font-size: var(--spf-text-xs);
-}
-
-/* Narrow: the Type column folds into the item's secondary line, numeric
-   headings shorten (Lvl / Qty), item names wrap by word, and the remove
-   buttons keep one aligned column. */
+/* Narrow: the Type column folds into the item's secondary line and the
+   numeric headings shorten (Lvl / Qty). */
 @container spf-window (max-width: 520px) {
-  .simplysf2e .spf-shop-stock {
-    table-layout: fixed;
-  }
-
   .simplysf2e .spf-shop-stock .spf-col-type {
     display: none;
   }
 
-  .simplysf2e .spf-shop-stock th,
-  .simplysf2e .spf-shop-stock td {
-    box-sizing: border-box;
-    padding-inline: var(--spf-space-xs);
-  }
-
-  .simplysf2e .spf-shop-stock tbody th {
-    padding-left: var(--spf-space-sm);
-  }
-
-  .simplysf2e .spf-shop-stock thead th:first-child { width: auto; padding-left: var(--spf-space-sm); }
   .simplysf2e .spf-shop-stock thead th:nth-child(3) { width: 2.6rem; }
   .simplysf2e .spf-shop-stock thead th:nth-child(4) { width: 4.6rem; }
   .simplysf2e .spf-shop-stock thead th:nth-child(5) { width: 2.6rem; }
-  .simplysf2e .spf-shop-stock thead th:last-child { width: calc(var(--spf-icon-btn) + var(--spf-space-xs) * 2); }
-
-  .simplysf2e .spf-shop-stock td:last-child {
-    width: auto;
-    text-align: center;
-  }
 }

@@ -35,7 +35,10 @@ export async function fetchWithBackoff(url, options, {
   delayMs,
   maxDelayMs = 30000,
   retryBudget = null,
-  retryNetworkErrors = false
+  retryNetworkErrors = false,
+  // Called with true when a backoff sleep starts and false when it ends without
+  // an abort, so a caller's idle timer is not charged for a deliberate wait.
+  onWait = null
 } = {}) {
   const baseDelay = (typeof delayMs === "number") ? delayMs : 1000;
   const signal = options?.signal;
@@ -55,12 +58,14 @@ export async function fetchWithBackoff(url, options, {
     if (retryBudget) retryBudget.remaining = Math.max(0, retryBudget.remaining - 1);
     // delay + retry once
     const delay = Math.min((typeof delayMs === "number" ? delayMs : 1000), maxDelayMs);
+    onWait?.(true);
     await new Promise((resolve, reject) => {
       if (signal?.aborted) return reject(new DOMException("Aborted", "AbortError"));
       const onAbort = () => { clearTimeout(timer); signal?.removeEventListener("abort", onAbort); reject(new DOMException("Aborted", "AbortError")); };
       const timer = setTimeout(() => { signal?.removeEventListener("abort", onAbort); resolve(); }, delay);
       signal?.addEventListener("abort", onAbort, { once: true });
     });
+    onWait?.(false);
     if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
     return fetchImpl(url, options);
   }
@@ -68,6 +73,11 @@ export async function fetchWithBackoff(url, options, {
 
   if (!isRetryableStatus(status, response)) return response;
   if (retryBudget && retryBudget.remaining <= 0) return response;
+  // A provider that asks for a longer wait than the cap would only fail again
+  // if retried early: return its response now so the caller reports the
+  // rate-limit error, instead of a silent wait of minutes.
+  const after = retryAfterMs(response);
+  if (after != null && after > maxDelayMs) return response;
 
   if (retryBudget) retryBudget.remaining = Math.max(0, retryBudget.remaining - 1);
 
@@ -75,13 +85,14 @@ export async function fetchWithBackoff(url, options, {
 
   try { await response?.body?.cancel?.(); } catch { /* ignore */ }
 
-  const after = retryAfterMs(response);
   const rawDelay = (after != null) ? after : baseDelay;
-  // Honor a provider-supplied Retry-After exactly; only add jitter to our own
-  // default delay so a rate-limited provider is not kept waiting longer.
+  // Honor a provider-supplied Retry-After (at most maxDelayMs, see above)
+  // exactly; only add jitter to our own default delay so a rate-limited
+  // provider is not kept waiting longer. The cap then bounds only that.
   const jitter = (after != null) ? 0 : Math.floor(Math.random() * Math.max(1, Math.ceil(rawDelay * 0.25)));
   const delay = Math.min(rawDelay + jitter, maxDelayMs);
 
+  onWait?.(true);
   await new Promise((resolve, reject) => {
     if (signal?.aborted) return reject(new DOMException("Aborted", "AbortError"));
     const onAbort = () => {
@@ -95,6 +106,7 @@ export async function fetchWithBackoff(url, options, {
     }, delay);
     signal?.addEventListener("abort", onAbort, { once: true });
   });
+  onWait?.(false);
 
   if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
 

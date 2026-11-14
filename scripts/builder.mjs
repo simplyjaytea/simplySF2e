@@ -1,5 +1,5 @@
 import * as T from "./tables.mjs";
-import { getPacksFor, findEntry, getDocument, toItemData, priceToGp, isIssuedCandidate, placeholderState, placeholderDocFor } from "./compendium.mjs";
+import { getPacksFor, findEntry, getDocument, getIndexEntry, toItemData, priceToGp, unitPriceGp, isIssuedCandidate, placeholderState, placeholderDocFor } from "./compendium.mjs";
 import { ABILITY_DAMAGE_TYPES, ABILITY_DC_SCALES, fillBlocker, fillPlaceholderAbility, fillableSlug, hasPlaceholderValues, isFillableEntry } from "./ability-fill.mjs";
 import { buildModuleTemplate, isModuleTemplate, normalizeAreaBlast, normalizeAura } from "./ability-templates.mjs";
 import { slugify, capitalized, esc, escAi, toHtml } from "./text.mjs";
@@ -9,7 +9,7 @@ import { isPlaceholderArt } from "./art.mjs";
 import { parseRunes, applyRunes, dropUncitedRunePrefix, runeGp, hasRunes } from "./runes.mjs";
 import {
   parseCoins, currencyQuantity, isCurrencyDocument, gpToCredits,
-  assembleCurrency, resolveCurrencyTemplate, CREDIT_UNIT_GP, creditsToGp
+  assembleCurrency, resolveCurrencyTemplate, CREDIT_UNIT_GP, creditsToGp, CURRENCY_ITEM_MAX
 } from "./currency.mjs";
 
 /* Re-exported so the rest of the module keeps importing its shared helpers
@@ -711,11 +711,20 @@ export async function resolveLoot(concept, { exactContent = false, skipped = nul
         );
       }
       if (!entry && skipUnmatched(exactContent, skipped, "loot", name, quantity)) continue;
-      const baseRank = entry?.system?.level?.value ?? 1;
+      // An issued ref has no `system`; read the spell's real rank from its index entry.
+      const spellInfo = entry ? (entry.system ? entry : await getIndexEntry(entry)) : null;
+      const baseRank = spellInfo?.system?.level?.value ?? 1;
       const rank = Math.min(Math.max(scroll.rank ?? baseRank, baseRank), 10);
       // A spell gem's real price lives on the rank template it will be built
       // from at creation (there is no premade gem to price).
       const templateDoc = await getDocument(await findSpellGemTemplate(rank));
+      // buildLootItems throws at Create when the rank template is missing, so
+      // resolve must reach the same decision: drop the pick here, fail closed.
+      if (entry && !templateDoc) {
+        console.warn(`simplysf2e | spell gem "${name}": no rank ${rank} spell gem template installed`);
+        skipUnmatched(true, skipped, "loot", name, quantity);
+        continue;
+      }
       const templateGp = priceToGp(templateDoc?.system?.price?.value);
       loot.push({
         name, quantity, value, runes: dropUncitedRunePrefix(name).runes, entry, scroll: { rank },
@@ -787,7 +796,9 @@ export async function applyTreasureBudget(loot, targetGp) {
       const credits = loot.find((l) => parseCoins(l.name)?.name === "Credstick");
       if (credits) {
         const unit = coinUnitGp(credits) || CREDIT_UNIT_GP;
-        credits.quantity = Math.min(credits.quantity + Math.max(Math.round(gap / unit), 1), 100000);
+        const wanted = credits.quantity + Math.max(Math.round(gap / unit), 1);
+        if (wanted > CURRENCY_ITEM_MAX) console.warn("simplysf2e | treasure-budget credit padding clamped at", CURRENCY_ITEM_MAX, "credits (target", targetGp, "gp)");
+        credits.quantity = Math.min(wanted, CURRENCY_ITEM_MAX);
       } else {
         const resolved = resolveCurrencyTemplate("Credstick");
         if (!resolved) {
@@ -795,9 +806,11 @@ export async function applyTreasureBudget(loot, targetGp) {
           return loot;
         }
         const unit = resolved.resolvedValue || CREDIT_UNIT_GP;
+        const wanted = Math.max(Math.round(gap / unit), 1);
+        if (wanted > CURRENCY_ITEM_MAX) console.warn("simplysf2e | treasure-budget credit padding clamped at", CURRENCY_ITEM_MAX, "credits (target", targetGp, "gp)");
         loot.push({
           name: "Credstick",
-          quantity: Math.min(Math.max(Math.round(gap / unit), 1), 100000),
+          quantity: Math.min(wanted, CURRENCY_ITEM_MAX),
           value: unit,
           runes: parseRunes("Credstick"),
           entry: resolved.entry,
@@ -1046,6 +1059,19 @@ export async function rerollAbilityInto(concept, resolved, { index, candidate })
  * the preview can show what was found and what will become a custom ability.
  */
 export async function resolveConcept(concept, { exactContent = false } = {}) {
+  // Carried weapons first: aligning strikes to them can flip a strike melee <-> ranged,
+  // and the Trample dry run below must see the strikes createActor will build
+  // (neither equipment nor weapon lookup reads strikes or abilities).
+  const skippedGear = [];
+  const equipment = await resolveEquipment(concept, { exactContent, skipped: skippedGear });
+  const weapons = [];
+  for (const line of equipment) {
+    if (!line.entry) continue;
+    const doc = await getDocument(line.entry);
+    if (doc?.type === "weapon") weapons.push({ names: [doc.name, line.name], weapon: doc });
+  }
+  if (weapons.length) concept.strikes = alignStrikesToWeapons(concept.strikes, weapons);
+
   const abilities = [];
   for (const [slot, ability] of concept.specialAbilities.entries()) {
     const picked = await resolveAbilityPick(ability, concept, { exactContent });
@@ -1057,12 +1083,21 @@ export async function resolveConcept(concept, { exactContent = false } = {}) {
   if (concept.spellcasting) {
     for (const spell of concept.spellcasting.spells) {
       const exact = spell.candidate;
-      const entry = isIssuedCandidate(exact, getPacksFor("spells"))
+      let entry = isIssuedCandidate(exact, getPacksFor("spells"))
         ? exact : (exactContent ? null : await findEntry(getPacksFor("spells"), spell.name, (e) => e.type === "spell"));
+      // An issued ref carries only ids; trait and rank reads need the index entry.
+      let info = entry?.system ? entry : null;
+      if (entry && !info) {
+        info = await getIndexEntry(entry);
+        if (!info) {
+          console.warn(`simplysf2e | spell "${spell.name}": issued candidate has no index entry; treated as unresolved`);
+          entry = null;
+        }
+      }
       // A ranked spell assigned rank 0 (or below its own rank) would be
       // misfiled as a cantrip slot in createActor — clamp to the real rank.
-      if (entry && !(entry.system?.traits?.value ?? []).includes("cantrip")) {
-        spell.rank = Math.max(spell.rank, entry.system?.level?.value ?? 1);
+      if (info && !(info.system?.traits?.value ?? []).includes("cantrip")) {
+        spell.rank = Math.max(spell.rank, info.system?.level?.value ?? 1);
       }
       spells.push({ spell, entry });
     }
@@ -1087,17 +1122,7 @@ export async function resolveConcept(concept, { exactContent = false } = {}) {
   const focusSpells = concept.spellcasting
     ? await resolveFocusSpells(concept.focusSpells ?? [], { exactContent }) : [];
 
-  const skippedGear = [];
-  const equipment = await resolveEquipment(concept, { exactContent, skipped: skippedGear });
   const loot = await resolveLoot(concept, { exactContent, skipped: skippedGear });
-
-  const weapons = [];
-  for (const line of equipment) {
-    if (!line.entry) continue;
-    const doc = await getDocument(line.entry);
-    if (doc?.type === "weapon") weapons.push({ names: [doc.name, line.name], weapon: doc });
-  }
-  if (weapons.length) concept.strikes = alignStrikesToWeapons(concept.strikes, weapons);
 
   return { abilities, spells, feats, focusSpells, equipment, loot, skippedGear };
 }
@@ -1179,11 +1204,6 @@ export async function equipmentValueGp(equipment) {
     total += unitGp * (Number(quantity) || 1);
   }
   return total;
-}
-
-/** PF2e prices may describe a pack (for example, ten arrows), not one unit. */
-function unitPriceGp(doc) {
-  return priceToGp(doc?.system?.price?.value) / Math.max(1, Number(doc?.system?.price?.per) || 1);
 }
 
 /** Resolved loot/equipment line's total gp value (per-unit resolvedValue/value × quantity). */
@@ -1378,6 +1398,16 @@ export function hpAdjustment(level, adjustment) {
     if (level === 1 || level === 2) return -10;
   }
   return 0;
+}
+
+/**
+ * Current HP of an NPC at full health: stored `hp.max` is the base value and
+ * pf2e adds the Elite/Weak change on prep (npc/document.ts applyAdjustment
+ * moves `hp.value` by the same amount), so a full-health copy stores the
+ * adjusted figure. `level` is the stored (base) level.
+ */
+export function fullHealthHp(baseMax, level, adjustment) {
+  return Math.max(1, baseMax + hpAdjustment(level, adjustment ?? null));
 }
 
 function shiftFormula(formula, delta) {
@@ -1907,7 +1937,7 @@ export async function createActor(concept, resolved, { img = null, scaffold = nu
         ac: { value: stats.ac, details: "" },
         // max is the base value; pf2e adds the Elite/Weak HP modifier on prep.
         // value starts full, matching npc/document.ts applyAdjustment.
-        hp: { value: Math.max(1, stats.hp + hpAdjustment(concept.level, concept.adjustment ?? null)), max: stats.hp, temp: 0, details: "" },
+        hp: { value: fullHealthHp(stats.hp, concept.level, concept.adjustment), max: stats.hp, temp: 0, details: "" },
         adjustment: concept.adjustment ?? null,
         speed: {
           value: concept.speeds.find((s) => s.type === "land")?.value ?? 0,

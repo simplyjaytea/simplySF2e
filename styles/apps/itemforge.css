@@ -10,13 +10,21 @@
 .simplysf2e .spf-kind-choices {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(6.5rem, 100%), 1fr));
-  gap: 2px;
+  gap: var(--spf-space-2xs);
   margin-bottom: var(--spf-space-xs);
-  padding: 2px;
+  padding: var(--spf-space-2xs);
   border: 1px solid var(--spf-border);
   border-radius: var(--spf-radius);
   background: var(--spf-surface);
   box-shadow: var(--spf-inset-glow);
+}
+
+/* Narrow windows: six tracks, so the first three kinds span two each and the last
+   two span three each. Three then two fills both rows with no empty cell. */
+@container spf-window (max-width: 520px) {
+  .simplysf2e .spf-kind-choices { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .simplysf2e .spf-kind-choice { grid-column: span 2; }
+  .simplysf2e .spf-kind-choice:nth-child(n + 4) { grid-column: span 3; }
 }
 
 .simplysf2e .spf-kind-choice {
@@ -24,7 +32,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.35rem;
+  gap: var(--spf-space-xs);
   height: auto;
   min-width: 0;
   margin: 0;
@@ -44,11 +52,6 @@
   border-color: var(--spf-border);
 }
 
-.simplysf2e .spf-kind-choice:focus-visible {
-  outline: 2px solid var(--spf-focus);
-  outline-offset: 1px;
-}
-
 .simplysf2e .spf-kind-label {
   min-width: 0;
   overflow: hidden;
@@ -60,7 +63,7 @@
 .simplysf2e .spf-kind-choice.spf-kind-selected {
   color: var(--spf-text);
   font-weight: 700;
-  background: color-mix(in srgb, var(--spf-brand-mid) 72%, #0c1620);
+  background: color-mix(in srgb, var(--spf-brand-mid) 72%, var(--spf-window-bg));
   border-color: var(--spf-brand-accent);
   box-shadow: inset 0 0 0 1px var(--spf-brand-accent), var(--spf-glow);
 }
@@ -68,7 +71,7 @@
 .simplysf2e .spf-kind-choice.spf-kind-selected::after {
   content: "";
   position: absolute;
-  inset: auto 0.4rem 2px;
+  inset: auto var(--spf-space-md) var(--spf-space-2xs);
   height: 3px;
   border-radius: 2px;
   background: var(--spf-brand-accent);

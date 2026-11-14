@@ -28,15 +28,19 @@ const CATEGORY_LABELS = {
 };
 
 function providerSetup(selected, patch = {}) {
+  // The active connection is the one named by connectionName, so the select, the name field and the preset agree.
+  const connectionName = patch.connectionName ?? "OpenRouter";
   return {
     providers: PROVIDER_PRESETS.map((provider) => ({ ...provider, selected: provider.id === selected })),
     connections: [
-      { id: "c1", name: "OpenRouter", active: true },
+      { id: "c1", name: connectionName, active: true },
       { id: "c2", name: "Home Ollama", active: false }
     ],
-    connectionName: "OpenRouter",
+    connectionName,
     canDeleteConnection: true,
     apiBaseUrl: "https://openrouter.ai/api/v1",
+    baseUrlCredential: null,
+    storedUrlWarning: "",
     model: "anthropic/claude-sonnet-5",
     availableModels: [],
     inputPerM: "",
@@ -54,6 +58,7 @@ function providerSetup(selected, patch = {}) {
     // Contract (docs/ui-contract.md, item 2): fold state and summaries.
     pricesOpen: false,
     priceError: null,
+    priceErrorField: null,
     pricesSummary: null,
     jevOpen: false,
     showLocalHint: ["ollama", "lmstudio", "custom"].includes(selected),
@@ -75,6 +80,7 @@ const packMatches = (pack, { query, selectedOnly }) => {
 };
 
 function sources(patch = {}) {
+  // `emptyCategory` (a CATEGORY_LABELS key) gets no packs; the others keep theirs.
   const filter = { query: "", selectedOnly: false, ...(patch.filter ?? {}) };
   const active = Boolean(filter.query.trim()) || filter.selectedOnly;
   const categories = Object.entries(CATEGORY_LABELS).map(([key, label]) => {
@@ -88,7 +94,7 @@ function sources(patch = {}) {
       hidden: active && packs.every((p) => p.hidden)
     };
   });
-  const emptied = patch.noPacks ? categories.map((c) => ({ ...c, packs: [], selectedCount: 0, hidden: false })) : categories;
+  const emptied = categories.map((c) => (patch.noPacks || c.key === patch.emptyCategory ? { ...c, packs: [], selectedCount: 0, hidden: false } : c));
   const all = emptied.flatMap((c) => c.packs);
   const shown = all.filter((p) => !p.hidden).length;
   return {
@@ -114,6 +120,7 @@ export default [
     id: "provider-setup-models-loaded",
     app: "provider-setup",
     context: providerSetup("ollama", {
+      connectionName: "Home Ollama", connections: [{ id: "c1", name: "Home Ollama", active: true }, { id: "c2", name: "OpenRouter", active: false }],
       apiBaseUrl: "http://localhost:11434/v1", model: "llama3.1:70b-instruct-q4_K_M", hasApiKey: false,
       availableModels: ["llama3.1:70b-instruct-q4_K_M", "qwen2.5:32b", "mistral-nemo:12b"]
     })
@@ -142,13 +149,26 @@ export default [
     context: providerSetup("deepseek", {
       connectionName: "DeepSeek", apiBaseUrl: "https://api.deepseek.com/v1", model: "deepseek-v4-flash",
       inputPerM: -2, outputPerM: 1.1, pricesOpen: true,
-      priceError: localize("SIMPLYSF2E.ProviderSetup.PriceInputInvalid")
+      priceError: localize("SIMPLYSF2E.ProviderSetup.PriceInputInvalid"),
+      priceErrorField: "input"
+    })
+  },
+  {
+    // A world that stored a secret in the URL before the refusal existed: the standing warning shows.
+    id: "provider-setup-stored-secret",
+    app: "provider-setup",
+    context: providerSetup("custom", {
+      connectionName: "Company gateway", connections: [{ id: "c1", name: "Company gateway", active: true }, { id: "c2", name: "Home Ollama", active: false }],
+      apiBaseUrl: "https://gateway.example.com/v1?api-key=SECRET", model: "gpt-5.6-luna",
+      baseUrlCredential: "query-secret",
+      storedUrlWarning: localize("SIMPLYSF2E.ProviderSetup.StoredUrlHasSecret", { name: "api-key" })
     })
   },
   {
     id: "provider-setup-jev-typesafe",
     app: "provider-setup",
     context: providerSetup("openai", {
+      connectionName: "OpenAI",
       apiBaseUrl: "https://api.openai.com/v1", model: "gpt-5.6-luna", hasJevKey: true,
       jevSources: [
         { id: "openrouter", label: "OpenRouter", selected: false },
@@ -157,11 +177,12 @@ export default [
       jevOnTypeSafe: true,
       jevOpen: true,
       jevEndpoint: "https://jev-proxy.example.com/v1/systemone",
-      jevKeyPlaceholder: localize("SIMPLYSF2E.ProviderSetup.JevKeySaved")
+      jevKeyPlaceholder: localize("SIMPLYSF2E.ProviderSetup.JevKeyPlaceholder", { source: "TypeSafe AI" })
     })
   },
   { id: "sources-default", app: "sources", height: 640, context: sources() },
   { id: "sources-no-packs", app: "sources", context: sources({ noPacks: true }) },
+  { id: "sources-empty-category", app: "sources", height: 640, context: sources({ emptyCategory: "heritages" }) },
   { id: "sources-filtered", app: "sources", height: 640, context: sources({ filter: { query: "spell" } }) },
   { id: "sources-selected-only", app: "sources", height: 640, context: sources({ filter: { query: "homebrew", selectedOnly: true } }) },
   { id: "sources-no-match", app: "sources", height: 640, context: sources({ filter: { query: "pathfinder" } }) },

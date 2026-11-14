@@ -1,6 +1,7 @@
 // Exercise the production ItemForgeApp kind action and private input state
 // without provider requests, Foundry document writes, or copied selection logic.
 import assert from "node:assert/strict";
+import { progressView } from "./progress.mjs";
 import { readFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import vm from "node:vm";
@@ -18,6 +19,7 @@ const context = vm.createContext({
 });
 
 class MockSpfApp {
+  _elapsedUnits() { return { seconds: "s", minutes: "m" }; }
   renders = 0;
   _progress = null;
   get _canCancel() { return false; }
@@ -37,6 +39,10 @@ const requestConfig = {
   apiKeyIsBound: false
 };
 const mocks = {
+  progressView,
+  getPacksFor: () => ["sf2e.equipment"],
+  describeMissingSources: () => "",
+  jevKeySource: () => null,
   MODULE_ID: "simplysf2e",
   SpfApp: MockSpfApp,
   RUNED_ITEM_KINDS: new Set(["weapon", "armor"]),
@@ -111,6 +117,22 @@ for (const kind of ["augmentation", "crystal"]) {
   prepared = await app._prepareContext();
   assert.equal(prepared.input.kind, kind, `re-reading the form keeps ${kind} (it used to fall back to wondrous)`);
   assert.equal(prepared.showEmptyState, true, `${kind} uses the concept preview path`);
+}
+
+// The prompt placeholder follows the selected kind. Only the five tiles reach the
+// context (invalid kinds fail closed above), so the generic key is never used in play.
+const placeholderKeys = {
+  wondrous: "SIMPLYSF2E.ItemForge.Placeholder.Wondrous",
+  weapon: "SIMPLYSF2E.ItemForge.Placeholder.Weapon",
+  armor: "SIMPLYSF2E.ItemForge.Placeholder.Armor",
+  augmentation: "SIMPLYSF2E.ItemForge.Placeholder.Augmentation",
+  crystal: "SIMPLYSF2E.ItemForge.Placeholder.Crystal"
+};
+for (const [kind, key] of Object.entries(placeholderKeys)) {
+  await selectKind.call(app, null, { dataset: { kind } });
+  const context = await app._prepareContext();
+  assert.equal(context.promptPlaceholder, key, `the prompt placeholder follows ${kind}`);
+  assert.notEqual(context.promptPlaceholder, "SIMPLYSF2E.ItemForge.PromptPlaceholder", `${kind} has its own placeholder, not the generic one`);
 }
 
 console.log("itemforge-app.kindSelection.test.mjs: production kind selection and preservation passed");

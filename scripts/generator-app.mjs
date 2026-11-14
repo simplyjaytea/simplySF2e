@@ -14,20 +14,18 @@ import {
   getAncestryCandidates, getBackgroundCandidates, getClassCandidates, getHeritageCandidates, getFeatCandidates, getAbilityCandidates, sourceReadiness, describeMissingSources
 } from "./compendium.mjs";
 import {
-  normalizeLoot, resolveLoot, computeStats, adjustedStats, createActor,
-  applyTreasureBudget, equipmentValueGp, lootValueGp, parseCoins, slugify,
-  dedupeLootAgainstEquipment, enforceNamedLootBudget, reskinActorData, rerollAbilityInto
+  normalizeLoot, resolveLoot, createActor, applyTreasureBudget, equipmentValueGp, lootValueGp,
+  parseCoins, slugify, dedupeLootAgainstEquipment, enforceNamedLootBudget, reskinActorData,
+  rerollAbilityInto
 } from "./builder.mjs";
 import { normalizeReskin, reskinRenameTargets } from "./reskin.mjs";
-import { relevelPreview, relevelReskin, loadRelevelSources, clampRelevel, RELEVEL_MIN, RELEVEL_MAX } from "./relevel.mjs";
+import { relevelReskin, loadRelevelSources, clampRelevel } from "./relevel.mjs";
 import { REROLL_KINDS, rerollTarget, rerollPool, applyRerollPick, rerollKeywords } from "./reroll.mjs";
 import {
   normalizePCConcept, resolvePCConcept, resolveFeatPicks, createCharacterActor, pcStartingWealthGp, archetypeCasterPlan, resolveArchetypeBridges
 } from "./pc-builder.mjs";
 import { pcSpellcastingProfile, pcSpellPlan } from "./pc-tables.mjs";
 import { reviewUnresolvedChoices } from "./choice-set.mjs";
-import { normalizeSkillPriorities, skillPriorityOrder, initialSkillTraining } from "./pc-skills.mjs";
-import { ABILITY_KEYS, projectAttributeModifiers, projectSkillRanks } from "./pc-projection.mjs";
 import { treasureBudget, TREASURE_AMOUNT_MULTIPLIER } from "./tables.mjs";
 import { gpToCredits } from "./currency.mjs";
 import { getCustomPresets, findPreset, examplePrompt, randomBrief, presetPickerGroups } from "./presets.mjs";
@@ -35,29 +33,37 @@ import { ManagePresetsApp } from "./manage-presets-app.mjs";
 import { SourcesConfigApp } from "./sources-app.mjs";
 import { composeEncounter, THREATS } from "./encounter.mjs";
 import { findBestiaryScaffold, scaffoldArt } from "./art.mjs";
-import { assertComplete, completionManifest, completionSummary } from "./completion.mjs";
+import { assertComplete, completionManifest } from "./completion.mjs";
 import { verifyCreatedActor } from "./post-create.mjs";
-import {
-  manualNotesContent, supportedClassCandidates, isCompletePCClass, COMPLETE_PC_CLASS_SLUGS, getMulticlassDedicationSlug
-} from "./pc-support.mjs";
-import { validateArchetypeSlotPlacement, stagedActorContext } from "./pc-prerequisites.mjs";
+import { classSpellTradition, manualNotesContent, supportedClassCandidates, isCompletePCClass } from "./pc-support.mjs";
+import { validateArchetypeSlotPlacement } from "./pc-prerequisites.mjs";
 import { SpfApp } from "./app-base.mjs";
+import { progressView } from "./progress.mjs";
 import { jevKeySource } from "./jev.mjs";
-import { signed, esc, escAi, capitalized } from "./text.mjs";
+import { esc, escAi } from "./text.mjs";
 import { statCheckForActor, describeStatCheck, hasSpellEntry } from "./stat-check.mjs";
 import { moveToGeneratedFolder, generatedFolderId } from "./folders.mjs";
 import { createHandout } from "./handout.mjs";
 import { findRecent, forgetRecent, previewModeOf, previewNameOf, rememberRecent } from "./recent-generations.mjs";
 import { activeParty } from "./party.mjs";
+import { emptyFeatSlots } from "./generator-context/rows.mjs";
+import { buildCreaturePreviewContext } from "./generator-context/creature-preview.mjs";
+import { buildEncounterPreviewContext } from "./generator-context/encounter-preview.mjs";
+import { buildReskinPreviewContext, buildRelevelContext } from "./generator-context/reskin-context.mjs";
+import {
+  buildPCPreviewContext, multiclassPickerContext, archetypePlacementContext, skillReportContext
+} from "./generator-context/pc-preview.mjs";
+import { completionContext, buildRecentContext } from "./generator-context/result-context.mjs";
 
-async function rollbackActor(actor, label) {
+async function rollbackActor(actor, labelKey) {
   if (!actor) return null;
+  const label = game.i18n.localize(labelKey);
   try {
     await actor.delete();
     return null;
   } catch (cleanupErr) {
     console.warn(`${MODULE_ID} | failed to roll back ${label} "${actor.name}"`, cleanupErr);
-    return `${label} "${actor.name}" still exists. The draft was discarded to prevent a duplicate; remove it manually before trying again.`;
+    return game.i18n.format("SIMPLYSF2E.Generator.SurvivorDraft", { label, name: actor.name });
   }
 }
 
@@ -152,6 +158,10 @@ export class GeneratorApp extends SpfApp {
   #previewMeta = null;
   /** True while a one-click Generate is between its preview and its create. */
   #createPending = false;
+  /** Bumped whenever a run, a recent-preview swap or a new reskin load takes over the preview. */
+  #previewEpoch = 0;
+  /** Serialises encounter member-count loot re-fits so quick clicks resolve in order. */
+  #stepQueue = Promise.resolve();
   /** Names rerolled away from, per "kind:index" slot, so a reroll never swaps back. */
   #rerollRejected = new Map();
   /** Cycles the example placeholder; starts randomly so reopening varies. */
@@ -162,6 +172,8 @@ export class GeneratorApp extends SpfApp {
   #chatPending = false;
   /** Preview-only samples leave the GM's remembered Generator inputs untouched. */
   #rememberInputSuspended = false;
+  /** The reskin source the on-screen re-level box was rendered for. */
+  #relevelShownFor = null;
   constructor(...args) {
     super(...args);
     // Isolated tests build the app without Foundry's settings.
@@ -176,6 +188,7 @@ export class GeneratorApp extends SpfApp {
   /** External programmatic input update (e.g. from chat command). */
   setInput(updates = {}) {
     this.#mergeInput(updates);
+    this._skipFormReadOnce = true;   // show the merged input, do not read the old form back
     this.render();
   }
 
@@ -204,8 +217,6 @@ export class GeneratorApp extends SpfApp {
     this.#rememberInputSuspended = previousRememberSuspension || !remember;
     if (this.#busy || this.#createPending || this.#chatPending) {
       try {
-        if (remember) this.setInput(updates);
-        else this.#mergeInput(updates);
         ui.notifications.warn(game.i18n.localize("SIMPLYSF2E.Chat.Busy"));
       } finally {
         this.#rememberInputSuspended = previousRememberSuspension;
@@ -214,15 +225,44 @@ export class GeneratorApp extends SpfApp {
     }
     // Held across the render so a second command cannot slip in before the run starts.
     this.#chatPending = true;
+    // A sample (remember: false) gives the GM's own input back when it ends.
+    let gmInput = null;
     try {
+      if (!remember) {
+        if (this.element) this.#readForm();   // persisting is suspended here
+        gmInput = { input: { ...this.#input }, modePrompts: { ...this.#modePrompts } };
+      }
       this.#mergeInput(updates);
+      this._skipFormReadOnce = true;   // show the merged input, do not read the old form back
       await this.render({ force: true });
       this.#chatPending = false;
       return await this.#runGeneration(false, { create: false });   // preview only; the GM still clicks Create
     } finally {
       this.#chatPending = false;
+      // Restore before persisting resumes, so the sample's values are never remembered.
+      if (gmInput) this.#restoreAfterSample(gmInput);
       this.#rememberInputSuspended = previousRememberSuspension;
     }
+  }
+
+  /**
+   * After a sample run: the GM's own fields and drafts come back, so their
+   * next click cannot remember the sample's level, preset or rarity. The
+   * mode stays the sample's, because each mode shows only its own preview
+   * and the GM asked to see this one.
+   */
+  #restoreAfterSample({ input, modePrompts }) {
+    const mode = this.#input.mode;
+    this.#modePrompts = modePrompts;
+    const [levelMin, levelMax] = ["monster", "npc"].includes(mode) ? [-1, 24] : [1, 20];
+    this.#input = {
+      ...input,
+      mode,
+      prompt: modePrompts[mode] ?? "",
+      level: Math.min(levelMax, Math.max(levelMin, input.level))
+    };
+    this._skipFormReadOnce = true;   // show the restored input, do not read the sample's form back
+    this.render().catch((err) => console.warn(`${MODULE_ID} | could not show the restored Generator input`, err));
   }
 
 
@@ -243,7 +283,7 @@ export class GeneratorApp extends SpfApp {
       lastRunCost: this._formatLastRunCost(),
       error: this.#error,
       canReportBug: this._canReportBug(this.#error),
-      progress: this._progress,
+      progress: progressView(this._progress, this._elapsedUnits()),
       apiKeyWarning: authWarningKey ? game.i18n.localize(authWarningKey) : null,
       providerBaseUrl: authState.baseUrl,
       provider: authState.provider,
@@ -331,20 +371,9 @@ export class GeneratorApp extends SpfApp {
   }
 
   #buildReskinPreviewContext() {
-    const flavor = this.#reskinFlavor;
-    if (!flavor || !this.#reskinSource) return null;
-    return {
-      name: flavor.name ?? this.#reskinSource.name,
-      level: this.#reskinTargetLevel(),
-      releveled: this.#reskinTargetLevel() !== this.#reskinSource.level,
-      sourceName: this.#reskinSource.name,
-      blurb: flavor.blurb,
-      readAloud: flavor.readAloud,
-      paragraphs: (flavor.description ?? "").split(/\n{2,}/).map((p) => p.trim()).filter(Boolean),
-      recallKnowledge: flavor.recallKnowledge,
-      renames: flavor.renames
-    };
+    return buildReskinPreviewContext(this.#reskinFlavor, this.#reskinSource, this.#reskinTargetLevel());
   }
+
 
   /** The copy's level: the GM's re-level choice, else the source's own level. */
   #reskinTargetLevel() {
@@ -353,62 +382,7 @@ export class GeneratorApp extends SpfApp {
 
   /** Re-level controls and the before/after rows for the loaded NPC (relevel.mjs). */
   #buildRelevelContext() {
-    if (!this.#reskinSource) return null;
-    const level = this.#reskinTargetLevel();
-    const preview = this.#reskinData
-      ? relevelPreview(this.#reskinData, level, this.#reskinSources)
-      : { rows: [], abilities: [] };
-    const bands = {
-      extreme: "BandExtreme", high: "BandHigh", moderate: "BandModerate", low: "BandLow", terrible: "BandTerrible"
-    };
-    const locScale = (row) => bands[row.scale] ? game.i18n.localize(`SIMPLYSF2E.StatCheck.${bands[row.scale]}`) : "";
-    const locRow = (row) => ({
-      label: row.name ? game.i18n.format(row.label, { name: row.name }) : game.i18n.localize(row.label),
-      scale: locScale(row),
-      from: row.from,
-      to: row.to
-    });
-    const rows = [];
-    const strikesMap = new Map();
-    const strikeOrder = [];
-    for (const row of preview.rows) {
-      const key = String(row.key ?? "");
-      const m = key.match(/^(strike|damage)-(.+)$/);
-      if (m) {
-        const kind = m[1];
-        const id = m[2];
-        if (!strikesMap.has(id)) {
-          strikesMap.set(id, { name: row.name, attack: null, damage: null });
-          strikeOrder.push(id);
-        }
-        const entry = strikesMap.get(id);
-        if (!entry.name && row.name) entry.name = row.name;
-        const obj = { scale: locScale(row), from: row.from, to: row.to };
-        if (kind === "strike") entry.attack = obj;
-        else entry.damage = obj;
-      } else {
-        rows.push(locRow(row));
-      }
-    }
-    const strikes = strikeOrder.map((id) => strikesMap.get(id));
-    const changed = level !== this.#reskinSource.level;
-    if (!changed) {
-      rows.length = 0;
-      strikes.length = 0;
-    }
-    return {
-      from: this.#reskinSource.level,
-      level,
-      min: RELEVEL_MIN,
-      max: RELEVEL_MAX,
-      changed,
-      rows,
-      strikes,
-      hasRows: changed ? (rows.length > 0 || strikes.length > 0) : false,
-      abilities: preview.abilities.map((line) => line.rebuilt
-        ? { kept: false, label: game.i18n.format("SIMPLYSF2E.Relevel.AbilityRebuilt", { name: line.name, level }) }
-        : { kept: true, label: game.i18n.format("SIMPLYSF2E.Relevel.AbilityKept", { name: line.name, reason: line.reason }) })
-    };
+    return buildRelevelContext(this.#reskinSource, this.#reskinTargetLevel(), this.#reskinData, this.#reskinSources);
   }
 
   /** Free Archetype is the campaign rule multiclass depends on; read it live, and treat an unreadable setting as off. */
@@ -423,177 +397,11 @@ export class GeneratorApp extends SpfApp {
 
   /** Multiclass picker options: None, Let the AI decide, then each supported class. */
   #multiclassPickerContext() {
-    const options = [
-      { value: "none", label: game.i18n.localize("SIMPLYSF2E.Generator.MulticlassNone") },
-      { value: "ai", label: game.i18n.localize("SIMPLYSF2E.Generator.MulticlassAI") },
-      ...[...COMPLETE_PC_CLASS_SLUGS].map((slug) => ({ value: slug, label: capitalized(slug) }))
-    ];
-    return { options: options.map((option) => ({ ...option, selected: option.value === this.#input.multiclass })) };
-  }
-
-  /** Preview line for a multiclass pick; the dedication counts only when it was placed on a real feat. */
-  #multiclassPreview(concept, resolved) {
-    if (!concept.multiclass) return null;
-    const dedicationSlug = getMulticlassDedicationSlug(concept.multiclass);
-    const placed = (resolved.feats ?? []).find((feat) => feat?.entry && feat.placement !== "rejected"
-      && feat.name && slugify(feat.name) === dedicationSlug);
-    return { name: capitalized(concept.multiclass), dedication: placed?.name ?? null };
-  }
-
-  /**
-   * Staged context for the archetype placement check: what the PC already has
-   * at its level (ABC, class path, heritage) plus the projected ability
-   * modifiers and skill ranks that resolvePCConcept proved candidates against.
-   * The projection repeats pc-builder's inputs because its helpers are private.
-   * Ranks and modifiers only grow with level, so the final-level context is
-   * never stricter than a slot's own candidate-time context.
-   */
-  #archetypePlacementContext(resolved, concept) {
-    const { ancestryDoc, heritageDoc, backgroundDoc, classDoc, pathPlan } = resolved;
-    const keyOptions = Array.isArray(classDoc.system?.keyAbility?.value) ? classDoc.system.keyAbility.value : [];
-    const keyAbility = keyOptions.includes(concept.keyAbility) ? concept.keyAbility
-      : keyOptions[0] ?? (ABILITY_KEYS.includes(concept.keyAbility) ? concept.keyAbility : "str");
-    const modsAt = (level) => projectAttributeModifiers({
-      ancestrySystem: ancestryDoc.system, backgroundSystem: backgroundDoc.system,
-      keyAbility, preferences: concept.abilityPriorities, level
-    });
-    const levelMods = modsAt(concept.level);
-    const initialMods = modsAt(1);
-    const { ranks: provenSkills } = initialSkillTraining(classDoc.system, backgroundDoc.system);
-    for (const planned of Object.values(pathPlan ?? {})) {
-      for (const [slug, rank] of Object.entries(planned?.skills ?? {})) {
-        provenSkills[slug] = Math.max(provenSkills[slug] ?? 0, rank);
-      }
-    }
-    const projection = levelMods && initialMods ? projectSkillRanks({
-      classSystem: classDoc.system, backgroundSystem: backgroundDoc.system, provenSkills,
-      intelligence: levelMods.int, initialIntelligence: initialMods.int, keyAbility,
-      priorities: concept.skillPriorities, level: concept.level
-    }) : null;
-    const loreSkills = Object.fromEntries((Array.isArray(backgroundDoc.system?.trainedSkills?.lore)
-      ? backgroundDoc.system.trainedSkills.lore : [])
-      .filter((name) => typeof name === "string" && name.trim())
-      .map((name) => [slugify(name), 1]));
-    const features = [];
-    for (const [tag, planned] of Object.entries(pathPlan ?? {})) {
-      if (!planned?.name) continue;
-      features.push({ name: planned.name });
-      if (tag === "mechanic-exocortex") features.push({ name: `${planned.name} exocortex` });
-      if (tag === "technomancer-programming-language") features.push({ name: `${planned.name} programming language` });
-    }
-    if (heritageDoc) features.push({ name: `${heritageDoc.name} heritage` });
-    return stagedActorContext({
-      level: concept.level, ancestry: ancestryDoc, heritage: heritageDoc, background: backgroundDoc, class: classDoc,
-      features, skills: { ...(projection ? projection.ranksAt(concept.level) : provenSkills), ...loreSkills },
-      abilities: levelMods ?? {}
-    });
+    return multiclassPickerContext(this.#input.multiclass);
   }
 
   #buildPCPreviewContext() {
-    if (!this.#pcConcept) return null;
-    const concept = this.#pcConcept;
-    const resolved = this.#pcResolved;
-    const ancestry = { name: resolved.ancestryDoc?.name ?? concept.ancestry, found: Boolean(resolved.ancestryDoc) };
-    const heritage = concept.heritage
-      ? { name: resolved.heritageDoc?.name ?? concept.heritage, found: Boolean(resolved.heritageDoc) }
-      : null;
-    const background = { name: resolved.backgroundDoc?.name ?? concept.background, found: Boolean(resolved.backgroundDoc) };
-    const pcClass = { name: resolved.classDoc?.name ?? concept.class, found: Boolean(resolved.classDoc) };
-    const feats = GeneratorApp.#pcFeatRows(resolved.feats);
-    const emptyFeatSlots = GeneratorApp.#emptyFeatSlots(resolved);
-    const spells = GeneratorApp.#mapSpells(resolved.spells);
-    const signatureRanks = concept.spellcasting?.signatureRanks ?? [];
-    const plannedSignatures = new Set(spells.filter((spell) => spell.found && spell.signature
-      && signatureRanks.includes(spell.rank)).map((spell) => spell.rank));
-    const equipment = GeneratorApp.#mapGear(resolved.equipment, resolved.skippedGear, "equipment");
-    const loot = GeneratorApp.#mapGear(resolved.loot, resolved.skippedGear, "loot");
-    return {
-      concept,
-      multiclass: this.#multiclassPreview(concept, resolved),
-      ancestry,
-      heritage,
-      background,
-      class: pcClass,
-      skillPriorities: skillPriorityOrder(concept.skillPriorities, concept.keyAbility).order.map((slug) => ({ name: GeneratorApp.#skillName(slug) })),
-      automaticSkills: normalizeSkillPriorities(concept.skillPriorities).length === 0,
-      spellcastingNotice: concept.spellcastingNoticeKey ? game.i18n.localize(concept.spellcastingNoticeKey) : null,
-      signatureSummary: signatureRanks.length ? game.i18n.format("SIMPLYSF2E.Preview.PCSignaturePlan", {
-        selected: plannedSignatures.size, total: signatureRanks.length
-      }) : null,
-      feats,
-      emptyFeatNotice: emptyFeatSlots.length ? game.i18n.format("SIMPLYSF2E.PC.EmptyFeatSlots", {
-        count: emptyFeatSlots.length, slots: emptyFeatSlots.join(", ")
-      }) : null,
-      spells,
-      equipment,
-      loot,
-      matchSummary: this.#matchSummary([ancestry], heritage ? [heritage] : [], [background], [pcClass],
-        feats.filter((feat) => !feat.empty), spells, equipment, loot)
-    };
-  }
-
-  /** PC feat rows. An empty slot (no legal feat left) is shown as empty, not as a miss;
-   * a rejected fill is still a miss. */
-  static #pcFeatRows(list) {
-    return (list ?? []).map((feat) => feat.entry
-      ? { name: feat.entry.name ?? feat.name, found: true }
-      : { name: GeneratorApp.#featSlotLabel(feat), found: false, empty: feat.placement !== "rejected" });
-  }
-
-  /** Labels such as "general 19" for character feat slots left empty. A
-   * rejected fill is unresolved, not empty, so it is not listed here. */
-  static #emptyFeatSlots(resolved) {
-    return (resolved?.feats ?? [])
-      .filter((feat) => !feat.entry && feat.placement !== "rejected")
-      .map((feat) => GeneratorApp.#featSlotLabel(feat));
-  }
-
-  static #featSlotLabel(feat) {
-    return `${feat.archetype ? "archetype " : ""}${feat.type} ${feat.level}`;
-  }
-
-  static #skillName(slug) {
-    return game.i18n.localize(globalThis.CONFIG?.PF2E?.skills?.[slug]?.label ?? slug);
-  }
-
-  static #skillReportContext(report) {
-    if (!report) return null;
-    const warningKeys = {
-      "native-data": "NativeData", "training-data": "TrainingData", "schedule": "Schedule",
-      "grant-timing": "GrantTiming", "native-rank-rule": "NativeRule",
-      "intelligence-timing": "IntelligenceTiming",
-      "unspent-training": "UnspentTraining", "unspent-increases": "UnspentIncreases",
-      "projection-mismatch": "ProjectionMismatch"
-    };
-    return {
-      rows: report.rows.map((row) => ({ name: row.name ?? this.#skillName(row.slug),
-        rank: game.i18n.localize(`SIMPLYSF2E.Skills.Rank${row.rank}`) })),
-      automatic: report.automatic,
-      budget: report.trainingBudget !== null && report.unspentTraining !== null
-        ? game.i18n.format("SIMPLYSF2E.Skills.Budget", {
-          spent: report.trainingBudget - report.unspentTraining, total: report.trainingBudget
-        }) : null,
-      warnings: report.warnings.map((code) => {
-        const key = warningKeys[code] ?? "NativeData";
-        const count = code === "unspent-training" ? report.unspentTraining : report.unspentIncreases;
-        return {
-          title: game.i18n.format(`SIMPLYSF2E.Skills.${key}Title`, { count }),
-          detail: game.i18n.format(`SIMPLYSF2E.Skills.${key}`, { count })
-        };
-      }),
-      loadoutWarnings: (report.loadoutWarnings ?? []).map((code) => {
-        const key = {
-          "loadout-native-data": "NativeData", "loadout-untrained-armor": "UntrainedArmor",
-          "loadout-armor-conflict": "ArmorConflict", "loadout-untrained-weapon": "UntrainedWeapon",
-          "loadout-hand-conflict": "HandConflict", "loadout-manual-ammo": "ManualAmmo",
-          "loadout-missing-ammo": "MissingAmmo"
-        }[code] ?? "NativeData";
-        return {
-          title: game.i18n.localize(`SIMPLYSF2E.Loadout.${key}Title`),
-          detail: game.i18n.localize(`SIMPLYSF2E.Loadout.${key}`)
-        };
-      })
-    };
+    return buildPCPreviewContext(this.#pcConcept, this.#pcResolved);
   }
 
   /**
@@ -629,183 +437,15 @@ export class GeneratorApp extends SpfApp {
     }).catch((err) => console.warn(`${MODULE_ID} | could not whisper the stat check`, err));
   }
 
-  /** Localized, count-only view of a validated completion manifest. */
-  static #completionContext(manifests) {
-    const summary = completionSummary(manifests);
-    const rows = [
-      ["compendium", "SIMPLYSF2E.Generator.CompletionCompendium"],
-      ["native", "SIMPLYSF2E.Generator.CompletionNative"],
-      ["moduleBuilt", "SIMPLYSF2E.Generator.CompletionModuleBuilt"],
-      ["customNarrative", "SIMPLYSF2E.Generator.CompletionCustomNarrative"],
-      ["skipped", "SIMPLYSF2E.Generator.CompletionSkipped"],
-      ["empty", "SIMPLYSF2E.Generator.CompletionEmpty"]
-    ].filter(([key]) => summary[key] > 0).map(([key, label]) => ({
-      text: game.i18n.format(label, { count: summary[key] })
-    }));
-    return { total: summary.total, rows };
-  }
-
-  /* The three preview shapes below are identical for creatures and characters,
-     so both #buildPreviewContext and #buildPCPreviewContext share them. Each
-     returns rows carrying `found`, which drives both the per-row checkmark and
-     #matchSummary's aggregate. */
-
-  /** Rows for a plain {name, entry} list (feats). */
-  static #mapNamed(list) {
-    return (list ?? []).map(({ name, entry }) => ({ name: entry?.name ?? name, found: Boolean(entry) }));
-  }
-
-  /** Rows for resolved spells, which carry their cast rank. */
-  static #mapSpells(list) {
-    return (list ?? []).map(({ spell, entry }) => ({
-      name: entry?.name ?? spell.name,
-      rank: spell.rank,
-      signature: spell.signature === true,
-      found: Boolean(entry)
-    }));
-  }
-
-  /**
-   * Rows for equipment or loot. A runed name is shown as the AI wrote it (the
-   * entry is only the base item), a spell gem as the item it will be built into,
-   * and a stack gets its ×N suffix. Skipped gear of this category (no
-   * published match, so it will not be created) follows as unfound rows.
-   */
-  static #mapGear(list, skipped = [], category = null) {
-    return [
-      ...(list ?? []).map(({ name, quantity, runes, entry, scroll }) => ({
-        name: (scroll && entry?.name
-          ? `Spell Gem of ${entry.name} (Rank ${scroll.rank})`
-          : (runes?.potency ? name : entry?.name ?? name)) + (quantity > 1 ? ` ×${quantity}` : ""),
-        found: Boolean(entry)
-      })),
-      ...(skipped ?? []).filter((item) => item.category === category).map(({ name, quantity }) => ({
-        name: name + (quantity > 1 ? ` ×${quantity}` : ""),
-        found: false
-      }))
-    ];
-  }
-
   #buildEncounterPreviewContext() {
-    if (!this.#encounter) return null;
-    return {
-      name: this.#encounter.name,
-      // Display-boundary thousands separators only; budget math stays numeric
-      // above (overBudget comparisons use the raw values, unchanged).
-      budget: Number(this.#encounter.budget ?? 0).toLocaleString("en-US"),
-      spent: Number(this.#encounter.spent ?? 0).toLocaleString("en-US"),
-      overBudget: this.#encounter.spent > this.#encounter.budget,
-      // Internal treasure math stays in gp (applyTreasureBudget/lootValueGp);
-      // only the display boundary converts to credits via the cited rate.
-      treasureBudget: gpToCredits(Math.round(this.#encounter.treasureBudget ?? 0)).toLocaleString("en-US"),
-      treasureSpent: gpToCredits(this.#encounter.treasureSpent ?? 0).toLocaleString("en-US"),
-      treasureOverBudget: (this.#encounter.treasureSpent ?? 0) > (this.#encounter.treasureBudget ?? 0),
-      members: this.#encounter.members.map((member, index) => {
-        const stats = adjustedStats(computeStats(member.concept), member.concept);
-        const strike = stats.strikes[0];
-        return {
-          index,
-          count: member.count,
-          skipped: member.count === 0,
-          role: `SIMPLYSF2E.Role.${member.role.charAt(0).toUpperCase()}${member.role.slice(1)}`,
-          name: member.concept.name,
-          level: stats.level,
-          blurb: member.concept.blurb,
-          stats: {
-            ac: stats.ac,
-            hp: stats.hp,
-            perception: signed(stats.perception),
-            fort: signed(stats.saves.fortitude),
-            ref: signed(stats.saves.reflex),
-            will: signed(stats.saves.will),
-            strike: strike ? { name: strike.name, bonus: signed(strike.bonus), damage: strike.damage } : null,
-            spellDC: stats.spellDC ?? null
-          }
-        };
-      })
-    };
+    return buildEncounterPreviewContext(this.#encounter);
   }
+
 
   #buildPreviewContext() {
-    if (!this.#concept) return null;
-    const concept = this.#concept;
-    // Show what the sheet will display once pf2e applies Elite/Weak.
-    const stats = adjustedStats(computeStats(concept), concept);
-    // Resolved spells, feats and abilities line up 1:1 with the concept lists,
-    // so a row's index is also its reroll slot.
-    const rerollable = (kind, index) => Boolean(rerollTarget(concept, kind, index));
-    const abilities = (this.#resolved?.abilities ?? []).map(({ ability, entry }, index) => ({
-      name: ability.name,
-      fromGlossary: Boolean(entry),
-      glossaryName: entry?.name ?? null,
-      // A module-built area blast shows the Module-built label (no compendium source), not the narrative label.
-      narrative: Boolean(ability.narrative),
-      // A working area blast is module-built, not narrative-only (its own preview label).
-      moduleBuilt: Boolean(ability.areaBlast || ability.aura),
-      description: ability.description,
-      index,
-      rerollable: rerollable("ability", index)
-    }));
-    const spells = GeneratorApp.#mapSpells(this.#resolved?.spells)
-      .map((row, index) => ({ ...row, index, rerollable: rerollable("spell", index) }));
-    const feats = GeneratorApp.#mapNamed(this.#resolved?.feats)
-      .map((row, index) => ({ ...row, index, rerollable: rerollable("feat", index) }));
-    const equipment = GeneratorApp.#mapGear(this.#resolved?.equipment, this.#resolved?.skippedGear, "equipment");
-    const loot = GeneratorApp.#mapGear(this.#resolved?.loot, this.#resolved?.skippedGear, "loot");
-    // Signed display strings live beside `stats`, never in it: stats also feeds
-    // actor creation and arithmetic elsewhere.
-    const display = {
-      perception: signed(stats.perception),
-      skills: (stats.skills ?? []).map((skill) => ({ name: skill.name, mod: signed(skill.mod) })),
-      saves: {
-        fortitude: signed(stats.saves?.fortitude),
-        reflex: signed(stats.saves?.reflex),
-        will: signed(stats.saves?.will)
-      },
-      strikes: (stats.strikes ?? []).map((strike) => ({ ...strike, bonusText: signed(strike.bonus) })),
-      spellAttack: signed(stats.spellAttack)
-    };
-    return {
-      concept,
-      stats,
-      display,
-      traits: [concept.rarity !== "common" ? concept.rarity : null, concept.size, ...concept.traits].filter(Boolean),
-      speeds: concept.speeds.map((s) => `${s.type} ${s.value} ft.`).join(", "),
-      senses: concept.senses.map((s) => [s.type, s.acuity, s.range ? `${s.range} ft.` : null].filter(Boolean).join(" ")).join(", "),
-      languages: concept.languages.join(", "),
-      abilities,
-      spells,
-      feats,
-      equipment,
-      loot,
-      matchSummary: this.#matchSummary(
-        abilities.map((a) => ({ found: a.fromGlossary, narrative: a.narrative || a.moduleBuilt })), spells, feats, equipment, loot
-      ),
-      iwr: {
-        immunities: concept.immunities.join(", "),
-        resistances: concept.resistances.map((r) => `${r} ${stats.resistanceValue}`).join(", "),
-        weaknesses: concept.weaknesses.map((w) => `${w} ${stats.resistanceValue}`).join(", ")
-      }
-    };
+    return buildCreaturePreviewContext(this.#concept, this.#resolved);
   }
 
-  /**
-   * Aggregate "found vs. total" across every generated category — issue #52:
-   * the GM had no summary of how much of a generation actually grounded
-   * against the real compendium vs. fell back to AI-estimated custom items,
-   * only a per-item warning icon buried in each list. Each argument is an
-   * array of objects carrying a `found` boolean (a single ABC/heritage pick
-   * is wrapped in a 1-element array by the caller so it can be flattened the
-   * same way as the list categories).
-   * @returns {{matched: number, total: number, text: string}|null}
-   */
-  #matchSummary(...groups) {
-    const items = groups.flat().filter((item) => item && !item.narrative);
-    const total = items.length;
-    if (!total) return null;
-    const matched = items.filter((i) => i.found).length;
-    return { matched, total, text: game.i18n.format("SIMPLYSF2E.Preview.MatchSummary", { matched, total }) };
-  }
 
   /** Read the current form inputs into #input. */
   #readForm() {
@@ -828,7 +468,7 @@ export class GeneratorApp extends SpfApp {
     // Reskin mode renders no level control; keep the GM's level for the
     // other modes instead of resetting it.
     const levelEl = form.querySelector('[name="level"]');
-    const rawLevel = Number(levelEl?.value);
+    const rawLevel = String(levelEl?.value ?? "").trim() === "" ? NaN : Number(levelEl.value);
     const level = !levelEl ? this.#input.level
       : Math.min(levelMax, Math.max(levelMin, Number.isNaN(rawLevel) ? 1 : Math.round(rawLevel)));
     const rarity = form.querySelector('[name="rarity"]')?.value ?? this.#input.rarity;
@@ -839,7 +479,7 @@ export class GeneratorApp extends SpfApp {
     // to the prior #input value like every other optional field here, not a
     // literal default that would silently discard the GM's saved party size.
     const partySizeEl = form.querySelector('[name="partySize"]');
-    const rawPartySize = partySizeEl ? Number(partySizeEl.value) : NaN;
+    const rawPartySize = partySizeEl && String(partySizeEl.value ?? "").trim() !== "" ? Number(partySizeEl.value) : NaN;
     const partySize = partySizeEl
       ? Math.min(8, Math.max(1, Number.isNaN(rawPartySize) ? this.#input.partySize : Math.round(rawPartySize)))
       : this.#input.partySize;
@@ -850,7 +490,8 @@ export class GeneratorApp extends SpfApp {
     const rawAdj = form.querySelector('[name="adjustment"]')?.value ?? this.#input.adjustment;
     const adjustment = rawAdj === "elite" || rawAdj === "weak" ? rawAdj : null;
     const reskinLevelEl = form.querySelector('[name="reskinLevel"]');
-    if (reskinLevelEl && this.#reskinSource) {
+    // A box rendered for an earlier source (a drop still loading) is not this source's level.
+    if (reskinLevelEl && this.#reskinSource && this.#relevelShownFor === this.#reskinSource) {
       const reskinLevel = clampRelevel(reskinLevelEl.value, this.#reskinTargetLevel());
       this.#reskinLevel = reskinLevel === this.#reskinSource.level ? null : reskinLevel;
     }
@@ -882,6 +523,7 @@ export class GeneratorApp extends SpfApp {
    */
   _onRender(context, options) {
     super._onRender?.(context, options);
+    this.#relevelShownFor = this.#reskinSource;
     this.element?.classList?.toggle("spf-busy", Boolean(context?.busy));
     this.element.querySelector("details[data-readiness]")?.addEventListener("toggle", (event) => {
       this.#readinessOpen = event.currentTarget.open;
@@ -898,12 +540,11 @@ export class GeneratorApp extends SpfApp {
         if (preset.treasureAmount) this.#input.treasureAmount = preset.treasureAmount;
       }
       this.#exampleTick++;
+      this._skipFormReadOnce = true;   // show the preset's defaults, do not read the old form back
       this.render();
     });
-    this.element.querySelector('input[name="reskinLevel"]')?.addEventListener("change", () => {
-      this.#readForm();
-      this.render();
-    });
+    // The render reads the form first, so the new re-level is kept.
+    this.element.querySelector('input[name="reskinLevel"]')?.addEventListener("change", () => this.render());
     const dropZone = this.element.querySelector("[data-reskin-drop]");
     if (dropZone) {
       dropZone.addEventListener("dragover", (event) => {
@@ -921,6 +562,8 @@ export class GeneratorApp extends SpfApp {
       radio.addEventListener("change", async () => {
         this.#readForm();
         const selectedMode = this.#input.mode;
+        // The prompt box still holds the previous mode's draft: do not read it back as this mode's.
+        this._skipFormReadOnce = true;
         await this.render();
         // Foundry focuses the first hidden radio after an application render.
         // Restore focus to the mode the GM actually selected so Monster does
@@ -957,7 +600,7 @@ export class GeneratorApp extends SpfApp {
   /** Open the shared Compendium Sources settings app (same as the forge's gear). */
   static #onConfigureSources() {
     this.#readForm();
-    new SourcesConfigApp().render(true);
+    SourcesConfigApp.open();
   }
 
   static async #onTestProvider(_event, target) {
@@ -982,6 +625,7 @@ export class GeneratorApp extends SpfApp {
     this.#readForm();
     const level = clampRelevel(this.#reskinTargetLevel() + delta, this.#reskinTargetLevel());
     this.#reskinLevel = level === this.#reskinSource.level ? null : level;
+    this._skipFormReadOnce = true;   // the re-level box still shows the old level
     this.render();
   }
 
@@ -993,21 +637,34 @@ export class GeneratorApp extends SpfApp {
     await this.#stepMemberCount(Number(target.dataset.index), -1);
   }
 
-  /** Adjust an encounter member's count (0 = skip it) and refresh XP + treasure math. */
-  async #stepMemberCount(index, delta) {
+  /**
+   * Adjust an encounter member's count (0 = skip it) and refresh XP + treasure math.
+   * The count changes at once; the loot re-fit is queued so two quick clicks
+   * cannot resolve out of order. Every queued fit reads the count as it is when
+   * it runs, so the last one always matches the final count.
+   */
+  #stepMemberCount(index, delta) {
     const member = this.#encounter?.members?.[index];
-    if (!member) return;
+    if (!member) return Promise.resolve();
     member.count = Math.min(8, Math.max(0, member.count + delta));
     this.#encounter.spent = this.#encounter.members.reduce((sum, m) => sum + m.count * m.xpEach, 0);
+    const run = this.#stepQueue.then(() => this.#refitMemberLoot(member));
+    this.#stepQueue = run.catch(() => {});
+    return run;
+  }
+
+  /** Re-nudge one member's shared loot toward its current per-copy split, then refresh totals. */
+  async #refitMemberLoot(member) {
     // The group's treasure share (treasureGroupBudget) stays constant; only
     // the per-copy split changes, so re-nudge the shared loot toward the new
     // split (applyTreasureBudget re-targets from whatever the loot currently
     // holds, so calling it again is safe) and refresh that member's actuals.
-    if (member.treasureGroupBudget != null) {
+    if (this.#encounter?.members?.includes(member) && member.treasureGroupBudget != null) {
       member.treasureBudgetEach = member.treasureGroupBudget / Math.max(member.count, 1);
       member.resolved.loot = await applyTreasureBudget(member.resolved.loot, member.treasureBudgetEach);
       member.treasureEach = lootValueGp(member.resolved.loot);
     }
+    if (!this.#encounter) return;
     // Both treasure totals are per-creature × count, which now nets back to
     // each group's constant share regardless of how the stepper is set.
     this.#encounter.treasureBudget = this.#encounter.members.reduce((sum, m) => sum + m.count * (m.treasureBudgetEach ?? 0), 0);
@@ -1045,6 +702,7 @@ export class GeneratorApp extends SpfApp {
     this.#input.level = party.level;
     this.#input.partySize = party.size;
     ui.notifications.info(game.i18n.format("SIMPLYSF2E.Party.Filled", { name: party.name }));
+    this._skipFormReadOnce = true;   // show the party's level and size, do not read the old form back
     await this.render();
   }
 
@@ -1131,18 +789,18 @@ export class GeneratorApp extends SpfApp {
     this.#readForm();
     if (!this.#assertGenerationReady()) return;
     if (this.#input.mode === "reskin") {
-      await this.#generateReskin();
-      if (create && this.#reskinFlavor && !this.#error) await this.#createReskinActor();
+      const fresh = await this.#generateReskin();
+      if (create && fresh && this.#reskinFlavor && !this.#error) await this.#createReskinActor();
       return;
     }
     if (this.#input.mode === "character") {
-      await this.#generatePC(isRandom);
-      if (create && this.#pcConcept && !this.#error) await this.#createCharacterActor();
+      const fresh = await this.#generatePC(isRandom);
+      if (create && fresh && this.#pcConcept && !this.#error) await this.#createCharacterActor();
       return;
     }
     if (this.#input.mode === "encounter") {
       await this.#generateEncounter(isRandom);
-      if (create && this.#encounter && !this.#error) await this.#createEncounterActors();
+      if (create && this.#encounter && !this.#error) await this.#createEncounterActors({ fromRun: true });
       return;
     }
     if (!isRandom && !this.#input.prompt.trim()) {
@@ -1150,7 +808,7 @@ export class GeneratorApp extends SpfApp {
       return;
     }
     this.#stashPreview();
-    this.#busy = true;
+    this.#beginBusy();
     this.#error = null;
     this.#created = null;
     this.#manifest = null;
@@ -1159,16 +817,17 @@ export class GeneratorApp extends SpfApp {
     this.#pcConcept = null;
     this.#pcResolved = null;
     this._tokenUsage = [];
-    const signal = this._beginProgress([
-      ["concept", game.i18n.localize("SIMPLYSF2E.Progress.Concept")],
-      ...(this.#input.allowSpellcasting ? [["spells", game.i18n.localize("SIMPLYSF2E.Progress.Spells")]] : []),
-      ["abilities", game.i18n.localize("SIMPLYSF2E.Progress.Abilities")],
-      ["feats", game.i18n.localize("SIMPLYSF2E.Progress.Feats")],
-      ["equipment", game.i18n.localize("SIMPLYSF2E.Progress.Equipment")],
-      ["loot", game.i18n.localize("SIMPLYSF2E.Progress.Loot")],
-      ["match", game.i18n.localize("SIMPLYSF2E.Progress.Match")]
-    ]);
+    let signal;
     try {
+      signal = this._beginProgress([
+        ["concept", game.i18n.localize("SIMPLYSF2E.Progress.Concept")],
+        ...(this.#input.allowSpellcasting ? [["spells", game.i18n.localize("SIMPLYSF2E.Progress.Spells")]] : []),
+        ["abilities", game.i18n.localize("SIMPLYSF2E.Progress.Abilities")],
+        ["feats", game.i18n.localize("SIMPLYSF2E.Progress.Feats")],
+        ["equipment", game.i18n.localize("SIMPLYSF2E.Progress.Equipment")],
+        ["loot", game.i18n.localize("SIMPLYSF2E.Progress.Loot")],
+        ["match", game.i18n.localize("SIMPLYSF2E.Progress.Match")]
+      ]);
       const gmPrompt = isRandom ? randomBrief(this.#input.mode) : this.#input.prompt;
       const { concept, resolved, manifest } = await generateCreature({
         mode: this.#input.mode,
@@ -1214,7 +873,7 @@ export class GeneratorApp extends SpfApp {
    */
   async #generateEncounter(isRandom = false) {
     this.#stashPreview();
-    this.#busy = true;
+    this.#beginBusy();
     this.#error = null;
     this.#created = null;
     this.#manifest = null;
@@ -1273,14 +932,15 @@ export class GeneratorApp extends SpfApp {
    * single-creature shape, with an extra "abc"/"feats" step. Unlike NPCs, no
    * stats are computed here: the PF2e system derives AC/HP/saves/
    * proficiencies/spell slots itself from the real items this assembles.
+   * @returns {Promise<boolean>} true only when this call stored a new preview
    */
   async #generatePC(isRandom) {
     if (!isRandom && !this.#input.prompt.trim()) {
       ui.notifications.warn(game.i18n.localize("SIMPLYSF2E.Errors.NoPrompt"));
-      return;
+      return false;
     }
     this.#stashPreview();
-    this.#busy = true;
+    this.#beginBusy();
     this.#error = null;
     this.#created = null;
     this.#manifest = null;
@@ -1290,16 +950,18 @@ export class GeneratorApp extends SpfApp {
     this.#pcConcept = null;
     this.#pcResolved = null;
     this._tokenUsage = [];
-    const signal = this._beginProgress([
-      ["concept", game.i18n.localize("SIMPLYSF2E.Progress.PCConcept")],
-      ["abc", game.i18n.localize("SIMPLYSF2E.Progress.ABC")],
-      ["feats", game.i18n.localize("SIMPLYSF2E.Progress.Feats")],
-      ...(this.#input.allowSpellcasting ? [["spells", game.i18n.localize("SIMPLYSF2E.Progress.Spells")]] : []),
-      ["equipment", game.i18n.localize("SIMPLYSF2E.Progress.Equipment")],
-      ["loot", game.i18n.localize("SIMPLYSF2E.Progress.Loot")],
-      ["match", game.i18n.localize("SIMPLYSF2E.Progress.Match")]
-    ]);
+    let signal;
+    let fresh = false;
     try {
+      signal = this._beginProgress([
+        ["concept", game.i18n.localize("SIMPLYSF2E.Progress.PCConcept")],
+        ["abc", game.i18n.localize("SIMPLYSF2E.Progress.ABC")],
+        ["feats", game.i18n.localize("SIMPLYSF2E.Progress.Feats")],
+        ...(this.#input.allowSpellcasting ? [["spells", game.i18n.localize("SIMPLYSF2E.Progress.Spells")]] : []),
+        ["equipment", game.i18n.localize("SIMPLYSF2E.Progress.Equipment")],
+        ["loot", game.i18n.localize("SIMPLYSF2E.Progress.Loot")],
+        ["match", game.i18n.localize("SIMPLYSF2E.Progress.Match")]
+      ]);
       await this._setStep("concept");
       // Multiclass needs Free Archetype. The AI is asked for a second class only
       // when the GM left the picker on "Let the AI decide"; a GM pick never asks it.
@@ -1368,18 +1030,26 @@ export class GeneratorApp extends SpfApp {
       }
 
       // The real class document owns the casting mode and base slot plan.
-      // Variable traditions still need the selected bloodline/patron checked.
+      // A Mystic's or Witchwarper's tradition comes from the Connection or
+      // Paradox planned above (resolvePCConcept ran planClassPaths), never
+      // from the AI; with none proven the class gets no spell entry.
       const castingProfile = pcSpellcastingProfile(resolved.classDoc);
       if (!this.#input.allowSpellcasting) concept.spellcasting = null;
       if (this.#input.allowSpellcasting && castingProfile) {
-        if (!concept.spellcasting && castingProfile.tradition) {
-          concept.spellcasting = { tradition: castingProfile.tradition, spells: [] };
+        const classTradition = classSpellTradition(castingProfile, resolved.pathPlan);
+        if (!classTradition) {
+          console.warn(`${MODULE_ID} | ${resolved.classDoc.name}: spell tradition not proven from the planned class path — no class spell entry`);
+          concept.spellcasting = null;
+        } else if (!concept.spellcasting) {
+          concept.spellcasting = { tradition: classTradition, spells: [] };
         }
-        concept.spellcastingNoticeKey = castingProfile.tradition
-          ? "SIMPLYSF2E.Preview.PCBaseSpellPlan"
-          : "SIMPLYSF2E.Preview.PCVariableSpellPlan";
+        concept.spellcastingNoticeKey = !classTradition
+          ? "SIMPLYSF2E.Preview.PCSpellTraditionUnproven"
+          : castingProfile.tradition
+            ? "SIMPLYSF2E.Preview.PCBaseSpellPlan"
+            : "SIMPLYSF2E.Preview.PCVariableSpellPlan";
         if (concept.spellcasting) {
-          if (castingProfile.tradition) concept.spellcasting.tradition = castingProfile.tradition;
+          concept.spellcasting.tradition = classTradition;
           const plan = pcSpellPlan(concept.level, castingProfile);
           concept.spellcasting.plannedPicks = plan.picks;
           // A spell database (Technomancer) is selected against its own caps; the
@@ -1420,7 +1090,7 @@ export class GeneratorApp extends SpfApp {
           const { dropped } = validateArchetypeSlotPlacement(
             archetypePositions.map((index) => resolved.featSlots[index]),
             archetypePositions.map((index) => resolved.feats[index]),
-            this.#archetypePlacementContext(resolved, concept)
+            archetypePlacementContext(resolved, concept)
           );
           for (const { index, name } of dropped) {
             const position = archetypePositions[index];
@@ -1514,6 +1184,16 @@ export class GeneratorApp extends SpfApp {
       // applyTreasureBudget do its usual coin-only pad/trim against whatever
       // value remains.
       resolved.loot = enforceNamedLootBudget(resolved.loot, lootBudget);
+      // applyTreasureBudget() returns the loot unchanged for a budget of 0
+      // (creature callers rely on that), so a PC whose gear already uses up
+      // the starting wealth would keep every drafted coin line. Drop them here.
+      if (lootBudget <= 0) {
+        const coinLines = resolved.loot.filter((l) => parseCoins(l.name));
+        if (coinLines.length) {
+          resolved.loot = resolved.loot.filter((l) => !parseCoins(l.name));
+          console.warn(`${MODULE_ID} | dropped ${gpToCredits(lootValueGp(coinLines))} credits (credits/UPB) of drafted coin: the PC's gear already uses up the starting wealth`);
+        }
+      }
       resolved.loot = await applyTreasureBudget(resolved.loot, lootBudget);
 
       // If most of the (equipment-adjusted) loot budget still sits as coin
@@ -1521,7 +1201,7 @@ export class GeneratorApp extends SpfApp {
       // real items (issue #64 item 6: PCs were leaving too much unspent
       // gold). Bounded to a single retry.
       const coinGp = lootValueGp(resolved.loot.filter((l) => parseCoins(l.name)));
-      if (coinGp > lootBudget * 0.25) {
+      if (lootBudget > 0 && coinGp > lootBudget * 0.25) {
         try {
           const { loot: draft, usage: extraUsage } = await generatePCLoot({
             concept, amount: this.#input.treasureAmount, onProgress: (p) => this._onAIProgress(p), signal
@@ -1549,6 +1229,7 @@ export class GeneratorApp extends SpfApp {
       this.#pcResolved = resolved;
       this.#markPreview();
       console.debug(`${MODULE_ID} | token usage`, this._tokenUsage);
+      fresh = true;
     } catch (err) {
       this.#noteGenerationFailure(err, "character generation");
       this.#pcConcept = null;
@@ -1559,6 +1240,7 @@ export class GeneratorApp extends SpfApp {
       this._finishRun();
       await this.render();
     }
+    return fresh;
   }
 
   /**
@@ -1700,7 +1382,7 @@ export class GeneratorApp extends SpfApp {
     if (this.#encounter) return this.#createEncounterActors();
     if (this.#pcConcept) return this.#createCharacterActor();
     if (!this.#concept) return;
-    this.#busy = true;
+    this.#beginBusy();
     this.#error = null;
     await this.render();
     let actor = null;
@@ -1716,7 +1398,7 @@ export class GeneratorApp extends SpfApp {
       verifyCreatedActor(actor, this.#manifest, created.expectedItems);
       // The actor now exists. Clear the retryable plan before any presentation
       // work so a sheet-render failure cannot create a duplicate on retry.
-      const grounding = GeneratorApp.#completionContext(this.#manifest);
+      const grounding = completionContext(this.#manifest);
       const createdConcept = this.#concept;
       const createdResolved = this.#resolved;
       const createdMode = this.#previewMeta?.mode;
@@ -1730,13 +1412,13 @@ export class GeneratorApp extends SpfApp {
       if (createdMode === "npc") {
         const handout = await createHandout(actor, createdConcept);
         if (handout) {
-          try { ui.notifications.info(game.i18n.format("SIMPLYSF2E.Handout.Created", { name: actor.name })); }
+          try { ui.notifications.info("SIMPLYSF2E.Handout.Created", { localize: true, format: { name: actor.name }, escape: true }); }
           catch (err) { console.warn(`${MODULE_ID} | handout created, but its notice could not be shown`, err); }
         }
       }
       this.#created.statCheck = GeneratorApp.#statCheckContext([{ concept: createdConcept, resolved: createdResolved, actor }]);
       try {
-        ui.notifications.info(game.i18n.format("SIMPLYSF2E.Generator.Created", { name: actor.name }));
+        ui.notifications.info("SIMPLYSF2E.Generator.Created", { localize: true, format: { name: actor.name }, escape: true });
         await actor.sheet.render(true);
       } catch (err) {
         console.warn(`${MODULE_ID} | actor created, but its sheet could not be displayed`, err);
@@ -1745,7 +1427,7 @@ export class GeneratorApp extends SpfApp {
       }
     } catch (err) {
       if (!committed) {
-        const survivor = await rollbackActor(actor, "unverified actor");
+        const survivor = await rollbackActor(actor, "SIMPLYSF2E.Generator.RollbackUnverifiedActor");
         if (survivor) {
           this.#concept = null;
           this.#resolved = null;
@@ -1753,7 +1435,7 @@ export class GeneratorApp extends SpfApp {
           this.#previewMeta = null;
         }
         console.error(`${MODULE_ID} | actor creation failed`, err);
-        this.#error = survivor ? `${err.message} ${survivor}` : err.message;
+        this.#error = survivor ? `${String(err?.message ?? err ?? "")} ${survivor}` : String(err?.message ?? err ?? "");
         this._recordFailure(err, "actor creation", this.#error);
       } else {
         console.warn(`${MODULE_ID} | actor committed, but completion presentation failed`, err);
@@ -1768,16 +1450,16 @@ export class GeneratorApp extends SpfApp {
    * creature-specific) — the character gets the default portrait. */
   async #createCharacterActor() {
     if (this.#busy || !this.#pcConcept) return;
-    this.#busy = true;
+    this.#beginBusy();
     this.#error = null;
     const applyingMessage = game.i18n.localize("SIMPLYSF2E.Progress.ApplyingCharacter");
     const applyLabel = game.i18n.localize("SIMPLYSF2E.Progress.Apply");
     this.#busyMessage = applyingMessage;
-    this._beginProgress([["apply", applyLabel]], { cancellable: false });
     let created = false;
     let committed = false;
     let actor = null;
     try {
+      this._beginProgress([["apply", applyLabel]], { cancellable: false });
       await this._setStep("apply");
       if (this._progress) this._progress.detail = applyingMessage;
       await this.render();
@@ -1820,8 +1502,8 @@ export class GeneratorApp extends SpfApp {
       verifyCreatedActor(actor, this.#manifest, result.expectedItems);
       // Commit all creation state before any presentation. Rendering and
       // notifications are intentionally unable to roll back valid work.
-      const grounding = GeneratorApp.#completionContext(this.#manifest);
-      const emptyFeatSlots = GeneratorApp.#emptyFeatSlots(this.#pcResolved);
+      const grounding = completionContext(this.#manifest);
+      const emptySlots = emptyFeatSlots(this.#pcResolved);
       this.#pcConcept = null;
       this.#pcResolved = null;
       this.#characterReview = null;
@@ -1832,8 +1514,8 @@ export class GeneratorApp extends SpfApp {
       committed = true;
       // Localized here because the empty-slot line carries its own arguments.
       const notes = (result.manualNotes ?? []).map((key) => game.i18n.localize(key));
-      if (emptyFeatSlots.length) {
-        notes.push(game.i18n.format("SIMPLYSF2E.PC.EmptyFeatSlots", { count: emptyFeatSlots.length, slots: emptyFeatSlots.join(", ") }));
+      if (emptySlots.length) {
+        notes.push(game.i18n.format("SIMPLYSF2E.PC.EmptyFeatSlots", { count: emptySlots.length, slots: emptySlots.join(", ") }));
       }
       if (notes.length) {
         ChatMessage.create({
@@ -1850,7 +1532,7 @@ export class GeneratorApp extends SpfApp {
           review = { choices: [], incomplete: true };
         }
         if (skillReport || review.choices.length || review.incomplete) {
-          const skills = GeneratorApp.#skillReportContext(skillReport);
+          const skills = skillReportContext(skillReport);
           const actionCount = (review.choices?.length ?? 0)
             + (skills?.warnings?.length ?? 0)
             + (skills?.loadoutWarnings?.length ?? 0)
@@ -1859,9 +1541,9 @@ export class GeneratorApp extends SpfApp {
             actionCount, skills };
         }
         if (review.choices.length || review.incomplete || skillReport?.warnings.length || skillReport?.loadoutWarnings?.length) {
-          ui.notifications.warn(game.i18n.format("SIMPLYSF2E.Generator.ReviewCreated", { name: actor.name }));
+          ui.notifications.warn("SIMPLYSF2E.Generator.ReviewCreated", { localize: true, format: { name: actor.name }, escape: true });
         } else {
-          ui.notifications.info(game.i18n.format("SIMPLYSF2E.Generator.Created", { name: actor.name }));
+          ui.notifications.info("SIMPLYSF2E.Generator.Created", { localize: true, format: { name: actor.name }, escape: true });
         }
         await actor.sheet.render(true);
       } catch (err) {
@@ -1871,10 +1553,10 @@ export class GeneratorApp extends SpfApp {
     } catch (err) {
       let survivor = null;
       if (actor && !committed) {
-        survivor = await rollbackActor(actor, "unverified character");
+        survivor = await rollbackActor(actor, "SIMPLYSF2E.Generator.RollbackUnverifiedCharacter");
       } else if (err?.simplySF2eRollbackActor) {
         const stranded = err.simplySF2eRollbackActor;
-        survivor = `incomplete character "${stranded.name}" still exists. The draft was discarded to prevent a duplicate; remove it manually before trying again.`;
+        survivor = game.i18n.format("SIMPLYSF2E.Generator.SurvivorIncompleteCharacter", { name: stranded.name });
       }
       if (survivor) {
         this.#pcConcept = null;
@@ -1885,7 +1567,7 @@ export class GeneratorApp extends SpfApp {
       }
       if (!committed) {
         console.error(`${MODULE_ID} | character actor creation failed`, err);
-        this.#error = survivor ? `${err.message} ${survivor}` : err.message;
+        this.#error = survivor ? `${String(err?.message ?? err ?? "")} ${survivor}` : String(err?.message ?? err ?? "");
         this._recordFailure(err, "character creation", this.#error);
       } else console.warn(`${MODULE_ID} | character committed, but completion presentation failed`, err);
     } finally {
@@ -1931,10 +1613,22 @@ export class GeneratorApp extends SpfApp {
     await this.render();
   }
 
-  /** Create every encounter member, each with closest-match bestiary art. */
-  async #createEncounterActors() {
-    if (this.#busy || !this.#encounter) return;
-    this.#busy = true;
+  /**
+   * Create every encounter member, each with closest-match bestiary art.
+   * `fromRun` is set only by the one-click Generate chain, which owns the
+   * `#createPending` lock itself; a GM click on Create All never passes it.
+   */
+  async #createEncounterActors({ fromRun = false } = {}) {
+    const locked = () => this.#busy || (this.#createPending && !fromRun) || !this.#encounter;
+    if (locked()) return;
+    // Let a queued +/- loot fit land first, so the actors embed loot fitted to the final count.
+    await this.#stepQueue;
+    if (locked()) return;
+    if (this.#encounter.members.every((m) => !(m.count > 0))) {
+      ui.notifications.warn(game.i18n.localize("SIMPLYSF2E.Generator.NoMembers"));
+      return;
+    }
+    this.#beginBusy();
     this.#error = null;
     await this.render();
     let folder = null;
@@ -1970,7 +1664,7 @@ export class GeneratorApp extends SpfApp {
       }
       // Commit before presentation: all writes succeeded, so this plan cannot
       // safely be retried even if the next render fails.
-      const grounding = GeneratorApp.#completionContext(this.#encounter.members.flatMap((member) =>
+      const grounding = completionContext(this.#encounter.members.flatMap((member) =>
         Array.from({ length: member.count }, () => member.manifest)
       ));
       this.#encounter = null;
@@ -1979,9 +1673,9 @@ export class GeneratorApp extends SpfApp {
       committed = true;
       this.#created.statCheck = GeneratorApp.#statCheckContext(checked);
       try {
-        ui.notifications.info(game.i18n.format("SIMPLYSF2E.Generator.CreatedAll", {
-          count: created, name: folder.name
-        }));
+        ui.notifications.info("SIMPLYSF2E.Generator.CreatedAll", {
+          localize: true, format: { count: created, name: folder.name }, escape: true
+        });
       } catch (err) {
         console.warn(`${MODULE_ID} | encounter created, but completion presentation failed`, err);
         try { ui.notifications.warn(game.i18n.localize("SIMPLYSF2E.Generator.CreatedPresentationFailed")); }
@@ -1997,20 +1691,20 @@ export class GeneratorApp extends SpfApp {
       // original error while ensuring a retry cannot duplicate a partial roster.
       const survivors = [];
       for (const actor of actors.reverse()) {
-        const survivor = await rollbackActor(actor, "encounter actor");
+        const survivor = await rollbackActor(actor, "SIMPLYSF2E.Generator.RollbackEncounterActor");
         if (survivor) survivors.push(survivor);
       }
       if (folder) {
         try { await folder.delete(); } catch (cleanupErr) {
           console.warn(`${MODULE_ID} | failed to roll back encounter folder "${folder.name}"`, cleanupErr);
-          survivors.push(`encounter folder "${folder.name}" still exists`);
+          survivors.push(game.i18n.format("SIMPLYSF2E.Generator.SurvivorFolder", { name: folder.name }));
         }
       }
       if (survivors.length) {
         this.#encounter = null;
         this.#previewMeta = null;
-        this.#error = `${err.message} ${survivors.join(" ")} The plan was discarded to prevent a duplicate.`;
-      } else this.#error = err.message;
+        this.#error = `${String(err?.message ?? err ?? "")} ${survivors.join(" ")} ${game.i18n.localize("SIMPLYSF2E.Generator.PlanDiscarded")}`;
+      } else this.#error = String(err?.message ?? err ?? "");
       this._recordFailure(err, "encounter creation", this.#error);
     } finally {
       this.#busy = false;
@@ -2049,6 +1743,8 @@ export class GeneratorApp extends SpfApp {
         ?? actor.system?.details?.level?.value ?? actor.level ?? 0
     };
     this.#reskinLevel = null;
+    this.#previewEpoch += 1;
+    const epoch = this.#previewEpoch;
     const sourceUuid = this.#reskinSource.uuid;
     let data = null;
     let sources = {};
@@ -2060,8 +1756,16 @@ export class GeneratorApp extends SpfApp {
     }
     // Another drop may have started while this one loaded; keep the newer source's preview.
     if (this.#reskinSource?.uuid !== sourceUuid) return;
+    // The source data belongs to the current source either way; keep it in step.
     this.#reskinData = data;
     this.#reskinSources = sources;
+    // A run, create, preview swap or newer drop may have taken over the preview
+    // during the load: it owns the flavor and error now, so leave them alone
+    // (a finished run has already rendered).
+    if (this.#previewEpoch !== epoch || this.#busy || this.#createPending) {
+      await this.render();   // only the source data changed: refresh the re-level rows
+      return;
+    }
     this.#reskinFlavor = null;
     this.#created = null;
     this.#error = null;
@@ -2077,6 +1781,7 @@ export class GeneratorApp extends SpfApp {
     if (this.element) this.#readForm();
     this.#input.mode = "reskin";
     this.#input.prompt = this.#modePrompts.reskin ?? "";
+    this._skipFormReadOnce = true;   // show Reskin, do not read the previous mode's form back
     await this.render({ force: true });   // the form now shows Reskin, so #readForm keeps it
     const actor = await fromUuid(uuid);
     await this.#loadReskinActor(actor);
@@ -2091,23 +1796,26 @@ export class GeneratorApp extends SpfApp {
     return actor.pack ? game.actors.fromCompendium(actor) : actor.toObject();
   }
 
+  /** @returns {Promise<boolean>} true only when this call stored a new preview */
   async #generateReskin() {
     if (!this.#reskinSource) {
       ui.notifications.warn(game.i18n.localize("SIMPLYSF2E.Generator.ReskinNoSource"));
-      return;
+      return false;
     }
     if (!this.#input.prompt.trim()) {
       ui.notifications.warn(game.i18n.localize("SIMPLYSF2E.Errors.NoPrompt"));
-      return;
+      return false;
     }
     this.#stashPreview();
-    this.#busy = true;
+    this.#beginBusy();
     this.#error = null;
     this.#created = null;
     this.#reskinFlavor = null;
     this._tokenUsage = [];
-    const signal = this._beginProgress([["reskin", game.i18n.localize("SIMPLYSF2E.Progress.Reskin")]]);
+    let signal;
+    let fresh = false;
     try {
+      signal = this._beginProgress([["reskin", game.i18n.localize("SIMPLYSF2E.Progress.Reskin")]]);
       await this._setStep("reskin");
       const source = await this.#reskinSourceData();
       const { flavor, usage } = await generateReskin({
@@ -2126,6 +1834,7 @@ export class GeneratorApp extends SpfApp {
       this._throwIfCancelled();
       this.#reskinFlavor = normalizeReskin(flavor, source);
       this.#markPreview();
+      fresh = true;
     } catch (err) {
       this.#noteGenerationFailure(err, "reskin");
       this.#reskinFlavor = null;
@@ -2134,12 +1843,13 @@ export class GeneratorApp extends SpfApp {
       this._finishRun();
       await this.render();
     }
+    return fresh;
   }
 
   async #createReskinActor() {
     if (this.#busy || !this.#reskinFlavor) return;
     const flavor = this.#reskinFlavor;
-    this.#busy = true;
+    this.#beginBusy();
     this.#error = null;
     await this.render();
     try {
@@ -2151,7 +1861,7 @@ export class GeneratorApp extends SpfApp {
       this.#created = { name: actor.name, actorId: actor.id, count: 1, grounding: { total: 0, rows: [] }, statCheck: null };
       await moveToGeneratedFolder(actor, "creature");
       try {
-        ui.notifications.info(game.i18n.format("SIMPLYSF2E.Generator.Created", { name: actor.name }));
+        ui.notifications.info("SIMPLYSF2E.Generator.Created", { localize: true, format: { name: actor.name }, escape: true });
         await actor.sheet.render(true);
       } catch (err) {
         console.warn(`${MODULE_ID} | reskinned actor created, but its sheet could not be displayed`, err);
@@ -2168,10 +1878,11 @@ export class GeneratorApp extends SpfApp {
 
   static async #onRerollLoot() {
     if (this.#busy || !this.#concept) return;
-    this.#busy = true;
+    this.#beginBusy();
     this.#error = null;
-    const signal = this._beginProgress([["loot", game.i18n.localize("SIMPLYSF2E.Progress.LootReroll")]]);
+    let signal;
     try {
+      signal = this._beginProgress([["loot", game.i18n.localize("SIMPLYSF2E.Progress.LootReroll")]]);
       await this._setStep("loot");
       const { loot, usage } = await generateLoot({
         concept: this.#concept,
@@ -2224,11 +1935,12 @@ export class GeneratorApp extends SpfApp {
     if (!current) return;
     const currentName = typeof current === "string" ? current : current.name;
     const slot = `${kind}:${index}`;
-    this.#busy = true;
+    this.#beginBusy();
     this.#error = null;
     const label = game.i18n.localize("SIMPLYSF2E.Progress.PickReroll");
-    const signal = this._beginProgress([["reroll", label]]);
+    let signal;
     try {
+      signal = this._beginProgress([["reroll", label]]);
       await this._setStep("reroll");
       const concept = this.#concept;
       const keywords = rerollKeywords(concept, kind, index);
@@ -2239,7 +1951,7 @@ export class GeneratorApp extends SpfApp {
           : await getAbilityCandidates(keywords);
       const pool = rerollPool(catalog, { concept, kind, index, rejected: [...(this.#rerollRejected.get(slot) ?? [])] });
       if (!pool.length) {
-        ui.notifications.warn(game.i18n.format("SIMPLYSF2E.Generator.RerollPickNone", { name: currentName }));
+        ui.notifications.warn("SIMPLYSF2E.Generator.RerollPickNone", { localize: true, format: { name: currentName }, escape: true });
         return;
       }
       const { candidate, usage } = await selectRerollPick({
@@ -2249,7 +1961,7 @@ export class GeneratorApp extends SpfApp {
       this._recordTokens(label, usage);
       this._throwIfCancelled();
       if (!candidate) {
-        ui.notifications.warn(game.i18n.format("SIMPLYSF2E.Generator.RerollPickInvalid", { name: currentName }));
+        ui.notifications.warn("SIMPLYSF2E.Generator.RerollPickInvalid", { localize: true, format: { name: currentName }, escape: true });
         return;
       }
       let next;
@@ -2258,7 +1970,7 @@ export class GeneratorApp extends SpfApp {
         // The same resolve decision as the early check (builder.mjs rerollAbilityInto).
         const rerolled = await rerollAbilityInto(concept, this.#resolved, { index, candidate });
         if (!rerolled) {
-          ui.notifications.warn(game.i18n.format("SIMPLYSF2E.Generator.RerollPickBlocked", { name: currentName }));
+          ui.notifications.warn("SIMPLYSF2E.Generator.RerollPickBlocked", { localize: true, format: { name: currentName }, escape: true });
           return;
         }
         next = rerolled.concept;
@@ -2360,6 +2072,12 @@ export class GeneratorApp extends SpfApp {
     return new Map([...(source ?? [])].map(([slot, names]) => [slot, new Set(names)]));
   }
 
+  /** Mark a run as started: set busy and take over the preview epoch so a late load leaves it alone. */
+  #beginBusy() {
+    this.#busy = true;
+    this.#previewEpoch += 1;
+  }
+
   /** Move the on-screen preview into Recent generations before anything replaces it. */
   #stashPreview() {
     const entry = this.#capturePreview();
@@ -2373,28 +2091,11 @@ export class GeneratorApp extends SpfApp {
     this.#reskinFlavor = null;
     this.#rerollRejected.clear();
     this.#previewMeta = null;
+    this.#previewEpoch += 1;
   }
 
   #buildRecentContext() {
-    if (!this.#recent.length) return null;
-    const icons = {
-      monster: "fa-dna", npc: "fa-id-badge", encounter: "fa-crosshairs",
-      character: "fa-user-astronaut", reskin: "fa-masks-theater"
-    };
-    const modeKeys = { monster: "Monster", npc: "Npc", encounter: "Encounter", character: "Character", reskin: "Reskin" };
-    return this.#recent.map((entry) => {
-      const mode = game.i18n.localize(`SIMPLYSF2E.Mode.${modeKeys[entry.mode]}`);
-      const time = new Date(entry.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-      return {
-        id: entry.id,
-        mode: entry.mode,
-        icon: icons[entry.mode],
-        name: entry.name || game.i18n.localize("SIMPLYSF2E.Recent.Unnamed"),
-        detail: Number.isFinite(entry.level)
-          ? game.i18n.format("SIMPLYSF2E.Recent.Detail", { mode, level: entry.level, time })
-          : game.i18n.format("SIMPLYSF2E.Recent.DetailNoLevel", { mode, time })
-      };
-    });
+    return buildRecentContext(this.#recent);
   }
 
   /** Bring an earlier preview back on screen; the current one takes its place in the list. */
@@ -2429,6 +2130,7 @@ export class GeneratorApp extends SpfApp {
     // The character review card is about an actor that already exists; keep it.
     this.#created = null;
     this.#error = null;
+    this._skipFormReadOnce = true;   // show the restored mode, do not read the previous mode's form back
     await this.render();
   }
 

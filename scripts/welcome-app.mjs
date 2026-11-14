@@ -107,6 +107,7 @@ export class WelcomeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const { preset, baseUrl, model } = this.#draft();
     const keyless = isLikelyKeylessLocalEndpoint(baseUrl);
     return {
+      sourcesMissing: issue === "sources",
       readinessWarning: issue === "system"
         ? game.i18n.format("SIMPLYSF2E.Welcome.SystemOld", { version: state.system.version, minimum: state.system.minimum })
         : issue === "sources"
@@ -323,11 +324,11 @@ export class WelcomeApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   static #onOpenProvider() {
     if (this.#busy) return;
-    new ProviderSetupApp(() => this.#providerSaved()).render(true);
+    ProviderSetupApp.open(() => this.#providerSaved());
   }
 
   static #onOpenSources() {
-    new SourcesConfigApp().render(true);
+    SourcesConfigApp.open();
   }
 
   static #onRecheck() {

@@ -455,15 +455,21 @@ export async function generateEncounter(input) {
   }, { onError: () => memberAbort.abort() });
 
   await ctx.onStep?.("match", {});
+  // The encounter's budget is split only across groups that carry loot, so a
+  // lootless group does not take a share out of the encounter's total.
+  const lootGroups = members.filter((m) => m.concept.loot.length).length;
   for (const member of members) {
     member.resolved = await resolveConcept(member.concept, { exactContent: true });
     // Treasure is calibrated to the PARTY level and the WHOLE encounter:
     // treasureBudget() returns one encounter's total, split evenly across
-    // groups. A group keeps its constant share (treasureGroupBudget)
+    // the groups that carry loot (lootless groups get 0). A group keeps its constant share (treasureGroupBudget)
     // regardless of copy count — only the per-copy split changes
     // (#stepMemberCount recomputes it the same way).
+    // An encounter's total is the GM Core per-encounter budget whatever the
+    // members' rarity (JT, 2026-11-10): the rarity multiplier is a module
+    // choice for a standalone creature only (generateCreature above).
     member.treasureGroupBudget =
-      member.concept.loot.length ? treasureBudget(partyLevel, member.concept.rarity, treasureAmount) / members.length : 0;
+      member.concept.loot.length ? treasureBudget(partyLevel, "common", treasureAmount) / lootGroups : 0;
     member.treasureBudgetEach = member.treasureGroupBudget / Math.max(member.count, 1);
     member.resolved.loot = await applyTreasureBudget(member.resolved.loot, member.treasureBudgetEach);
     member.manifest = completionManifest({ mode: "monster", concept: member.concept, resolved: member.resolved });

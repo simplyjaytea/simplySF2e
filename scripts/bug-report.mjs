@@ -63,11 +63,25 @@ export function endpointHost(url) {
   }
 }
 
+/**
+ * Path of a stack URL, from the last /modules/ or /systems/ segment, else the
+ * whole pathname. Scheme, userinfo, host, port, query and hash are dropped;
+ * a trailing :line:column is kept.
+ */
+function stackUrlPath(url) {
+  const loc = url.match(/:\d+:\d+$/)?.[0] ?? "";
+  const body = url.slice(0, url.length - loc.length)
+    .replace(/^https?:\/\/[^/?#]*/i, "")
+    .replace(/[?#].*$/, "");
+  const at = Math.max(body.lastIndexOf("/modules/"), body.lastIndexOf("/systems/"));
+  return (at >= 0 ? body.slice(at + 1) : body) + loc;
+}
+
 /** First lines of a stack, without the message line it repeats. */
 export function trimStack(stack, message = "") {
   const lines = String(stack ?? "").split("\n").map((line) => line.trimEnd()).filter(Boolean);
   if (lines.length && message && lines[0].includes(message)) lines.shift();
-  const kept = lines.slice(0, MAX_STACK_LINES);
+  const kept = lines.slice(0, MAX_STACK_LINES).map((line) => line.replace(/https?:\/\/[^\s()"'<>]+/gi, stackUrlPath));
   if (lines.length > kept.length) kept.push(`    ... ${lines.length - kept.length} more lines`);
   return kept.join("\n");
 }

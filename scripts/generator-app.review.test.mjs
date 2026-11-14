@@ -1,10 +1,12 @@
 // Execute the unmodified production app with mocked imports/platform services.
 // No provider calls, Foundry documents, or test-only production hooks.
 import assert from "node:assert/strict";
+import { progressView } from "./progress.mjs";
 import { readFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import vm from "node:vm";
 import * as recentGenerations from "./recent-generations.mjs";
+import { readdirSync } from "node:fs";
 import { reviewUnresolvedChoices } from "./choice-set.mjs";
 import { normalizeSkillPriorities, skillPriorityOrder } from "./pc-skills.mjs";
 import { assertComplete, completionManifest, completionSummary } from "./completion.mjs";
@@ -26,6 +28,7 @@ let previewLoot = [], previewFeats = [];
 let budgetPending = null, budgetStarted = null;
 const notices = [];
 class App {
+  _elapsedUnits() { return { seconds: "s", minutes: "m" }; }
   element = { querySelector: (selector) => selector.includes('name="mode"') ? { value: "character" }
     : selector.includes('name="level"') ? { value: String(generatorLevel) }
       : selector.includes('name="prompt"') ? { value: "A dwarf fighter" }
@@ -47,7 +50,15 @@ class App {
 const context = vm.createContext({
   console: { log() {}, debug() {}, warn() {}, error() {} },
   game: {
-    i18n: { localize: (key) => key, format: (key, data) => (key === "SIMPLYSF2E.PC.EmptyFeatSlots" ? `${key} ${data.count} ${data.slots}` : key) },
+    i18n: { localize: (key) => (/^SIMPLYSF2E\.Preview\.Slot(Ancestry|Class|General|Skill)$/.test(key) ? key.slice(23).toLowerCase() : key), format: (key, data) => {
+      if (key === "SIMPLYSF2E.PC.EmptyFeatSlots") return `${key} ${data.count} ${data.slots}`;
+      if (key === "SIMPLYSF2E.Generator.SurvivorDraft") return `${data.label} "${data.name}" still exists.`;
+      if (key === "SIMPLYSF2E.Generator.SurvivorIncompleteCharacter") return `Incomplete character "${data.name}" still exists.`;
+      if (key === "SIMPLYSF2E.Preview.SpellGem") return `Spell gem of ${data.name} (rank ${data.rank})`;
+      if (key === "SIMPLYSF2E.Preview.SlotLabel") return `${data.type} ${data.level}`;
+      if (key === "SIMPLYSF2E.Preview.SlotLabelArchetype") return `archetype ${data.type} ${data.level}`;
+      return key;
+    } },
     actors: { get: (id) => id === actor?.id ? actor : null },
     settings: { get: () => freeArchetype },
     users: [{ id: "gm", isGM: true }, { id: "player", isGM: false }]
@@ -55,9 +66,16 @@ const context = vm.createContext({
   ChatMessage: { create: async (data) => { whispers.push(data); return data; } },
   ui: { notifications: Object.fromEntries(["info", "warn"].map((kind) => [kind, (text) => notices.push([kind, text])])) }
 });
+// The context builders (generator-context/*.mjs) run outside the vm and read the `game` global.
+globalThis.game = context.game;
+const generatorContext = Object.assign({}, ...await Promise.all(readdirSync(new URL("./generator-context/", import.meta.url))
+  .filter((file) => file.endsWith(".mjs")).map((file) => import(`./generator-context/${file}`))));
 const resolved = () => ({ ancestryDoc: { name: "Dwarf" }, classDoc: { name: "Fighter" },
   backgroundDoc: { name: "Warrior" }, featSlots: previewFeats.map(({ type, level, archetype }) => ({ type, level, archetype, candidates: [] })), feats: previewFeats, spells: [], equipment: [], loot: previewLoot });
 const mocks = {
+  progressView,
+  // The context builders moved out of generator-app.mjs (T-P4): the real ones, so the previews still build.
+  ...generatorContext,
   ...recentGenerations,
   SpfApp: App, MODULE_ID: "simplysf2e", SETTINGS: { freeArchetype: "freeArchetype", generatorInput: "generatorInput" }, getSetting: () => undefined,
   restoreGeneratorInput: (_saved, defaults) => defaults, rememberedInput: (input) => input, reviewUnresolvedChoices, normalizeSkillPriorities, skillPriorityOrder,
@@ -145,7 +163,7 @@ previewLoot = [
 const scrollPreview = await generate();
 assert.deepEqual(Array.from(scrollPreview.context.pcPreview.loot, ({ name, found }) => ({ name, found })), [
   { name: "Spell Gem of Fear (Rank 2) ×2", found: true },
-  { name: "Spell Gem of Heal (Rank 1)", found: true }
+  { name: "Spell gem of Heal (rank 1)", found: true }
 ]);
 previewLoot = [];
 

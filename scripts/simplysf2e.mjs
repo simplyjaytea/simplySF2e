@@ -3,6 +3,7 @@ import { GeneratorApp } from "./generator-app.mjs";
 import { ItemForgeApp } from "./itemforge-app.mjs";
 import { ShopApp } from "./shop-app.mjs";
 import { TreasureApp } from "./treasure-app.mjs";
+import { clearCompendiumCaches, clearCachesForChangedDocument } from "./compendium.mjs";
 import { SourcesConfigApp } from "./sources-app.mjs";
 import { ProviderSetupApp } from "./provider-setup-app.mjs";
 import { WelcomeApp } from "./welcome-app.mjs";
@@ -71,6 +72,8 @@ function openWelcome() {
 function openWhatsNew(notes = null) {
   if (!canOpenApps()) return null;
   const live = foundry.applications.instances?.get?.(WhatsNewApp.DEFAULT_OPTIONS.id);
+  // A manual open on a window already on screen switches it to the manual view.
+  if (live && notes === null) live.showManual();
   whatsNewApp = live ?? new WhatsNewApp({}, notes);
   whatsNewApp.render(true);
   return whatsNewApp;
@@ -256,6 +259,19 @@ Hooks.on("deleteItem", async (item, _options, userId) => {
 });
 
 /*
+ * Compendium caches (indexes, price samples, placeholder documents) follow the
+ * GM's pack choice and the packs' content. `sourcePacks` is a world setting, so
+ * its onChange fires on every client; settings.mjs raises the hook below.
+ * Create/update/delete hooks fire for compendium documents too, with `.pack`
+ * set to the pack id; world documents have no `pack` and are ignored, so an
+ * ordinary actor update never clears anything.
+ */
+Hooks.on("simplysf2e.sourcePacksChanged", () => clearCompendiumCaches());
+for (const name of ["createItem", "updateItem", "deleteItem", "createActor", "updateActor", "deleteActor"]) {
+  Hooks.on(name, (doc) => clearCachesForChangedDocument(doc));
+}
+
+/*
  * The shared v14-dev rest macro still fires this exact hook name on the
  * initiating client, including player clients:
  *   foundryvtt/pf2e@v14-dev src/scripts/macros/rest-for-the-night.ts
@@ -332,7 +348,7 @@ Hooks.on("chatMessage", (_chatLog, message, _chatData) => {
   }
 
   // Parse optional mode and level: e.g. "npc 5 cyberdoc with stolen cyberware"
-  const match = /^(monster|npc|character|encounter)?\s*(-?\d+)?\s*(.*)$/i.exec(args);
+  const match = /^(?:(monster|npc|character|encounter)(?=\s|$))?\s*(-?\d+)?\s*(.*)$/i.exec(args);
   const mode = match?.[1]?.toLowerCase();
   const level = match?.[2] ? Number(match[2]) : null;
   const prompt = match?.[3]?.trim();

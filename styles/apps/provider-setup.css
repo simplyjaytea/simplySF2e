@@ -3,9 +3,8 @@
    Loaded after styles/simplysf2e.css; tokens and shared kit live there.
    ========================================================================== */
 
+/* Root flex column from simplysf2e.css; this window spaces its cards wider. */
 .simplysf2e .simplysf2e-provider-setup {
-  display: flex;
-  flex-direction: column;
   gap: var(--spf-space-lg);
   padding: var(--spf-space-sm);
 }
@@ -15,10 +14,11 @@
 }
 
 .simplysf2e .simplysf2e-provider-setup .spf-hint {
-  margin: 0.15rem 0 0;
+  margin: var(--spf-space-2xs) 0 0;
 }
 
-/* Endpoint and API-key groups: notched cards with console-chip legends. */
+/* Endpoint and API-key groups: notched cards; the console-chip legend is
+   the shared .spf-card > legend rule. */
 .simplysf2e .spf-provider-section {
   display: flex;
   flex-direction: column;
@@ -27,36 +27,17 @@
   padding: var(--spf-space-md) var(--spf-space-lg) var(--spf-space-lg);
 }
 
-.simplysf2e .spf-provider-section legend {
-  font-family: var(--spf-font-display);
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  font-size: var(--spf-text-sm);
-  padding: 0 var(--spf-space-sm);
-  color: var(--spf-brand-accent);
-  background: color-mix(in srgb, var(--spf-brand-dark) 85%, #0c1620);
-  border: 1px solid var(--spf-border);
-  border-radius: var(--spf-radius-sm);
-  box-shadow: var(--spf-inset-glow);
-}
-
 .simplysf2e .spf-provider-presets {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--spf-space-sm);
 }
 
-/* Connection bank: notched frame matching the shared cards. */
+/* Connection bank: the card frame and legend come from spf-card and spf-provider-section. */
 .simplysf2e .spf-connection-bank {
   display: flex;
   flex-direction: column;
   gap: var(--spf-space-xs);
-  border: 1px solid var(--spf-border);
-  background: var(--spf-surface);
-  box-shadow: var(--spf-inset-glow);
-  padding: var(--spf-space-md) var(--spf-space-lg);
-  clip-path: polygon(0 0, calc(100% - var(--spf-cut)) 0, 100% var(--spf-cut), 100% 100%, 0 100%);
 }
 
 .simplysf2e .spf-connection-row {
@@ -100,8 +81,7 @@
   font-weight: bold;
   background: var(--spf-brand-soft);
   border-color: var(--spf-brand-accent);
-  box-shadow: inset 0 0 0 1px var(--spf-brand-accent), var(--spf-neon-glow);
-  text-shadow: 0 0 8px color-mix(in srgb, var(--spf-brand-accent) 60%, transparent);
+  box-shadow: inset 0 0 0 1px var(--spf-brand-accent);
 }
 
 .simplysf2e .spf-provider-clear-key {
@@ -126,6 +106,13 @@
   width: auto;
 }
 
+/* The Jev "key is saved" line sits in the picker row: give it the whole row so
+   Save Jev key and Test Jev stay side by side below it. */
+.simplysf2e .spf-model-picker > .spf-hint {
+  flex: 1 0 100%;
+  margin: 0;
+}
+
 .simplysf2e .spf-price-row {
   display: flex;
   flex-wrap: wrap;
@@ -143,6 +130,9 @@
 .simplysf2e .spf-price-field input {
   width: 100%;
   min-width: 0;
+  /* Prices are numbers the GM compares: tabular figures, right-aligned (S8). */
+  font-variant-numeric: tabular-nums;
+  text-align: end;
 }
 
 .simplysf2e .spf-provider-privacy,
@@ -176,11 +166,6 @@
   text-transform: uppercase;
   font-size: var(--spf-text-sm);
   color: var(--spf-brand-accent);
-}
-
-.simplysf2e .spf-fold-state {
-  font-size: var(--spf-text-sm);
-  color: var(--spf-text-muted);
 }
 
 .simplysf2e .spf-provider-fold[open] > summary {
@@ -237,8 +222,14 @@
 
 /* The local-server hint is only for Ollama, LM Studio and custom endpoints. */
 .simplysf2e .spf-provider-local-hint[hidden],
+.simplysf2e .spf-endpoint-key-hint[hidden],
 .simplysf2e .spf-provider-clear-key[hidden],
 .simplysf2e .spf-jev-warning[hidden],
 .simplysf2e .spf-jev-endpoint[hidden] {
   display: none;
+}
+
+/* A price the validation rejected: the field's border takes the danger colour. */
+.simplysf2e .simplysf2e-provider-setup [aria-invalid="true"] {
+  border-color: var(--spf-danger-fg);
 }

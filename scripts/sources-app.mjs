@@ -12,6 +12,35 @@ const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 export class SourcesConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
   #filter = { query: "", selectedOnly: false };
 
+  /** Open Compendium Sources, or reach the window already open. Use this instead of `new SourcesConfigApp()`. */
+  static open() {
+    const live = foundry.applications.instances?.get?.(SourcesConfigApp.DEFAULT_OPTIONS.id);
+    if (live) {
+      // Not re-rendered: its pack checkboxes may hold unsaved changes.
+      if (live.rendered === false) live.render(true);
+      else SourcesConfigApp.#bringToFront(live);
+      return live;
+    }
+    const app = new SourcesConfigApp();
+    app.render(true);
+    return app;
+  }
+
+  static #bringToFront(live) {
+    if (live.minimized) live.maximize?.();
+    live.bringToFront?.();
+  }
+
+  /** The settings menu builds its own instance under the fixed id: hand over to a window already open. */
+  async render(options = {}, _options = {}) {
+    const live = foundry.applications.instances?.get?.(SourcesConfigApp.DEFAULT_OPTIONS.id);
+    if (live && live !== this && live instanceof SourcesConfigApp && live.rendered !== false) {
+      SourcesConfigApp.#bringToFront(live);
+      return live;
+    }
+    return super.render(options, _options);
+  }
+
   static DEFAULT_OPTIONS = {
     id: "simplysf2e-sources",
     tag: "form",
@@ -97,7 +126,12 @@ export class SourcesConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
       const countEl = root.querySelector("[data-source-filter-count]");
       if (countEl) countEl.textContent = game.i18n.format("SIMPLYSF2E.Sources.FilterStatus", { shown, total });
     };
-    root.querySelector("[data-source-filter]")?.addEventListener("input", update);
+    const filterInput = root.querySelector("[data-source-filter]");
+    filterInput?.addEventListener("input", update);
+    // The filter applies as the GM types. Enter must not submit the form (that saves and closes).
+    filterInput?.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") event.preventDefault();
+    });
     root.querySelector("[data-source-selected-only]")?.addEventListener("change", update);
     for (const cb of root.querySelectorAll("label.spf-pack input[type='checkbox']")) {
       cb.addEventListener("change", () => {

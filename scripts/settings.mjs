@@ -107,7 +107,10 @@ export function registerSettings(SourcesConfigApp, ProviderSetupApp, WelcomeApp,
     scope: "world",
     config: false,
     type: Object,
-    default: {}
+    default: {},
+    // compendium.mjs imports this file, so it cannot be imported back here;
+    // simplysf2e.mjs listens for this hook and clears the compendium caches.
+    onChange: () => Hooks.callAll("simplysf2e.sourcePacksChanged")
   });
 
   // "Don't show this again" on the first-run welcome. Client scope: the AI
@@ -337,6 +340,61 @@ export function registerSettings(SourcesConfigApp, ProviderSetupApp, WelcomeApp,
 
 export function getSetting(key) {
   return game.settings.get(MODULE_ID, key);
+}
+
+const SECRET_QUERY_NAMES = new Set([
+  "key", "apikey", "api-key", "token", "access-token", "auth", "authorization", "secret",
+  "password", "subscription-key", "ocp-apim-subscription-key", "sig", "signature", "code"
+]);
+
+/** Name of the first key-like query parameter ("-" and "_" alike, any case), or "". */
+function findSecretQueryName(url) {
+  for (const name of url.searchParams.keys()) {
+    const folded = name.toLowerCase().replace(/_/g, "-");
+    if (SECRET_QUERY_NAMES.has(folded) || /-(key|token|secret)$/.test(folded)) return name;
+  }
+  return "";
+}
+
+/**
+ * Why an API Base URL must not be saved, or null. "userinfo" = user:pass@ in the
+ * URL; "query-secret" = a key-like query parameter name. The world setting is
+ * readable by every player, so credentials belong in the client-scoped API key.
+ * Unparseable input returns null (the protocol check reports it).
+ */
+export function apiBaseUrlCredentialReason(value) {
+  let url;
+  try { url = new URL(String(value ?? "").trim()); }
+  catch { return null; }
+  if (url.username || url.password) return "userinfo";
+  return findSecretQueryName(url) ? "query-secret" : null;
+}
+
+/**
+ * The reason code (see apiBaseUrlCredentialReason) plus the key-like query
+ * parameter NAME for "query-secret" ("" otherwise). Never the value.
+ */
+export function apiBaseUrlCredentialInfo(value) {
+  const reason = apiBaseUrlCredentialReason(value);
+  if (reason !== "query-secret") return { reason, name: "" };
+  return { reason, name: findSecretQueryName(new URL(String(value).trim())) };
+}
+
+/**
+ * Throw a localized Error naming the cause (never the secret value) when the URL
+ * carries a credential. Used by every path that writes apiBaseUrl.
+ */
+export function assertApiBaseUrlHasNoCredential(value) {
+  const reason = apiBaseUrlCredentialReason(value);
+  if (!reason) return;
+  const i18n = globalThis.game?.i18n;
+  if (reason === "userinfo") {
+    throw new Error(i18n?.localize?.("SIMPLYSF2E.ProviderSetup.BaseUrlHasUserinfo") ?? "BaseUrlHasUserinfo");
+  }
+  const name = findSecretQueryName(new URL(String(value).trim()));
+  throw new Error(
+    i18n?.format?.("SIMPLYSF2E.ProviderSetup.BaseUrlHasSecret", { name }) ?? `BaseUrlHasSecret ${name}`
+  );
 }
 
 /**
@@ -577,6 +635,43 @@ async function persistProviderBank(bank) {
   });
 }
 
+// One queue for every read-modify-write of the client connection bank and the
+// live endpoint/model/key it mirrors. Each task starts only after the previous
+// one has persisted the bank and finished applying live settings, so two quick
+// switches cannot snapshot one connection's values onto another. A rejected
+// task does not block the next one. Not re-entrant: a queued task must call the
+// unqueued *Unlocked helpers below, never a queued public function, or it waits
+// on itself forever.
+let providerBankQueue = Promise.resolve();
+
+export function runProviderBankExclusive(task) {
+  const run = providerBankQueue.then(() => task());
+  providerBankQueue = run.catch(() => {});
+  return run;
+}
+
+/**
+ * Copy the live key, binding, endpoint and model onto `connection`, but only
+ * when the live endpoint and model still equal `expected` (by default the
+ * connection's own stored values, i.e. what was last applied or saved for it).
+ * A mismatch means the world endpoint/model changed under this browser (another
+ * GM client switched or saved): the connection keeps its stored values. Returns
+ * true when copied.
+ */
+function copyLiveSettingsOnto(connection, expected = connection) {
+  const live = snapshotLiveProviderSettings();
+  const wantBaseUrl = normalizeApiBaseUrl(expected?.apiBaseUrl);
+  const wantModel = String(expected?.model ?? "").trim();
+  if (live.apiBaseUrl !== wantBaseUrl || live.model !== wantModel) {
+    console.warn(
+      `${MODULE_ID} | live provider endpoint/model no longer match connection "${connection.name}"; kept its stored values`
+    );
+    return false;
+  }
+  Object.assign(connection, live);
+  return true;
+}
+
 let providerConnectionDepth = 0;
 
 /** True while any withProviderConnectionGuard call is still running. */
@@ -603,7 +698,11 @@ async function applyConnectionToSettings(connection) {
  * settings. Existing worlds keep working; the first setup or save creates one
  * named profile instead of inventing a second configuration.
  */
-export async function ensureProviderBank() {
+export function ensureProviderBank() {
+  return runProviderBankExclusive(ensureProviderBankUnlocked);
+}
+
+async function ensureProviderBankUnlocked() {
   const bank = readProviderBank();
   if (bank.connections.length) return bank;
   const snapshot = snapshotLiveProviderSettings();
@@ -639,7 +738,12 @@ export function getActiveProviderPrices() {
  * whose `field` is "inputPerM" or "outputPerM" on a negative or non-numeric value,
  * before anything is written.
  */
-export async function setActiveProviderPrices({ inputPerM, outputPerM } = {}) {
+export function setActiveProviderPrices(prices = {}) {
+  return runProviderBankExclusive(() => setActiveProviderPricesUnlocked(prices));
+}
+
+/** setActiveProviderPrices for code already running inside runProviderBankExclusive. */
+export async function setActiveProviderPricesUnlocked({ inputPerM, outputPerM } = {}) {
   const parsed = { inputPerM: parsePrice(inputPerM), outputPerM: parsePrice(outputPerM) };
   for (const field of ["inputPerM", "outputPerM"]) {
     if (!parsed[field].error) continue;
@@ -647,7 +751,7 @@ export async function setActiveProviderPrices({ inputPerM, outputPerM } = {}) {
     err.field = field;
     throw err;
   }
-  const bank = await ensureProviderBank();
+  const bank = await ensureProviderBankUnlocked();
   const active = bank.connections.find((connection) => connection.id === bank.activeId);
   if (!active) return null;
   active.inputPerM = parsed.inputPerM.value;
@@ -656,12 +760,26 @@ export async function setActiveProviderPrices({ inputPerM, outputPerM } = {}) {
   return { inputPerM: active.inputPerM, outputPerM: active.outputPerM };
 }
 
-/** Write the live endpoint/key/model into the active named profile. */
-export async function upsertActiveProviderConnection(patch = {}) {
-  const bank = await ensureProviderBank();
+/**
+ * Write the live key and binding into the active named profile (plus endpoint
+ * and model, which must still equal what that profile last applied; see
+ * copyLiveSettingsOnto). `patch.name` renames it.
+ */
+export function upsertActiveProviderConnection(patch = {}) {
+  return runProviderBankExclusive(() => upsertActiveProviderConnectionUnlocked(patch));
+}
+
+/**
+ * upsertActiveProviderConnection for code already running inside
+ * runProviderBankExclusive. `applied` is the `{ apiBaseUrl, model }` this browser has just written on
+ * purpose (a Provider Setup or Welcome save): the live values are checked
+ * against it instead of the profile's stored ones, so a deliberate edit lands.
+ */
+export async function upsertActiveProviderConnectionUnlocked(patch = {}, applied = null) {
+  const bank = await ensureProviderBankUnlocked();
   const active = bank.connections.find((connection) => connection.id === bank.activeId);
   if (!active) return null;
-  Object.assign(active, snapshotLiveProviderSettings());
+  copyLiveSettingsOnto(active, applied ?? active);
   if (patch.name !== undefined) {
     const name = String(patch.name ?? "").trim();
     if (name) active.name = name;
@@ -673,17 +791,21 @@ export async function upsertActiveProviderConnection(patch = {}) {
 /**
  * Activate a stored profile. Live settings become that profile's endpoint,
  * model, key, and exact-URL binding; the previous live values are saved onto
- * the profile being left. Unknown ids fail closed.
+ * the profile being left when they still belong to it. Unknown ids fail closed.
  */
-export async function selectProviderConnection(id) {
+export function selectProviderConnection(id) {
+  return runProviderBankExclusive(() => selectProviderConnectionUnlocked(id));
+}
+
+async function selectProviderConnectionUnlocked(id) {
   const wanted = String(id ?? "").trim();
   if (!wanted) return false;
-  const bank = await ensureProviderBank();
+  const bank = await ensureProviderBankUnlocked();
   const next = bank.connections.find((connection) => connection.id === wanted);
   if (!next) return false;
   if (bank.activeId === next.id) return true;
   const leaving = bank.connections.find((connection) => connection.id === bank.activeId);
-  if (leaving) Object.assign(leaving, snapshotLiveProviderSettings());
+  if (leaving) copyLiveSettingsOnto(leaving);
   bank.activeId = next.id;
   await persistProviderBank(bank);
   await applyConnectionToSettings(next);
@@ -694,62 +816,70 @@ export async function selectProviderConnection(id) {
  * Add a named profile and make it active. New profiles start with no key —
  * they never copy a secret from a different endpoint.
  */
-export async function createProviderConnection({ name, apiBaseUrl, model } = {}) {
-  const bank = await ensureProviderBank();
-  const leaving = bank.connections.find((connection) => connection.id === bank.activeId);
-  if (leaving) Object.assign(leaving, snapshotLiveProviderSettings());
-  const snapshot = {
-    apiBaseUrl: normalizeApiBaseUrl(apiBaseUrl),
-    model: String(model ?? "").trim(),
-    apiKey: "",
-    apiKeyBaseUrl: ""
-  };
-  const connection = {
-    id: newConnectionId(),
-    name: String(name ?? "").trim() || defaultConnectionName(snapshot.apiBaseUrl, snapshot.model),
-    ...snapshot
-  };
-  bank.connections.push(connection);
-  bank.activeId = connection.id;
-  await persistProviderBank(bank);
-  await applyConnectionToSettings(connection);
-  return connection;
+export function createProviderConnection({ name, apiBaseUrl, model } = {}) {
+  return runProviderBankExclusive(async () => {
+    // Fail closed before any write: the URL is stored world-scoped.
+    assertApiBaseUrlHasNoCredential(apiBaseUrl);
+    const bank = await ensureProviderBankUnlocked();
+    const leaving = bank.connections.find((connection) => connection.id === bank.activeId);
+    if (leaving) copyLiveSettingsOnto(leaving);
+    const snapshot = {
+      apiBaseUrl: normalizeApiBaseUrl(apiBaseUrl),
+      model: String(model ?? "").trim(),
+      apiKey: "",
+      apiKeyBaseUrl: ""
+    };
+    const connection = {
+      id: newConnectionId(),
+      name: String(name ?? "").trim() || defaultConnectionName(snapshot.apiBaseUrl, snapshot.model),
+      ...snapshot
+    };
+    bank.connections.push(connection);
+    bank.activeId = connection.id;
+    await persistProviderBank(bank);
+    await applyConnectionToSettings(connection);
+    return connection;
+  });
 }
 
 /** Rename a stored profile. Empty names fail closed. */
-export async function renameProviderConnection(id, name) {
-  const wanted = String(id ?? "").trim();
-  const nextName = String(name ?? "").trim();
-  if (!wanted || !nextName) return false;
-  const bank = await ensureProviderBank();
-  const connection = bank.connections.find((entry) => entry.id === wanted);
-  if (!connection) return false;
-  connection.name = nextName;
-  await persistProviderBank(bank);
-  return true;
+export function renameProviderConnection(id, name) {
+  return runProviderBankExclusive(async () => {
+    const wanted = String(id ?? "").trim();
+    const nextName = String(name ?? "").trim();
+    if (!wanted || !nextName) return false;
+    const bank = await ensureProviderBankUnlocked();
+    const connection = bank.connections.find((entry) => entry.id === wanted);
+    if (!connection) return false;
+    connection.name = nextName;
+    await persistProviderBank(bank);
+    return true;
+  });
 }
 
 /**
  * Remove a stored profile. The last remaining profile cannot be deleted.
  * Deleting the active profile activates another stored connection.
  */
-export async function deleteProviderConnection(id) {
-  const wanted = String(id ?? "").trim();
-  if (!wanted) return false;
-  const bank = await ensureProviderBank();
-  if (bank.connections.length < 2) return false;
-  const remaining = bank.connections.filter((connection) => connection.id !== wanted);
-  if (remaining.length === bank.connections.length) return false;
-  const wasActive = bank.activeId === wanted;
-  bank.connections = remaining;
-  if (wasActive) {
-    bank.activeId = remaining[0].id;
-    await persistProviderBank(bank);
-    await applyConnectionToSettings(remaining[0]);
-  } else {
-    await persistProviderBank(bank);
-  }
-  return true;
+export function deleteProviderConnection(id) {
+  return runProviderBankExclusive(async () => {
+    const wanted = String(id ?? "").trim();
+    if (!wanted) return false;
+    const bank = await ensureProviderBankUnlocked();
+    if (bank.connections.length < 2) return false;
+    const remaining = bank.connections.filter((connection) => connection.id !== wanted);
+    if (remaining.length === bank.connections.length) return false;
+    const wasActive = bank.activeId === wanted;
+    bank.connections = remaining;
+    if (wasActive) {
+      bank.activeId = remaining[0].id;
+      await persistProviderBank(bank);
+      await applyConnectionToSettings(remaining[0]);
+    } else {
+      await persistProviderBank(bank);
+    }
+    return true;
+  });
 }
 
 /**
@@ -774,6 +904,9 @@ export function getProviderRequestConfig() {
     apiKeyIsBound,
     apiKeyInsecure,
     keylessLocal: isLikelyKeylessLocalEndpoint(baseUrl),
+    // Non-blocking: the LIVE stored URL carries a credential ("userinfo", "query-secret") or null.
+    // Never part of getProviderAuthWarningKey: generation keeps working.
+    baseUrlCredential: apiBaseUrlCredentialReason(baseUrl),
     model,
     provider,
     connectionId: active?.id ?? "",
@@ -829,18 +962,31 @@ export function getProviderAuthWarningKey(
  * user was shown. The expected endpoint is checked before and after writing
  * the binding so a concurrent world-setting change fails closed.
  */
-export async function authorizeApiKeyForCurrentBaseUrl(expectedBaseUrl) {
+export function authorizeApiKeyForCurrentBaseUrl(expectedBaseUrl) {
+  return runProviderBankExclusive(async () => {
+    const result = await bindApiKeyToCurrentBaseUrlUnlocked(expectedBaseUrl);
+    if (result === null) return false;
+    await upsertActiveProviderConnectionUnlocked();
+    return result;
+  });
+}
+
+/**
+ * The binding half of authorizeApiKeyForCurrentBaseUrl, without the bank write,
+ * for code already running inside runProviderBankExclusive. Returns null when
+ * nothing was written, false when the endpoint moved and the binding was
+ * cleared again, true when bound.
+ */
+export async function bindApiKeyToCurrentBaseUrlUnlocked(expectedBaseUrl) {
   const apiKey = String(getSetting(SETTINGS.apiKey) ?? "").trim();
   const baseUrl = normalizeApiBaseUrl(getSetting(SETTINGS.apiBaseUrl));
   const expected = normalizeApiBaseUrl(expectedBaseUrl);
-  if (!apiKey || !baseUrl || !expected || baseUrl !== expected) return false;
+  if (!apiKey || !baseUrl || !expected || baseUrl !== expected) return null;
   await game.settings.set(MODULE_ID, SETTINGS.apiKeyBaseUrl, baseUrl);
   if (normalizeApiBaseUrl(getSetting(SETTINGS.apiBaseUrl)) !== expected) {
     await game.settings.set(MODULE_ID, SETTINGS.apiKeyBaseUrl, "");
-    await upsertActiveProviderConnection();
     return false;
   }
-  await upsertActiveProviderConnection();
   return true;
 }
 

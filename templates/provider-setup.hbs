@@ -1,10 +1,11 @@
 <div class="spf-window-body simplysf2e-provider-setup spf-hud">
   <p class="spf-hint">{{localize "SIMPLYSF2E.ProviderSetup.Intro"}}</p>
 
-  <div class="spf-connection-bank">
-    <label for="spf-active-connection">{{localize "SIMPLYSF2E.ProviderSetup.Connections"}}</label>
+  <fieldset class="spf-card spf-provider-section spf-connection-bank">
+    <legend>{{localize "SIMPLYSF2E.ProviderSetup.Connections"}}</legend>
+    <label for="spf-active-connection">{{localize "SIMPLYSF2E.ProviderSetup.ActiveConnection"}}</label>
     <div class="spf-connection-row">
-      <select id="spf-active-connection" name="activeConnection" aria-label="{{localize 'SIMPLYSF2E.ProviderSetup.ActiveConnection'}}">
+      <select id="spf-active-connection" name="activeConnection">
         {{#each connections}}
           <option value="{{this.id}}" {{#if this.active}}selected{{/if}}>{{this.name}}</option>
         {{/each}}
@@ -12,12 +13,12 @@
       <button type="button" data-action="createConnection" data-tooltip="{{localize 'SIMPLYSF2E.ProviderSetup.NewConnection'}}" aria-label="{{localize 'SIMPLYSF2E.ProviderSetup.NewConnection'}}">
         <i aria-hidden="true" class="fa-solid fa-plus"></i>
       </button>
-      <button type="button" data-action="deleteConnection" data-tooltip="{{localize 'SIMPLYSF2E.ProviderSetup.DeleteConnection'}}" aria-label="{{localize 'SIMPLYSF2E.ProviderSetup.DeleteConnection'}}" {{#unless canDeleteConnection}}disabled{{/unless}}>
+      <button type="button" class="spf-danger" data-action="deleteConnection" data-tooltip="{{localize 'SIMPLYSF2E.ProviderSetup.DeleteConnection'}}" aria-label="{{localize 'SIMPLYSF2E.ProviderSetup.DeleteConnection'}}" {{#unless canDeleteConnection}}disabled{{/unless}}>
         <i aria-hidden="true" class="fa-solid fa-trash"></i>
       </button>
     </div>
     <p class="spf-hint">{{localize "SIMPLYSF2E.ProviderSetup.ConnectionsHint"}}</p>
-  </div>
+  </fieldset>
 
   <fieldset class="spf-card spf-provider-section">
     <legend>{{localize "SIMPLYSF2E.ProviderSetup.EndpointLegend"}}</legend>
@@ -39,7 +40,11 @@
     <div class="form-group stacked">
       <label for="spf-provider-base-url">{{localize "SIMPLYSF2E.Settings.ApiBaseUrl.Name"}}</label>
       <input id="spf-provider-base-url" type="url" name="apiBaseUrl" value="{{apiBaseUrl}}" required spellcheck="false" autocomplete="url">
+      {{! Standing warning, never inside a fold: shown while the field holds a user name, password or secret query parameter. Kept in step with the field by provider-setup-app.mjs (#syncStoredUrlWarning). }}
+      <p class="spf-field-error spf-stored-url-warning" aria-live="polite" {{#unless storedUrlWarning}}hidden{{/unless}}><i aria-hidden="true" class="fa-solid fa-triangle-exclamation"></i> <span>{{storedUrlWarning}}</span></p>
       <p class="spf-hint">{{localize "SIMPLYSF2E.ProviderSetup.BaseUrlHint"}}</p>
+      {{! Shown by provider-setup-app.mjs only while a key is saved and this field differs from the saved endpoint. }}
+      <p class="spf-hint spf-endpoint-key-hint" aria-live="polite" hidden><i aria-hidden="true" class="fa-solid fa-key"></i> {{localize "SIMPLYSF2E.ProviderSetup.EndpointKeyHint"}}</p>
     </div>
 
     <div class="form-group stacked">
@@ -60,8 +65,8 @@
     <legend>{{localize "SIMPLYSF2E.ProviderSetup.CredentialsLegend"}}</legend>
     <div class="form-group stacked">
       <label for="spf-provider-api-key">{{localize "SIMPLYSF2E.ProviderSetup.ApiKeyLabel"}}</label>
-      <input id="spf-provider-api-key" type="password" name="apiKey" value="" spellcheck="false" autocomplete="new-password" placeholder="{{#if hasApiKey}}{{localize 'SIMPLYSF2E.ProviderSetup.ApiKeySaved'}}{{else}}{{localize 'SIMPLYSF2E.ProviderSetup.ApiKeyOptional'}}{{/if}}">
-      <p class="spf-hint">{{localize "SIMPLYSF2E.ProviderSetup.ApiKeyHint"}}</p>
+      <input id="spf-provider-api-key" type="password" name="apiKey" value="" spellcheck="false" autocomplete="new-password" placeholder="{{#unless hasApiKey}}{{localize 'SIMPLYSF2E.ProviderSetup.ApiKeyOptional'}}{{/unless}}">
+      {{#if hasApiKey}}<p class="spf-hint spf-key-saved">{{localize "SIMPLYSF2E.ProviderSetup.ApiKeySaved"}}</p>{{/if}}
     </div>
 
     {{#if hasApiKey}}
@@ -71,7 +76,7 @@
       </label>
     {{/if}}
 
-    <p class="notification info spf-provider-privacy"><i aria-hidden="true" class="fa-solid fa-shield-halved"></i> {{localize "SIMPLYSF2E.ProviderSetup.Privacy"}}</p>
+    <p class="spf-hint spf-provider-privacy"><i aria-hidden="true" class="fa-solid fa-shield-halved"></i> {{localize "SIMPLYSF2E.ProviderSetup.Privacy"}}</p>
   </fieldset>
 
   {{! Optional sections fold away. Each opens by itself when it holds a
@@ -91,14 +96,14 @@
         <div class="spf-price-row">
           <label class="spf-price-field" for="spf-price-input">
             <span>{{localize "SIMPLYSF2E.ProviderSetup.PriceInput"}}</span>
-            <input id="spf-price-input" type="number" name="inputPerM" value="{{inputPerM}}" min="0" step="any" inputmode="decimal" placeholder="{{localize 'SIMPLYSF2E.ProviderSetup.PricesPlaceholder'}}">
+            <input id="spf-price-input" type="number" name="inputPerM" value="{{inputPerM}}" min="0" step="any" inputmode="decimal" placeholder="{{localize 'SIMPLYSF2E.ProviderSetup.PricesPlaceholder'}}"{{#if (eq priceErrorField "input")}} aria-invalid="true" aria-describedby="spf-price-error"{{/if}}>
           </label>
           <label class="spf-price-field" for="spf-price-output">
             <span>{{localize "SIMPLYSF2E.ProviderSetup.PriceOutput"}}</span>
-            <input id="spf-price-output" type="number" name="outputPerM" value="{{outputPerM}}" min="0" step="any" inputmode="decimal" placeholder="{{localize 'SIMPLYSF2E.ProviderSetup.PricesPlaceholder'}}">
+            <input id="spf-price-output" type="number" name="outputPerM" value="{{outputPerM}}" min="0" step="any" inputmode="decimal" placeholder="{{localize 'SIMPLYSF2E.ProviderSetup.PricesPlaceholder'}}"{{#if (eq priceErrorField "output")}} aria-invalid="true" aria-describedby="spf-price-error"{{/if}}>
           </label>
         </div>
-        <p class="spf-field-error" data-price-error role="alert" {{#unless priceError}}hidden{{/unless}}><i aria-hidden="true" class="fa-solid fa-circle-exclamation"></i> <span>{{priceError}}</span></p>
+        <p id="spf-price-error" class="spf-field-error" data-price-error role="alert" {{#unless priceError}}hidden{{/unless}}><i aria-hidden="true" class="fa-solid fa-circle-exclamation"></i> <span>{{priceError}}</span></p>
         <p class="spf-hint">{{localize "SIMPLYSF2E.ProviderSetup.PricesHint"}}</p>
       </div>
     </div>
@@ -130,6 +135,7 @@
         <label for="spf-jev-api-key">{{localize "SIMPLYSF2E.ProviderSetup.JevKeyLabel"}}</label>
         <div class="spf-model-picker">
           <input id="spf-jev-api-key" type="password" name="jevApiKey" value="" spellcheck="false" autocomplete="new-password" placeholder="{{jevKeyPlaceholder}}">
+          {{#if hasJevKey}}<p class="spf-hint spf-key-saved">{{localize "SIMPLYSF2E.ProviderSetup.JevKeySaved"}}</p>{{/if}}
           <button type="button" data-action="saveJevKey"><i aria-hidden="true" class="fa-solid fa-bolt"></i> {{localize "SIMPLYSF2E.ProviderSetup.SaveJevKey"}}</button>
           <button type="button" data-action="testJev"><i aria-hidden="true" class="fa-solid fa-signal"></i> {{localize "SIMPLYSF2E.ProviderSetup.TestJev"}}</button>
         </div>
@@ -148,8 +154,9 @@
     <button type="button" class="spf-primary" data-action="saveAndTest">
       <i aria-hidden="true" class="fa-solid fa-signal"></i> {{localize "SIMPLYSF2E.ProviderSetup.SaveTest"}}
     </button>
-    <button type="submit">
-      <i aria-hidden="true" class="fa-solid fa-floppy-disk"></i> {{localize "SIMPLYSF2E.ProviderSetup.SaveAuthorize"}}
+    {{! The native submit is the plain save; Enter in a field runs Save & test instead (provider-setup-app.mjs keydown). }}
+    <button type="submit" class="spf-secondary">
+      <i aria-hidden="true" class="fa-solid fa-floppy-disk"></i> {{localize "SIMPLYSF2E.ProviderSetup.SaveWithoutTest"}}
     </button>
     <button type="button" data-action="cancel">
       <i aria-hidden="true" class="fa-solid fa-xmark"></i> {{localize "SIMPLYSF2E.ProviderSetup.Cancel"}}

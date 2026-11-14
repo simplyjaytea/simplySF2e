@@ -14,10 +14,18 @@ const KINDS = [
 ];
 
 const FORGE_STEPS = [
-  ["templates", "Scanning published items"],
-  ["concept", "Drafting the item"],
-  ["resolve", "Resolving components"]
+  ["templates", localize("SIMPLYSF2E.ItemForge.ProgressTemplates")],
+  ["concept", localize("SIMPLYSF2E.ItemForge.ProgressConcept")],
+  ["assemble", localize("SIMPLYSF2E.ItemForge.ProgressAssemble")]
 ];
+
+const PROMPT_PLACEHOLDERS = {
+  wondrous: localize("SIMPLYSF2E.ItemForge.Placeholder.Wondrous"),
+  weapon: localize("SIMPLYSF2E.ItemForge.Placeholder.Weapon"),
+  armor: localize("SIMPLYSF2E.ItemForge.Placeholder.Armor"),
+  augmentation: localize("SIMPLYSF2E.ItemForge.Placeholder.Augmentation"),
+  crystal: localize("SIMPLYSF2E.ItemForge.Placeholder.Crystal")
+};
 
 export function itemforgeContext(kind, patch = {}) {
   const input = { prompt: "", level: 4, rarity: "common", kind, ...(patch.input ?? {}) };
@@ -29,9 +37,11 @@ export function itemforgeContext(kind, patch = {}) {
     error: null,
     progress: null,
     ...providerContext(),
+    sourcesReady: true, sourcePackCount: 3, sourceMissing: "", jevSource: "key", readinessOpen: false,
     minLevel: 1,
     maxLevel: 20,
     kinds: KINDS.map((k) => ({ ...k, selected: k.value === kind })),
+    promptPlaceholder: PROMPT_PLACEHOLDERS[kind] ?? "e.g. A scorched visor that shields the wearer's mind and lets them see in the dark...",
     rarities: RARITIES,
     unavailableNote: null,
     preview: null,
@@ -57,6 +67,11 @@ const wondrous = (kind = "wondrous") => ({
 });
 
 export default [
+  {
+    id: "itemforge-sources-missing",
+    app: "itemforge",
+    context: itemforgeContext("wondrous", { sourcesReady: false, sourcePackCount: 0, sourceMissing: "Equipment", showEmptyState: true })
+  },
   ...KINDS.map((k) => ({
     id: `itemforge-empty-${k.value}`,
     app: "itemforge",
@@ -123,9 +138,9 @@ export default [
         traits: ["uncommon", "tech"],
         price: "1,350 credits",
         runed: true,
-        grade: "advanced",
+        gradeLabel: "Advanced",
         upgrades: kind === "weapon" ? ["Flaming Module", "Ghost Touch Module"] : ["Hardened Plating"],
-        skippedNote: kind === "armor" ? "No free upgrade slot on this base, so these were not installed: Servo Assist." : null,
+        skippedNote: kind === "armor" ? localize("SIMPLYSF2E.ItemForge.UpgradesSkipped", { upgrades: "Servo Assist" }) : null,
         potency: 0,
         secondary: null,
         propertyRunes: []

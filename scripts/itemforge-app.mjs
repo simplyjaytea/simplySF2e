@@ -15,6 +15,31 @@ import { createActivationMacro } from "./macro-templates.mjs";
 import { SourcesConfigApp } from "./sources-app.mjs";
 import { gpToCredits } from "./currency.mjs";
 import { SpfApp } from "./app-base.mjs";
+import { progressView } from "./progress.mjs";
+import { getPacksFor, describeMissingSources } from "./compendium.mjs";
+import { jevKeySource } from "./jev.mjs";
+
+/* Prompt placeholder per kind tile. Literal keys so i18n-keys.test.mjs sees them as used;
+ * an unknown kind falls back to the generic ItemForge.PromptPlaceholder. */
+const PROMPT_PLACEHOLDER_KEYS = {
+  wondrous: "SIMPLYSF2E.ItemForge.Placeholder.Wondrous",
+  weapon: "SIMPLYSF2E.ItemForge.Placeholder.Weapon",
+  armor: "SIMPLYSF2E.ItemForge.Placeholder.Armor",
+  augmentation: "SIMPLYSF2E.ItemForge.Placeholder.Augmentation",
+  crystal: "SIMPLYSF2E.ItemForge.Placeholder.Crystal"
+};
+
+/* Localized label per equipment grade slug (EQUIPMENT_GRADES, runes.mjs). Literal
+ * keys so i18n-keys.test.mjs sees them as used. An unknown slug shows no grade. */
+const GRADE_LABEL_KEYS = {
+  commercial: "SIMPLYSF2E.ItemForge.GradeCommercial",
+  tactical: "SIMPLYSF2E.ItemForge.GradeTactical",
+  advanced: "SIMPLYSF2E.ItemForge.GradeAdvanced",
+  superior: "SIMPLYSF2E.ItemForge.GradeSuperior",
+  elite: "SIMPLYSF2E.ItemForge.GradeElite",
+  ultimate: "SIMPLYSF2E.ItemForge.GradeUltimate",
+  paragon: "SIMPLYSF2E.ItemForge.GradeParagon"
+};
 
 /**
  * The item forge: describe a wondrous magic item → AI concept constrained to
@@ -57,6 +82,7 @@ export class ItemForgeApp extends SpfApp {
   #input = { prompt: "", level: 4, rarity: "common", kind: "wondrous" };
   #busy = false;
   #error = null;
+  #readinessOpen = false;
   #concept = null;
   /** Which pipeline the current #concept/#itemData came from — set at generation time. */
   #kind = "wondrous";
@@ -72,7 +98,15 @@ export class ItemForgeApp extends SpfApp {
   /** Effect kinds with no real exemplar in this world (set after first scan). */
   #unavailableKinds = null;
 
+  _onRender(context, options) {
+    super._onRender?.(context, options);
+    this.element?.querySelector("details[data-readiness]")?.addEventListener("toggle", (event) => {
+      this.#readinessOpen = event.currentTarget.open;
+    });
+  }
+
   async _prepareContext() {
+    const equipmentPacks = getPacksFor("equipment");
     const authState = getProviderRequestConfig();
     const authWarningKey = getProviderAuthWarningKey(authState);
     return {
@@ -82,7 +116,7 @@ export class ItemForgeApp extends SpfApp {
       lastRunCost: this._formatLastRunCost(),
       error: this.#error,
       canReportBug: this._canReportBug(this.#error),
-      progress: this._progress,
+      progress: progressView(this._progress, this._elapsedUnits()),
       apiKeyWarning: authWarningKey ? game.i18n.localize(authWarningKey) : null,
       providerBaseUrl: authState.baseUrl,
       provider: authState.provider,
@@ -90,10 +124,16 @@ export class ItemForgeApp extends SpfApp {
       connections: authState.connections ?? [],
       canSwitchConnection: (authState.connections?.length ?? 0) > 1,
       providerReady: !authWarningKey,
+      sourcesReady: equipmentPacks.length > 0,
+      sourcePackCount: equipmentPacks.length,
+      sourceMissing: equipmentPacks.length ? "" : describeMissingSources(["equipment"]),
+      jevSource: jevKeySource(),
+      readinessOpen: this.#readinessOpen,
       canAuthorizeApiKey: Boolean(
         authState.baseUrl && authState.hasConfiguredApiKey && !authState.apiKeyIsBound && !authState.apiKeyInsecure
       ),
       model: authState.model,
+      promptPlaceholder: game.i18n.localize(PROMPT_PLACEHOLDER_KEYS[this.#input.kind] ?? "SIMPLYSF2E.ItemForge.PromptPlaceholder"),
       minLevel: MIN_ITEM_LEVEL,
       maxLevel: MAX_ITEM_LEVEL,
       kinds: [
@@ -128,7 +168,7 @@ export class ItemForgeApp extends SpfApp {
       traits: [concept.rarity !== "common" ? concept.rarity : null, ...concept.traits].filter(Boolean),
       usage: concept.usage,
       bulk: concept.bulk === 0.1 ? "L" : concept.bulk === 0 ? "—" : String(concept.bulk),
-      price: `${gpToCredits(this.#price).toLocaleString()} credits`,
+      price: game.i18n.format("SIMPLYSF2E.ItemForge.PriceCredits", { amount: gpToCredits(this.#price).toLocaleString() }),
       invested: concept.invested,
       effects: concept.effects.map((e) => describeEffect(e)),
       hasEffects: concept.effects.length > 0,
@@ -162,15 +202,16 @@ export class ItemForgeApp extends SpfApp {
     const data = this.#itemData;
     const preview = this.#runedPreview;
     const priceCredits = preview.priceCredits ?? gpToCredits(preview.priceGp);
-    const priceText = `${priceCredits.toLocaleString()} credits`;
+    const priceText = game.i18n.format("SIMPLYSF2E.ItemForge.PriceCredits", { amount: priceCredits.toLocaleString() });
     const skipped = preview.skippedUpgrades ?? [];
+    const gradeKey = GRADE_LABEL_KEYS[preview.grade ?? data.system.grade ?? "commercial"];
     return {
       skippedNote: skipped.length ? game.i18n.format("SIMPLYSF2E.ItemForge.UpgradesSkipped", { upgrades: skipped.join(", ") }) : null,
       concept: { name: data.name, level: preview.level, description: this.#concept?.description ?? "" },
       traits: [data.system.traits?.rarity !== "common" ? data.system.traits?.rarity : null, ...(data.system.traits?.value ?? [])].filter(Boolean),
       price: priceText,
       runed: true,
-      grade: preview.grade ?? data.system.grade ?? "commercial",
+      gradeLabel: gradeKey ? game.i18n.localize(gradeKey) : null,
       upgrades: preview.upgrades ?? this.#concept?.upgrades ?? [],
       propertyRunes: this.#concept?.propertyRunes ?? []
     };
@@ -201,7 +242,7 @@ export class ItemForgeApp extends SpfApp {
   /** Open the shared Compendium Sources settings app (same as the generator's gear). */
   static #onConfigureSources() {
     this.#readForm();
-    new SourcesConfigApp().render(true);
+    SourcesConfigApp.open();
   }
 
   static async #onTestProvider(_event, target) {
@@ -223,6 +264,7 @@ export class ItemForgeApp extends SpfApp {
     if (!validKinds.has(kind)) return;
     this.#readForm();
     this.#input = { ...this.#input, kind };
+    this._skipFormReadOnce = true;   // show the input just set, do not read the old form back
     await this.render();
   }
 
@@ -242,35 +284,41 @@ export class ItemForgeApp extends SpfApp {
     }
     this.#busy = true;
     this.#error = null;
+    // Keep the previous preview (and its token report) on screen until this run
+    // produces a replacement: the run works on locals and the preview fields
+    // (including #kind, which the preview and Create read) are assigned only at
+    // the very end of a success; a failed or cancelled run puts the old usage back.
+    const previousUsage = this._tokenUsage;
     this._tokenUsage = [];
-    this.#kind = this.#input.kind;
-    this.#clearPreview();
     this.#unavailableKinds = null;
-    if (CONCEPT_ITEM_KINDS.has(this.#kind)) {
-      await this.#generateWondrous();
-    } else {
-      await this.#generateRuned(this.#kind);
-    }
+    const kind = this.#input.kind;
+    const succeeded = CONCEPT_ITEM_KINDS.has(kind)
+      ? await this.#generateWondrous(kind)
+      : await this.#generateRuned(kind);
+    if (!succeeded) this._tokenUsage = previousUsage;
+    await this.render();
   }
 
-  async #generateWondrous() {
-    const signal = this._beginProgress([
-      ["templates", game.i18n.localize("SIMPLYSF2E.ItemForge.ProgressTemplates")],
-      ["concept", game.i18n.localize("SIMPLYSF2E.ItemForge.ProgressConcept")],
-      ["assemble", game.i18n.localize("SIMPLYSF2E.ItemForge.ProgressAssemble")]
-    ]);
+  async #generateWondrous(kind) {
+    let signal = null;
+    let succeeded = false;
     try {
+      signal = this._beginProgress([
+        ["templates", game.i18n.localize("SIMPLYSF2E.ItemForge.ProgressTemplates")],
+        ["concept", game.i18n.localize("SIMPLYSF2E.ItemForge.ProgressConcept")],
+        ["assemble", game.i18n.localize("SIMPLYSF2E.ItemForge.ProgressAssemble")]
+      ]);
       // 1. Ground truth first: which effect kinds have real rule exemplars
       // in this world's compendiums? Only those are offered to the AI.
       await this._setStep("templates");
       // Implanted and "other" items are never invested, so effects that need
       // investment are not offered for them.
-      const fixedUsage = KIND_USAGE[this.#kind];
+      const fixedUsage = KIND_USAGE[kind];
       const effectCatalog = (await getForgeEffectCatalog(this.#input.level, this.#input.rarity))
         .filter((effect) => !fixedUsage || !effect.exemplar?.requiresInvestment);
       const availableKinds = [...new Set(effectCatalog.map((effect) => effect.kind))];
       this.#unavailableKinds = EFFECT_KINDS.filter((k) => !availableKinds.includes(k));
-      const usageOptions = await getUsageOptions(this.#kind);
+      const usageOptions = await getUsageOptions(kind);
 
       // 2. One AI call, constrained to the available kinds and real usages.
       await this._setStep("concept");
@@ -281,37 +329,40 @@ export class ItemForgeApp extends SpfApp {
         availableKinds,
         effectCatalog,
         usageOptions,
-        kind: this.#kind,
+        kind,
         onProgress: (p) => this._onAIProgress(p), signal
       });
       this._recordTokens(game.i18n.localize("SIMPLYSF2E.ItemForge.ProgressConcept"), usage);
 
       // 3. Normalize defensively and price from the empirical benchmark.
       await this._setStep("assemble");
-      this.#itemData = null;
-      this.#runedPreview = null;
-      this.#concept = normalizeMagicItemConcept(raw, {
+      const concept = normalizeMagicItemConcept(raw, {
         level: this.#input.level,
         rarity: this.#input.rarity,
         availableKinds,
         effectCatalog,
         usageOptions,
-        kind: this.#kind
+        kind
       });
-      this.#price = await priceForLevel(this.#concept.level, this.#concept.rarity);
+      const price = await priceForLevel(concept.level, concept.rarity);
       this._throwIfCancelled();
+      this.#kind = kind;
+      this.#itemData = null;
+      this.#runedPreview = null;
+      this.#concept = concept;
+      this.#price = price;
+      succeeded = true;
       console.debug(`${MODULE_ID} | token usage`, this._tokenUsage);
     } catch (err) {
       if (err?.cancelled) console.warn(`${MODULE_ID} | item generation cancelled`);
       else console.error(`${MODULE_ID} | item generation failed`, err);
-      this.#error = err.message;
+      this.#error = String(err?.message ?? err ?? "");
       this._recordFailure(err, "item generation", this.#error);
-      this.#concept = null;
     } finally {
       this.#busy = false;
       this._finishRun();
-      await this.render();
     }
+    return succeeded;
   }
 
   /**
@@ -321,12 +372,14 @@ export class ItemForgeApp extends SpfApp {
    * documents at generation time — see item-builder.mjs's buildRunedItem.
    */
   async #generateRuned(kind) {
-    const signal = this._beginProgress([
-      ["templates", game.i18n.localize("SIMPLYSF2E.ItemForge.ProgressCandidates")],
-      ["concept", game.i18n.localize("SIMPLYSF2E.ItemForge.ProgressConcept")],
-      ["assemble", game.i18n.localize("SIMPLYSF2E.ItemForge.ProgressAssemble")]
-    ]);
+    let signal = null;
+    let succeeded = false;
     try {
+      signal = this._beginProgress([
+        ["templates", game.i18n.localize("SIMPLYSF2E.ItemForge.ProgressCandidates")],
+        ["concept", game.i18n.localize("SIMPLYSF2E.ItemForge.ProgressConcept")],
+        ["assemble", game.i18n.localize("SIMPLYSF2E.ItemForge.ProgressAssemble")]
+      ]);
       // 1. Ground truth first: real base items, real property runes, and
       // which fundamental rune tiers actually fit under the target level.
       await this._setStep("templates");
@@ -361,29 +414,29 @@ export class ItemForgeApp extends SpfApp {
       // documents to compute the final name/price/level right away — a runed
       // item's preview IS its final data, there is no separate build step.
       await this._setStep("assemble");
-      this.#concept = normalizeRunedItemConcept(raw, {
+      const concept = normalizeRunedItemConcept(raw, {
         kind, rarity: this.#input.rarity, level: this.#input.level, baseCandidates, runeCandidates,
         grades: gradeTiers.grades,
         potencyTiers: tiers.potencyTiers, secondaryTiers: tiers.secondaryTiers
       });
-      const built = await buildRunedItem(this.#concept);
+      const built = await buildRunedItem(concept);
       this._throwIfCancelled();
+      this.#kind = kind;
+      this.#concept = concept;
       this.#itemData = built.itemData;
       this.#runedPreview = built.preview;
+      succeeded = true;
       console.debug(`${MODULE_ID} | token usage`, this._tokenUsage);
     } catch (err) {
       if (err?.cancelled) console.warn(`${MODULE_ID} | runed item generation cancelled`);
       else console.error(`${MODULE_ID} | runed item generation failed`, err);
-      this.#error = err.message;
-      this._recordFailure(err, `${this.#kind} generation`, this.#error);
-      this.#concept = null;
-      this.#itemData = null;
-      this.#runedPreview = null;
+      this.#error = String(err?.message ?? err ?? "");
+      this._recordFailure(err, `${kind} generation`, this.#error);
     } finally {
       this.#busy = false;
       this._finishRun();
-      await this.render();
     }
+    return succeeded;
   }
 
   static async #onCreateItem() {
@@ -412,7 +465,7 @@ export class ItemForgeApp extends SpfApp {
             ui.notifications.warn(game.i18n.localize("SIMPLYSF2E.ItemForge.MacroFailed"));
           }
         }
-        ui.notifications.info(game.i18n.format("SIMPLYSF2E.ItemForge.Created", { name: item.name }));
+        ui.notifications.info("SIMPLYSF2E.ItemForge.Created", { localize: true, format: { name: item.name }, escape: true });
         await item.sheet.render(true);
       } catch (err) {
         console.error(`${MODULE_ID} | created item presentation failed`, err);
@@ -420,7 +473,7 @@ export class ItemForgeApp extends SpfApp {
       }
     } catch (err) {
       console.error(`${MODULE_ID} | item creation failed`, err);
-      this.#error = err.message;
+      this.#error = String(err?.message ?? err ?? "");
       this._recordFailure(err, "item creation", this.#error);
     } finally {
       this.#busy = false;

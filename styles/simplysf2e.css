@@ -15,6 +15,24 @@
    #40256f, --color-bg-trait #2d4f6a, --color-border-trait #9edae6,
    --color-proficiency-master #3a7b59, --color-proficiency-legendary
    #98503d. No system sheet art or logos are loaded.
+
+   The theme as a system (docs/ui-overhaul-plan.md §1): every effect has one
+   job, the same in every window. Everything idle is still.
+   - Magenta: the one primary action (gradient, glow, text-shadow).
+   - Cyan: system state, HUD labels and legends; flat.
+   - Per-mode tints: the active mode tile and the statblock rule only.
+   - Red / green: danger / success, always with a word or icon.
+   - Glow ("live"): .spf-primary, the active mode tile, the running
+     progress card. Never on a static frame.
+   - Sheen ("working"): the progress fill while a run works.
+   - Pulse ("waiting for you"): a panel that needs a GM decision.
+   - Blink ("active step"): the current progress step only.
+   - Scan lines ("standby"): empty-state panels only.
+   - Notch and corner ticks: outer cards only; nested panels are plain.
+   - Uppercase + letter-spacing: labels only: legends, chips, status keys
+     (table column headers, stat keys, token heading, fold titles); never
+     headings or buttons, whose hierarchy is size and weight.
+   - Colours, spacing (4/8 px) and type sizes come from the tokens below.
    ========================================================================== */
 
 .simplysf2e {
@@ -41,15 +59,25 @@
   --spf-surface-raised: color-mix(in srgb, var(--spf-brand-mid) 38%, rgba(8, 16, 26, 0.78));
   --spf-console: color-mix(in srgb, var(--spf-brand-dark) 55%, rgba(8, 16, 26, 0.88));
   /* HUD glow + texture */
+  /* Glow: "this is live". Only the active mode tile (and the Forge kind
+     tile) wears it; .spf-primary has its magenta --spf-neon-glow. */
   --spf-glow: 0 0 10px color-mix(in srgb, var(--spf-brand-accent) 42%, transparent);
+  /* The running progress card's glow: inset, because the card's notched
+     clip-path cuts any outer shadow away. */
+  --spf-live-glow: inset 0 0 14px color-mix(in srgb, var(--spf-brand-accent) 28%, transparent);
   --spf-neon-violet: 0 0 12px color-mix(in srgb, var(--spf-brand-secondary) 60%, transparent);
   --spf-inset-glow: inset 0 1px 0 color-mix(in srgb, var(--spf-brand-accent) 32%, transparent);
+  /* Sheen: the highlight that sweeps a progress fill while a run works. */
+  --spf-sheen: color-mix(in srgb, var(--spf-brand-accent) 70%, transparent);
   --spf-scan: color-mix(in srgb, var(--spf-brand-accent) 7%, transparent);
   --spf-grid-line: color-mix(in srgb, var(--spf-brand-accent) 5%, transparent);
   /* Neon Drift: magenta primary + per-mode accents */
   --spf-neon: #ff2e88;
   --spf-neon-soft: color-mix(in srgb, var(--spf-neon) 16%, transparent);
   --spf-neon-glow: 0 0 12px color-mix(in srgb, var(--spf-neon) 45%, transparent);
+  /* Deep magenta stops under the primary gradient (keep its label >= 4.5:1). */
+  --spf-neon-deep: #5c0f2e;
+  --spf-neon-deepest: #2a0614;
   --spf-amber: #ffb347;
   --spf-mode-monster: #b78cff;
   --spf-mode-npc: #9edae6;
@@ -58,20 +86,50 @@
   --spf-mode-reskin: #6ef2c2;
   --spf-cut: 14px;
   --spf-tick: 0.5rem;
-  /* Spacing scale */
+  /* Spacing scale on a 4/8 px rhythm (D1). sm was 0.35rem (5.6px) and now
+     shares the 4px step with xs; 2xs is the 2px hairline for segmented
+     controls and tight label/value stacks. */
+  --spf-space-2xs: 0.125rem;
   --spf-space-xs: 0.25rem;
-  --spf-space-sm: 0.35rem;
+  --spf-space-sm: 0.25rem;
   --spf-space-md: 0.5rem;
   --spf-space-lg: 0.75rem;
   --spf-space-xl: 1rem;
   /* Type + shape: sans + sharper corners, not PF2e parchment */
+  /* Type scale: hierarchy from size and weight, not from uppercase (D3).
+     xs is the HUD label size (chips, tags, table keys); md is a panel
+     heading that lost its uppercase and needs the size back. */
+  --spf-text-md: 1rem;
   --spf-text-sm: 0.85rem;
-  --spf-text-xs: 0.85rem;
+  --spf-text-xs: 0.78rem;
   --spf-font-display: var(--font-sans, "Signika", sans-serif);
   --spf-font-mono: var(--font-monospace, ui-monospace, "Cascadia Code", monospace);
   --spf-radius: 2px;
   --spf-radius-sm: 1px;
   --spf-icon-btn: 1.8rem;
+  /* Compact icon button (in-row remove, reroll dice, status-bar gear/test):
+     1.5rem = 24px, the minimum pointer target (WCAG 2.5.8). */
+  --spf-icon-btn-sm: 1.5rem;
+  /* Window reading surface behind every card. */
+  --spf-window-bg: #0c1620;
+  /* One step below the window surface: the pinned Sources action bar. */
+  --spf-window-bg-deep: #0a121b;
+  /* Pure black, only as a mix stop for the window frame's outer ring. */
+  --spf-ink: #000;
+  /* Progress track behind the fill, and its inset shade. */
+  --spf-track: rgba(8, 16, 28, 0.7);
+  --spf-track-shade: rgba(0, 0, 0, 0.45);
+  /* Faint lift behind a What's new note (quiet: an earlier note). */
+  --spf-note-bg: rgba(255, 255, 255, 0.04);
+  --spf-note-bg-quiet: rgba(255, 255, 255, 0.025);
+  /* Text or glyph on a filled control (success fill, active tile). */
+  --spf-on-fill: #fff;
+  /* Warning text and glyphs: the cited warning orange lifted toward peach so
+     it reads on the navy surfaces (11.5:1 on --spf-surface). */
+  --spf-warning-fg: #ffd2b8;
+  /* A lone warning glyph on the navy strip: the cited orange lifted toward
+     peach so the icon clears 3:1 non-text contrast. */
+  --spf-warning-icon: color-mix(in srgb, var(--spf-warning) 55%, var(--spf-warning-fg));
 }
 
 /* --------------------------------------------------------------------------
@@ -84,11 +142,10 @@
   min-width: 340px;
   min-height: 220px;
   max-width: 100vw;
-  border: 1px solid var(--spf-brand-accent, #9edae6);
+  border: 1px solid var(--spf-brand-accent);
   box-shadow:
-    0 0 0 1px color-mix(in srgb, #1d3c53 78%, #000),
-    0 0 16px color-mix(in srgb, #9edae6 16%, transparent),
-    inset 0 1px 0 color-mix(in srgb, #9edae6 55%, transparent);
+    0 0 0 1px color-mix(in srgb, var(--spf-brand-dark) 78%, var(--spf-ink)),
+    inset 0 1px 0 color-mix(in srgb, var(--spf-brand-accent) 55%, transparent);
 }
 
 .application.simplysf2e .window-header {
@@ -97,14 +154,12 @@
     repeating-linear-gradient(90deg, transparent 0 3px, var(--spf-grid-line) 3px 4px),
     linear-gradient(
     90deg,
-    #1d3c53,
-    color-mix(in srgb, #40256f 28%, #2d4f6a)
+    var(--spf-brand-dark),
+    color-mix(in srgb, var(--spf-brand-secondary) 28%, var(--spf-brand-mid))
   );
   border-bottom: 1px solid var(--spf-neon);
   box-shadow: 0 1px 0 color-mix(in srgb, var(--spf-neon) 60%, transparent);
-  color: #e8f6fa;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
+  color: var(--spf-text);
 }
 
 .application.simplysf2e .window-header .window-title {
@@ -114,22 +169,28 @@
 /* Keep reading surfaces plain; texture belongs to chrome and empty space. */
 .application.simplysf2e .window-content {
   container: spf-window / inline-size;
-  background: #0c1620;
-  color: #e8f6fa;
+  background: var(--spf-window-bg);
+  color: var(--spf-text);
 }
 
+/* Scan lines mean "standby": every empty-state panel wears them (the
+   window empty hints, no saved presets, no packs found, an empty Sources
+   category, no filter match) and nothing else in a window body does. */
 .simplysf2e .spf-empty,
 .simplysf2e .spf-hud-empty,
-.simplysf2e .spf-source-empty {
+.simplysf2e .spf-source-empty,
+.simplysf2e .spf-source-no-match,
+.simplysf2e .spf-source-category > .spf-hint {
   background:
     repeating-linear-gradient(0deg, transparent 0 3px, var(--spf-scan) 3px 4px),
     repeating-linear-gradient(90deg, transparent 0 3px, var(--spf-grid-line) 3px 4px),
     var(--spf-surface);
 }
 
-/* Busy window chrome keeps the magenta bottom edge under its glow. */
+/* Busy window chrome: the magenta bottom edge goes solid. No glow: the
+   running progress card is the one live element while a run works. */
 .application.simplysf2e.spf-busy .window-header {
-  box-shadow: 0 0 12px color-mix(in srgb, var(--spf-neon) 45%, transparent), 0 1px 0 var(--spf-neon);
+  box-shadow: 0 1px 0 var(--spf-neon);
 }
 
 /* --------------------------------------------------------------------------
@@ -184,6 +245,19 @@
   clip-path: polygon(100% 0, 100% 100%, 0 100%);
 }
 
+/* The HUD frame (notch and corner ticks) belongs to outer cards only. A
+   panel inside a card (encounter members, stat check, review list,
+   provenance tags) is plain; should a card ever nest, it drops the frame. */
+.simplysf2e .spf-card .spf-card {
+  clip-path: none;
+  box-shadow: none;
+}
+
+.simplysf2e .spf-card .spf-card::before,
+.simplysf2e .spf-card .spf-card::after {
+  content: none;
+}
+
 .simplysf2e .spf-icon-btn {
   flex: 0 0 auto;
   display: inline-grid;
@@ -193,7 +267,8 @@
   padding: 0;
   line-height: 1;
   background: var(--spf-surface);
-  border: 1px solid var(--spf-border);
+  /* Control edge, not a divider: >= 3:1 on card and surface (S1). */
+  border: 1px solid var(--spf-control-border);
   color: var(--spf-brand-accent);
 }
 
@@ -202,12 +277,10 @@
    box-shadow would be clipped away. */
 .simplysf2e button.spf-primary {
   /* Deep magenta keeps the light label >= 4.5:1 across the whole gradient. */
-  background: linear-gradient(180deg, color-mix(in srgb, var(--spf-neon) 72%, #5c0f2e), color-mix(in srgb, var(--spf-neon) 46%, #2a0614));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--spf-neon) 72%, var(--spf-neon-deep)), color-mix(in srgb, var(--spf-neon) 46%, var(--spf-neon-deepest)));
   border: 1px solid var(--spf-neon);
   color: var(--spf-text);
   font-weight: 700;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
   text-shadow: 0 0 8px color-mix(in srgb, var(--spf-brand-accent) 40%, transparent);
   box-shadow: var(--spf-inset-glow), var(--spf-neon-glow), inset 0 0 14px color-mix(in srgb, var(--spf-brand-secondary) 32%, transparent);
   clip-path: polygon(0 0, calc(100% - var(--spf-cut)) 0, 100% var(--spf-cut), 100% 100%, 0 100%);
@@ -219,11 +292,26 @@
   text-shadow: 0 0 10px color-mix(in srgb, var(--spf-brand-accent) 70%, transparent);
 }
 
+/* A primary that cannot be pressed (busy, missing input) goes flat: no
+   gradient, glow or text-shadow, so the most saturated element on screen
+   is never one the GM cannot use (S13). Keeps the notch shape. */
+.simplysf2e button.spf-primary:disabled {
+  /* The clip-path cuts the border at the notch, which left the corner open;
+     the first layer draws the 1px edge along the cut so the flat button
+     reads as one intact shape. */
+  background:
+    linear-gradient(to bottom left, transparent 50%, var(--spf-border) 50% calc(50% + 1px), transparent calc(50% + 1px)) top right / var(--spf-cut) var(--spf-cut) no-repeat border-box,
+    var(--spf-surface);
+  border-color: var(--spf-border);
+  color: var(--spf-text-muted);
+  box-shadow: none;
+  text-shadow: none;
+}
+
 .simplysf2e button.spf-secondary {
   background: var(--spf-surface);
-  border: 1px solid var(--spf-border);
+  border: 1px solid var(--spf-control-border);
   color: var(--spf-text-muted);
-  letter-spacing: 0.04em;
 }
 
 .simplysf2e button.spf-secondary:not(:disabled):hover {
@@ -240,10 +328,41 @@
   border-color: var(--spf-brand-accent);
 }
 
-.simplysf2e :is(button, input, select, textarea, summary):focus-visible {
+/* One focus ring for every control, including the Generator's mode tiles
+   (a label around a visually hidden radio). */
+.simplysf2e :is(button, input, select, textarea, summary):focus-visible,
+.simplysf2e .spf-mode-toggle label:focus-within {
   outline: 2px solid var(--spf-focus);
   outline-offset: 1px;
-  box-shadow: var(--spf-glow);
+}
+
+/* Destructive action (Discard, Delete, Reset): flat, red text and edge,
+   never a glow. Templates also carry an icon so colour is not the only cue,
+   and place the button last in its row (see .spf-actions .spf-danger).
+   Follows the secondary and generic hover rules so it wins at equal
+   specificity when a button carries both classes. */
+.simplysf2e button.spf-danger {
+  background: var(--spf-surface);
+  border: 1px solid color-mix(in srgb, var(--spf-danger-fg) 70%, var(--spf-control-border));
+  color: var(--spf-danger-fg);
+  box-shadow: none;
+  text-shadow: none;
+}
+
+.simplysf2e button.spf-danger:not(:disabled):hover {
+  background: color-mix(in srgb, var(--spf-danger) 22%, var(--spf-surface));
+  border-color: var(--spf-danger-fg);
+  color: var(--spf-danger-fg);
+}
+
+.simplysf2e button.spf-danger:focus-visible {
+  outline-color: var(--spf-danger-fg);
+  box-shadow: none;
+}
+
+.simplysf2e .spf-danger i {
+  margin-inline-end: var(--spf-space-xs);
+  vertical-align: -0.05em;
 }
 
 /* The notched clip-path would cut the outline off, so a focused primary
@@ -253,27 +372,24 @@
   outline-offset: 2px;
 }
 
+/* Explanations recede: one type step below body text and the muted colour
+   at 80% over its surface. Still >= 4.5:1 (7.3:1 on --spf-surface-raised,
+   8.6:1 on --spf-window-bg, 5.2:1 on a --spf-brand-soft tint). */
 .simplysf2e .spf-hint {
-  font-size: var(--spf-text-sm);
-  color: var(--spf-text-muted);
+  font-size: var(--spf-text-xs);
+  color: color-mix(in srgb, var(--spf-text-muted) 80%, transparent);
   margin: var(--spf-space-xs) 0;
 }
 
+/* Standby panel: the scan-line texture says "nothing here yet"; one short
+   line of text, left-aligned, compact padding from the space scale (S15). */
 .simplysf2e .spf-empty {
-  text-align: center;
-  padding: var(--spf-space-xl);
+  text-align: start;
+  padding: var(--spf-space-md) var(--spf-space-lg);
   border: 1px dashed var(--spf-border);
   border-radius: var(--spf-radius);
   color: var(--spf-text-muted);
   font-style: normal;
-  letter-spacing: 0.02em;
-}
-
-.simplysf2e .spf-model {
-  color: var(--spf-text-muted);
-  font-size: var(--spf-text-sm);
-  font-family: var(--spf-font-mono);
-  letter-spacing: 0.02em;
 }
 
 .simplysf2e .spf-sr-only {
@@ -345,7 +461,7 @@
      if Foundry does not clamp the window to the screen itself. */
   max-height: 80vh;
   overscroll-behavior: contain;
-  scrollbar-color: var(--spf-brand-dark) #0c1620;
+  scrollbar-color: var(--spf-brand-dark) var(--spf-window-bg);
 }
 
 /* A fixed-height window (Sources) never runs past a short screen. */
@@ -370,13 +486,30 @@
 }
 
 /* --------------------------------------------------------------------------
-   Generator + item forge body (both roots carry .simplysf2e-generator)
+   Window roots: one flex column. Generator, Item Forge, Shop and Treasure
+   all carry .simplysf2e-generator; Provider Setup and Welcome widen the gap
+   and padding in their own stylesheets.
    -------------------------------------------------------------------------- */
-.simplysf2e .simplysf2e-generator {
+.simplysf2e .simplysf2e-generator,
+.simplysf2e .simplysf2e-manage-presets,
+.simplysf2e .simplysf2e-sources,
+.simplysf2e .simplysf2e-whats-new,
+.simplysf2e .simplysf2e-provider-setup,
+.simplysf2e .simplysf2e-welcome {
   display: flex;
   flex-direction: column;
   gap: var(--spf-space-md);
   padding: var(--spf-space-xs);
+}
+
+/* Muted small text: secondary detail lines in every window. */
+.simplysf2e .spf-recent-detail,
+.simplysf2e .spf-relevel-unchanged > summary,
+.simplysf2e .spf-fold-state,
+.simplysf2e .spf-treasure-each,
+.simplysf2e .spf-whats-new-body {
+  color: var(--spf-text-muted);
+  font-size: var(--spf-text-sm);
 }
 
 /* --------------------------------------------------------------------------
@@ -387,7 +520,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.15rem var(--spf-space-sm);
+  gap: var(--spf-space-2xs) var(--spf-space-sm);
   min-width: 0;
   padding: var(--spf-space-xs) var(--spf-space-md);
   border: 1px solid var(--spf-border);
@@ -410,9 +543,7 @@
 
 .simplysf2e .spf-provider-name strong {
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
   color: var(--spf-text);
 }
 
@@ -429,12 +560,19 @@
   width: auto;
 }
 
+/* Names (model ids, connection, actor and item names) wrap, never an
+   ellipsis: .spf-wrap-name is the shared utility for window templates; the
+   status-bar model id gets it here (S11). Content width first, so a model
+   id that does not fit moves to its own line before it breaks. */
+.simplysf2e .spf-wrap-name,
 .simplysf2e .spf-provider-model {
-  flex: 1 1 6rem;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.simplysf2e .spf-provider-model {
+  flex: 1 1 auto;
   color: var(--spf-text-muted);
   font-family: var(--spf-font-mono);
 }
@@ -445,6 +583,7 @@
 
 .simplysf2e .spf-last-run {
   font-size: var(--spf-text-xs);
+  font-variant-numeric: tabular-nums;
   color: var(--spf-text-muted);
   white-space: nowrap;
   min-width: 0;
@@ -463,8 +602,9 @@
 .simplysf2e .spf-provider-actions button {
   display: inline-grid;
   place-items: center;
-  width: 1.45rem;
-  height: 1.45rem;
+  /* 24px minimum pointer target (G14). */
+  width: var(--spf-icon-btn-sm);
+  height: var(--spf-icon-btn-sm);
   min-height: 0;
   padding: 0;
   border: 0;
@@ -490,9 +630,9 @@
 }
 
 /* The cited warning orange is too dark for a lone glyph on the navy strip;
-   lift it toward peach so the icon clears 3:1 non-text contrast. */
+   --spf-warning-icon lifts it toward peach so the icon clears 3:1. */
 .simplysf2e .spf-provider-attention .spf-provider-state {
-  color: color-mix(in srgb, var(--spf-warning) 55%, #ffd2b8);
+  color: var(--spf-warning-icon);
 }
 
 .simplysf2e .spf-provider-warning {
@@ -529,10 +669,10 @@
   flex-direction: column;
   gap: 0;
   padding: var(--spf-space-xs) var(--spf-space-md);
-  border: 1px solid color-mix(in srgb, var(--spf-mode-accent, var(--spf-brand-accent)) 55%, var(--spf-border));
+  border: 1px solid color-mix(in srgb, var(--spf-brand-accent) 55%, var(--spf-border));
   border-radius: var(--spf-radius);
   background: var(--spf-surface);
-  box-shadow: var(--spf-inset-glow), 0 0 10px color-mix(in srgb, var(--spf-mode-accent, var(--spf-brand-accent)) 14%, transparent);
+  box-shadow: var(--spf-inset-glow);
   clip-path: polygon(0 0, calc(100% - var(--spf-cut)) 0, 100% var(--spf-cut), 100% 100%, 0 100%);
 }
 
@@ -583,7 +723,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 0.1rem var(--spf-space-lg);
+  gap: var(--spf-space-2xs) var(--spf-space-lg);
 }
 
 .simplysf2e .spf-readiness-item {
@@ -610,13 +750,13 @@
 }
 
 .simplysf2e .spf-readiness-detail {
-  margin: 0 0 var(--spf-space-xs) 0.2rem;
+  margin: 0 0 var(--spf-space-xs) var(--spf-space-xs);
   border-left: 1px solid var(--spf-border);
 }
 
 .simplysf2e .spf-statusbar .spf-readiness-detail .spf-provider-summary {
   border-left: 0;
-  padding-block: 0.15rem;
+  padding-block: var(--spf-space-2xs);
 }
 
 .simplysf2e .spf-statusbar .spf-readiness-detail .spf-provider-summary + .spf-provider-summary {
@@ -626,8 +766,9 @@
 /* --------------------------------------------------------------------------
    Input form (shared by generator + item forge)
    -------------------------------------------------------------------------- */
-/* HUD readout legends: console chips instead of bare text. */
-.simplysf2e .spf-inputs legend {
+/* HUD readout legends: console chips instead of bare text, on every card
+   fieldset (input forms, Provider Setup, Welcome). */
+.simplysf2e .spf-card > legend {
   font-family: var(--spf-font-display);
   font-variant: normal;
   font-weight: 700;
@@ -636,7 +777,7 @@
   font-size: var(--spf-text-sm);
   padding: 0 var(--spf-space-sm);
   color: var(--spf-brand-accent);
-  background: color-mix(in srgb, var(--spf-brand-dark) 85%, #0c1620);
+  background: color-mix(in srgb, var(--spf-brand-dark) 85%, var(--spf-window-bg));
   border: 1px solid var(--spf-border);
   border-radius: var(--spf-radius-sm);
   box-shadow: var(--spf-inset-glow);
@@ -646,7 +787,7 @@
 .simplysf2e .spf-inputs select,
 .simplysf2e .spf-inputs input[type="number"],
 .simplysf2e .spf-preset-controls select {
-  background: color-mix(in srgb, var(--spf-brand-dark) 55%, rgba(8, 16, 26, 0.88));
+  background: var(--spf-console);
   border: 1px solid var(--spf-control-border);
   color: var(--spf-text);
   border-radius: var(--spf-radius-sm);
@@ -673,7 +814,7 @@
   align-items: stretch;
   flex: 1 1 8.5rem;
   min-width: 0;
-  gap: 0.15rem;
+  gap: var(--spf-space-2xs);
   margin: 0;
 }
 
@@ -692,7 +833,7 @@
 
 .simplysf2e .spf-level-controls {
   display: flex;
-  gap: 0.2rem;
+  gap: var(--spf-space-xs);
   align-items: center;
 }
 
@@ -723,7 +864,7 @@
   width: var(--spf-icon-btn);
   height: auto;
   min-height: var(--spf-icon-btn);
-  border-color: var(--spf-border);
+  border-color: var(--spf-control-border);
   color: var(--spf-brand-accent);
 }
 
@@ -740,11 +881,14 @@
   border-color: color-mix(in srgb, var(--spf-brand-accent) 70%, var(--spf-border));
 }
 
+/* Steps: a left-aligned wrapping row, so every row starts at the card's
+   left edge (centred, the rows wrapped ragged on both sides). */
 .simplysf2e .spf-progress-steps {
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
+  justify-content: flex-start;
   gap: var(--spf-space-xs) var(--spf-space-sm);
+  text-align: start;
   list-style: none;
   margin: 0;
   padding: 0;
@@ -758,7 +902,7 @@
   align-items: center;
   gap: var(--spf-space-xs);
   white-space: nowrap;
-  padding: 0.15rem 0.45rem;
+  padding: var(--spf-space-2xs) var(--spf-space-md);
   border: 1px solid transparent;
   border-radius: var(--spf-radius-sm);
 }
@@ -767,14 +911,21 @@
   color: var(--spf-text-muted);
 }
 
+/* Pending pip: a small solid dot (same icon style as done/active, S4). */
+.simplysf2e .spf-step-pending i {
+  font-size: 0.55em;
+  opacity: 0.8;
+}
+
 .simplysf2e .spf-step-active {
   font-weight: 700;
   color: var(--spf-text);
   border-color: var(--spf-neon);
   background: var(--spf-neon-soft);
-  box-shadow: inset 0 0 0 1px var(--spf-brand-accent), var(--spf-neon-glow);
+  box-shadow: inset 0 0 0 1px var(--spf-brand-accent);
 }
 
+/* Blink: the current step only. */
 .simplysf2e .spf-step-active i {
   color: var(--spf-neon);
   animation: spf-telemetry-blink 1.1s ease-in-out infinite;
@@ -788,15 +939,30 @@
   color: var(--spf-success-fg);
 }
 
+/* Step telemetry: a finished step's elapsed time, or "running" on the active
+   step. A status value, not a label: no uppercase, muted, tabular. Empty on
+   pending steps, which stay dots. */
+.simplysf2e .spf-step-elapsed {
+  font-size: var(--spf-text-xs);
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--spf-text-muted);
+}
+
+.simplysf2e .spf-step-elapsed:empty {
+  display: none;
+}
+
 .simplysf2e .spf-progress-bar {
   height: 0.7rem;
-  border: 1px solid color-mix(in srgb, var(--spf-brand-accent) 50%, #0c1620);
+  border: 1px solid color-mix(in srgb, var(--spf-brand-accent) 50%, var(--spf-window-bg));
   border-radius: var(--spf-radius-sm);
   background:
     repeating-linear-gradient(90deg, transparent 0 calc(10% - 1px), color-mix(in srgb, var(--spf-brand-accent) 20%, transparent) calc(10% - 1px) 10%)
-    rgba(8, 16, 28, 0.7);
+    var(--spf-track);
   overflow: hidden;
-  box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.45), 0 0 8px color-mix(in srgb, var(--spf-brand-accent) 18%, transparent);
+  box-shadow: inset 0 0 8px var(--spf-track-shade);
 }
 
 .simplysf2e .spf-progress-fill {
@@ -816,7 +982,7 @@
   position: absolute;
   inset: 0;
   width: 42%;
-  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--spf-brand-accent) 70%, transparent), transparent);
+  background: linear-gradient(90deg, transparent, var(--spf-sheen), transparent);
   animation: spf-step-slide 1.2s ease-in-out infinite;
 }
 
@@ -837,9 +1003,10 @@
   display: none;
 }
 
-.simplysf2e .spf-progress-thinking,
-.simplysf2e .spf-progress-writing {
-  animation: spf-hud-pulse 2.6s ease-in-out infinite;
+/* Glow: the running progress card is live (static, not a pulse: the busy
+   card does not wait for the GM). A cancelling run is no longer live. */
+.simplysf2e .spf-progress:not(.spf-progress-cancelling) {
+  box-shadow: var(--spf-inset-glow), var(--spf-live-glow);
 }
 
 .simplysf2e .spf-cancel {
@@ -851,9 +1018,10 @@
   100% { margin-left: 100%; }
 }
 
-@keyframes spf-hud-pulse {
-  0%, 100% { box-shadow: var(--spf-inset-glow); }
-  50% { box-shadow: var(--spf-inset-glow), 0 0 14px color-mix(in srgb, var(--spf-brand-accent) 28%, transparent); }
+/* Pulse: "waiting for you". The left rail of a panel that needs a GM
+   decision fades to the divider colour and back (generator.css). */
+@keyframes spf-await-pulse {
+  50% { border-left-color: var(--spf-border); }
 }
 
 @keyframes spf-telemetry-blink {
@@ -870,7 +1038,6 @@
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.14em;
   color: var(--spf-brand-accent);
-  text-shadow: 0 0 8px color-mix(in srgb, var(--spf-brand-accent) 65%, transparent);
 }
 
 .simplysf2e .spf-progress-detail {
@@ -879,10 +1046,16 @@
   font-size: var(--spf-text-sm);
   color: var(--spf-text-muted);
   min-height: 1.2em;
-  letter-spacing: 0.02em;
 }
 
 /* Per-step token usage shown under the finished preview */
+/* Inline reroll dice beside a spell, feat or ability: the compact icon
+   size, which still meets the 24px target (G14). Higher specificity than
+   the window stylesheet's local --spf-icon-btn override. */
+.simplysf2e button.spf-reroll-pick {
+  --spf-icon-btn: var(--spf-icon-btn-sm);
+}
+
 /* --------------------------------------------------------------------------
    Data tables (Shop stock, Treasure items): short narrow-window headings.
    .spf-col-full is the real label; in a narrow window it becomes visually
@@ -893,6 +1066,110 @@
 .simplysf2e .spf-col-short,
 .simplysf2e .spf-item-sub {
   display: none;
+}
+
+/* Shop stock and Treasure items share one table: the wrap scrolls sideways
+   inside its own box on a narrow window, so the window body never does.
+   Window stylesheets keep only their column widths and extra rows. */
+.simplysf2e .spf-table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--spf-border);
+  border-radius: var(--spf-radius);
+}
+
+.simplysf2e .spf-table {
+  width: 100%;
+  margin: 0;
+  border-collapse: collapse;
+  font-size: var(--spf-text-sm);
+  background: var(--spf-surface);
+}
+
+.simplysf2e .spf-table th,
+.simplysf2e .spf-table td {
+  padding: var(--spf-space-sm) var(--spf-space-md);
+  text-align: left;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--spf-grid-line);
+}
+
+.simplysf2e .spf-table thead th {
+  color: var(--spf-text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: var(--spf-text-xs);
+  background: var(--spf-surface-raised);
+  border-bottom: 1px solid var(--spf-border);
+  white-space: nowrap;
+}
+
+.simplysf2e .spf-table tbody th {
+  font-weight: 600;
+  color: var(--spf-text);
+}
+
+.simplysf2e .spf-table tbody tr:hover {
+  background: var(--spf-brand-soft);
+}
+
+/* The cell rule above left-aligns; number cells stay right-aligned. */
+.simplysf2e .spf-table .spf-num {
+  text-align: right;
+}
+
+.simplysf2e .spf-table td:last-child {
+  width: calc(var(--spf-icon-btn) + var(--spf-space-md) * 2);
+  text-align: right;
+}
+
+/* Rarity tag beside an item name. */
+.simplysf2e .spf-table .spf-trait {
+  margin-left: var(--spf-space-xs);
+}
+
+/* Dense rows: the remove button takes the small icon token and less padding. */
+.simplysf2e .spf-table .spf-icon-btn {
+  width: var(--spf-icon-btn-sm, var(--spf-icon-btn));
+  height: var(--spf-icon-btn-sm, var(--spf-icon-btn));
+  padding-block: var(--spf-space-xs);
+}
+
+/* Narrow: item names wrap by word, fixed numeric and remove columns keep
+   the buttons aligned (column widths live in shop.css and treasure.css). */
+@container spf-window (max-width: 520px) {
+  .simplysf2e .spf-table {
+    table-layout: fixed;
+  }
+
+  .simplysf2e .spf-table th,
+  .simplysf2e .spf-table td {
+    box-sizing: border-box;
+    padding-inline: var(--spf-space-xs);
+  }
+
+  .simplysf2e .spf-table tbody th {
+    padding-left: var(--spf-space-sm);
+  }
+
+  .simplysf2e .spf-table thead th:first-child { width: auto; padding-left: var(--spf-space-sm); }
+  .simplysf2e .spf-table thead th:last-child { width: calc(var(--spf-icon-btn) + var(--spf-space-xs) * 2); }
+
+  .simplysf2e .spf-table td:last-child {
+    width: auto;
+    text-align: center;
+  }
+}
+
+/* Number cells the GM compares (level, price, quantity, old/new value):
+   right-aligned tabular figures, never wrapped. Window stylesheets keep
+   only their column widths (S8). */
+.simplysf2e .spf-num {
+  text-align: end;
+  font-family: var(--spf-font-mono);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .simplysf2e .spf-item-name {
@@ -917,7 +1194,7 @@
 
   .simplysf2e .spf-item-sub {
     display: block;
-    margin-top: 0.1rem;
+    margin-top: var(--spf-space-2xs);
     font-weight: 400;
     font-size: 0.92em;
     color: var(--spf-text-muted);
@@ -973,6 +1250,7 @@
 /* Token usage: collapsed run summary (total + cost) above the actions. */
 .simplysf2e .spf-token-report {
   margin-top: var(--spf-space-md);
+  font-variant-numeric: tabular-nums;
   padding-top: var(--spf-space-xs);
   border-top: 1px solid var(--spf-border);
   font-size: var(--spf-text-sm);
@@ -983,7 +1261,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 0.1rem var(--spf-space-md);
+  gap: var(--spf-space-2xs) var(--spf-space-md);
 }
 
 .simplysf2e .spf-token-heading {
@@ -1008,13 +1286,13 @@
 .simplysf2e .spf-token-steps {
   list-style: none;
   margin: 0 0 var(--spf-space-xs);
-  padding: var(--spf-space-xs) 0 0 1.05rem;
+  padding: var(--spf-space-xs) 0 0 var(--spf-space-xl);
   border-left: 1px solid var(--spf-border);
-  margin-left: 0.2rem;
+  margin-left: var(--spf-space-xs);
 }
 
 .simplysf2e .spf-token-steps li + li {
-  margin-top: 0.15rem;
+  margin-top: var(--spf-space-2xs);
 }
 
 /* --------------------------------------------------------------------------
@@ -1032,8 +1310,9 @@
   padding-bottom: var(--spf-space-xs);
 }
 
-/* Tinted by the generator's per-mode accent; the item forge falls back to
-   the brand accent. */
+/* Mode tint (D2): the statblock rule is one of the two places that carry
+   the generator's per-mode accent (the other is the active mode tile); the
+   item forge falls back to the brand accent. */
 .simplysf2e .simplysf2e-generator .spf-statblock-header {
   border-bottom-color: color-mix(in srgb, var(--spf-mode-accent, var(--spf-brand-accent)) 75%, transparent);
 }
@@ -1045,8 +1324,7 @@
   border: none;
   font-family: var(--spf-font-display);
   font-variant: normal;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-weight: 700;
   color: var(--spf-text);
   overflow-wrap: anywhere;
 }
@@ -1055,10 +1333,10 @@
   display: inline-flex;
   align-items: center;
   gap: 0.3em;
-  padding: 0.05rem var(--spf-space-sm);
-  border: 1px solid color-mix(in srgb, var(--spf-mode-accent, var(--spf-brand-accent)) 55%, var(--spf-border));
+  padding: var(--spf-space-2xs) var(--spf-space-sm);
+  border: 1px solid color-mix(in srgb, var(--spf-brand-accent) 55%, var(--spf-border));
   border-radius: var(--spf-radius);
-  background: color-mix(in srgb, var(--spf-brand-dark) 70%, #0c1620);
+  background: color-mix(in srgb, var(--spf-brand-dark) 70%, var(--spf-window-bg));
   font-family: var(--spf-font-mono);
   font-weight: bold;
   text-transform: uppercase;
@@ -1073,8 +1351,6 @@
   margin: 0 0 var(--spf-space-xs);
   color: var(--spf-text-muted);
   font-size: var(--spf-text-sm);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
 }
 
 .simplysf2e .spf-traits {
@@ -1084,42 +1360,43 @@
   margin: var(--spf-space-sm) 0;
 }
 
-/* Trait chips: magenta-outline pills. */
+/* Trait tags (S10): the sf2e tag shape, square corners on the cited trait
+   colours (--color-bg-trait fill, --color-border-trait cyan edge, see the
+   header), drawn in the neon kit's tokens. A HUD label: uppercase. */
 .simplysf2e .spf-trait {
-  background: color-mix(in srgb, var(--spf-neon) 14%, var(--spf-brand-dark));
-  color: #e8f6fa;
-  border: 1px solid color-mix(in srgb, var(--spf-neon) 55%, var(--spf-border));
-  border-radius: 999px;
-  padding: 0 var(--spf-space-sm);
+  background: var(--spf-brand-mid);
+  color: var(--spf-text);
+  border: 1px solid var(--spf-brand-accent);
+  border-radius: var(--spf-radius-sm);
+  padding: 0 var(--spf-space-xs);
   font-size: var(--spf-text-xs);
   font-weight: bold;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.05em;
   box-shadow: none;
 }
 
 .simplysf2e .spf-statline {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.25rem 1rem;
-  padding: 0.15rem 0;
+  gap: var(--spf-space-xs) var(--spf-space-xl);
+  padding: var(--spf-space-2xs) 0;
   border-bottom: 1px dotted var(--spf-border);
   font-size: 0.95em;
 }
 
 .simplysf2e .spf-preview h3 {
-  margin: var(--spf-space-md) 0 0.15rem 0;
+  margin: var(--spf-space-md) 0 var(--spf-space-2xs) 0;
   border-bottom: 1px solid var(--spf-border);
   font-family: var(--spf-font-display);
-  font-size: 1em;
+  font-size: var(--spf-text-md);
+  font-weight: 700;
   font-variant: normal;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
 }
 
 .simplysf2e .spf-list {
-  margin: 0.15rem 0;
-  padding-left: 1.1rem;
+  margin: var(--spf-space-2xs) 0;
+  padding-left: var(--spf-space-xl);
 }
 
 .simplysf2e .spf-description {
@@ -1146,6 +1423,13 @@
 /* The one primary action claims the most room so its label never wraps. */
 .simplysf2e .spf-actions button.spf-primary {
   flex: 2 1 auto;
+}
+
+/* The destructive action keeps its natural width and sits apart at the
+   far end of the row, on its own line when the row wraps. */
+.simplysf2e .spf-actions .spf-danger {
+  flex: 0 0 auto;
+  margin-inline-start: auto;
 }
 
 /* --------------------------------------------------------------------------
@@ -1187,6 +1471,17 @@
     max-width: 9rem;
   }
 
+  /* Last run takes its own line under the provider row, so the model id
+     keeps the width (S11). Not hidden: the run cost stays visible even
+     when the token report is collapsed. order only moves it below the
+     actions; it is not focusable, so tab order is unchanged. */
+  .simplysf2e .spf-last-run {
+    order: 1;
+    flex: 1 1 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
   .simplysf2e .spf-generate-row .spf-secondary {
     flex: 1 1 auto;
   }
@@ -1204,10 +1499,6 @@
     animation: none;
     display: none;
   }
-  .simplysf2e .spf-progress-thinking,
-  .simplysf2e .spf-progress-writing {
-    animation: none;
-  }
   .simplysf2e .spf-step-active i {
     animation: none;
   }
@@ -1221,7 +1512,7 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 0.4rem;
+  gap: var(--spf-space-md);
 }
 
 .simplysf2e .spf-error-notice > p {

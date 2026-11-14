@@ -7,7 +7,7 @@ import { fetchWithBackoff } from "./ai-transport.mjs";
 import { estimateTokens, normalizeUsage } from "./tokens.mjs";
 import { combineUsage } from "./cost.mjs";
 import { runBudgetProblem, spendRunTokens, remainingDeadlineMs, getRunBudget } from "./run-budget.mjs";
-import { encodeFeatCandidateSlots, resolveEncodedFeatPicks } from "./ai-candidate-format.mjs";
+import { createCandidateEncoder, encodeFeatCandidateSlots, resolveEncodedFeatPicks } from "./ai-candidate-format.mjs";
 import { normalizeMulticlassPick, taskResponseProblem } from "./ai-response-validation.mjs";
 import { validateChoicePicks } from "./choice-set.mjs";
 import { CORE_SKILLS } from "./pc-skills.mjs";
@@ -40,6 +40,17 @@ const REMASTER_NOTE = `using CURRENT Starfinder 2e published names from the inst
 const NO_TOKENS = Object.freeze({ prompt: 0, completion: 0, total: 0, estimated: false });
 
 let warnedLegacyDeepSeekModel = false;
+
+// Parameters (and the developer role) that an endpoint + model rejected with a
+// 400/422, kept for the page's lifetime so later requests skip the wasted
+// negotiation round trips. Keyed by the normalized base URL and the model
+// only: never by, and never holding, the API key.
+const providerParameterMemory = new Map();
+
+/** Forget every remembered parameter rejection (tests). */
+export function resetProviderParameterMemory() {
+  providerParameterMemory.clear();
+}
 
 /**
  * Exercise the exact configured Chat Completions path with a tiny structured
@@ -96,8 +107,9 @@ export async function listProviderModels() {
  * prefixes are a PF2e-era happy path. v14-dev Migration942EquipmentGrade maps
  * potency/striking onto `system.grade` and zeros runes; sf2e.equipment has no
  * Weapon Potency / Striking / Resilient documents. Fail closed: copy listed
- * names exactly, including a grade word when the catalog already has one. */
-const GRADE_NAME_NOTE = `Copy each listed name EXACTLY. When a published name already includes a grade (Commercial, Tactical, Advanced, Superior, Elite, Ultimate, Paragon), keep that grade word. Do not invent a grade suffix, and do not add a fundamental-rune prefix such as "+1 striking".`;
+ * names exactly, including a grade word when the catalog already has one. The model
+ * answers with the short ID beside each name, so it never writes a name itself. */
+const GRADE_NAME_NOTE = `Answer with the ID listed beside each item; never write a name. A published name may already include a grade (Commercial, Tactical, Advanced, Superior, Elite, Ultimate, Paragon): that grade belongs to that item, so do not invent a grade suffix, and do not add a fundamental-rune prefix such as "+1 striking".`;
 
 /* How the GM's Treasure amount setting (Stingy/Standard/Generous — see
  * TREASURE_AMOUNT_MULTIPLIER in tables.mjs) should bend the item COUNT and
@@ -542,8 +554,16 @@ const PC_SPELL_RANKS = ["cantrip", "rank-one", "rank-two", "rank-three", "rank-f
 
 /** Compatibility for stale local models: a legacy name is accepted only when
  * it identifies exactly one offered candidate. New prompts use opaque IDs. */
-function candidateForPick(candidates, pick) {
+export function candidateForPick(candidates, pick) {
   const byId = new Map(candidates.map((candidate) => [candidate.id, candidate]));
+  // Short ids are matched ignoring case, like decodeCandidatePick and the feat ids; two ids that
+  // differ only in case are ambiguous and match nothing this way.
+  const byIdUpper = new Map();
+  for (const candidate of candidates) {
+    if (!candidate?.id) continue;
+    const key = String(candidate.id).toUpperCase();
+    byIdUpper.set(key, byIdUpper.has(key) ? null : candidate);
+  }
   const byName = new Map();
   for (const candidate of candidates) {
     const key = String(candidate.name ?? "").toLocaleLowerCase();
@@ -551,7 +571,7 @@ function candidateForPick(candidates, pick) {
   }
   const id = String(pick?.id ?? "").trim();
   if (id) {
-    const issued = byId.get(id);
+    const issued = byId.get(id) ?? byIdUpper.get(id.toUpperCase());
     if (issued) return issued;
     // Some structured-output providers put the displayed candidate name in
     // an `id` field despite the schema. Accept only an exact, unambiguous
@@ -560,6 +580,8 @@ function candidateForPick(candidates, pick) {
     return byName.get(id.toLocaleLowerCase()) ?? null;
   }
   const name = String(pick?.name ?? "").toLocaleLowerCase();
+  // A slot with neither id nor name never matches a nameless candidate.
+  if (!name) return null;
   // Test/migration callers without candidate IDs predate the exact-catalog
   // contract. Preserve their deterministic first entry only when the whole
   // supplied catalog has no IDs; a production catalog never takes this path.
@@ -567,6 +589,24 @@ function candidateForPick(candidates, pick) {
     return candidates.find((candidate) => String(candidate?.name ?? "").toLocaleLowerCase() === name) ?? null;
   }
   return byName.get(name) ?? null;
+}
+
+/**
+ * Shop and Treasure hand the module's own resolver raw ids (shop.mjs / treasure.mjs match
+ * them against the issued catalog). Turn each short id the model answered into that
+ * catalog id; anything else (a forged `c-` id, a stale or made-up id) is marked so it
+ * can never match an issued candidate and is counted as dropped.
+ */
+function decodeIssuedIds(ids, encoder, issued) {
+  const issuedIds = new Set(issued.map((candidate) => candidate?.id));
+  return (Array.isArray(ids) ? ids : []).map((pick) => {
+    const raw = pick && typeof pick === "object" ? pick.id : pick;
+    const candidate = encoder.decode(raw);
+    if (candidate) return candidate.id;
+    const text = String(raw ?? "").trim();
+    // An issued catalog id typed back by the model was never shown to it: refuse it.
+    return issuedIds.has(text) ? `unissued:${text}` : raw;
+  });
 }
 
 /** Decode an equipment/loot pick. Catalog names are copied exactly;
@@ -602,6 +642,10 @@ export async function selectSpells({ concept, candidates, focusCandidates = [], 
       && Number.isInteger(rank) && rank > 0 && rank <= maxRank && plannedPicks[rank] > 0))) {
     throw new TypeError("Invalid character spell slot plan");
   }
+  // Short per-request ids: the model and Jev see S1, S2, ...; picks decode to the issued candidates.
+  const encoder = createCandidateEncoder("S");
+  candidates = encoder.encode(candidates);
+  focusCandidates = encoder.encode(focusCandidates);
   // PC slot plans: Jev scores every candidate and the module takes the top picks per rank; any doubt runs the chat model below.
   // Jev takes exactly `plannedPicks[rank]` per rank. A spell database's caps are
   // maximums, so only the model fills it.
@@ -627,7 +671,7 @@ export async function selectSpells({ concept, candidates, focusCandidates = [], 
     .join("\n");
   const focusList = focusCandidates.map((candidate) => `${candidate.id} | ${candidate.name} (Rank ${candidate.rank})`).join("; ");
 
-  const system = `${GM_CONCEPT_PRIORITY}\n\nYou are selecting spells for a Starfinder 2e ${pcPlan ? "player character" : "creature"}. Choose ONLY from the provided list, copying each name EXACTLY as written (the list is already ${REMASTER_NOTE}). Respond with a single JSON object and nothing else:
+  const system = `${GM_CONCEPT_PRIORITY}\n\nYou are selecting spells for a Starfinder 2e ${pcPlan ? "player character" : "creature"}. Choose ONLY IDs from the provided list (the list is already ${REMASTER_NOTE}). Respond with a single JSON object and nothing else:
 { "spells": [ { "id": string, "rank": ${pcPlan ? 'string, "signature": "regular" | "signature"' : "number"} } ], "focusSpellIds": string[] }
 ${pcPlan
     ? `"rank" must be one of these enum slugs, never a number: ${PC_SPELL_RANKS.slice(0, maxRank + 1).join(", ")}. Use cantrip only for cantrips; ranked spells use their listed rank or a higher allowed rank to heighten.`
@@ -738,6 +782,7 @@ ${focusCandidates.length ? "Choose up to three focusSpellIds only from the provi
  * @returns {Promise<{equipment: {name: string, quantity: number, value: number}[], usage: object}>}
  */
 export async function selectEquipment({ concept, candidates, onProgress, signal, jevConfig = resolveJevConfig() }) {
+  candidates = createCandidateEncoder("E").encode(candidates);
   // Jev first (fast typed picks over the same issued candidates); any doubt falls through to the chat model below.
   const jev = await jevPickEquipment({ concept, candidates, jevConfig, signal });
   if (jev.equipment) {
@@ -756,7 +801,7 @@ export async function selectEquipment({ concept, candidates, onProgress, signal,
     .map(([type, names]) => `${type}: ${names.join("; ")}`)
     .join("\n");
 
-  const system = `${GM_CONCEPT_PRIORITY}\n\nYou are selecting carried equipment for a Starfinder 2e creature. Choose ONLY from the provided list, copying each name EXACTLY as written. Respond with a single JSON object and nothing else:
+  const system = `${GM_CONCEPT_PRIORITY}\n\nYou are selecting carried equipment for a Starfinder 2e creature. Choose ONLY IDs from the provided list. Respond with a single JSON object and nothing else:
 { "equipment": [ { "id": string, "quantity": number } ] }
 ${GRADE_NAME_NOTE}
 Pick the logical items the creature would carry: the weapons it wields (match its strikes), sensible consumables, and everyday adventuring gear it would plausibly use. Include armor only when the creature would plausibly wear it (skip beasts, oozes, mindless and naturally-armored creatures), and pick armor that roughly fits its role and level. Pick each DISTINCT item at most once — a smaller focused set is fine; never repeat an item or add filler to reach a count. NO coins or currency. "quantity" is usually 1; use 2-5 only for ammunition and stackable consumables.`;
@@ -811,6 +856,9 @@ Pick the logical items the creature would carry: the weapons it wields (match it
  * @returns {Promise<{loot: {name: string, quantity: number, value: number}[], usage: object}>}
  */
 export async function selectLoot({ concept, candidates, scrollCandidates = [], onProgress, signal, jevConfig = resolveJevConfig() }) {
+  const encoder = createCandidateEncoder("L");
+  candidates = encoder.encode(candidates);
+  scrollCandidates = encoder.encode(scrollCandidates);
   // Jev handles plain-item hauls only; coins and spell gems keep the chat-model path (see jevPickLoot).
   const jev = await jevPickLoot({ concept, candidates, jevConfig, signal });
   if (jev.loot) {
@@ -891,6 +939,11 @@ Recreate the first-draft haul: replace each non-coin entry with the closest vali
 export async function selectAncestryBackgroundClass({
   concept, ancestryCandidates, backgroundCandidates, classCandidates, heritageCandidates = [], onProgress, signal
 }) {
+  const encoder = createCandidateEncoder("C");
+  ancestryCandidates = encoder.encode(ancestryCandidates);
+  heritageCandidates = encoder.encode(heritageCandidates);
+  backgroundCandidates = encoder.encode(backgroundCandidates);
+  classCandidates = encoder.encode(classCandidates);
   const system = `You are choosing a Starfinder 2e character's ancestry, heritage, background and class. Choose ONLY IDs from the provided lists. Respond with a single JSON object and nothing else:
 { "ancestryId": string, "heritageId": string|null, "backgroundId": string, "classId": string, "keyAbility": "str"|"dex"|"con"|"int"|"wis"|"cha" }
 "heritage" must belong to the chosen ancestry, or null if none fits well. "keyAbility" must be a legal key ability for the chosen class.`;
@@ -987,6 +1040,7 @@ Include exactly one entry per slot number (1 to ${slots.length}). Never use an I
 export async function selectCreatureFeats({ concept, candidates, onProgress, signal, jevConfig = resolveJevConfig() }) {
   const maximum = Math.min(Math.max(concept?.feats?.length ?? 0, 0), 3);
   if (!maximum || !candidates.length) return { feats: [], omitted: false, usage: null };
+  candidates = createCandidateEncoder("F").encode(candidates);
   // Jev first; transport/shape failure or any doubt falls through to the chat model below.
   const jev = await jevPickCreatureFeats({ concept, candidates, jevConfig, signal });
   if (jev.feats) {
@@ -1034,6 +1088,7 @@ Choose feats that fit the creature's role and tactics. Do not choose a feat more
 export async function selectCreatureAbilities({ concept, candidates, onProgress, signal, jevConfig = resolveJevConfig() }) {
   const maximum = Math.min(Math.max(concept?.specialAbilities?.length ?? 0, 0), 6);
   if (!maximum || !candidates.length) return { abilities: [], usage: null };
+  candidates = createCandidateEncoder("A").encode(candidates);
   const jev = await jevPickCreatureAbilities({ concept, candidates, jevConfig, signal });
   if (jev.abilities) {
     return { abilities: jev.abilities, usage: jev.usage ?? NO_TOKENS, timing: { source: "jev", ms: jev.ms } };
@@ -1093,6 +1148,9 @@ const REROLL_LABELS = Object.freeze({
 export async function selectRerollPick({ concept, kind, current, candidates, onProgress, signal }) {
   const label = REROLL_LABELS[kind];
   if (!label || !Array.isArray(candidates) || !candidates.length) throw new TypeError("Invalid reroll request");
+  const encoder = createCandidateEncoder("R");
+  const issued = candidates;
+  candidates = encoder.encode(candidates);
   const others = (kind === "spell" ? concept.spellcasting?.spells ?? []
     : kind === "feat" ? concept.feats ?? [] : concept.specialAbilities ?? [])
     .map((pick) => (typeof pick === "string" ? pick : pick?.name))
@@ -1117,7 +1175,9 @@ Choose the option that best fits the creature's role, theme and tactics and does
     catalog
   ].filter((line) => line !== null).join("\n");
   const { data: parsed, usage } = await requestJSON({ task: AI_TASK.REROLL_PICK, system, user, onProgress, signal });
-  return { candidate: candidateForPick(candidates, { id: parsed.id }), usage };
+  // The caller gets the issued candidate back, not the short-id copy.
+  const picked = candidateForPick(candidates, { id: parsed.id });
+  return { candidate: picked ? encoder.original(picked) ?? issued.find((c) => c === picked) ?? null : null, usage };
 }
 
 /** Select only opaque IDs from the builder's bounded, static choice catalog.
@@ -1459,6 +1519,9 @@ JSON schema (all keys required):
  * @returns {Promise<{ids: unknown[], usage: object}>}
  */
 export async function selectShopStock({ concept, candidates, count, gmPrompt = "", onProgress, signal }) {
+  const encoder = createCandidateEncoder("S");
+  const issued = candidates;
+  candidates = encoder.encode(candidates);
   const byType = new Map();
   for (const c of candidates) {
     if (!byType.has(c.type)) byType.set(c.type, []);
@@ -1482,7 +1545,7 @@ Pick exactly ${count} DISTINCT items (fewer only if the list is shorter) that th
   const { data, usage } = await requestJSON({
     task: AI_TASK.SHOP_SELECTION, system, user, onProgress, signal
   });
-  return { ids: Array.isArray(data.ids) ? data.ids : [], usage };
+  return { ids: decodeIssuedIds(data.ids, encoder, issued), usage };
 }
 
 /**
@@ -1529,6 +1592,9 @@ JSON schema (all keys required):
  * @returns {Promise<{ids: unknown[], usage: object}>}
  */
 export async function selectTreasureItems({ concept, candidates, count, amount = "encounter", gmPrompt = "", onProgress, signal }) {
+  const encoder = createCandidateEncoder("T");
+  const issued = candidates;
+  candidates = encoder.encode(candidates);
   const byType = new Map();
   for (const c of candidates) {
     if (!byType.has(c.type)) byType.set(c.type, []);
@@ -1553,7 +1619,7 @@ Pick up to ${count} DISTINCT items this hoard would plausibly contain, matching 
   const { data, usage } = await requestJSON({
     task: AI_TASK.TREASURE_SELECTION, system, user, onProgress, signal
   });
-  return { ids: Array.isArray(data.ids) ? data.ids : [], usage };
+  return { ids: decodeIssuedIds(data.ids, encoder, issued), usage };
 }
 
 /**
@@ -1623,6 +1689,33 @@ async function requestCompletion({ task, system, user, onProgress, signal, retry
     response_format: { type: "json_object" }
   };
 
+  // Start from what this endpoint + model already rejected: same removals,
+  // same role and the same token-cap name, so a known-picky provider costs
+  // one POST per request. A remembered removal never drops the only cap.
+  const memoryKey = `${baseUrl}\n${model}`;
+  if (!providerParameterMemory.has(memoryKey)) providerParameterMemory.set(memoryKey, new Set());
+  const rememberedParameters = providerParameterMemory.get(memoryKey);
+  const rejectedParameters = new Set(rememberedParameters);
+  const rejectParameter = (param) => {
+    rejectedParameters.add(param);
+    rememberedParameters.add(param);
+  };
+  for (const param of rejectedParameters) {
+    if (param === "developer_role") {
+      if (body.messages[0]?.role === "developer") body.messages[0].role = "system";
+      continue;
+    }
+    if (!(param in body)) continue;
+    const capAlternate = param === "max_tokens" ? "max_completion_tokens"
+      : param === "max_completion_tokens" ? "max_tokens"
+      : null;
+    if (capAlternate) {
+      if (rejectedParameters.has(capAlternate)) continue;
+      body[capAlternate] = body[param];
+    }
+    delete body[param];
+  }
+
   const idleSeconds = Math.max(10, Number(getSetting(SETTINGS.requestTimeout)) || 90);
   const controller = new AbortController();
   const userSignal = signal;
@@ -1636,6 +1729,12 @@ async function requestCompletion({ task, system, user, onProgress, signal, retry
     clearTimeout(idleTimer);
     idleTimer = setTimeout(() => controller.abort(), idleSeconds * 1000);
   };
+  // A deliberate Retry-After/backoff sleep produces no chunks: do not let the
+  // idle timer fire during it, and re-arm it when the next attempt is sent.
+  const onBackoff = (waiting) => {
+    if (waiting) clearTimeout(idleTimer);
+    else resetIdle();
+  };
   // The run deadline is an absolute wall-clock limit, so it is armed once per
   // request and deliberately NOT reset by streaming chunks: a provider that
   // keeps sending tokens must still stop when the run's time is up.
@@ -1647,56 +1746,79 @@ async function requestCompletion({ task, system, user, onProgress, signal, retry
     }, Math.min(Math.max(0, deadlineLeft), 2147483647));
   }
 
+  // Usage is charged to the run budget exactly once per request, on every
+  // exit: success, a retryable bad reply, or a failure after the provider
+  // accepted the request (idle timeout, cancel, run deadline, dropped
+  // connection, mid-stream provider error). A request the provider never
+  // accepted (connect error, HTTP error status) charges nothing.
+  // `received` holds what has streamed in so far, for the estimate.
+  const received = { content: "", reasoningChars: 0, usage: null, reader: null };
+  let accepted = false;
+  let completed = false;
+  let charged = null;
+  const chargeUsageOnce = (usage, { content, reasoningChars }) => {
+    if (charged) return charged;
+    charged = normalizeUsage(usage, { content, system, user, reasoningChars });
+    spendRunTokens(signal, charged);
+    return charged;
+  };
+
   try {
     resetIdle();
-    let response = await postChatCompletion(baseUrl, apiKey, body, controller.signal, retryBudget);
-    const rejectedParameters = new Set();
+    let response = await postChatCompletion(baseUrl, apiKey, body, controller.signal, retryBudget, onBackoff);
     // Some OpenAI-compatible providers reject stream_options, response_format
     // or streaming. Retry without a parameter ONLY when a 400/422 body actually
-    // names it (checked longest-first so "stream" can't match the others);
+    // names it as a whole token (longest-first, and "upstream" or
+    // "stream_options" never count as "stream");
     // any other validation error fails fast with its own message.
     while (response.status === 400 || response.status === 422) {
       // Keep enough provider text to find a named compatibility field even
       // after a verbose gateway preamble. The user-facing formatter below
       // still caps the detail to a compact notification.
-      const detail = await safeErrorDetail(response, 4096);
+      const detail = await safeErrorDetail(response, 4096, controller.signal);
       const normalizedDetail = detail.toLowerCase();
       if (
         body.messages[0]?.role === "developer"
-        && normalizedDetail.includes("developer")
+        && namesParameter(normalizedDetail, "developer")
         && !rejectedParameters.has("developer_role")
       ) {
         // Current OpenAI models prefer developer instructions, while older
         // Chat Completions models may only recognize the system role.
         body.messages[0].role = "system";
-        rejectedParameters.add("developer_role");
+        rejectParameter("developer_role");
         resetIdle();
-        response = await postChatCompletion(baseUrl, apiKey, body, controller.signal, retryBudget);
+        response = await postChatCompletion(baseUrl, apiKey, body, controller.signal, retryBudget, onBackoff);
         continue;
       }
       const offending = [
         "max_completion_tokens", "reasoning_effort", "stream_options", "response_format",
         "temperature", "max_tokens", "thinking", "stream"
-      ].find((param) => param in body && normalizedDetail.includes(param));
+      ].find((param) => param in body && namesParameter(normalizedDetail, param));
       if (!offending) {
+        throw providerApiErrorFromDetail(response, detail);
+      }
+      // OpenAI reasoning models require max_completion_tokens, while some
+      // local compatibility servers still implement only max_tokens.
+      // Negotiate in either direction without ever looping between names,
+      // and never send a request without an output cap: once both names
+      // were rejected, the provider's own error is the real reason.
+      const capAlternate = offending === "max_tokens" ? "max_completion_tokens"
+        : offending === "max_completion_tokens" ? "max_tokens"
+        : null;
+      if (capAlternate && rejectedParameters.has(capAlternate)) {
         throw providerApiErrorFromDetail(response, detail);
       }
       const value = body[offending];
       delete body[offending];
-      rejectedParameters.add(offending);
-      // OpenAI reasoning models require max_completion_tokens, while some
-      // local compatibility servers still implement only max_tokens.
-      // Negotiate in either direction without ever looping between names.
-      if (offending === "max_tokens" || offending === "max_completion_tokens") {
-        const alternate = offending === "max_tokens" ? "max_completion_tokens" : "max_tokens";
-        if (!rejectedParameters.has(alternate)) body[alternate] = value;
-      }
+      rejectParameter(offending);
+      if (capAlternate) body[capAlternate] = value;
       resetIdle();
-      response = await postChatCompletion(baseUrl, apiKey, body, controller.signal, retryBudget);
+      response = await postChatCompletion(baseUrl, apiKey, body, controller.signal, retryBudget, onBackoff);
     }
     if (!response.ok) {
-      throw await providerApiError(response);
+      throw await providerApiError(response, controller.signal);
     }
+    accepted = true;
 
     const contentType = response.headers.get("content-type") ?? "";
     let content;
@@ -1705,13 +1827,15 @@ async function requestCompletion({ task, system, user, onProgress, signal, retry
     let reasoningChars = 0;
     if (contentType.includes("text/event-stream") && response.body) {
       ({ content, finishReason, usage, reasoningChars } = await readEventStream(
-        response, { onProgress, resetIdle }
+        response, { onProgress, resetIdle, received, signal: controller.signal }
       ));
     } else {
       resetIdle();
       let data;
       try { data = await response.json(); }
-      catch {
+      catch (err) {
+        // An abort during the body read goes to the abort branch below (Cancelled, run deadline, idle timeout).
+        if (err?.name === "AbortError" || controller.signal.aborted) throw err;
         throw new AIRequestError(game.i18n.localize("SIMPLYSF2E.Errors.InvalidResponse"));
       }
       if (isRealProviderError(data?.error)) throw providerStreamError(data.error);
@@ -1732,7 +1856,7 @@ async function requestCompletion({ task, system, user, onProgress, signal, retry
         game.i18n.format("SIMPLYSF2E.Errors.Truncated", { max: maxTokens }),
         {
           retryable: true,
-          usage: (() => { const normalized = normalizeUsage(usage, { content, system, user, reasoningChars }); spendRunTokens(signal, normalized); return normalized; })(),
+          usage: chargeUsageOnce(usage, { content, reasoningChars }),
           details
         }
       );
@@ -1746,39 +1870,67 @@ async function requestCompletion({ task, system, user, onProgress, signal, retry
         game.i18n.localize(emptyKey),
         {
           retryable: true,
-          usage: (() => { const normalized = normalizeUsage(usage, { content, system, user, reasoningChars }); spendRunTokens(signal, normalized); return normalized; })(),
+          usage: chargeUsageOnce(usage, { content, reasoningChars }),
           details
         }
       );
     }
-    return {
+    const result = {
       content,
-      usage: (() => { const normalized = normalizeUsage(usage, { content, system, user, reasoningChars }); spendRunTokens(signal, normalized); return normalized; })(),
+      usage: chargeUsageOnce(usage, { content, reasoningChars }),
       finishReason,
       reasoningChars
     };
+    completed = true;
+    return result;
   } catch (err) {
-    if (err instanceof AIRequestError) throw err;
-    if (err.name === "AbortError" || controller.signal.aborted) {
+    let failure = err;
+    if (!(err instanceof AIRequestError) && (err.name === "AbortError" || controller.signal.aborted)) {
       if (userSignal?.aborted) {
-        throw new AIRequestError(game.i18n.localize("SIMPLYSF2E.Errors.Cancelled"), { cancelled: true });
+        failure = new AIRequestError(game.i18n.localize("SIMPLYSF2E.Errors.Cancelled"), { cancelled: true });
+      } else if (deadlineFired) {
+        failure = new AIRequestError(game.i18n.localize("SIMPLYSF2E.Errors.RunDeadline"), { retryable: false, runLimit: true });
+      } else {
+        failure = new AIRequestError(game.i18n.format("SIMPLYSF2E.Errors.Timeout", { seconds: idleSeconds }));
       }
-      if (deadlineFired) {
-        throw new AIRequestError(game.i18n.localize("SIMPLYSF2E.Errors.RunDeadline"), { retryable: false, runLimit: true });
-      }
-      throw new AIRequestError(game.i18n.format("SIMPLYSF2E.Errors.Timeout", { seconds: idleSeconds }));
     }
-    throw err;
+    if (accepted) {
+      // Tokens streamed before the failure were generated (and likely
+      // billed): estimate them from what was sent and received so far.
+      const usage = chargeUsageOnce(received.usage, received);
+      if (failure instanceof AIRequestError && !failure.usage) failure.usage = usage;
+    }
+    throw failure;
   } finally {
     userSignal?.removeEventListener("abort", onUserAbort);
     clearTimeout(idleTimer);
     clearTimeout(deadlineTimer);
+    // A failed request may leave the body locked and the socket open (a
+    // provider error record on a stream it keeps alive). Release both. The
+    // error thrown above was already chosen, and the run's own signal is not
+    // touched, so this cannot turn it into Cancelled or Timeout.
+    if (!completed) {
+      try { received.reader?.cancel().catch(() => {}); } catch { /* already released */ }
+      controller.abort();
+    }
   }
 }
 
+/**
+ * True when a provider error text names `name` as a whole token: not preceded
+ * or followed by a letter, digit or underscore. Quoted ('stream_options'),
+ * backticked or bare names match; "upstream", "streaming" and the "stream" in
+ * "stream_options" do not.
+ */
+function namesParameter(text, name) {
+  // `name` is one of the fixed parameter identifiers: no regex metacharacters.
+  return new RegExp(`(?<![a-z0-9_])${name}(?![a-z0-9_])`, "i").test(text);
+}
+
 /** Consume an SSE chat-completions stream, reporting progress per chunk. */
-async function readEventStream(response, { onProgress, resetIdle }) {
+async function readEventStream(response, { onProgress, resetIdle, received = {}, signal = null }) {
   const reader = response.body.getReader();
+  received.reader = reader;
   const decoder = new TextDecoder();
   let buffer = "";
   let content = "";
@@ -1853,20 +2005,38 @@ async function readEventStream(response, { onProgress, resetIdle }) {
     }
   };
 
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    resetIdle();
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split("\n");
-    buffer = lines.pop();
-    for (const line of lines) consumeLine(line);
+  try {
+    for (;;) {
+      let chunk;
+      try {
+        chunk = await reader.read();
+      } catch (err) {
+        // An abort goes to the caller's abort branch (Cancelled, run deadline,
+        // idle timeout). Anything else is the connection dropping mid-stream:
+        // the same localized, non-retryable error as a connect-time failure,
+        // since the POST may already have been billed.
+        if (err?.name === "AbortError" || signal?.aborted) throw err;
+        throw new AIRequestError(game.i18n.format("SIMPLYSF2E.Errors.NetworkError", { message: err?.message ?? String(err) }));
+      }
+      const { done, value } = chunk;
+      if (done) break;
+      resetIdle();
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop();
+      for (const line of lines) consumeLine(line);
+    }
+    // A stream may close immediately after its final data record. Flush the
+    // decoder and consume that unterminated line instead of reporting a false
+    // empty response or losing the provider's final usage block.
+    buffer += decoder.decode();
+    for (const line of buffer.split("\n")) consumeLine(line);
+  } finally {
+    // What streamed in so far, so a failure can still be charged.
+    received.content = content || messageContent;
+    received.reasoningChars = reasoningChars || messageReasoningChars;
+    received.usage = usage;
   }
-  // A stream may close immediately after its final data record. Flush the
-  // decoder and consume that unterminated line instead of reporting a false
-  // empty response or losing the provider's final usage block.
-  buffer += decoder.decode();
-  for (const line of buffer.split("\n")) consumeLine(line);
   // Some OpenAI-compatible proxies emit the full message on the final chunk
   // and never send delta.content. Prefer accumulated deltas when both exist
   // so a last-chunk message copy cannot concatenate onto streamed text.
@@ -1875,7 +2045,7 @@ async function readEventStream(response, { onProgress, resetIdle }) {
   return { content, finishReason, usage, reasoningChars };
 }
 
-async function postChatCompletion(baseUrl, apiKey, body, signal, retryBudget = null) {
+async function postChatCompletion(baseUrl, apiKey, body, signal, retryBudget = null, onWait = null) {
   const headers = { "Content-Type": "application/json" };
   if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
   try {
@@ -1884,7 +2054,7 @@ async function postChatCompletion(baseUrl, apiKey, body, signal, retryBudget = n
       headers,
       body: JSON.stringify(body),
       signal
-    }, { retryBudget });
+    }, { retryBudget, onWait });
   } catch (err) {
     if (err.name === "AbortError") throw err;
     // fetch throws on network/CORS failures before we get a Response
@@ -1892,7 +2062,7 @@ async function postChatCompletion(baseUrl, apiKey, body, signal, retryBudget = n
   }
 }
 
-async function safeErrorDetail(response, maxLength = 240) {
+async function safeErrorDetail(response, maxLength = 240, signal = null) {
   try {
     const text = await response.text();
     try {
@@ -1901,7 +2071,9 @@ async function safeErrorDetail(response, maxLength = 240) {
     } catch {
       return compactErrorDetail(text || response.statusText, maxLength);
     }
-  } catch {
+  } catch (err) {
+    // An abort while the body is read is not a body failure: let the caller's abort branch classify it.
+    if (signal?.aborted) throw err;
     return compactErrorDetail(response.statusText, maxLength);
   }
 }
@@ -1970,8 +2142,8 @@ function providerApiErrorFromDetail(response, detail) {
   }));
 }
 
-async function providerApiError(response) {
-  return providerApiErrorFromDetail(response, await safeErrorDetail(response));
+async function providerApiError(response, signal = null) {
+  return providerApiErrorFromDetail(response, await safeErrorDetail(response, 240, signal));
 }
 
 /**
@@ -1980,8 +2152,21 @@ async function providerApiError(response) {
  * produce a valid-looking concept with required fields missing.
  */
 export function parseConceptJSON(content) {
-  const text = fencedJsonText(visibleTextContent(content).trim());
-  const parsed = tryParseJsonObject(text) ?? extractFirstJsonObject(text);
+  const visible = dropLeadingThink(visibleTextContent(content).trim());
+  if (visible == null) {
+    // The reply opened a <think> block and never closed it: the answer never started.
+    const details = responseDiagnostic({ content });
+    console.warn("simplysf2e | AI response is an unclosed <think> block:", details);
+    throw new AIRequestError(game.i18n.localize("SIMPLYSF2E.Errors.ReasoningWithoutJson"), {
+      retryable: true,
+      details
+    });
+  }
+  // Whole reply first: a valid object may hold ``` inside a string value. Only
+  // when it is not one object look for a fence around it.
+  const whole = tryParseJsonObject(visible);
+  const text = whole ? visible : fencedJsonText(visible);
+  const parsed = whole ?? tryParseJsonObject(text) ?? extractFirstJsonObject(text);
   if (parsed) return parsed;
   const details = responseDiagnostic({ content: text });
   console.warn("simplysf2e | Failed to parse AI response:", details);
@@ -2017,6 +2202,22 @@ function responseDiagnostic({ content, finishReason = null, reasoningChars = 0 }
     reasoningChars: Number(reasoningChars) || 0,
     preview: text.length > JSON_DIAGNOSTIC_PREVIEW ? `${text.slice(0, JSON_DIAGNOSTIC_PREVIEW)}…` : text
   };
+}
+
+/**
+ * Some local servers leave the model's reasoning inline as `<think>...</think>`
+ * at the start of the visible text. Drop leading blocks (and only leading ones:
+ * a `<think>` inside the answer is the model's own text). Returns null when a
+ * leading `<think>` never closes.
+ */
+function dropLeadingThink(text) {
+  let rest = text;
+  while (/^<think>/i.test(rest)) {
+    const close = /<\/think>/i.exec(rest);
+    if (!close) return null;
+    rest = rest.slice(close.index + close[0].length).trimStart();
+  }
+  return rest;
 }
 
 function fencedJsonText(text) {

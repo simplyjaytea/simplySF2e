@@ -1,5 +1,6 @@
 # Local agent state belongs to this checkout, not the module.
-/.claude/
+/.claude/*
+!/.claude/skills/
 
 # Release build outputs (the source manifest stays tracked).
 /module.zip

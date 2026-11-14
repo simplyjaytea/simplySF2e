@@ -1,11 +1,11 @@
 // Shared pieces for the fixtures. Context shapes are copied from the real
-// _prepareContext() / #build*PreviewContext() methods; the pure functions
-// those methods call (computeStats, adjustedStats, createProgress, ...) are
+// _prepareContext() method and the builders in scripts/generator-context/;
+// the pure functions those call (computeStats, adjustedStats, createProgress, ...) are
 // imported from the module itself so the numbers are the real ones.
 // Update the matching fixture whenever one of those methods changes. The
 // harness reports any root key a template reads that a fixture lacks.
 import { normalizeConcept, computeStats, adjustedStats } from "../../../scripts/builder.mjs";
-import { createProgress } from "../../../scripts/progress.mjs";
+import { applyStep, createProgress, progressView } from "../../../scripts/progress.mjs";
 import { localize } from "../render.mjs";
 
 export { normalizeConcept, computeStats, adjustedStats, createProgress, localize };
@@ -60,13 +60,22 @@ export const TOKEN_REPORT_PARTIAL = {
   costText: "Cost: at least $0.0042 (some requests reported no cost)"
 };
 
-/** Progress card state as the real createProgress()/applyStep() produce it. */
+/** Step durations the preview clock advances by (ms): one per tier of formatElapsed. */
+const PREVIEW_STEP_MS = [800, 12000, 65000, 4300, 2100];
+
+/**
+ * Progress card context as the apps build it: the real createProgress()/
+ * applyStep() on a fake clock (each finished step took PREVIEW_STEP_MS[i]),
+ * then progressView() for the per-step `elapsed` and `totalElapsed`.
+ */
 export function progressAt(defs, activeIndex, extra = {}) {
-  const progress = createProgress(defs);
-  progress.steps.forEach((step, index) => {
-    step.state = index < activeIndex ? "done" : index === activeIndex ? "active" : "pending";
-  });
-  return { ...progress, ...extra };
+  let clock = 0;
+  const progress = createProgress(defs, { now: () => clock });
+  for (let index = 0; index <= activeIndex && index < progress.steps.length; index += 1) {
+    if (index > 0) clock += PREVIEW_STEP_MS[(index - 1) % PREVIEW_STEP_MS.length];
+    applyStep(progress.steps, progress.steps[index].key);
+  }
+  return progressView({ ...progress, ...extra });
 }
 
 export const MONSTER_STEPS = [

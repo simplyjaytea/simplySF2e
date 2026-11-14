@@ -150,7 +150,12 @@ assert.match(
   "narrow windows must use a readable two-column control layout"
 );
 assert.doesNotMatch(css, /@media \(max-width/, "narrow layout must query the window container, not the viewport");
-assert.match(css, /\.simplysf2e \.spf-provider-model\s*\{[^}]*text-overflow:\s*ellipsis;/s);
+// The model id wraps, never an ellipsis (audit S11, A14/B13); this assertion
+// used to pin the ellipsis, which was the defect.
+assert.match(css, /\.simplysf2e \.spf-wrap-name,\s*\.simplysf2e \.spf-provider-model\s*\{[^}]*overflow-wrap:\s*anywhere;/s,
+  "the status-bar model id must wrap instead of being cut with an ellipsis");
+assert.doesNotMatch(css.match(/\.simplysf2e \.spf-provider-model\s*\{([^}]*)\}/s)?.[1] ?? "", /text-overflow:\s*ellipsis/,
+  "the status-bar model id must not be ellipsized");
 assert.match(css, /\.simplysf2e \.spf-provider-presets\s*\{[^}]*grid-template-columns:\s*repeat\(3/s);
 assert.match(css, /\.simplysf2e \.spf-actions\s*\{[^}]*flex-wrap:\s*wrap;/s,
   "action rows must wrap when localized labels do not fit");
@@ -209,8 +214,9 @@ for (const [name, template, createAction] of [
   ["generator", generator, "createActor"],
   ["item forge", itemForge, "createItem"]
 ]) {
+  // Generate is secondary whenever another primary is on screen: a preview, a created result or a character review.
   const previewStates = name === "generator"
-    ? ["preview", "encounterPreview", "pcPreview", "reskinPreview"]
+    ? ["preview", "encounterPreview", "pcPreview", "reskinPreview", "created", "characterReview"]
     : ["preview"];
   const generateClass = '{{#if preview}}spf-secondary'
     + previewStates.slice(1).map((state) => `{{else if ${state}}}spf-secondary`).join("")
@@ -341,7 +347,7 @@ for (const rule of ["spf-card", "spf-icon-btn", "spf-empty"]) {
 assert.match(css, /\.simplysf2e button\.spf-primary\s*\{/, "the primary button treatment must be defined");
 assert.match(
   css,
-  /\.simplysf2e :is\(button, input, select, textarea, summary\):focus-visible\s*\{[^}]*outline:/s,
+  /\.simplysf2e :is\(button, input, select, textarea, summary\):focus-visible[^{]*\{[^}]*outline:/s,
   "every control must have a visible focus state"
 );
 assert.match(css, /\.simplysf2e button:disabled\s*\{[^}]*opacity/s, "disabled controls must read as disabled");
@@ -433,7 +439,11 @@ assert.match(
   const labelAt = itemForge.indexOf("SIMPLYSF2E.Generator.CompendiumContent");
   const fieldsetAt = itemForge.indexOf("<fieldset");
   assert.ok(labelAt >= 0 && gearAt > labelAt && gearAt < fieldsetAt, "item forge sources gear must sit in the labeled Compendium Content row");
-  assert.ok(rowAt > fieldsetAt && itemForge.indexOf('data-action="configureSources"', gearAt + 1) < 0, "item forge generate row must not repeat the sources gear");
+  // Two gears are allowed in the status strip (healthy and missing branches render one each); the Generate row has none.
+  assert.ok(rowAt > fieldsetAt && itemForge.indexOf('data-action="configureSources"', rowAt) < 0, "item forge generate row must not repeat the sources gear");
+  // The status strip carries one gear per readiness branch (healthy and missing); exactly two, both before the fieldset.
+  const gearsBeforeFieldset = itemForge.slice(0, fieldsetAt).split('data-action="configureSources"').length - 1;
+  assert.equal(gearsBeforeFieldset, 2, "item forge status strip: one sources gear per readiness branch");
 }
 assert.match(generator, /SIMPLYSF2E\.Generator\.CompendiumContent/);
 assert.match(generator, /SIMPLYSF2E\.Generator\.SourcesReady/);
@@ -443,7 +453,7 @@ for (const [name, source] of [
   ["item forge", itemForgeApp]
 ]) {
   assert.match(source, /configureSources:/, `${name} must register the sources gear action`);
-  assert.match(source, /new SourcesConfigApp\(\)\.render\(true\)/, `${name} sources gear must open the shared sources app`);
+  assert.match(source, /SourcesConfigApp\.open\(\)/, `${name} sources gear must open the shared sources app`);
 }
 
 // 4. One stable options order in every mode: Level → rarity control →
@@ -469,8 +479,9 @@ for (const [name, source] of [
 // 5. Window titles and prompt labels follow one pattern.
 {
   const lang = JSON.parse(langJson).SIMPLYSF2E;
-  assert.match(lang.Generator.Title, /^SimplySF2e — /, "generator title must follow the shared pattern");
-  assert.match(lang.ItemForge.Title, /^SimplySF2e — /, "item forge title must follow the shared pattern");
+  // The shared title pattern is "SimplySF2e <window>" (no dash), as Shop and Treasure use.
+  assert.match(lang.Generator.Title, /^SimplySF2e /, "generator title must follow the shared pattern");
+  assert.match(lang.ItemForge.Title, /^SimplySF2e /, "item forge title must follow the shared pattern");
   for (const [key, value] of [
     ["Generator.Prompt", lang.Generator.Prompt],
     ["Generator.CharacterPrompt", lang.Generator.CharacterPrompt],
@@ -553,7 +564,11 @@ for (const [name, template] of [
 }
 assert.match(managePresets, /spf-manage-list spf-card/, "preset rows must sit on the shared HUD card surface");
 assert.match(managePresets, /spf-hud-actions/, "preset actions must carry the HUD treatment");
-assert.match(sources, /spf-source-category spf-card/, "source categories must keep the shared card surface");
+// One flat list (JT, 2026-11-10): categories are heading rows, not cards,
+// but each stays a fieldset with a legend so screen readers announce the group.
+assert.match(sources, /<fieldset class="spf-source-category" data-source-category=/, "source categories are plain fieldsets, not cards");
+assert.match(sources, /<legend>[\s\S]*?data-source-count[\s\S]*?<\/legend>/, "each category legend carries its live count");
+assert.doesNotMatch(sources, /spf-card|spf-hud-frame/, "the Sources list draws no card frames");
 assert.match(sources, /spf-hud-accent/, "sources must carry a HUD accent line");
 assert.match(sources, /fa-satellite-dish/, "sources hint must use a sci-fi uplink glyph");
 
@@ -564,7 +579,8 @@ assert.match(sources, /fa-satellite-dish/, "sources hint must use a sci-fi uplin
 assert.match(css, /\.simplysf2e\s*\{[^}]*--spf-neon:/s, "HUD glow tokens must be defined");
 const readingSurface = css.match(/\.application\.simplysf2e \.window-content\s*\{([^}]*)\}/s)?.[1];
 assert.ok(readingSurface, "window content must define its reading surface");
-assert.match(readingSurface, /background:\s*#0c1620\s*;/, "reading surfaces must stay plain dark navy");
+assert.match(readingSurface, /background:\s*var\(--spf-window-bg\)\s*;/, "reading surfaces must stay plain dark navy");
+assert.match(css, /--spf-window-bg:\s*#0c1620\s*;/, "the window reading surface token stays dark navy");
 assert.doesNotMatch(readingSurface, /gradient/, "window content must not carry texture");
 assert.match(
   css,
@@ -573,7 +589,7 @@ assert.match(
 );
 assert.match(
   css,
-  /\.simplysf2e \.spf-empty,\s*\.simplysf2e \.spf-hud-empty,\s*\.simplysf2e \.spf-source-empty\s*\{[^}]*repeating-linear-gradient/s,
+  /\.simplysf2e \.spf-empty,\s*\.simplysf2e \.spf-hud-empty,\s*\.simplysf2e \.spf-source-empty,\s*\.simplysf2e \.spf-source-no-match,\s*\.simplysf2e \.spf-source-category > \.spf-hint\s*\{[^}]*repeating-linear-gradient/s,
   "decorative empty-state panels must retain the HUD texture"
 );
 assert.doesNotMatch(
@@ -606,10 +622,28 @@ assert.match(
   /\.simplysf2e \.spf-progress-bar\s*\{[^}]*repeating-linear-gradient\(90deg/s,
   "the progress bar must carry segmented telemetry divisions"
 );
+// Motion vocabulary (docs/ui-overhaul-plan.md §1): glow = live, sheen =
+// working, pulse = waiting for the GM, blink = active step.
 assert.match(
   css,
-  /\.simplysf2e \.spf-progress-percent\s*\{[^}]*text-shadow/s,
-  "the telemetry readout must glow"
+  /\.simplysf2e \.spf-progress:not\(\.spf-progress-cancelling\)\s*\{[^}]*--spf-live-glow/s,
+  "the running progress card carries the live glow"
+);
+assert.doesNotMatch(
+  css.match(/\.simplysf2e \.spf-progress-percent\s*\{([^}]*)\}/s)?.[1] ?? "",
+  /text-shadow/,
+  "the telemetry readout is plain; the card itself is the live element"
+);
+assert.doesNotMatch(css, /spf-hud-pulse/, "the busy card no longer pulses");
+assert.match(
+  css,
+  /\.simplysf2e \.spf-review-actions\s*\{[^}]*animation:\s*spf-await-pulse/s,
+  "required review choices pulse: they wait for the GM"
+);
+assert.doesNotMatch(
+  css.match(/\.simplysf2e \.spf-source-category > legend\s*\{([^}]*)\}/s)?.[1] ?? "",
+  /--spf-neon|box-shadow|border:\s*1px/,
+  "Sources category headings are flat cyan labels: no chip, no magenta"
 );
 assert.match(css, /@keyframes spf-telemetry-blink/, "telemetry pip motion must be a named keyframe");
 assert.match(
@@ -624,13 +658,13 @@ assert.match(
 );
 assert.match(
   css,
-  /\.simplysf2e \.spf-inputs legend\s*\{[^}]*background:/s,
-  "generator legends must render as HUD readout chips"
+  /\.simplysf2e \.spf-card > legend\s*\{[^}]*background:/s,
+  "card fieldset legends render as HUD readout chips"
 );
 assert.match(
   css,
-  /\.simplysf2e \.spf-source-category legend\s*\{[^}]*box-shadow/s,
-  "source legends must render as HUD readout chips"
+  /\.simplysf2e \.spf-card > legend\s*\{[^}]*box-shadow/s,
+  "source legends share the card legend chip (.spf-card > legend)"
 );
 assert.match(css, /caret-color:\s*var\(--spf-brand-accent\)/, "console inputs must carry a cyan caret");
 assert.match(
@@ -638,7 +672,7 @@ assert.match(
   /\.simplysf2e input\[type="number"\]\s*\{[^}]*tabular-nums/s,
   "numeric console readouts must use tabular figures"
 );
-for (const hook of ["spf-hud-accent", "spf-hud-actions", "spf-hud-frame", "spf-hud-list", "spf-hud-empty"]) {
+for (const hook of ["spf-hud-accent", "spf-hud-actions", "spf-hud-list", "spf-hud-empty"]) {
   assert.match(
     css,
     new RegExp(`\\.simplysf2e \\.${hook}\\s*\\{`),
@@ -686,6 +720,31 @@ for (const mode of ["monster", "npc", "encounter", "character"]) {
 assert.match(css, /\.simplysf2e \.spf-statusbar\s*\{/, "statusbar strip must be styled");
 assert.match(css, /\.simplysf2e \.spf-statgrid\s*\{/, "stat grid must be styled");
 assert.match(css, /\.simplysf2e \.spf-card\s*\{[^}]*clip-path:/s, "cards must be notched via clip-path");
+assert.match(
+  css,
+  /\.simplysf2e \.spf-card \.spf-card::before,\s*\.simplysf2e \.spf-card \.spf-card::after\s*\{[^}]*content:\s*none/s,
+  "the HUD frame (ticks and notch) stays on outer cards only"
+);
+// D3: uppercase and letter-spacing are for HUD labels (legends, chips, status
+// keys) only, never headings, buttons or disclosure summaries.
+for (const m of css.replace(/\/\*[\s\S]*?\*\//g, "").matchAll(/([^{}]+)\{([^}]*text-transform:\s*uppercase[^}]*)\}/g)) {
+  const selector = m[1].trim();
+  assert.doesNotMatch(selector, /\b(h[1-6]|button|summary|label)\b|spf-primary|window-header|spf-mode-toggle/,
+    `uppercase is for HUD labels only, not ${selector}`);
+}
+// S10: trait tags take the sf2e square tag shape, not 999px pills.
+{
+  const trait = css.match(/\.simplysf2e \.spf-trait\s*\{([^}]*)\}/s)?.[1] ?? "";
+  assert.match(trait, /border-radius:\s*var\(--spf-radius-sm\)/, "trait tags are square");
+  assert.match(trait, /color:\s*var\(--spf-text\)/, "trait tag text reads the text token");
+  assert.doesNotMatch(trait, /999px|--spf-neon/, "trait tags are not magenta pills");
+}
+// D2: the per-mode tint reaches only the active mode tile and the statblock rule.
+assert.deepEqual(
+  [...css.replace(/\/\*[\s\S]*?\*\//g, "").matchAll(/([^{}]+)\{[^}]*var\(--spf-mode-accent/g)].map((m) => m[1].trim()),
+  [".simplysf2e .simplysf2e-generator .spf-statblock-header"],
+  "only the statblock rule reads the mode accent"
+);
 
 // Window scrolling (QA 12r): Foundry clips .window-content, so every module
 // window's root part must fill it and scroll, or a short or resized window
@@ -742,5 +801,18 @@ assert.match(
 );
 assert.match(css, /\.spf-dialog-body\s*\{[^}]*display:\s*contents;/s, "the dialog wrapper must not change core's form layout");
 assert.match(appBase, /addEventListener\("wheel"[\s\S]*?input\[type='number'\][\s\S]*?\.blur\(\)/, "the wheel must scroll, not step a focused number box");
+
+// The window frame and the status bar carry no neon glow: glow marks what is live (U4A-T1 finding 2).
+{
+  const blocks = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)];
+  const frameGlow = blocks.filter(([, selector, body]) =>
+    selector.split(",").some((part) => /^\s*\.(application\.simplysf2e|simplysf2e\.application)\s*$/.test(part))
+    && /box-shadow[^;]*--spf-(neon-)?glow/.test(body));
+  assert.equal(frameGlow.length, 0, "the module window frame carries no neon glow");
+  const barGlow = blocks.filter(([, selector, body]) =>
+    selector.split(",").some((part) => /^\s*\.simplysf2e \.spf-statusbar\s*$/.test(part))
+    && /box-shadow[^;]*--spf-(neon-)?glow/.test(body));
+  assert.equal(barGlow.length, 0, "the status bar carries no neon glow");
+}
 
 console.log("UI layout contract checks passed.");

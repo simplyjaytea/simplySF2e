@@ -19,6 +19,7 @@ import {
   progressPercent,
   progressPhaseClass,
   resetStreamPhase,
+  stepElapsed,
   streamFraction
 } from "./progress.mjs";
 import { coarsenTokenEstimate, lastRunTokenTotal } from "./tokens.mjs";
@@ -29,26 +30,30 @@ let activeConnectionSelected = null;
 let currentConnection = "default-conn";
 let activePrices = { inputPerM: null, outputPerM: null };
 const notifications = [];
+const openApps = new Map();
 let confirmAnswer = true;
 let confirmCalls = 0;
+// Unit letters the localize stub returns for the two elapsed-time keys.
+const unitLabels = { "SIMPLYSF2E.Progress.UnitSeconds": "s", "SIMPLYSF2E.Progress.UnitMinutes": "m" };
 const context = vm.createContext({
   AbortController,
   console: { log() {}, warn() {}, error() {}, debug() {} },
   game: {
     i18n: {
-      localize: (key) => key,
+      localize: (key) => (key in unitLabels ? unitLabels[key] : key),
       format: (key, data) => `${key}:${JSON.stringify(data)}`
     }
   },
   ui: {
     notifications: {
       info(msg) { notifications.push({ type: "info", msg }); },
-      warn(msg) { notifications.push({ type: "warn", msg }); },
+      warn(msg, opts) { notifications.push({ type: "warn", msg, opts }); },
       error(msg) { notifications.push({ type: "error", msg }); }
     }
   },
   foundry: {
     applications: {
+      instances: { values: () => openApps.values() },
       api: {
         ApplicationV2: class FakeApplicationV2 {
           constructor(options = {}) { this.options = options; }
@@ -81,8 +86,9 @@ const mocks = {
     currentConnection = id;
   },
   ProviderSetupApp: class FakeProviderSetupApp {
-    constructor(callback) { this.callback = callback; }
+    constructor(callback) { this.callback = callback; this.refreshed = 0; }
     render() { return this; }
+    async _refreshForConnectionChange() { this.refreshed += 1; }
   },
   PHASE_FILL,
   applyStep,
@@ -90,6 +96,7 @@ const mocks = {
   progressPercent,
   progressPhaseClass,
   resetStreamPhase,
+  stepElapsed,
   streamFraction,
   coarsenTokenEstimate,
   lastRunTokenTotal,
@@ -242,9 +249,10 @@ assert.equal(
   "a continuation step reuses the run signal instead of opening a new budget window"
 );
 
+const domElapsed = [{ textContent: "" }, { textContent: "" }];
 const domSteps = [
-  { className: "", querySelector: () => ({ className: "" }) },
-  { className: "", querySelector: () => ({ className: "" }) }
+  { className: "", querySelector: (sel) => (sel === ".spf-step-elapsed" ? domElapsed[0] : { className: "" }) },
+  { className: "", querySelector: (sel) => (sel === ".spf-step-elapsed" ? domElapsed[1] : { className: "" }) }
 ];
 const domFill = { style: { width: "0%" } };
 const domBar = { setAttribute(k, v) { this[k] = v; } };
@@ -271,6 +279,8 @@ await app._setStep("concept");
 assert.equal(app._progress.steps[0].state, "active");
 assert.equal(domSteps[0].className, "spf-step-active");
 assert.ok(domFill.style.width.endsWith("%"));
+assert.equal(domElapsed[0].textContent, "SIMPLYSF2E.Progress.Running", "the active step paints the running label");
+assert.equal(domElapsed[1].textContent, "", "a pending step paints no status value");
 
 // AI progress streaming
 app._onAIProgress({ phase: "thinking", tokens: 50, exact: true, call: "Drafting" });
@@ -286,8 +296,19 @@ assert.equal(app._progress.steps[0].state, "done");
 assert.equal(app._progress.steps[1].state, "active");
 assert.equal(domSteps[0].className, "spf-step-done");
 assert.equal(domSteps[1].className, "spf-step-active");
+assert.match(domElapsed[0].textContent, /^\d+\.\ds$/, "a finished step paints its elapsed time in place");
+assert.equal(domElapsed[1].textContent, "SIMPLYSF2E.Progress.Running");
 
-// 4. Provider switching & testing
+// A live repaint uses the app's localized unit letters, not the defaults.
+unitLabels["SIMPLYSF2E.Progress.UnitSeconds"] = "sek";
+unitLabels["SIMPLYSF2E.Progress.UnitMinutes"] = "min";
+app._paintStepList();
+assert.match(domElapsed[0].textContent, /^\d+\.\dsek$/, "the in-place repaint ends with the localized seconds letter");
+assert.equal(domElapsed[1].textContent, "SIMPLYSF2E.Progress.Running", "the active step still paints the running label");
+
+// 4. Provider switching & testing (the progress tests above left a run open on this window)
+app._progress = null;
+app._generationAbort = null;
 app.rendered = false;
 await app._switchActiveConnection("conn-2");
 assert.equal(activeConnectionSelected, "conn-2");
@@ -299,6 +320,76 @@ app.rendered = false;
 app.preserved = false;
 await app._switchActiveConnection("conn-2");
 assert.equal(app.preserved, false, "Same connection does not preserve form or re-render");
+
+// A run in another window, or in this one, refuses the header switch and puts the select back.
+{
+  const framed = (app, select) => { app.element = { querySelector: (sel) => (sel === "[name='activeConnection']" ? select : null) }; };
+  const idle = new TestApp();
+  const running = new TestApp();
+  running._generationAbort = new AbortController();
+  openApps.set("idle", idle);
+  openApps.set("running", running);
+  const before = notifications.length;
+  const select = { value: "other-conn" };
+  framed(idle, select);
+  idle.rendered = false;
+  idle.preserved = false;
+  const selectedBefore = activeConnectionSelected;
+  await idle._switchActiveConnection("other-conn");
+  assert.equal(activeConnectionSelected, selectedBefore, "another window runs: selectProviderConnection is not called");
+  assert.equal(select.value, currentConnection, "another window runs: the select shows the connection in use");
+  assert.equal(idle.rendered, false, "refused switch does not render");
+  assert.equal(idle.preserved, false, "refused switch keeps the form as it is");
+  const warned = notifications.slice(before).filter((n) => n.type === "warn");
+  assert.equal(warned.length, 1, "one warning");
+  assert.equal(warned[0].msg, "SIMPLYSF2E.ProviderSetup.BusySwitch");
+  assert.equal(warned[0].opts.localize, true, "warning is localized by key");
+  // This window's own run: refused too (nobody else is running).
+  openApps.clear();
+  const own = new TestApp();
+  own._progress = { steps: [] };
+  const ownSelect = { value: "other-conn" };
+  framed(own, ownSelect);
+  await own._switchActiveConnection("other-conn");
+  assert.equal(activeConnectionSelected, selectedBefore, "own run: no switch");
+  assert.equal(ownSelect.value, currentConnection, "own run: select goes back");
+  // Idle everywhere: goes through.
+  openApps.set("idle", idle);
+  await idle._switchActiveConnection("other-conn");
+  assert.equal(activeConnectionSelected, "other-conn", "idle: the switch goes through");
+  openApps.clear();
+  currentConnection = "conn-2";
+}
+
+// After a successful switch every OTHER module window that shows the connection re-renders;
+// foreign windows and the switching window itself are left alone.
+{
+  const first = new TestApp();
+  const second = new TestApp();
+  const third = new TestApp();
+  const setup = new mocks.ProviderSetupApp();
+  let foreignRenders = 0;
+  const foreign = { render() { foreignRenders += 1; } };
+  first.element = { querySelector: () => ({ value: "" }) };
+  for (const [name, a] of Object.entries({ first, second, third, setup, foreign })) openApps.set(name, a);
+  let firstRenders = 0;
+  first.render = async () => { firstRenders += 1; };
+  currentConnection = "conn-a";
+  await first._switchActiveConnection("conn-b");
+  assert.equal(firstRenders, 1, "the switching window renders itself once");
+  assert.equal(second.rendered, true, "an open tool window re-renders after the switch");
+  assert.equal(second.preserved, true, "its unsaved form text is kept first (_preserveForm)");
+  assert.equal(third.rendered, true, "every other tool window re-renders");
+  assert.equal(setup.refreshed, 1, "an open Provider Setup is asked to refresh (it keeps unsaved edits itself)");
+  assert.equal(foreignRenders, 0, "a window that is not the module's is not rendered");
+  // A refused switch refreshes nothing.
+  second.rendered = false;
+  first._generationAbort = new AbortController();
+  await third._switchActiveConnection("conn-c");
+  assert.equal(second.rendered, false, "a refused switch re-renders no window");
+  openApps.clear();
+  currentConnection = "conn-2";
+}
 
 // Testing provider success
 const testBtn = {
@@ -355,6 +446,46 @@ assert.ok(notifications.some((n) => n.type === "error" && n.msg.includes("TestFa
   await idle.close();
   assert.equal(confirmCalls, before, "closing an idle window does not prompt");
   assert.equal(idle.closedCalled, 1, "idle window closes");
+}
+
+// Every re-render reads the form first (R4-GEN); the first render and a skip-once render do not.
+{
+  class FormApp extends SpfApp {
+    reads = 0;
+    _preserveForm() { this.reads += 1; }
+  }
+  const formApp = new FormApp();
+  await formApp.render(true);
+  assert.equal(formApp.reads, 0, "the first render reads no form (no element yet)");
+  formApp.element = { querySelector: () => null };
+  await formApp.render();
+  assert.equal(formApp.reads, 1, "a re-render reads the form exactly once");
+  formApp._skipFormReadOnce = true;
+  await formApp.render();
+  assert.equal(formApp.reads, 1, "a skip-once render shows the input just set without reading the form");
+  assert.equal(formApp._skipFormReadOnce, false, "the skip-once flag is consumed");
+  await formApp.render();
+  assert.equal(formApp.reads, 2, "the render after a skip reads again");
+  formApp._closed = true;
+  formApp._skipFormReadOnce = true;
+  await formApp.render();
+  assert.equal(formApp._skipFormReadOnce, false, "a dropped render (closed window) still consumes the flag");
+  assert.equal(formApp.reads, 2, "a dropped render reads nothing");
+  await formApp.render(true);
+  assert.equal(formApp.reads, 3, "a forced reopen reads the form like any re-render");
+
+  // A failing read never blocks the render.
+  const broken = new (class extends SpfApp { _preserveForm() { throw new Error("form gone"); } })();
+  broken.element = { querySelector: () => null };
+  broken.rendered = false;
+  await broken.render();
+  assert.equal(broken.rendered, true, "a throwing _preserveForm does not stop the render");
+
+  // A window without a form draft (base no-op) is unaffected.
+  const plainApp = new SpfApp();
+  plainApp.element = { querySelector: () => null };
+  await plainApp.render();
+  assert.equal(plainApp.rendered, true, "an SpfApp without _preserveForm renders as before");
 }
 
 console.log("app-base.test.mjs: cancellation, token reporting, progress, and provider assertions passed");

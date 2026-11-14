@@ -8,9 +8,12 @@ import {
   applyStep,
   classifyRequestAbort,
   createProgress,
+  formatElapsed,
   progressPercent,
   progressPhaseClass,
+  progressView,
   resetStreamPhase,
+  stepElapsed,
   stepWeight,
   streamFraction
 } from "./progress.mjs";
@@ -140,5 +143,139 @@ for (const phase of ["thinking", "writing", "writing", "thinking", "writing"]) {
 for (let i = 1; i < percents.length; i++) {
   assert.ok(percents[i] >= percents[i - 1], `monotonic phase fill: ${percents.join(",")}`);
 }
+
+// --- Step timing with a fake clock (U4B telemetry) ---
+let clockMs = 1000;
+const fakeNow = () => clockMs;
+const timed = createProgress([
+  ["concept", "Concept"],
+  ["spells", "Spells"],
+  ["equipment", "Equipment"],
+  ["match", "Match"]
+], { now: fakeNow });
+assert.deepEqual(
+  timed.steps.map((s) => [s.startedAt, s.elapsedMs]),
+  [[null, null], [null, null], [null, null], [null, null]],
+  "a new step list carries no timing"
+);
+assert.equal(Object.keys(timed.steps).includes("clock"), false, "the clock is not an enumerable step");
+assert.deepEqual(JSON.parse(JSON.stringify(timed)).steps.length, 4, "the clock does not leak into a serialized snapshot");
+
+applyStep(timed.steps, "concept");
+assert.equal(timed.steps[0].startedAt, 1000);
+assert.equal(timed.steps[0].elapsedMs, null, "the active step has no elapsed time yet");
+
+clockMs = 1800;
+applyStep(timed.steps, "concept");
+assert.equal(timed.steps[0].startedAt, 1000, "re-applying the active key keeps its start time");
+
+applyStep(timed.steps, "spells");
+assert.equal(timed.steps[0].state, "done");
+assert.equal(timed.steps[0].elapsedMs, 800);
+assert.equal(timed.steps[1].startedAt, 1800);
+
+clockMs = 1800 + 65000;
+applyStep(timed.steps, "match");
+assert.equal(timed.steps[1].elapsedMs, 65000);
+assert.equal(timed.steps[2].state, "done");
+assert.equal(timed.steps[2].elapsedMs, null, "a step skipped from pending to done has no time");
+assert.equal(timed.steps[3].startedAt, 66800);
+
+// An explicit clock argument wins over the one the list was created with.
+const overrideClock = createProgress([["concept", "Concept"]], { now: () => 5 });
+applyStep(overrideClock.steps, "concept", { now: () => 42 });
+assert.equal(overrideClock.steps[0].startedAt, 42);
+
+// No clock given: Date.now, a real number.
+const realClock = createProgress([["concept", "Concept"], ["match", "Match"]]);
+applyStep(realClock.steps, "concept");
+assert.ok(Number.isFinite(realClock.steps[0].startedAt));
+applyStep(realClock.steps, "match");
+assert.ok(realClock.steps[0].elapsedMs >= 0);
+
+// Going back to an earlier key clears the later steps' timing.
+applyStep(timed.steps, "spells");
+assert.equal(timed.steps[3].state, "pending");
+assert.equal(timed.steps[3].startedAt, null);
+assert.equal(timed.steps[3].elapsedMs, null);
+assert.equal(timed.steps[0].elapsedMs, 800, "finished steps before the key keep their time");
+// Spells runs again from 66800; finishing it at 70000 times the second run.
+clockMs = 70000;
+applyStep(timed.steps, "match");
+
+// formatElapsed boundaries.
+assert.equal(formatElapsed(0), "0.0s");
+assert.equal(formatElapsed(49), "0.0s");
+assert.equal(formatElapsed(800), "0.8s");
+assert.equal(formatElapsed(9940), "9.9s");
+assert.equal(formatElapsed(9950), "10s", "rounding to 10.0 s switches to whole seconds");
+assert.equal(formatElapsed(12000), "12s");
+assert.equal(formatElapsed(59499), "59s");
+assert.equal(formatElapsed(59500), "1m 00s");
+assert.equal(formatElapsed(65000), "1m 05s");
+assert.equal(formatElapsed(600000), "10m 00s");
+assert.equal(formatElapsed(null), "");
+assert.equal(formatElapsed(undefined), "");
+assert.equal(formatElapsed(-1), "");
+assert.equal(formatElapsed(Number.NaN), "");
+
+assert.equal(stepElapsed({ state: "done", elapsedMs: 800 }), "0.8s");
+assert.equal(stepElapsed({ state: "done", elapsedMs: null }), "");
+assert.equal(stepElapsed({ state: "active", elapsedMs: 800 }), "", "only done steps show a time");
+assert.equal(stepElapsed({ state: "pending" }), "");
+
+// Context shape the apps hand _progress.hbs.
+assert.equal(progressView(null), null);
+const view = progressView(timed);
+assert.deepEqual(
+  view.steps.map((s) => [s.key, s.state, s.elapsed]),
+  [
+    ["concept", "done", "0.8s"],
+    ["spells", "done", "3.2s"],
+    ["equipment", "done", ""],
+    ["match", "active", ""]
+  ]
+);
+assert.equal(view.totalElapsed, "4.0s", "total sums the timed finished steps");
+for (const key of ["phase", "percent", "detail", "streamFrac"]) {
+  assert.ok(key in view, `the view keeps progress.${key}`);
+}
+assert.notEqual(view.steps, timed.steps, "the view copies steps instead of mutating the live list");
+assert.equal("elapsed" in timed.steps[0], false, "the live progress object gets no view fields");
+assert.equal(progressView(createProgress([["concept", "Concept"]])).totalElapsed, "",
+  "no finished step: empty total");
+
+// Elapsed unit letters: defaults unchanged, custom units threaded through.
+assert.equal(formatElapsed(4200), "4.2s", "default seconds letter");
+assert.equal(formatElapsed(42000), "42s", "default seconds letter, whole");
+assert.equal(formatElapsed(65000), "1m 05s", "default minutes letter");
+assert.equal(formatElapsed(65000, { seconds: "sek", minutes: "min" }), "1min 05sek");
+assert.equal(formatElapsed(65000, { seconds: "sec", minutes: "min" }), "1min 05sec");
+assert.equal(formatElapsed(4200, { seconds: "sek", minutes: "min" }), "4.2sek");
+assert.equal(formatElapsed(42000, { seconds: "sek", minutes: "min" }), "42sek");
+assert.equal(formatElapsed(65000, { seconds: "", minutes: "" }), "1m 05s",
+  "empty unit strings fall back to the default letters");
+assert.equal(formatElapsed(65000, { seconds: "sek" }), "1m 05sek",
+  "missing minutes falls back to the default minutes letter");
+assert.equal(formatElapsed(4200, {}), "4.2s", "missing seconds falls back to the default");
+assert.equal(formatElapsed(4200, { seconds: 7 }), "4.2s", "non-string unit falls back to the default");
+assert.equal(stepElapsed({ state: "done", elapsedMs: 4200 }, { seconds: "sek" }), "4.2sek");
+assert.equal(stepElapsed({ state: "active", elapsedMs: 4200 }, { seconds: "sek" }), "");
+
+// progressView passes units to each step's elapsed and to totalElapsed.
+const unitTimed = progressView(
+  createProgress([["concept", "Concept"], ["spells", "Spells"]]),
+  { seconds: "sek", minutes: "min" }
+);
+assert.equal(unitTimed.totalElapsed, "", "no finished step: empty total with units");
+const finished = createProgress([["concept", "Concept"], ["spells", "Spells"]]);
+finished.steps[0].state = "done";
+finished.steps[0].elapsedMs = 4200;
+finished.steps[1].state = "done";
+finished.steps[1].elapsedMs = 65000;
+const withUnits = progressView(finished, { seconds: "sek", minutes: "min" });
+assert.deepEqual(withUnits.steps.map((s) => s.elapsed), ["4.2sek", "1min 05sek"]);
+assert.equal(withUnits.totalElapsed, "1min 09sek", "total uses the units too");
+assert.equal(progressView(finished).totalElapsed, "1m 09s", "no units argument keeps defaults");
 
 console.log("progress.test.mjs: weighted monotonic progress assertions passed");

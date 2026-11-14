@@ -1,6 +1,6 @@
 # Shop and Treasure bench: findings
 
-Hand-written analysis of `tools/pipeline-bench/market.mjs` against sf2e 1.6.1 (`foundryvtt/pf2e` v14-dev `be4ab21`, the pin in `tools/class-bench/cache/SOURCE.txt`). The bench changes no production file. Rerun it after a fix and compare the matrix; this report is not regenerated.
+Hand-written analysis of `tools/pipeline-bench/market.mjs` against sf2e 1.6.1 (`foundryvtt/pf2e` v14-dev `be4ab21`, the pin in `tools/class-bench/cache/SOURCE.txt`). The bench changes no production file. Rerun it after a fix and compare the matrix; this report is not regenerated. Re-run 2026-11-08 on sf2e 1.7.0 (`52dfeee`) at the 5,000,000 cap: 240 of 240 PASS, 24 Credstick rows, max 1 per hoard.
 
 Run: `node tools/class-bench/fetch.mjs` once, then `node tools/pipeline-bench/market.mjs`. It covers 240 runs in under a second. Per-run detail is in `tools/pipeline-bench/out/market.json`.
 
@@ -9,7 +9,7 @@ Run: `node tools/class-bench/fetch.mjs` once, then `node tools/pipeline-bench/ma
 R5 (branch `simplyjaytea/m-r5`, base `batch/m2-m4`): **240 of 240 runs pass; the bench exits 0.** HC (branch `simplyjaytea/fix-hc`, base `batch/m2-m4`) makes the hoard create step mirror `treasure-app.mjs` exactly. The matrix is unchanged; the Credstick counts are now the app's.
 
 - F1 (unpriced equipment stocked at 0 credits): fixed. Unpriced items are left out of shop and hoard candidates before the AI sees them.
-- F3 (several Credstick rows per hoard): by design. The leftover is split at `CURRENCY_ITEM_MAX` (100,000 credits per Credstick), so only hoards above 100,000 credits get several Credsticks.
+- F3 (several Credstick rows per hoard): by design. The leftover is split at `CURRENCY_ITEM_MAX` (5,000,000 credits per Credstick since 2026-11-08; it was 100,000), so only a hoard above 5,000,000 credits gets several Credsticks.
 - F2 (hoard budget ignores rarity): not changed; a balance call for JT (see "Owner decisions needed").
 
 Before R5 the bench exited 1 with 62 failing runs (178 pass, all 62 failures F1).
@@ -106,11 +106,13 @@ Unverified live: that the 15 items really have no price in the running sf2e 1.6.
 
 `checkHoard` fails a hoard when a Credstick is over `CURRENCY_ITEM_MAX` or the Credsticks do not sum to the leftover.
 
+2026-11-08: CURRENCY_ITEM_MAX raised to 5,000,000 (JT decision, docs/balance-proposals.md item 2). Every hoard in the matrix is now one Credstick; the 49-row L20 figure above is from the 100,000 cap.
+
 ## Owner decisions needed
 
 1. **F2 (JT):** should a Rare or Uncommon hoard carry a larger budget than a Common one? Today all three use the common standard budget. R5 did not change the math.
 2. **F3 pick cap (JT):** `TREASURE_PICKS` (`treasure.mjs`, 12 encounter and 24 whole level) limits how many items the AI is asked for. A 24-item hoard can still spend little of a whole-level budget with cheap picks. Should the cap rise, or should the hoard hold more of the budget as Credsticks (as it does now)?
-3. **F3 sheet size (JT):** a whole-level level-20 hoard is 49 Credsticks of 100,000 credits (one of 99,5xx). Confirm that is acceptable on the sheet. Raising `CURRENCY_ITEM_MAX` changes only the count, not the total.
+3. **F3 sheet size (JT):** a whole-level level-20 hoard is 49 Credsticks of 100,000 credits (one of 99,5xx). Confirm that is acceptable on the sheet. Raising `CURRENCY_ITEM_MAX` changes only the count, not the total. Decided 2026-11-08: raised to 5,000,000.
 
 ## Open
 
@@ -121,8 +123,8 @@ Unverified live: that the 15 items really have no price in the running sf2e 1.6.
 - No live Foundry: no `Actor.create`, `verifyCreatedActor`, `moveToGeneratedFolder`, sheet, Reroll or preview. The shop and hoard steps are mirrors (see Scope), so a drift in the app would not be caught here.
 - The AI is a stub. Spend, rarity mix and item variety in the matrix say nothing about real picks.
 - Prices are the pack JSON's values, not the live system's prepared data (`priceToGp` and `gpToCredits` run on the raw source).
-- Whether Foundry accepts a Credstick with up to 100,000 credits in `system.price.value.sp` (the value is only a number in the source; no sf2e validation was checked).
+- Whether Foundry accepts a Credstick with up to 5,000,000 credits (was 100,000) in `system.price.value.sp` (the value is only a number in the source; no sf2e validation was checked).
 
 ## Live check for JT
 
-Run `docs/qa-checklist.md` 12z.2 and 13h.3. At an armor shop, level 3, confirm no row shows 0 cr and the console shows the dropped-item warning. Then create one whole-level level-20 hoard and confirm it holds 49 Credsticks that sum to the leftover (the bench's count for that hoard).
+Run `docs/qa-checklist.md` 12z.2 and 13h.3. At an armor shop, level 3, confirm no row shows 0 cr and the console shows the dropped-item warning. Then create one whole-level level-20 hoard and confirm it holds 49 Credsticks that sum to the leftover (the bench's count for that hoard) (written at the 100,000 cap; since 2026-11-08 it is one Credstick, QA 13h.6).

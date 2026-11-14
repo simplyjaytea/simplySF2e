@@ -1,5 +1,5 @@
 <div class="spf-window-body simplysf2e-sources spf-hud">
-  <p class="spf-hint spf-hud-accent"><i class="fa-solid fa-satellite-dish" aria-hidden="true"></i> {{localize "SIMPLYSF2E.Sources.Hint"}}</p>
+  <p class="spf-hint"><i class="fa-solid fa-satellite-dish spf-hud-accent" aria-hidden="true"></i> {{localize "SIMPLYSF2E.Sources.Hint"}}</p>
 
   {{#if noPacks}}
     <p class="spf-hint spf-source-empty">{{localize "SIMPLYSF2E.Sources.NonePacksFound"}}</p>
@@ -20,8 +20,10 @@
   </div>
   <p class="spf-hint spf-source-no-match" data-source-no-match {{#unless filter.noMatches}}hidden{{/unless}}>{{localize "SIMPLYSF2E.Sources.NoMatches"}}</p>
   {{#each categories}}
-    <fieldset class="spf-source-category spf-card spf-hud-frame" data-source-category="{{this.key}}" {{#if this.hidden}}hidden{{/if}}>
-      <legend>{{localize this.label}} <span class="spf-source-count" data-source-count>{{localize "SIMPLYSF2E.Sources.CategoryCount" selected=this.selectedCount total=this.packs.length}}</span></legend>
+    {{! One flat list: each category is a plain heading row over its packs.
+        The fieldset and legend stay so screen readers announce the group. }}
+    <fieldset class="spf-source-category" data-source-category="{{this.key}}" {{#if this.hidden}}hidden{{/if}}>
+      <legend><span class="spf-source-category-label">{{localize this.label}}</span> <span class="spf-source-count" data-source-count>{{localize "SIMPLYSF2E.Sources.CategoryCount" selected=this.selectedCount total=this.packs.length}}</span></legend>
       {{#if this.packs.length}}
         {{#each this.packs}}
           <label class="spf-pack" {{#if this.hidden}}hidden{{/if}}>
@@ -41,7 +43,7 @@
     <button type="submit" class="spf-primary" {{#if noPacks}}disabled{{/if}}>
       <i aria-hidden="true" class="fa-solid fa-floppy-disk"></i> {{localize "SIMPLYSF2E.Sources.Save"}}
     </button>
-    <button type="button" data-action="reset">
+    <button type="button" class="spf-danger" data-action="reset">
       <i aria-hidden="true" class="fa-solid fa-rotate-left"></i> {{localize "SIMPLYSF2E.Sources.Reset"}}
     </button>
   </footer>

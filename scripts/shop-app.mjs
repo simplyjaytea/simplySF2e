@@ -3,7 +3,7 @@ import {
   authorizeApiKeyForCurrentBaseUrl
 } from "./settings.mjs";
 import { generateShopConcept, selectShopStock } from "./ai.mjs";
-import { getShopCandidates, getCandidateDocument, getPacksFor, toItemData, priceToGp } from "./compendium.mjs";
+import { getShopCandidates, getCandidateDocument, getPacksFor, toItemData, unitPriceGp, describeMissingSources } from "./compendium.mjs";
 import {
   SHOP_SIZES, SHOP_CATEGORIES, SHOP_RARITIES, SHOP_MIN_LEVEL, SHOP_MAX_LEVEL,
   clampShopLevel, normalizeShopConcept, shopTypesFor, pickShopStock, shopStockValue, shopActorData
@@ -13,6 +13,8 @@ import { moveToGeneratedFolder } from "./folders.mjs";
 import { SourcesConfigApp } from "./sources-app.mjs";
 import { gpToCredits } from "./currency.mjs";
 import { SpfApp } from "./app-base.mjs";
+import { progressView } from "./progress.mjs";
+import { jevKeySource } from "./jev.mjs";
 
 const TYPE_LABELS = {
   weapon: "SIMPLYSF2E.Shop.TypeWeapon",
@@ -63,6 +65,7 @@ export class ShopApp extends SpfApp {
   #input = { prompt: "", level: 3, size: "standard", rarity: "common" };
   #busy = false;
   #error = null;
+  #readinessOpen = false;
   /** Normalized shop concept of the current preview. */
   #concept = null;
   /** Stock rows: {key, name, type, level, rarity, credits, quantity, itemData}. */
@@ -72,7 +75,15 @@ export class ShopApp extends SpfApp {
   /** Picks dropped because the AI returned an ID that was not offered. */
   #dropped = 0;
 
+  _onRender(context, options) {
+    super._onRender?.(context, options);
+    this.element?.querySelector("details[data-readiness]")?.addEventListener("toggle", (event) => {
+      this.#readinessOpen = event.currentTarget.open;
+    });
+  }
+
   async _prepareContext() {
+    const equipmentPacks = getPacksFor("equipment");
     const authState = getProviderRequestConfig();
     const authWarningKey = getProviderAuthWarningKey(authState);
     return {
@@ -82,7 +93,7 @@ export class ShopApp extends SpfApp {
       lastRunCost: this._formatLastRunCost(),
       error: this.#error,
       canReportBug: this._canReportBug(this.#error),
-      progress: this._progress,
+      progress: progressView(this._progress, this._elapsedUnits()),
       apiKeyWarning: authWarningKey ? game.i18n.localize(authWarningKey) : null,
       providerBaseUrl: authState.baseUrl,
       provider: authState.provider,
@@ -90,6 +101,11 @@ export class ShopApp extends SpfApp {
       connections: authState.connections ?? [],
       canSwitchConnection: (authState.connections?.length ?? 0) > 1,
       providerReady: !authWarningKey,
+      sourcesReady: equipmentPacks.length > 0,
+      sourcePackCount: equipmentPacks.length,
+      sourceMissing: equipmentPacks.length ? "" : describeMissingSources(["equipment"]),
+      jevSource: jevKeySource(),
+      readinessOpen: this.#readinessOpen,
       canAuthorizeApiKey: Boolean(
         authState.baseUrl && authState.hasConfiguredApiKey && !authState.apiKeyIsBound && !authState.apiKeyInsecure
       ),
@@ -181,7 +197,7 @@ export class ShopApp extends SpfApp {
 
   static #onConfigureSources() {
     this.#readForm();
-    new SourcesConfigApp().render(true);
+    SourcesConfigApp.open();
   }
 
   static async #onTestProvider(_event, target) {
@@ -205,17 +221,22 @@ export class ShopApp extends SpfApp {
     }
     this.#busy = true;
     this.#error = null;
+    // Keep the previous preview (and its token report) on screen until this run
+    // produces a replacement: the preview fields are only assigned at the very end
+    // of a successful run, and a failed or cancelled run puts the old usage back.
+    const previousUsage = this._tokenUsage;
     this._tokenUsage = [];
-    this.#clearPreview();
+    let succeeded = false;
     const { prompt, level, size, rarity } = this.#input;
     const count = SHOP_SIZES[size];
-    const signal = this._beginProgress([
-      ["shopConcept", game.i18n.localize("SIMPLYSF2E.Shop.ProgressConcept")],
-      ["candidates", game.i18n.localize("SIMPLYSF2E.Shop.ProgressCandidates")],
-      ["stock", game.i18n.localize("SIMPLYSF2E.Shop.ProgressStock")],
-      ["prices", game.i18n.localize("SIMPLYSF2E.Shop.ProgressPrices")]
-    ]);
+    let signal = null;
     try {
+      signal = this._beginProgress([
+        ["shopConcept", game.i18n.localize("SIMPLYSF2E.Shop.ProgressConcept")],
+        ["candidates", game.i18n.localize("SIMPLYSF2E.Shop.ProgressCandidates")],
+        ["stock", game.i18n.localize("SIMPLYSF2E.Shop.ProgressStock")],
+        ["prices", game.i18n.localize("SIMPLYSF2E.Shop.ProgressPrices")]
+      ]);
       // 1. Flavor and search terms only.
       await this._setStep("shopConcept");
       const { concept: raw, usage } = await generateShopConcept({
@@ -259,7 +280,7 @@ export class ShopApp extends SpfApp {
           type: doc.type,
           level: doc.system?.level?.value ?? pick.level,
           rarity: doc.system?.traits?.rarity ?? pick.rarity ?? "common",
-          credits: gpToCredits(priceToGp(doc.system?.price?.value)),
+          credits: gpToCredits(unitPriceGp(doc)),
           quantity: pick.quantity,
           itemData
         });
@@ -271,15 +292,16 @@ export class ShopApp extends SpfApp {
       this.#stock = rows;
       this.#level = level;
       this.#dropped = unknown.length + (stock.length - rows.length);
+      succeeded = true;
     } catch (err) {
       if (err?.cancelled) console.warn(`${MODULE_ID} | shop generation cancelled`);
       else console.error(`${MODULE_ID} | shop generation failed`, err);
-      this.#error = err.message;
+      this.#error = String(err?.message ?? err ?? "");
       this._recordFailure(err, "shop generation", this.#error);
-      this.#clearPreview();
     } finally {
       this.#busy = false;
       this._finishRun();
+      if (!succeeded) this._tokenUsage = previousUsage;
       await this.render();
     }
   }
@@ -311,7 +333,7 @@ export class ShopApp extends SpfApp {
       // Committed: consume the draft before presentation so a sheet error
       // cannot lead to a duplicate shop.
       this.#clearPreview();
-      ui.notifications.info(game.i18n.format("SIMPLYSF2E.Shop.Created", { name: created.name }));
+      ui.notifications.info("SIMPLYSF2E.Shop.Created", { localize: true, format: { name: created.name }, escape: true });
       try {
         await created.sheet.render(true);
       } catch (err) {
@@ -320,10 +342,23 @@ export class ShopApp extends SpfApp {
     } catch (err) {
       console.error(`${MODULE_ID} | shop creation failed`, err);
       // Roll back a half-made merchant so a failed create leaves nothing behind.
+      let survivor = null;
       if (actor?.id) {
-        try { await actor.delete(); } catch (deleteErr) { console.warn(`${MODULE_ID} | could not roll back shop`, deleteErr); }
+        try { await actor.delete(); } catch (deleteErr) {
+          console.warn(`${MODULE_ID} | could not roll back shop`, deleteErr);
+          survivor = actor.name;
+        }
       }
-      this.#error = err.message;
+      if (survivor) {
+        // The merchant still exists: drop the draft so a retry cannot duplicate it.
+        this.#clearPreview();
+        // A sentence break between the failure and the survivor note; the message may lack a period.
+        const message = String(err?.message ?? err ?? "");
+        const sep = /[.!?]$/.test(message.trim()) ? " " : ". ";
+        this.#error = `${message}${sep}${game.i18n.format("SIMPLYSF2E.Shop.RollbackSurvivor", { name: survivor })}`;
+      } else {
+        this.#error = String(err?.message ?? err ?? "");
+      }
       this._recordFailure(err, "shop creation", this.#error);
     } finally {
       this.#busy = false;

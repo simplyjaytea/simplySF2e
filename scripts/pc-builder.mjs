@@ -15,7 +15,7 @@ import { CORE_SKILLS, normalizeSkillPriorities, initialSkillTraining, allocateCh
 import { ABILITY_KEYS, normalizeAbilityPriorities, assignAbilityBoosts, assignItemBoosts, projectAttributeModifiers, projectSkillRanks } from "./pc-projection.mjs";
 import { applyCharacterLoadout } from "./pc-loadout.mjs";
 import { pickDedicationBridge, planClassPaths, stageClassPaths } from "./class-paths.mjs";
-import { COMPLETE_PC_CLASS_SLUGS, archetypeTraditionFor, classManualNotes, getMulticlassDedicationSlug, technomancerCacheSpells, technomancerInitialHack, withInitialFocusSpell } from "./pc-support.mjs";
+import { COMPLETE_PC_CLASS_SLUGS, archetypeTraditionFor, classManualNotes, classSpellTradition, getMulticlassDedicationSlug, technomancerCacheSpells, technomancerInitialHack, withInitialFocusSpell } from "./pc-support.mjs";
 import {
   archetypeOfFeat, createDedicationRuleState, dedicationRuleBlock, evidencePrerequisitesMet, recordDedicationRulePlacement,
   stagedActorContext
@@ -210,6 +210,34 @@ export function heritageMatchesAncestry(heritageDoc, ancestryDoc) {
 }
 
 /**
+ * Creature-type traits an ancestry document carries next to its own ancestry
+ * trait. They are shared between ancestries (humanoid sits on 40 of the 60
+ * pinned ancestries) or are not the ancestry's own feat trait, so they never
+ * identify an ancestry's feats.
+ */
+const GENERIC_ANCESTRY_DOC_TRAITS = new Set([
+  "humanoid", "aberration", "beast", "construct", "ooze", "fey", "dragon", "plant", "tech", "cosmic", "aquatic", "amphibious"
+]);
+
+/**
+ * The feat trait(s) that mark an ancestry's own feats, read from the ancestry
+ * DOCUMENT (`system.traits.value`), never from its display name: Ysoki's
+ * feats carry "ratfolk" and G'folian's "gfolian", while slugify(name) gives
+ * "ysoki" and "g-folian". The document's traits minus the generic creature-type
+ * traits leave exactly one own trait for each of the 60 ancestries in the
+ * pinned sf2e 1.7.0 pack (checked by pc-builder.ancestryTrait.test.mjs against
+ * the cache when present). An empty array means "no provable trait": the
+ * caller leaves the slot empty instead of widening it.
+ * @param {object} ancestryDoc
+ * @returns {string[]}
+ */
+export function ancestryFeatTraits(ancestryDoc) {
+  const traits = ancestryDoc?.system?.traits?.value;
+  if (!Array.isArray(traits)) return [];
+  return traits.filter((trait) => typeof trait === "string" && trait && !GENERIC_ANCESTRY_DOC_TRAITS.has(trait));
+}
+
+/**
  * Deterministic fallback heritage for `ancestryDoc`, used when the AI's
  * heritage pick didn't resolve or belonged to a different ancestry. Heritage
  * is ABC-adjacent (falls under invariant #5's PC-feat-slot exception, same
@@ -219,19 +247,24 @@ export function heritageMatchesAncestry(heritageDoc, ancestryDoc) {
  * rarity-capped — resolvePCConcept has no rarityCap in scope here, so this
  * fallback may surface a rarer heritage than the generator's own cap would
  * normally offer) and resolves+checks each one until a match for
- * `ancestryDoc` turns up.
+ * `ancestryDoc` turns up. A heritage whose `system.ancestry` link names
+ * this ancestry wins; a versatile heritage (null link) is used only when the
+ * ancestry has no heritage of its own.
  * @param {object} ancestryDoc
  * @returns {Promise<object|null>}
  */
 async function fallbackHeritageFor(ancestryDoc) {
   const candidates = await getHeritageCandidates();
   const packIds = await getAllPacksFor("heritages");
+  let versatile = null;
   for (const candidate of candidates) {
     const entry = await findEntry(packIds, candidate.name, (e) => e.type === "heritage");
     const doc = await getDocument(entry);
-    if (doc && heritageMatchesAncestry(doc, ancestryDoc)) return doc;
+    if (!doc || !heritageMatchesAncestry(doc, ancestryDoc)) continue;
+    if (doc.system?.ancestry) return doc;
+    versatile ??= doc;
   }
-  return null;
+  return versatile;
 }
 
 /**
@@ -352,10 +385,17 @@ export async function resolvePCConcept(concept, { exactContent = false, pathPlan
     .filter((name) => typeof name === "string" && name.trim())
     .map((name) => [slugify(name), 1]));
 
+  // Feats the ancestry, heritage and background grant natively. Neither a
+  // class path's own choice nor a feat slot may take one again.
+  const abcGrants = abcGrantExclusions([ancestryDoc, heritageDoc, backgroundDoc]);
   if (!pathPlan) {
-    const pathContext = { names: conceptChoiceNames(concept, { ancestryDoc, heritageDoc, backgroundDoc, classDoc }) };
-    const excludeFeats = abcGrantExclusions([ancestryDoc, heritageDoc, backgroundDoc]);
-    pathPlan = await planClassPaths(classDoc, { context: pathContext, selectChoices, excludeFeats });
+    // Same key ability createCharacterActor stages, so an attribute choice on
+    // the path resolves here exactly as it did at Create.
+    const pathContext = {
+      keyAbility: resolveKeyAbility(classDoc.system, concept.keyAbility),
+      names: conceptChoiceNames(concept, { ancestryDoc, heritageDoc, backgroundDoc, classDoc })
+    };
+    pathPlan = await planClassPaths(classDoc, { context: pathContext, selectChoices, excludeFeats: abcGrants });
   }
 
   for (const planned of Object.values(pathPlan ?? {})) {
@@ -404,7 +444,17 @@ export async function resolvePCConcept(concept, { exactContent = false, pathPlan
   if (heritageDoc) pathFeatures.push({ name: `${heritageDoc.name} heritage` });
   const reservedFeats = Object.values(pathPlan ?? {}).flatMap((planned) => planned?.reservedFeats ?? []);
   const reservedFeatNames = Object.values(pathPlan ?? {}).flatMap((planned) => planned?.reservedFeatNames ?? []);
-  const slotExclusions = [...reservedFeats, ...reservedFeatNames];
+  // Feats the selected path grants outright (a Programming Language's
+  // metamagic feat, a Leadership Style's skill feat) and the ABC grants are
+  // already on the sheet: a slot never takes one again (the system only
+  // warns). getFeatCandidates matches an exact id-form uuid or a slugified
+  // name, and the ABC entries mostly use name-form uuids, so names are
+  // slugified here. A feat with a published maxTakable is excluded too: no
+  // cited source says when a second copy is legal (fail closed).
+  const grantedFeats = Object.values(pathPlan ?? {}).flatMap((planned) => planned?.grantedFeats ?? []);
+  const grantedFeatNames = Object.values(pathPlan ?? {}).flatMap((planned) => planned?.grantedFeatNames ?? []);
+  const abcGrantSlugs = abcGrants.map((grant) => (grant.startsWith("Compendium.") ? grant : slugify(grant))).filter(Boolean);
+  const slotExclusions = [...reservedFeats, ...reservedFeatNames, ...grantedFeats, ...grantedFeatNames, ...abcGrantSlugs];
 
   const hasSpecializedSkillSet = Object.values(classDoc.system?.items ?? {}).some((feature) =>
     Number(feature?.level) === 3 && (
@@ -418,7 +468,7 @@ export async function resolvePCConcept(concept, { exactContent = false, pathPlan
   const operativePlan = pathPlan?.["operative-specialization"];
   const operativeSkill = operativePlan?.trainedSkill ?? null;
 
-  const ancestryTrait = slugify(ancestryDoc.name);
+  const ancestryTraits = ancestryFeatTraits(ancestryDoc);
   const classTrait = slugify(classDoc.name);
   const featSlots = [];
   const freeArchetype = Boolean(getSetting(SETTINGS.freeArchetype));
@@ -451,19 +501,21 @@ export async function resolvePCConcept(concept, { exactContent = false, pathPlan
       ? offeredArchetypeSlugs : new Set(multiclass ? [slugify(multiclass.dedication)] : []);
     const prerequisiteContext = { ...stagedContext, names: new Set([...stagedContext.names, ...offeredNames]) };
     const traits = slot.archetype ? ["archetype"]
-      : slot.type === "ancestry" ? [ancestryTrait]
+      : slot.type === "ancestry" ? ancestryTraits
       : slot.type === "class" ? [classTrait] : [];
     // General slots also accept skill feats (sf2e-1.6.1 feats/collection.ts: supported ["general", "skill"]).
     const category = slot.type === "general" ? ["general", "skill"] : slot.type;
-    let candidates = await getFeatCandidates({
+    // Fail closed: an ancestry or class slot with no trait-matching candidate
+    // stays empty (reported to the GM as an empty feat slot). The trait filter
+    // is never dropped, because the system does not check feat traits and a
+    // wrong-ancestry or wrong-class feat would sit on the sheet unnoticed.
+    const ownTraitSlot = slot.type === "ancestry" || slot.type === "class";
+    let candidates = ownTraitSlot && !slot.archetype && !traits.length ? [] : await getFeatCandidates({
       level: slot.level, category, traits, preferredNames: concept.feats,
       excludeUuids: slotExclusions, prerequisiteContext
     });
-    if (!candidates.length && traits.length && !slot.archetype) {
-      candidates = await getFeatCandidates({
-        level: slot.level, category, preferredNames: concept.feats,
-        excludeUuids: slotExclusions, prerequisiteContext
-      });
+    if (!candidates.length && ownTraitSlot && !slot.archetype) {
+      console.warn(`simplysf2e | no ${slot.type} feat with trait ${traits.length ? traits.join("/") : "(none provable)"} for the level ${slot.level} slot — left empty`);
     }
     if (slot.archetype && dedicationSlug && !firstArchetypeSlotSeen) {
       firstArchetypeSlotSeen = true;
@@ -1314,9 +1366,11 @@ export async function createCharacterActor(concept, resolved, { img = null, sele
       excludeFeats.push(feat.name);
     }
   }
+  // A planned build made every class-path decision at preview time
+  // (planClassPaths); Create applies the plan and never asks the AI for one.
   const stagedClassPaths = await stageClassPaths(classData, classId, {
     context: { keyAbility, names: conceptChoiceNames(concept, resolved) },
-    selectChoices,
+    selectChoices: resolved.pathPlan ? null : selectChoices,
     excludeFeats,
     pathPlan: resolved.pathPlan ?? null
   });
@@ -1367,12 +1421,20 @@ export async function createCharacterActor(concept, resolved, { img = null, sele
   // their published profile; unsupported classes retain the legacy spontaneous
   // fallback until a source-qualified profile is added.
   const spellProfile = concept.spellcasting ? pcSpellcastingProfile(resolved.classDoc) : null;
-  if (concept.spellcasting && (spellProfile || resolved.spells?.some((s) => s.entry))) {
+  // A profiled class's tradition is its own (Technomancer) or the one the
+  // planned Connection/Paradox declares (Mystic, Witchwarper); the AI's
+  // tradition is used only for an unprofiled class. Unproven: no class entry.
+  const classTradition = !concept.spellcasting ? null
+    : spellProfile ? classSpellTradition(spellProfile, resolved.pathPlan) : concept.spellcasting.tradition;
+  if (spellProfile && !classTradition) {
+    console.warn(`simplysf2e | ${resolved.classDoc.name}: spell tradition not proven from the planned class path — no class spell entry`);
+  }
+  if (classTradition && (spellProfile || resolved.spells?.some((s) => s.entry))) {
     const plan = pcSpellPlan(concept.level, spellProfile);
     const built = await buildSpellcastingEntry({
       entryId: foundry.utils.randomID(),
-      name: `${capitalized(spellProfile?.tradition ?? concept.spellcasting.tradition)} Spells`,
-      tradition: spellProfile?.tradition ?? concept.spellcasting.tradition,
+      name: `${capitalized(classTradition)} Spells`,
+      tradition: classTradition,
       mode: spellProfile?.mode ?? "spontaneous",
       ability: spellProfile?.ability ?? keyAbility,
       proficiency: 1,
@@ -1432,8 +1494,8 @@ export async function createCharacterActor(concept, resolved, { img = null, sele
       img: systemIcon("icons/default-icons/spellcastingEntry.svg"),
       system: {
         // Real focus spells carry no tradition of their own; tag the entry
-        // with the class's casting tradition only when the concept has one.
-        ...(concept.spellcasting ? { tradition: { value: concept.spellcasting.tradition } } : {}),
+        // with the class's casting tradition only when one is proven.
+        ...(classTradition ? { tradition: { value: classTradition } } : {}),
         prepared: { value: "focus" },
         ability: { value: keyAbility },
         proficiency: { value: 1 },

@@ -13,6 +13,12 @@ npm run shoot      # all fixtures
 node shoot.mjs generator-npc   # only fixtures whose id contains the text
 ```
 
+Environment variables tune a run:
+
+- `SPF_SHOOT_CONC` (default `4`): how many fixture pages render at once over one browser. Only a whole number of 1 or more is accepted; anything else (`0`, `-2`, `2abc`) stops the run with an error. `1` gives the same order and per-fixture output as the old serial run. The summary line prints the elapsed seconds and the page count. `npm run shoot` and `tools/release-check.sh` use the default.
+- Each fixture prints `ok  <id>` when both widths rendered without an error, or `FAIL  <id>` when a render threw; the error text is in the problem list and the run exits 1.
+- `SPF_SHOOT_FREEZE=1` (default off): before each screenshot, stop CSS animations and transitions (`animation: none`, `transition: none`). PNGs from animated fixtures (progress sheen, blink, pulse, spinner) differ from run to run unless frozen; with the variable off, a fixture's pixels can change between runs. Use the freeze when comparing two runs pixel for pixel.
+
 Output goes to `tools/ui-preview/out/` (gitignored): `<fixture-id>@720.png`, `<fixture-id>@460.png`, and the rendered `.html` next to each. Playwright is preinstalled globally in cloud sessions (`PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers`); the script falls back to the global install when `playwright` is not in this folder.
 
 The command exits non-zero, and lists the problems, when a fixture is out of step with its template:
@@ -32,9 +38,9 @@ It also prints a `note:` line when a window scrolls sideways.
 | `harness.css` | Stand-in for Foundry core CSS (dark page, window frame, neutral controls). |
 | `fixtures/generator.mjs` | Generator: each of the five modes empty, provider attention, busy with and without progress, error, monster preview, NPC with negative modifiers, encounter, character preview and review, created, reskin empty / dropped / preview. |
 | `fixtures/itemforge.mjs` | Item Forge: each kind empty, attention, busy, error, wondrous / no-effects / augmentation / crystal / weapon / armor previews. |
-| `fixtures/shop.mjs` | Shop: empty, provider attention, busy, error, preview with real sf2e stock rows, every row removed. |
+| `fixtures/shop.mjs` | Shop: empty, provider attention, busy, error, no stock (`Shop.NoStock`), preview with real sf2e stock rows, every row removed. |
 | `fixtures/treasure.mjs` | Treasure: empty, provider attention, busy, error, preview (one encounter and whole level) with real sf2e item rows and a Credits row, every row removed. |
-| `fixtures/dialogs.mjs` | Provider setup (saved, fresh, models loaded, Cost estimate collapsed and expanded, price error auto-opened, Jev TypeSafe auto-opened), Sources (default, no packs, filtered, selected only, no match), Manage presets (list, empty). |
+| `fixtures/dialogs.mjs` | Provider setup (saved, fresh, models loaded, Cost estimate collapsed and expanded, price error auto-opened, Jev TypeSafe auto-opened), Sources (default, no packs, one empty category, filtered, selected only, no match), Manage presets (list, empty). |
 | `fixtures/welcome.mjs` | First-run welcome: a first run with no API key (Jev off), system, sources and provider problems, and everything ready. Shape follows `WelcomeApp._prepareContext()` (`welcome-app.mjs`) over `welcomeState()` in `welcome.mjs`. |
 | `fixtures/whats-new.mjs` | What's new: unseen notes (the first three of `RELEASE_NOTES`) and the manual list (newest day open, Earlier changes collapsed and expanded). Shape follows `WhatsNewApp._prepareContext()` (`whats-new-app.mjs`) plus `docs/ui-contract.md`. |
 | `fixtures/_shared.mjs` | Shared builders. Imports the module's pure functions (`normalizeConcept`, `computeStats`, `adjustedStats`, `createProgress`) so numbers are the real ones. |

@@ -14,6 +14,10 @@ The test is discovered by the normal CI loop (`scripts/*.test.mjs`), so it gates
 - `replay.mjs` maps a fixture's `task` to the real export in `scripts/ai.mjs` and calls it with the fixture's `args`. `normalizeConcept` is the exception: it is the real export from `scripts/builder.mjs` and runs on an already-parsed object, so the normalizer is covered too. For selector tasks the runner passes `jevConfig: null`, because the Jev fast pick is a second network path and must never run in a replay.
 - `scripts/golden-replay.test.mjs` walks `fixtures/*.json` (no hardcoded list), runs each fixture twice for determinism, and asserts the fixture's `expect` block.
 
+## Candidate ids in selector fixtures
+
+Selector tasks (`abilitySelection`, `creatureFeatSelection`, `equipmentSelection`, ...) show the model short per-request ids, issued in candidate order (`A1`, `F1`, `E1`, ... see `createCandidateEncoder` in `scripts/ai-candidate-format.mjs`). A fixture's recorded answer and its `bodyContains` therefore use those ids, not the `id` strings in `args.candidates`; `bodyExcludes` asserts the old ids never reach the request. `negative-forged-candidates` also types the real opaque `c-` catalog ids and an out-of-range short id back to the module: all must resolve nothing.
+
 ## Fixture format
 
 ```json
@@ -35,6 +39,7 @@ The test is discovered by the normal CI loop (`scripts/*.test.mjs`), so it gates
     "lengths": { "concept.strikes": 2 },
     "nothingPicked": false,
     "bodyContains": ["text that must appear in the request body"],
+    "bodyExcludes": ["text that must not appear in the request body"],
     "errorKey": "Errors.BadStructure"
   }
 }

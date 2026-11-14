@@ -44,14 +44,25 @@ export function stepWeight(key) {
   }
 }
 
-export function createProgress(defs) {
+/**
+ * `now` is the clock `applyStep` reads for step timing (tests pass a fake one).
+ * It rides on the steps array as a non-enumerable property because callers
+ * hand `applyStep` the array, not the progress object.
+ */
+export function createProgress(defs, { now } = {}) {
+  const steps = (defs ?? []).map(([key, label]) => ({
+    key,
+    label,
+    state: "pending",
+    weight: stepWeight(key),
+    startedAt: null,
+    elapsedMs: null
+  }));
+  if (typeof now === "function") {
+    Object.defineProperty(steps, "clock", { value: now, enumerable: false });
+  }
   return {
-    steps: (defs ?? []).map(([key, label]) => ({
-      key,
-      label,
-      state: "pending",
-      weight: stepWeight(key)
-    })),
+    steps,
     detail: "",
     percent: 0,
     streamFrac: 0,
@@ -76,20 +87,96 @@ export function classifyRequestAbort({ userAborted = false, aborted = false } = 
   return null;
 }
 
-/** Unknown keys leave state unchanged so a missing step cannot mark everything done. */
-export function applyStep(steps, key) {
+/**
+ * Unknown keys leave state unchanged so a missing step cannot mark everything done.
+ * Timing: a step records `startedAt` when it becomes active and `elapsedMs`
+ * when it moves from active to done. A step skipped straight from pending to
+ * done has no time (`elapsedMs` stays null); a step sent back to pending
+ * loses its time. The clock is `now`, else the one `createProgress` was given,
+ * else `Date.now`.
+ */
+export function applyStep(steps, key, { now } = {}) {
   const list = Array.isArray(steps) ? steps : [];
   if (!list.some((step) => step.key === key)) return false;
+  const clock = typeof now === "function" ? now
+    : typeof list.clock === "function" ? list.clock
+      : Date.now;
+  const at = Number(clock());
   let reached = false;
   for (const step of list) {
+    const was = step.state;
     if (step.key === key) {
       step.state = "active";
+      if (was !== "active") {
+        step.startedAt = at;
+        step.elapsedMs = null;
+      }
       reached = true;
+    } else if (reached) {
+      step.state = "pending";
+      step.startedAt = null;
+      step.elapsedMs = null;
     } else {
-      step.state = reached ? "pending" : "done";
+      step.state = "done";
+      if (was === "active" && Number.isFinite(step.startedAt) && Number.isFinite(at)) {
+        step.elapsedMs = Math.max(0, at - step.startedAt);
+      }
     }
   }
   return true;
+}
+
+/** Unit letters for elapsed time: seconds and minutes. */
+export const DEFAULT_ELAPSED_UNITS = Object.freeze({ seconds: "s", minutes: "m" });
+
+/** A unit letter from `units[key]`, or the default when it is missing or not a non-empty string. */
+function elapsedUnit(units, key) {
+  const value = units?.[key];
+  return typeof value === "string" && value.length > 0 ? value : DEFAULT_ELAPSED_UNITS[key];
+}
+
+/**
+ * Elapsed time as a short status value: tenths below 10 s ("0.8s"), whole
+ * seconds below a minute ("12s"), then minutes and padded seconds
+ * ("1m 05s"). Rounds first, so 9.96 s reads "10s" and 59.6 s "1m 00s".
+ * `units` overrides the unit letters (`seconds`, `minutes`); a missing or
+ * empty one falls back to the default. A missing or negative value is "".
+ */
+export function formatElapsed(ms, units = DEFAULT_ELAPSED_UNITS) {
+  if (ms === null || ms === undefined || ms === "") return "";
+  const value = Number(ms);
+  if (!Number.isFinite(value) || value < 0) return "";
+  const secondsUnit = elapsedUnit(units, "seconds");
+  const minutesUnit = elapsedUnit(units, "minutes");
+  const tenths = Math.round(value / 100);
+  if (tenths < 100) return `${(tenths / 10).toFixed(1)}${secondsUnit}`;
+  const seconds = Math.round(value / 1000);
+  if (seconds < 60) return `${seconds}${secondsUnit}`;
+  return `${Math.floor(seconds / 60)}${minutesUnit} ${String(seconds % 60).padStart(2, "0")}${secondsUnit}`;
+}
+
+/** The status value a finished step shows: its elapsed time, or "" when it has none. */
+export function stepElapsed(step, units = DEFAULT_ELAPSED_UNITS) {
+  return step?.state === "done" ? formatElapsed(step.elapsedMs, units) : "";
+}
+
+/**
+ * Template context for `_progress.hbs`: the progress object plus `elapsed`
+ * per step (formatted, done steps only) and `totalElapsed` (the finished
+ * steps' times summed, formatted; "" before the first step finishes).
+ * The active step shows the `Progress.Running` label, not a time: nothing
+ * re-renders the card on a timer. Returns null for no progress.
+ */
+export function progressView(progress, units = DEFAULT_ELAPSED_UNITS) {
+  if (!progress) return null;
+  const steps = Array.isArray(progress.steps) ? progress.steps : [];
+  const timed = steps.filter((step) => step.state === "done" && Number.isFinite(step.elapsedMs));
+  const total = timed.reduce((sum, step) => sum + step.elapsedMs, 0);
+  return {
+    ...progress,
+    steps: steps.map((step) => ({ ...step, elapsed: stepElapsed(step, units) })),
+    totalElapsed: timed.length ? formatElapsed(total, units) : ""
+  };
 }
 
 export function resetStreamPhase(progress) {

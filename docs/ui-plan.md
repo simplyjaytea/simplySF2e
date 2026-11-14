@@ -1,6 +1,6 @@
 # UI improvement plan
 
-Status: **approved by JT 2026-11-07, not started** (Kimi out of usage). Source: Kimi's UI review of all 82 harness fixtures at 720 px and 460 px (2026-11-07). JT chose to build all ten items plus the polish nits, before the next beta's live test.
+Status: **shipped in v0.1.15 (#81, 2026-11-08): items 1-10 and the polish nits are built (visuals by an Opus subagent, wiring by a worker). Kept as the rules reference behind `.claude/skills/ui-ux/SKILL.md`.** Source: Kimi's UI review of all 82 harness fixtures at 720 px and 460 px (2026-11-07). JT chose to build all ten items plus the polish nits, before the next beta's live test.
 
 Hand this file to the UI worker as its task. One branch (`work/T-UI` from the current batch branch), **one commit per item**, so a reviewer can bisect and JT can drop an item.
 
@@ -40,4 +40,4 @@ Hand this file to the UI worker as its task. One branch (`work/T-UI` from the cu
 - `node --check` every touched `.mjs`; all-tests loop; `node scripts/i18n-keys.test.mjs`; golden replay; `bash tools/release-check.sh` **with** the UI step (pin `npm install --no-save playwright@1.64.1` first); harness exit 0 at both widths.
 - Add QA rows for each item in `docs/qa-checklist.md` (free id prefixes; release-check catches duplicates) and add a UI step to `docs/beta-pass.md` that covers them.
 - One "What's new" entry for the whole UI batch.
-- Review ladder: tier 1 Haiku (harness + every PNG), tier 2 Sonnet or Kimi (accessibility, warnings never hidden, no behaviour change), coordinator reads the diff.
+- Review ladder: tier 1 Haiku (harness + every PNG), tier 2 Sonnet (accessibility, warnings never hidden, no behaviour change), coordinator reads the diff (PLAYBOOK §6).

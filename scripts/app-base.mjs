@@ -19,12 +19,21 @@ import {
   progressPercent,
   progressPhaseClass,
   resetStreamPhase,
+  stepElapsed,
   streamFraction
 } from "./progress.mjs";
 import { coarsenTokenEstimate, lastRunTokenTotal } from "./tokens.mjs";
 import { formatCost, runCost } from "./cost.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
+
+/** Another open window runs a generation (its progress or run budget is live); the connection must not change under it. */
+export function anotherRunInProgress(self) {
+  for (const app of foundry.applications.instances?.values?.() ?? []) {
+    if (app !== self && (app?._progress || app?._generationAbort)) return true;
+  }
+  return false;
+}
 
 /**
  * Buttons for the bug-report dialogs. The issue URL carries no report text:
@@ -43,6 +52,28 @@ function issueButtons() {
 }
 
 /**
+ * After the active connection changed, re-render every OTHER open window that
+ * shows connection state: the four tool windows (their drafts are kept by
+ * `_preserveForm`) and Provider Setup (which keeps unsaved edits and guards
+ * its own Save). `self` already rendered itself.
+ */
+export async function refreshOtherConnectionViews(self) {
+  for (const app of [...(foundry.applications.instances?.values?.() ?? [])]) {
+    if (app === self) continue;
+    try {
+      if (app instanceof SpfApp) {
+        app._preserveForm();
+        await app.render();
+      } else if (app instanceof ProviderSetupApp) {
+        await app._refreshForConnectionChange();
+      }
+    } catch (err) {
+      console.warn(`${MODULE_ID} | could not refresh a window after the connection changed`, err);
+    }
+  }
+}
+
+/**
  * Shared base for the generator and item-forge dialogs: token-usage tracking
  * and the generate-progress step machinery, identical across both apps.
  * Subclasses use `_tokenUsage`/`_progress` and the `_`-prefixed helpers.
@@ -57,6 +88,14 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _canCancel = false;
   /** True once the window was closed, so a late pipeline `render()` cannot reopen it. */
   _closed = false;
+  /**
+   * Set to true right before a render that must show input the app itself
+   * just set (a mode switch, a preset's defaults, a chat command...): the form
+   * on screen still shows the old values, so reading it back would undo the
+   * change. Set it with no await before the `render` call; that render
+   * consumes it.
+   */
+  _skipFormReadOnce = false;
   _closePromptOpen = false;
   /** Window frame the shortcut is bound to; a reopened window gets a new frame. */
   _keysElement = null;
@@ -182,21 +221,51 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
     return super.close(options);
   }
 
-  /** A forced render (re)opens the window; a plain render after close is dropped. */
+  /**
+   * A forced render (re)opens the window; a plain render after close is dropped.
+   * Every render of a window already on screen first reads its form back
+   * (`_preserveForm`), because a render replaces the form with the stored
+   * input: without the read, a GM's typed-but-unused edits snap back.
+   */
   async render(options = {}, _options = {}) {
     const forced = options === true || options?.force === true;
+    // Consume a skip-once request even when this render is dropped, so it never leaks to a later one.
+    const skipFormRead = this._skipFormReadOnce;
+    this._skipFormReadOnce = false;
     if (this._closed && !forced) return this;
     if (forced) this._closed = false;
+    if (!skipFormRead) this._keepFormBeforeRender();
     return super.render(options, _options);
+  }
+
+  /** Read the on-screen form into the app's input; nothing before the first render. */
+  _keepFormBeforeRender() {
+    if (!this.element) return;
+    try {
+      this._preserveForm();
+    } catch (err) {
+      console.warn(`${MODULE_ID} | could not read the form before a render`, err);
+    }
   }
 
   /** Open the focused provider setup and refresh this app after it saves. */
   _openProviderSetup() {
-    new ProviderSetupApp(() => this.render()).render(true);
+    ProviderSetupApp.open(() => this.render());
   }
 
-  /** Subclasses that keep unsaved form drafts override this before a provider switch. */
+  /**
+   * Subclasses that keep unsaved form drafts override this to read the form
+   * into their input. `render` calls it before every re-render.
+   */
   _preserveForm() {}
+
+  /** Localized unit letters for the progress card's elapsed times. */
+  _elapsedUnits() {
+    return {
+      seconds: game.i18n.localize("SIMPLYSF2E.Progress.UnitSeconds"),
+      minutes: game.i18n.localize("SIMPLYSF2E.Progress.UnitMinutes")
+    };
+  }
 
   /**
    * Activate a saved connection from the compact header switch. The live
@@ -205,9 +274,17 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
   async _switchActiveConnection(id) {
     const current = getProviderRequestConfig().connectionId;
     if (!id || id === current) return;
+    // A run in this window or in another one reads the connection per request: refuse, do not switch under it.
+    if (this._progress || this._generationAbort || anotherRunInProgress(this)) {
+      ui.notifications.warn("SIMPLYSF2E.ProviderSetup.BusySwitch", { localize: true });
+      const select = this.element?.querySelector?.("[name='activeConnection']");
+      if (select) select.value = current;
+      return;
+    }
     this._preserveForm();
     await selectProviderConnection(id);
     await this.render();
+    await refreshOtherConnectionViews(this);
   }
 
   _onRender(context, options) {
@@ -254,9 +331,11 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
       }));
     } catch (err) {
       console.error("simplysf2e | provider connection test failed", err);
-      ui.notifications.error(game.i18n.format("SIMPLYSF2E.ProviderSetup.TestFailed", {
-        message: err?.message ?? String(err)
-      }));
+      ui.notifications.error("SIMPLYSF2E.ProviderSetup.TestFailed", {
+        localize: true,
+        format: { message: err?.message ?? String(err) },
+        escape: true
+      });
     } finally {
       target.disabled = false;
       if (icon && originalClass) icon.className = originalClass;
@@ -504,13 +583,19 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
               : "SIMPLYSF2E.Progress.StepPending"
         );
       }
+      const elapsed = li.querySelector(".spf-step-elapsed");
+      if (elapsed) {
+        elapsed.textContent = step.state === "active"
+          ? game.i18n.localize("SIMPLYSF2E.Progress.Running")
+          : stepElapsed(step, this._elapsedUnits());
+      }
       const icon = li.querySelector("i");
       if (!icon) return;
       icon.className = step.state === "done"
         ? "fa-solid fa-circle-check"
         : step.state === "active"
           ? "fa-solid fa-spinner fa-spin"
-          : "fa-regular fa-circle";
+          : "fa-solid fa-circle";
     });
     // One polite announcement per step change (not per percent tick).
     const active = steps.find((step) => step.state === "active");

@@ -4,9 +4,8 @@
    colors reuse the shared Neon Drift kit.
    ========================================================================== */
 
+/* Root flex column from simplysf2e.css; this window spaces its cards wider. */
 .simplysf2e .simplysf2e-welcome {
-  display: flex;
-  flex-direction: column;
   gap: var(--spf-space-lg);
   padding: var(--spf-space-sm);
 }
@@ -22,20 +21,6 @@
   min-width: 0;
   margin: 0;
   padding: var(--spf-space-md) var(--spf-space-lg) var(--spf-space-lg);
-}
-
-.simplysf2e .spf-welcome-section legend {
-  padding: 0 var(--spf-space-sm);
-  border: 1px solid var(--spf-border);
-  border-radius: var(--spf-radius-sm);
-  background: color-mix(in srgb, var(--spf-brand-dark) 85%, #0c1620);
-  box-shadow: var(--spf-inset-glow);
-  color: var(--spf-brand-accent);
-  font-family: var(--spf-font-display);
-  font-size: var(--spf-text-sm);
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
 }
 
 .simplysf2e .spf-welcome-providers {
@@ -78,7 +63,7 @@
 .simplysf2e .spf-welcome-provider-active {
   border-color: var(--spf-brand-accent);
   background: var(--spf-brand-soft);
-  box-shadow: inset 0 0 0 1px var(--spf-brand-accent), var(--spf-neon-glow);
+  box-shadow: inset 0 0 0 1px var(--spf-brand-accent);
   color: var(--spf-text);
   font-weight: 700;
 }
@@ -101,7 +86,7 @@
 }
 
 .simplysf2e .spf-welcome-connect .spf-hint {
-  margin: 0.15rem 0 0;
+  margin: var(--spf-space-2xs) 0 0;
 }
 
 .simplysf2e .spf-welcome-connect-button,
@@ -125,16 +110,38 @@
   accent-color: var(--spf-neon);
 }
 
+/* Boot log: one line per check, top to bottom, the status value at the end
+   of the line (the shared .spf-step-elapsed rule). */
 .simplysf2e .spf-welcome-progress-steps {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: var(--spf-space-xs) var(--spf-space-md);
+  flex-direction: column;
+  gap: var(--spf-space-2xs);
   margin: var(--spf-space-sm) 0 0;
   padding: 0;
   list-style: none;
   color: var(--spf-text-muted);
   font-size: var(--spf-text-sm);
+}
+
+.simplysf2e .spf-welcome-progress-steps li {
+  display: flex;
+  align-items: center;
+  gap: var(--spf-space-xs);
+  min-width: 0;
+}
+
+.simplysf2e .spf-welcome-progress-steps .spf-step-elapsed {
+  margin-inline-start: auto;
+}
+
+.simplysf2e .spf-welcome-step-active {
+  color: var(--spf-text);
+}
+
+/* Pending steps: the same small solid dot the shared .spf-step-pending i rule gives the progress list (S4). */
+.simplysf2e .spf-welcome-step-pending i {
+  font-size: 0.55em;
+  opacity: 0.8;
 }
 
 .simplysf2e .spf-welcome-error p {
@@ -172,11 +179,8 @@
 }
 
 .simplysf2e .spf-welcome-advanced summary {
-  display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
   gap: var(--spf-space-xs) var(--spf-space-md);
-  cursor: pointer;
   color: var(--spf-text);
   font-weight: 700;
 }
@@ -195,9 +199,8 @@
   margin: var(--spf-space-sm) 0 var(--spf-space-xs);
   border: 0;
   color: var(--spf-brand-accent);
-  font-size: var(--spf-text-sm);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-size: var(--spf-text-md);
+  font-weight: 700;
 }
 
 .simplysf2e .spf-welcome-advanced-buttons {
@@ -213,7 +216,7 @@
 .simplysf2e .spf-welcome-dismiss {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: var(--spf-space-md);
   align-self: flex-start;
   color: var(--spf-text-muted);
   cursor: pointer;
@@ -229,9 +232,21 @@
   margin-top: 0;
 }
 
+/* Narrow: five tiles cannot fit one row, so they sit 3 + 2 on a six-track
+   grid: each tile spans two tracks, and with exactly five tiles the last two
+   span three each, so both rows fill the width and no orphan gap is left. */
 @container spf-window (max-width: 520px) {
   .simplysf2e .spf-welcome-providers {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .simplysf2e .spf-welcome-provider {
+    grid-column: span 2;
+  }
+
+  .simplysf2e .spf-welcome-provider:nth-child(4):nth-last-child(2),
+  .simplysf2e .spf-welcome-provider:nth-child(5):last-child {
+    grid-column: span 3;
   }
 
   .simplysf2e .spf-welcome-provider {
@@ -251,4 +266,15 @@
   .simplysf2e .spf-welcome-providers {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .simplysf2e .spf-welcome-provider,
+  .simplysf2e .spf-welcome-provider:nth-child(4):nth-last-child(2),
+  .simplysf2e .spf-welcome-provider:nth-child(5):last-child {
+    grid-column: auto;
+  }
+}
+
+/* The sources button sits under the warning text, aligned with it. */
+.simplysf2e .spf-welcome-readiness p {
+  margin: var(--spf-space-xs) 0 0;
 }

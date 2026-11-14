@@ -59,7 +59,9 @@ export const CREDIT_UNIT_GP = DENOMINATION_RATES.credits / DENOMINATION_RATES.gp
 export function gpToCredits(gp) {
   const n = Number(gp);
   if (!Number.isFinite(n) || n <= 0) return 0;
-  return Math.max(Math.ceil((n * DENOMINATION_RATES.gp) / DENOMINATION_RATES.credits), 1);
+  const credits = (n * DENOMINATION_RATES.gp) / DENOMINATION_RATES.credits;
+  // Round to 1e-6 first: 1.1 gp is 11.000000000000002 credits in floats, and a bare ceil makes it 12.
+  return Math.max(Math.ceil(Math.round(credits * 1e6) / 1e6), 1);
 }
 
 /**
@@ -110,7 +112,7 @@ export function parseCoins(name) {
 export function currencyQuantity(coins, quantity) {
   const qty = Math.max(Math.round(Number(quantity) || 1), 1);
   const n = coins.count != null ? coins.count * qty : toCredits(coins.sourceUnit, qty);
-  return Math.min(Math.max(n, 1), 100000);
+  return Math.min(Math.max(n, 1), CURRENCY_ITEM_MAX);
 }
 
 /**
@@ -136,10 +138,12 @@ function cloneTemplate(template) {
 
 /**
  * Largest amount `assembleCurrency` puts on one currency item (a module
- * sanity cap, not a game rule). Larger sums go on several items; see
- * `splitCurrency`.
+ * sanity cap, not a game rule). 5,000,000 credits is chosen so the largest
+ * supported hoard (4,900,000 credits, L20 whole level) is one Credstick
+ * (JT decision 2026-11-08, docs/balance-proposals.md item 2). Larger sums
+ * still go on several items; see `splitCurrency`.
  */
-export const CURRENCY_ITEM_MAX = 100000;
+export const CURRENCY_ITEM_MAX = 5000000;
 
 /** Split an amount into whole parts of at most CURRENCY_ITEM_MAX each. */
 export function splitCurrency(quantity) {

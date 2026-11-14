@@ -3,7 +3,7 @@ import {
   authorizeApiKeyForCurrentBaseUrl
 } from "./settings.mjs";
 import { generateTreasureConcept, selectTreasureItems } from "./ai.mjs";
-import { getShopCandidates, getCandidateDocument, getPacksFor, toItemData, priceToGp } from "./compendium.mjs";
+import { getShopCandidates, getCandidateDocument, getPacksFor, toItemData, unitPriceGp, describeMissingSources } from "./compendium.mjs";
 import { SHOP_CATEGORIES, shopTypesFor } from "./shop.mjs";
 import {
   TREASURE_AMOUNTS, TREASURE_PICKS, TREASURE_RARITIES, TREASURE_MIN_LEVEL, TREASURE_MAX_LEVEL,
@@ -16,6 +16,8 @@ import { SourcesConfigApp } from "./sources-app.mjs";
 import { gpToCredits, assembleCurrency, splitCurrency } from "./currency.mjs";
 import { activeParty } from "./party.mjs";
 import { SpfApp } from "./app-base.mjs";
+import { progressView } from "./progress.mjs";
+import { jevKeySource } from "./jev.mjs";
 
 /**
  * Treasure hoard: describe a theme, the module sets the budget from the GM
@@ -36,7 +38,6 @@ export class TreasureApp extends SpfApp {
     position: { width: 720, height: "auto" },
     actions: {
       generate: TreasureApp.#onGenerate,
-      reroll: TreasureApp.#onGenerate,
       createTreasure: TreasureApp.#onCreateTreasure,
       discard: TreasureApp.#onDiscard,
       removeItem: TreasureApp.#onRemoveItem,
@@ -61,6 +62,7 @@ export class TreasureApp extends SpfApp {
   #input = { prompt: "", level: 3, partySize: 4, amount: "encounter", rarity: "common" };
   #busy = false;
   #error = null;
+  #readinessOpen = false;
   /** Normalized treasure concept of the current preview. */
   #concept = null;
   /** Item rows: {key, name, type, level, rarity, credits, quantity, itemData}. */
@@ -74,7 +76,15 @@ export class TreasureApp extends SpfApp {
   /** Picks dropped: not offered, unpriced, or over budget. */
   #dropped = 0;
 
+  _onRender(context, options) {
+    super._onRender?.(context, options);
+    this.element?.querySelector("details[data-readiness]")?.addEventListener("toggle", (event) => {
+      this.#readinessOpen = event.currentTarget.open;
+    });
+  }
+
   async _prepareContext() {
+    const equipmentPacks = getPacksFor("equipment");
     const authState = getProviderRequestConfig();
     const authWarningKey = getProviderAuthWarningKey(authState);
     return {
@@ -84,7 +94,7 @@ export class TreasureApp extends SpfApp {
       lastRunCost: this._formatLastRunCost(),
       error: this.#error,
       canReportBug: this._canReportBug(this.#error),
-      progress: this._progress,
+      progress: progressView(this._progress, this._elapsedUnits()),
       apiKeyWarning: authWarningKey ? game.i18n.localize(authWarningKey) : null,
       providerBaseUrl: authState.baseUrl,
       provider: authState.provider,
@@ -92,6 +102,11 @@ export class TreasureApp extends SpfApp {
       connections: authState.connections ?? [],
       canSwitchConnection: (authState.connections?.length ?? 0) > 1,
       providerReady: !authWarningKey,
+      sourcesReady: equipmentPacks.length > 0,
+      sourcePackCount: equipmentPacks.length,
+      sourceMissing: equipmentPacks.length ? "" : describeMissingSources(["equipment"]),
+      jevSource: jevKeySource(),
+      readinessOpen: this.#readinessOpen,
       canAuthorizeApiKey: Boolean(
         authState.baseUrl && authState.hasConfiguredApiKey && !authState.apiKeyIsBound && !authState.apiKeyInsecure
       ),
@@ -191,6 +206,7 @@ export class TreasureApp extends SpfApp {
     this.#input.level = clampTreasureLevel(party.level, this.#input.level);
     this.#input.partySize = clampPartySize(party.size, this.#input.partySize);
     ui.notifications.info(game.i18n.format("SIMPLYSF2E.Party.Filled", { name: party.name }));
+    this._skipFormReadOnce = true;   // show the party's level and size, do not read the old form back
     await this.render();
   }
 
@@ -212,7 +228,7 @@ export class TreasureApp extends SpfApp {
 
   static #onConfigureSources() {
     this.#readForm();
-    new SourcesConfigApp().render(true);
+    SourcesConfigApp.open();
   }
 
   static async #onTestProvider(_event, target) {
@@ -223,7 +239,7 @@ export class TreasureApp extends SpfApp {
     this._cancelGeneration();
   }
 
-  /** Generate and Reroll both run the whole pipeline again from the form. */
+  /** Generate (and "Generate another hoard") runs the whole pipeline again from the form. */
   static async #onGenerate() {
     if (this.#busy) return;
     this.#readForm();
@@ -233,17 +249,22 @@ export class TreasureApp extends SpfApp {
     }
     this.#busy = true;
     this.#error = null;
+    // Keep the previous preview (and its token report) on screen until this run
+    // produces a replacement: the preview fields are only assigned at the very end
+    // of a successful run, and a failed or cancelled run puts the old usage back.
+    const previousUsage = this._tokenUsage;
     this._tokenUsage = [];
-    this.#clearPreview();
+    let succeeded = false;
     const { prompt, level, partySize, amount, rarity } = this.#input;
     const budget = treasureBudgetCredits(level, amount);
-    const signal = this._beginProgress([
-      ["treasureConcept", game.i18n.localize("SIMPLYSF2E.Treasure.ProgressConcept")],
-      ["candidates", game.i18n.localize("SIMPLYSF2E.Treasure.ProgressCandidates")],
-      ["picks", game.i18n.localize("SIMPLYSF2E.Treasure.ProgressPicks")],
-      ["prices", game.i18n.localize("SIMPLYSF2E.Treasure.ProgressPrices")]
-    ]);
+    let signal = null;
     try {
+      signal = this._beginProgress([
+        ["treasureConcept", game.i18n.localize("SIMPLYSF2E.Treasure.ProgressConcept")],
+        ["candidates", game.i18n.localize("SIMPLYSF2E.Treasure.ProgressCandidates")],
+        ["picks", game.i18n.localize("SIMPLYSF2E.Treasure.ProgressPicks")],
+        ["prices", game.i18n.localize("SIMPLYSF2E.Treasure.ProgressPrices")]
+      ]);
       // 1. Flavor and search terms only.
       await this._setStep("treasureConcept");
       const { concept: raw, usage } = await generateTreasureConcept({
@@ -268,7 +289,7 @@ export class TreasureApp extends SpfApp {
       this._recordTokens(game.i18n.localize("SIMPLYSF2E.Treasure.ProgressPicks"), pickUsage);
 
       // 4. Exact documents: the price is the compendium document's own, read
-      // the way the shop does (priceToGp, then gpToCredits).
+      // the way the shop does (unitPriceGp, then gpToCredits).
       await this._setStep("prices");
       const { issued } = resolveIssuedPicks(ids, candidates);
       const priced = [];
@@ -281,7 +302,7 @@ export class TreasureApp extends SpfApp {
           continue;
         }
         docs.set(candidate.id, doc);
-        priced.push({ ...candidate, credits: gpToCredits(priceToGp(doc.system?.price?.value)) });
+        priced.push({ ...candidate, credits: gpToCredits(unitPriceGp(doc)) });
       }
       const hoard = fillHoard(ids, priced, budget);
       const offered = new Set(issued.map((candidate) => candidate.id));
@@ -317,15 +338,16 @@ export class TreasureApp extends SpfApp {
       this.#budget = budget;
       this.#amount = amount;
       this.#dropped = hoard.unknown.length + hoard.overBudget.length + hoard.unpriced.length;
+      succeeded = true;
     } catch (err) {
       if (err?.cancelled) console.warn(`${MODULE_ID} | treasure generation cancelled`);
       else console.error(`${MODULE_ID} | treasure generation failed`, err);
-      this.#error = err.message;
+      this.#error = String(err?.message ?? err ?? "");
       this._recordFailure(err, "treasure generation", this.#error);
-      this.#clearPreview();
     } finally {
       this.#busy = false;
       this._finishRun();
+      if (!succeeded) this._tokenUsage = previousUsage;
       await this.render();
     }
   }
@@ -349,8 +371,8 @@ export class TreasureApp extends SpfApp {
       const items = this.#items.map((row) => foundry.utils.deepClone(row.itemData));
       // Removed rows hand their price back, so the Credstick holds whatever
       // the budget has left (cited credstick.json template, see currency.mjs).
-      // One Credstick holds at most CURRENCY_ITEM_MAX credits, so a large
-      // leftover (high levels, whole level) goes on several.
+      // One Credstick holds at most CURRENCY_ITEM_MAX credits (5,000,000), so
+      // every supported hoard fits on one; splitCurrency stays as the guard.
       for (const part of splitCurrency(hoardLeftover(this.#budget, this.#items))) {
         const credstick = assembleCurrency("credits", part);
         if (!credstick) throw new Error(game.i18n.localize("SIMPLYSF2E.Treasure.NoItems"));
@@ -365,7 +387,7 @@ export class TreasureApp extends SpfApp {
       // Committed: consume the draft before presentation so a sheet error
       // cannot lead to a duplicate hoard.
       this.#clearPreview();
-      ui.notifications.info(game.i18n.format("SIMPLYSF2E.Treasure.Created", { name: created.name }));
+      ui.notifications.info("SIMPLYSF2E.Treasure.Created", { localize: true, format: { name: created.name }, escape: true });
       try {
         await created.sheet.render(true);
       } catch (err) {
@@ -374,10 +396,23 @@ export class TreasureApp extends SpfApp {
     } catch (err) {
       console.error(`${MODULE_ID} | treasure creation failed`, err);
       // Roll back a half-made hoard so a failed create leaves nothing behind.
+      let survivor = null;
       if (actor?.id) {
-        try { await actor.delete(); } catch (deleteErr) { console.warn(`${MODULE_ID} | could not roll back treasure`, deleteErr); }
+        try { await actor.delete(); } catch (deleteErr) {
+          console.warn(`${MODULE_ID} | could not roll back treasure`, deleteErr);
+          survivor = actor.name;
+        }
       }
-      this.#error = err.message;
+      if (survivor) {
+        // The hoard still exists: drop the draft so a retry cannot duplicate it.
+        this.#clearPreview();
+        // A sentence break between the failure and the survivor note; the message may lack a period.
+        const message = String(err?.message ?? err ?? "");
+        const sep = /[.!?]$/.test(message.trim()) ? " " : ". ";
+        this.#error = `${message}${sep}${game.i18n.format("SIMPLYSF2E.Treasure.RollbackSurvivor", { name: survivor })}`;
+      } else {
+        this.#error = String(err?.message ?? err ?? "");
+      }
       this._recordFailure(err, "treasure creation", this.#error);
     } finally {
       this.#busy = false;

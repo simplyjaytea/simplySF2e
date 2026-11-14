@@ -15,6 +15,7 @@ Template: `templates/whats-new.hbs`. Supply in: `WhatsNewApp._prepareContext()` 
 | Field | Type | Meaning | Example (fixture `whats-new-manual-all`) |
 | --- | --- | --- | --- |
 | `notes` | `{id, title, body}[]` | Changed meaning in the manual view only: the notes of the newest release day. Unchanged in the automatic view (all unseen notes). | the four `2026-11-07-*` notes |
+| `manual` | `boolean` (new) | `true` when opened by hand (settings menu, `/sf2e whatsnew`, `api.openWhatsNew`); `false` for the automatic unseen view. Selects the intro: `WhatsNew.IntroAll` when true, `WhatsNew.Intro` (with `version`) when false. Always supplied, never omitted. | `whats-new-manual-all` `true`; `whats-new-unseen` `false` |
 | `earlierNotes` | `{id, title, body}[]` (new) | Manual view: the remaining notes of `manualNotes(RELEASE_NOTES)` (still capped at `MANUAL_NOTE_CAP`). Automatic (unseen) view: always `[]`, so it renders exactly as today. | the six older notes |
 
 Behaviour:
@@ -36,6 +37,8 @@ Template: `templates/generator.hbs` (`encounterPreview`). Supply in: `GeneratorA
 | `members[].stats.fort` / `.ref` / `.will` | string | `signed(stats.saves.fortitude / reflex / will)` | `"+17"`, `"+14"`, `"+11"` |
 | `members[].stats.strike` | `{name, bonus, damage}` or `null` | first strike: `strike.name`, `signed(strike.bonus)`, `strike.damage` | `{ name: "Gravity Maul", bonus: "+17", damage: "2d8+9" }` |
 | `members[].stats.spellDC` | number or `null` | `stats.spellDC ?? null` | `24` |
+
+`encounterPreview.allSkipped` (new, T-BUG-GEN): boolean, `true` when every member's count is 0. Supplied by `#buildEncounterPreviewContext()` as `members.every((m) => !(m.count > 0))`; the template disables Create All when it is true, and `#createEncounterActors` returns early with `SIMPLYSF2E.Generator.NoMembers`. Fixture `generator-encounter-preview`: `false`; `generator-encounter-all-skipped`: `true`.
 
 Removed: `members[].statline` (the template no longer reads it; delete the string build and the `t()` helper if nothing else uses it). All other `encounterPreview` fields (`spent`, `budget`, `overBudget`, `treasure*`, `count`, `skipped`, `role`, `level`, `blurb`, `index`) are unchanged.
 
@@ -63,7 +66,7 @@ Keys: new `SIMPLYSF2E.Generator.CompendiumShort`, `.ReadyShort`, `.JevShort`, `.
 
 ## Item 1 — Character review: one caveat, short action titles
 
-Template: `templates/generator.hbs` (`characterReview`). Supply in: `GeneratorApp.#skillReportContext()` and where `#characterReview` is built (~l.1800 of `generator-app.mjs`).
+Template: `templates/generator.hbs` (`characterReview`). Supply in: `skillReportContext()` in `scripts/generator-context/pc-preview.mjs`, called where `#characterReview` is built in `generator-app.mjs`.
 
 | Field | Type | Meaning | Example (fixture `generator-character-review`) |
 | --- | --- | --- | --- |
@@ -169,8 +172,71 @@ Shared CSS: `input[type="search"]` now gets the module's console input styling (
 
 No new context. Nit 2 (Welcome provider note: shared `--spf-text-xs`, up to two balanced lines) and nit 4 (Manage Presets: hairline divider and `--spf-space-lg` gap before Delete) are CSS only. Nit 3 reorders the API-key warning in Generator, Item Forge, Shop and Treasure: message, then the **Authorize for this endpoint** button, then the endpoint as a muted detail line; the box keeps `notification warning spf-provider-warning" role="status"`.
 
+## UI bugs B — Item Forge grade label (T-UIBUG-B)
+
+Template: `templates/itemforge.hbs`. Supply in: `ItemForgeApp.#buildRunedPreviewContext()` (`scripts/itemforge-app.mjs`, `GRADE_LABEL_KEYS`).
+
+| Field | Type | Meaning | Example |
+| --- | --- | --- | --- |
+| `preview.gradeLabel` (new) | localized string or null | The item's equipment grade. Shown in the statline beside Price as "Grade {label}"; hidden when null (a grade slug with no label). | `"Advanced"` (from `SIMPLYSF2E.ItemForge.GradeAdvanced`) |
+
+Grade labels: `SIMPLYSF2E.ItemForge.Grade{Commercial,Tactical,Advanced,Superior,Elite,Ultimate,Paragon}`, keyed by the `EQUIPMENT_GRADES` slugs in `scripts/runes.mjs`. The label casing follows the published names (`Lock (Commercial)`, runes.mjs:57).
+`ItemForge.Grade` is now "Grade"; `ItemForge.RunesHeading` is now "Upgrades" (forge preview heading only). The Upgrades list holds upgrades, or property runes when there are no upgrades.
+`ItemForge.ItemGradeUpgradesHeading` is "Grade and upgrades": the bold heading of the created item's description (`scripts/item-builder.mjs`, the "Grade: {label}; Installed Upgrades: …" paragraph). It keeps the old item text, apart from the sentence case.
+
+Treasure (no new context): the footer Reroll and its `reroll` action are removed (`Treasure.Reroll` deleted); the party hint sits inside the Party size field.
+
 ## Removed context fields (all items)
 
+- `preview.grade` (Item Forge runed preview; the slug, replaced by `gradeLabel`, UI bugs B).
 - `encounterPreview.members[].statline` (item 9).
 - Strike attack/damage rows inside `reskinRelevel.rows` (item 7; they move to `reskinRelevel.strikes`).
 - `characterReview.skills.warnings` / `.loadoutWarnings` as plain strings (item 1; now `{title, detail}`).
+
+## U2 Shop, Treasure and Item Forge: readiness line (B14, S12)
+
+Templates: `templates/itemforge.hbs`, `shop.hbs`, `treasure.hbs` (the status bar). Supply in: each app's `_prepareContext()` (`scripts/itemforge-app.mjs`, `shop-app.mjs`, `treasure-app.mjs`), the same fields the Generator supplies (`generator-app.mjs` ~l.258-262).
+
+| Field | Type | Meaning | Example |
+| --- | --- | --- | --- |
+| `sourcesReady` (new) | boolean | Equipment packs are available (`getPacksFor("equipment")`). False renders the warning row, expanded. | `true` |
+| `sourcePackCount` (new) | number | Number of equipment packs, for the one-line status. | `3` |
+| `sourceMissing` (new) | string | Human-readable missing category when `sourcesReady` is false. | `"Equipment"` |
+| `jevSource` (new) | string or null | Jev key source from `jevKeySource()`, as in the Generator. | `"key"` |
+| `readinessOpen` (new) | boolean | Open state of the one-line disclosure; kept per window through a `toggle` listener in `_onRender`. | `false` |
+
+Scope note: these windows draw only from equipment packs, so readiness checks the equipment category alone. The Generator checks its creature categories.
+
+## U5 Item Forge: per-kind placeholder
+
+Template: `templates/itemforge.hbs` (the prompt textarea `placeholder`). Supply in: `ItemForgeApp._prepareContext()` (`scripts/itemforge-app.mjs`, `PROMPT_PLACEHOLDER_KEYS`).
+
+| Field | Type | Meaning | Example |
+| --- | --- | --- | --- |
+| `promptPlaceholder` (new) | localized string | The prompt hint for the selected kind tile: `SIMPLYSF2E.ItemForge.Placeholder.{Wondrous,Weapon,Armor,Augmentation,Crystal}`. Falls back to the generic `SIMPLYSF2E.ItemForge.PromptPlaceholder` for a kind without its own key (not reachable through the kind tiles). | "Describe the weapon's form, its wear, and any feature that sets it apart, such as a scorch mark or a cracked grip." |
+
+The kind tile action re-renders the window (`#onSelectKind`), so the placeholder follows the tile at once. The generic key stays in `lang/en.json` as the fallback.
+
+## U5 setup wiring (W4, W12, W13)
+
+Templates: `templates/welcome.hbs`, `templates/provider-setup.hbs`. Supply in: `WelcomeApp._prepareContext()` (`scripts/welcome-app.mjs`) and `ProviderSetupApp._prepareContext()` (`scripts/provider-setup-app.mjs`).
+
+| Field | Type | Meaning | Example (fixture) |
+| --- | --- | --- | --- |
+| `sourcesMissing` (new) | boolean | True when the readiness warning is the missing-compendium case (`issue === "sources"`). Renders the "Configure compendium sources" button (`data-action="openSources"`) inside the warning. | `welcome-readiness-warning`: `true`; `welcome-fresh`: `false` |
+| `priceErrorField` (new) | `"input"` \| `"output"` \| `null` | The manual price the last validation rejected. Marks that input `aria-invalid="true"` and points its `aria-describedby` at `#spf-price-error`. Reset at the start of each save. | `provider-setup-price-error`: `"input"`; others: `null` |
+
+Not new fields: the saved-key hints (W12) use the existing `hasApiKey` and `hasJevKey` booleans. The footer hint (W11) is static text.
+
+## U4B progress telemetry and Welcome boot sequence
+
+Templates: `templates/_progress.hbs`, `templates/welcome.hbs`. Supply in: `progressView()` (`scripts/progress.mjs`), called by `GeneratorApp`, `ItemForgeApp`, `ShopApp` and `TreasureApp` `_prepareContext()` as `progress: progressView(this._progress)`; `WelcomeApp._prepareContext()` (`scripts/welcome-app.mjs`).
+
+| Field | Type | Meaning | Example (fixture) |
+| --- | --- | --- | --- |
+| `progress.steps[].startedAt` (new) | number (ms) or null | Clock reading when the step became active (`applyStep`, clock from `createProgress(defs, { now })`, default `Date.now`). Null while pending or when the step was skipped. Not rendered. | `generator-busy-progress`: `77800` on the active step |
+| `progress.steps[].elapsedMs` (new) | number (ms) or null | Time from active to done. Null on the active and pending steps and on a step that went straight from pending to done. Not rendered. | `800` |
+| `progress.steps[].elapsed` (new) | string | `formatElapsed(elapsedMs)` on a done step ("0.8s", "12s", "1m 05s"); `""` otherwise. Rendered as the step's `.spf-num.spf-step-elapsed` status value. | `generator-busy-progress`: `"0.8 s"`, `"12 s"`, `"1 m 05 s"`, then `""` |
+| `progress.totalElapsed` (new) | string | The done steps' `elapsedMs` summed and formatted; `""` before the first step finishes. Supplied for later use; not rendered on the card (the card's other lines are unchanged). | `generator-busy-progress`: `"1 m 18 s"` |
+
+The active step shows `SIMPLYSF2E.Progress.Running` ("running"), not a ticking time: a stream tick only patches the bar and the detail line (`_paintProgress`), and nothing re-renders the card on a timer. A step change also patches in place (`SpfApp._paintStepList` in `scripts/app-base.mjs`), so that method writes the same value (`stepElapsed(step)` or the running label) into `.spf-step-elapsed`. The Welcome connecting list has no timing data (WelcomeApp renders once when the check starts and once when it ends), so its first line shows the same "running" status value and the others stay dots.

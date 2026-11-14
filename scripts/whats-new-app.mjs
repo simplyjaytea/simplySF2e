@@ -1,7 +1,13 @@
 import { MODULE_ID, SETTINGS, getSetting } from "./settings.mjs";
-import { RELEASE_NOTES, manualNotes, markSeen, splitManualNotes } from "./whats-new.mjs";
+import { markSeen, splitManualNotes, whatsNewView } from "./whats-new.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
+
+const localizeNote = (note) => ({
+  id: note.id,
+  title: game.i18n.localize(note.title),
+  bullets: note.bullets.map((key) => game.i18n.localize(key))
+});
 
 /**
  * "What's new" window. Auto-open passes only the unseen notes; a manual open
@@ -14,8 +20,16 @@ export class WhatsNewApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   constructor(options = {}, notes = null) {
     super(options);
-    this.#manual = !Array.isArray(notes);
-    this.#notes = Array.isArray(notes) ? notes : manualNotes(RELEASE_NOTES);
+    const view = whatsNewView(notes);
+    this.#manual = view.manual;
+    this.#notes = view.notes;
+  }
+
+  /** Switch an open automatic window to the manual view (newest notes). Caller renders. */
+  showManual() {
+    const view = whatsNewView(null);
+    this.#manual = view.manual;
+    this.#notes = view.notes;
   }
 
   static DEFAULT_OPTIONS = {
@@ -48,16 +62,9 @@ export class WhatsNewApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
     return {
       version: game.modules.get(MODULE_ID)?.version ?? "",
-      notes: notesList.map((note) => ({
-        id: note.id,
-        title: game.i18n.localize(note.title),
-        body: game.i18n.localize(note.body)
-      })),
-      earlierNotes: earlierList.map((note) => ({
-        id: note.id,
-        title: game.i18n.localize(note.title),
-        body: game.i18n.localize(note.body)
-      }))
+      manual: this.#manual,
+      notes: notesList.map(localizeNote),
+      earlierNotes: earlierList.map(localizeNote)
     };
   }
 
