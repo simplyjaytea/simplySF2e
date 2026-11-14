@@ -347,7 +347,7 @@ assert.match(fnBody(source, "async _setStep(key) {"), /await this\.render\(this\
   const base = sources.base ?? readFileSync(new URL("scripts/app-base.mjs", root), "utf8");
   assert.match(base, /if \(partId === "result"\) \{\s*this\._playResultArrival\(element\);\s*this\._playResultCue\(element\);\s*\}/);
   assert.match(base, /this\._resultState = null;\s+\/\/ a new frame/);
-  assert.match(base, /if \(arrives\) card\.classList\?\.add\("spf-arrive"\);/);
+  assert.match(base, /if \(!arrives\) return;\s*card\.classList\?\.add\("spf-arrive"\);/);
   assert.match(sources.generator, /static ARRIVE_AFTER_RUN = false;/);
   // Flash: set only on a successful reroll, played once by the result part, never while busy.
   assert.match(sources.generator, /this\.#manifest = manifest;\s*this\.#flashPick = '\[data-section="loot"\]';\s*\} catch/);
@@ -402,21 +402,31 @@ assert.match(fnBody(source, "async _setStep(key) {"), /await this\.render\(this\
   assert.match(css, /@container spf-frame \(min-width: 900px\) \{\s*\.simplysf2e \.spf-window-body\.simplysf2e-generator \{\s*display: grid;/);
   assert.match(generatorCss, /@container spf-frame \(min-width: 900px\) \{\s*\.simplysf2e \.spf-brief-collapsed > \.spf-brief-body \{\s*display: block;/, "two panes never hide the form");
   const reduced = (text) => text.slice(text.lastIndexOf("@media (prefers-reduced-motion: reduce)"));
-  assert.match(reduced(css), /\.simplysf2e \.spf-arrive \{\s*animation: none;/);
+  assert.match(reduced(css), /\.simplysf2e \.spf-arrive,\s*\.simplysf2e \.spf-open \{\s*animation: none;/);
   assert.match(reduced(generatorCss), /\.simplysf2e \.spf-unfold \{\s*animation: none;/);
   assert.match(reduced(generatorCss), /\.simplysf2e \.spf-brief-chevron \{\s*transition: none;/);
   assert.match(reduced(generatorCss), /\.simplysf2e \.spf-mode-toggle\.spf-slide::before \{\s*animation: none;/);
   assert.match(reduced(generatorCss), /\.simplysf2e \.spf-flash::after,\s*\.simplysf2e \.spf-flash \.spf-reroll-pick i \{\s*animation: none;/);
   // One-time motion moves only transform and opacity.
-  for (const [name, text] of [["spf-arrive", css], ["spf-unfold", generatorCss], ["spf-flash", generatorCss], ["spf-turn", generatorCss], ["spf-slide", generatorCss]]) {
-    const frames = new RegExp(`@keyframes ${name} \\{([\\s\\S]*?)\\n\\}`).exec(text)?.[1] ?? "";
-    const props = [...frames.matchAll(/^\s+([a-z-]+):/gm)].map((m) => m[1]);
-    assert.ok(props.length > 0 && props.every((prop) => ["opacity", "transform"].includes(prop)), `${name} animates ${props.join(", ")}`);
+  // Every keyframe in the module moves only transform and opacity, so no
+  // animation lays out or repaints.
+  const seen = [];
+  for (const text of [css, generatorCss]) {
+    for (const [, name, frames] of text.matchAll(/@keyframes ([a-z-]+) \{([\s\S]*?)\n\}/g)) {
+      const props = [...frames.matchAll(/[{;]\s*([a-z-]+)\s*:/g)].map((m) => m[1]);
+      assert.ok(props.length > 0 && props.every((prop) => ["opacity", "transform"].includes(prop)), `${name} animates ${props.join(", ")}`);
+      seen.push(name);
+    }
   }
+  for (const name of ["spf-arrive", "spf-unfold", "spf-flash", "spf-turn", "spf-slide", "spf-step-slide", "spf-await-pulse", "spf-telemetry-blink",
+    "spf-reveal", "spf-scan", "spf-streak", "spf-fade", "spf-pop", "spf-shake", "spf-ring"]) {
+    assert.ok(seen.includes(name), `${name} is checked`);
+  }
+  assert.equal(new Set(seen).size, seen.length, "no keyframe is defined twice");
 }
 
-// 9. Slice 5: the mode marker slides only on a real mode change, and Welcome
-// and What's new rise once per open.
+// 9. Slice 5: the mode marker slides only on a real mode change, and every
+// window's content rises once per open.
 {
   const { MODE_ORDER, modeSlideFrom } = await import("./window-parts.mjs");
   assert.deepEqual(MODE_ORDER, ["monster", "npc", "encounter", "character", "reskin"]);
@@ -431,12 +441,12 @@ assert.match(fnBody(source, "async _setStep(key) {"), /await this\.render\(this\
   assert.match(generatorApp, /if \(partId !== "brief"\) return;\s*this\.#playModeSlide\(element\);/);
   assert.match(generatorApp, /const from = modeSlideFrom\(this\.#modeShown, mode\);\s*this\.#modeShown = mode;\s*if \(from === null\) return;\s*toggle\.style\.setProperty\("--spf-mode-from", String\(from\)\);\s*toggle\.classList\.add\("spf-slide"\);/);
   const appBase = read("scripts/app-base.mjs");
-  assert.match(appBase, /static ARRIVE_ON_OPEN = false;/);
-  assert.match(appBase, /this\._keysElement = this\.element;\s*if \(this\.constructor\.ARRIVE_ON_OPEN\) this\.element\.querySelector\?\.\("\.spf-window-body"\)\?\.classList\?\.add\("spf-arrive"\);/,
+  assert.match(appBase, /static ARRIVE_ON_OPEN = true;/);
+  assert.match(appBase, /this\._keysElement = this\.element;\s*(?:\/\/[^\n]*\s*)?if \(this\.constructor\.ARRIVE_ON_OPEN\) this\.element\.querySelector\?\.\("\.window-content"\)\?\.classList\?\.add\("spf-open"\);/,
     "the rise is added once per window frame, never on a re-render");
   const opens = ["welcome", "whats-new", "provider-setup", "sources", "manage-presets", "generator", "itemforge", "shop", "treasure"]
     .filter((name) => /static ARRIVE_ON_OPEN = true;/.test(read(`scripts/${name}-app.mjs`)));
-  assert.deepEqual(opens, ["welcome", "whats-new"]);
+  assert.deepEqual(opens, [], "every window rises on open since the pop round; none overrides the default");
 }
 
 // 10. Slice 6: interface sounds. The result part decides the cue; nothing
@@ -485,6 +495,130 @@ assert.match(fnBody(source, "async _setStep(key) {"), /await this\.render\(this\
   render(shop, false, {});
   assert.deepEqual(cuesPlayed.map(([name]) => name), ["start", "created"]);
   soundLevelNow = "off";
+}
+
+// 11. Pop round (JT, 2026-11-14): flashier, still event-driven, still off
+// under reduced motion, and never in the way of a click.
+{
+  const css = readFileSync(new URL("styles/simplysf2e.css", root), "utf8");
+  const generatorCss = readFileSync(new URL("styles/apps/generator.css", root), "utf8");
+  const plain = (text) => text.replace(/\/\*[\s\S]*?\*\//g, "");
+  const reduced = (text) => plain(text).slice(plain(text).lastIndexOf("@media (prefers-reduced-motion: reduce)"));
+
+  // The reveal never staggers a card's action bar: Create is usable at once.
+  assert.match(css, /\.simplysf2e \.spf-preview\.spf-arrive > :not\(\.spf-actions, \.spf-scan\) \{\s*--spf-i: 10;\s*animation: spf-reveal var\(--spf-motion\) var\(--spf-ease-out\) backwards;\s*animation-delay: calc\(var\(--spf-i\) \* var\(--spf-stagger\)\);/);
+  const steps = [...css.matchAll(/\.spf-preview\.spf-arrive > :nth-child\((\d+)\) \{ --spf-i: (\d+); \}/g)].map((m) => [Number(m[1]), Number(m[2])]);
+  assert.deepEqual(steps, Array.from({ length: 10 }, (_, i) => [i + 1, i]), "ten steps, then the rest together");
+  const ms = (name) => Number(css.match(new RegExp(`${name}: (\\d+)ms;`))[1]);
+  assert.ok(10 * ms("--spf-stagger") + ms("--spf-motion") <= 600, "the longest card settles within 0.6 s");
+  assert.ok(ms("--spf-motion-sweep") <= 600 && ms("--spf-motion-slow") <= 350);
+
+  // Decoration takes no clicks.
+  for (const selector of ["\\.spf-scan", "button\\.spf-primary:not\\(:disabled\\)::after", "\\.spf-preview\\.spf-arrive \\.spf-statblock-header::after"]) {
+    assert.match(plain(css), new RegExp(`\\.simplysf2e ${selector} \\{[^}]*pointer-events: none;`), `${selector} takes no pointer events`);
+  }
+  assert.match(plain(generatorCss), /\.spf-preview\.spf-arrive \.spf-status-title i::after \{[^}]*pointer-events: none;/);
+
+  // No new idle loop: the only endless animations are the run's sheen and
+  // blink and the "waiting for you" pulse.
+  const endless = [...plain(css + generatorCss).matchAll(/animation:\s*(spf-[a-z-]+)[^;]*infinite/g)].map((m) => m[1]).sort();
+  assert.deepEqual([...new Set(endless)], ["spf-await-pulse", "spf-step-slide", "spf-telemetry-blink"]);
+
+  // Transitions move transform, or a row's background, or the bar's width.
+  const transitions = [...plain(css + generatorCss).matchAll(/transition:\s*([a-z-]+)/g)].map((m) => m[1]);
+  assert.ok(transitions.every((prop) => ["transform", "background-color", "width", "none"].includes(prop)), transitions.join(", "));
+
+  // Reduced motion switches every piece of it off.
+  const off = reduced(css);
+  assert.match(off, /\.simplysf2e \.spf-arrive,\s*\.simplysf2e \.spf-open \{\s*animation: none;/);
+  assert.match(off, /\.spf-preview\.spf-arrive > :not\(\.spf-actions, \.spf-scan\),[^{]*\.simplysf2e \.spf-shake \{\s*animation: none;/);
+  // Effects inside a card key off the arriving card, never off an open window.
+  for (const [, selectors] of plain(css + generatorCss).matchAll(/([^{}]+)\{[^{}]*\}/g)) {
+    for (const selector of selectors.split(",").map((part) => part.trim()).filter((part) => /\.spf-arrive [.>]/.test(part) || /\.spf-arrive > /.test(part))) {
+      assert.match(selector, /\.spf-preview\.spf-arrive /, `${selector} must name the card`);
+    }
+  }
+  assert.doesNotMatch(plain(css + generatorCss), /\.spf-open [.>:]/, "nothing is styled by being inside an open window");
+  assert.match(off, /\.simplysf2e \.spf-scan \{\s*display: none;/);
+  assert.match(off, /\.simplysf2e \.spf-icon-btn > i,\s*\.simplysf2e button\.spf-primary:not\(:disabled\):hover::after \{\s*transition: none;/);
+  assert.match(off, /\.window-content button:not\(:disabled\):active,\s*\.simplysf2e \.spf-icon-btn:not\(:disabled\):is\(:hover, :focus-visible\) > i \{\s*transform: none;/);
+  assert.match(off, /button\.spf-primary:not\(:disabled\)::after \{\s*display: none;/);
+  const offGenerator = reduced(generatorCss);
+  assert.match(offGenerator, /\.spf-review-actions::before,\s*\.simplysf2e \.spf-stat-check-attention::before \{\s*animation: none;/);
+  assert.match(offGenerator, /\.spf-preview\.spf-arrive \.spf-stat-strip > div,\s*\.simplysf2e \.spf-preview\.spf-arrive \.spf-status-title i,\s*\.simplysf2e \.spf-mode-toggle\.spf-slide label\.spf-mode-active > i \{\s*animation: none;/);
+  assert.match(offGenerator, /\.spf-preview\.spf-arrive \.spf-status-title i::after \{\s*display: none;/);
+  // Every selector that starts an animation outside the reduced block is named inside it.
+  for (const [text, block] of [[css, off], [generatorCss, offGenerator]]) {
+    const body = plain(text).slice(0, plain(text).lastIndexOf("@media (prefers-reduced-motion: reduce)"));
+    for (const [, selectors] of body.matchAll(/([^{}]+)\{[^{}]*\banimation:\s*spf-(?!step-slide|telemetry-blink)[a-z-]+/g)) {
+      for (const selector of selectors.split(",").map((part) => part.trim())) {
+        assert.ok(block.includes(selector), `reduced motion must switch off ${selector}`);
+      }
+    }
+  }
+
+  // The scan line: added to an arriving card, hidden from assistive tech, removed when it ends.
+  const made = [];
+  const card = (kind) => {
+    const children = [];
+    const self = {
+      dataset: { result: kind },
+      classList: { names: [], add(name) { this.names.push(name); } },
+      ownerDocument: {
+        createElement: (tag) => {
+          const el = { tag, attrs: {}, listeners: {}, setAttribute(k, v) { this.attrs[k] = v; }, addEventListener(type, fn, opts) { this.listeners[type] = [fn, opts]; }, remove() { children.splice(children.indexOf(el), 1); } };
+          made.push(el);
+          return el;
+        }
+      },
+      append: (el) => children.push(el),
+      children
+    };
+    return self;
+  };
+  const part = (cardNow) => ({ querySelector: (selector) => selector === ".spf-preview" ? cardNow : null });
+  const app = new SpfApp();
+  app._renderBusy = false;
+  const stored = card("preview");
+  app._playResultArrival(part(stored));
+  assert.deepEqual([stored.classList.names, stored.children.length], [[], 0], "a stored result shown on open neither rises nor scans");
+  app._playResultArrival(part(null));
+  const fresh = card("preview");
+  app._playResultArrival(part(fresh));
+  assert.deepEqual(fresh.classList.names, ["spf-arrive"]);
+  assert.equal(fresh.children.length, 1);
+  const scan = fresh.children[0];
+  assert.deepEqual([scan.tag, scan.className, scan.attrs["aria-hidden"]], ["span", "spf-scan", "true"]);
+  assert.equal(scan.listeners.animationend[1].once, true);
+  scan.listeners.animationend[0]();
+  assert.equal(fresh.children.length, 0, "the scan element is removed when its sweep ends");
+  app._playResultArrival(part(fresh));
+  assert.equal(fresh.children.length, 0, "a re-render of the same card does not scan again");
+
+  // The error shake follows the same decision as the error cue, with sounds off.
+  soundLevelNow = "off";
+  cuesPlayed.length = 0;
+  const notice = { classList: { names: [], add(name) { this.names.push(name); } } };
+  const failing = new SpfApp();
+  const show = (busy, error) => { failing._renderBusy = busy; failing._playResultCue({ querySelector: (selector) => selector === ".spf-error-notice" && error ? notice : null }); };
+  show(false, false);
+  show(true, false);
+  failing._recordFailure(new Error("boom"), "generation", "boom");
+  show(false, true);
+  assert.deepEqual(notice.classList.names, ["spf-shake"]);
+  show(false, true);
+  assert.deepEqual(notice.classList.names, ["spf-shake"], "an idle re-render does not shake again");
+  show(true, false);
+  failing._recordFailure(Object.assign(new Error("stopped"), { cancelled: true }), "generation", "stopped");
+  show(false, true);
+  assert.deepEqual(notice.classList.names, ["spf-shake"], "a cancelled run does not shake");
+  // An error box still on screen when the next run starts is not shaken by the start.
+  const stale = { classList: { names: [], add(name) { this.names.push(name); } } };
+  failing._playResultCue({ querySelector: () => null });
+  failing._renderBusy = true;
+  failing._playResultCue({ querySelector: (selector) => selector === ".spf-error-notice" ? stale : null });
+  assert.deepEqual(stale.classList.names, [], "only the error cue shakes");
+  assert.deepEqual(cuesPlayed, []);
 }
 
 console.log("window-parts.test.mjs: parts config, body classes, fold carry, the persistent body and the console layout hold");

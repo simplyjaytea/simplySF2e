@@ -662,9 +662,11 @@ assert.doesNotMatch(
 assert.doesNotMatch(css, /spf-hud-pulse/, "the busy card no longer pulses");
 assert.match(
   css,
-  /\.simplysf2e \.spf-review-actions\s*\{[^}]*animation:\s*spf-await-pulse/s,
+  /\.simplysf2e \.spf-stat-check-attention::before,\s*\.simplysf2e \.spf-review-actions::before\s*\{[^}]*animation:\s*spf-await-pulse/s,
   "required review choices pulse: they wait for the GM"
 );
+assert.match(css, /@keyframes spf-await-pulse \{\s*50% \{ opacity: [\d.]+; \}\s*\}/,
+  "the pulse fades a rail layer; it does not repaint a border colour");
 assert.doesNotMatch(
   css.match(/\.simplysf2e \.spf-source-category > legend\s*\{([^}]*)\}/s)?.[1] ?? "",
   /--spf-neon|box-shadow|border:\s*1px/,

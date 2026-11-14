@@ -224,6 +224,13 @@
       "Disable": "Don't show for updates",
       "Earlier": "Earlier changes ({count})",
       "Note": {
+        "Pop": {
+          "Title": "Results that arrive with a flourish",
+          "B1": "A new result sweeps in: a line of light, then each section in turn.",
+          "B2": "AC, HP, Perception and the saves are now six glowing readout tiles.",
+          "B3": "Buttons answer the pointer with a glint, a press and a lift.",
+          "B4": "Nothing moves while a window is idle, and reduced motion turns it all off."
+        },
         "LighterRequests": {
           "Title": "Lighter AI requests",
           "B1": "Each run sends and receives fewer tokens, so it costs less.",

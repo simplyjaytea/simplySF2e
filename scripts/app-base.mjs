@@ -92,8 +92,8 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   /** Whether a result card that a finished run replaced in place plays its arrival (window-parts.mjs `resultArrives`). */
   static ARRIVE_AFTER_RUN = true;
-  /** Whether the window's content rises in once each time the window opens (Welcome, What's new). Never on a re-render. */
-  static ARRIVE_ON_OPEN = false;
+  /** Whether the window's content rises in once each time the window opens. Never on a re-render. */
+  static ARRIVE_ON_OPEN = true;
   /** Class attribute of the body element for the render in progress. */
   _bodyClassName = "spf-window-body";
   /** Exact token usage per AI call of the last generation: [{label, usage}]. */
@@ -377,7 +377,16 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const now = { busy: Boolean(this._renderBusy), kind: card ? (card.dataset?.result || "card") : "" };
     const arrives = resultArrives(now, this._resultState ?? null, { afterRun: this.constructor.ARRIVE_AFTER_RUN });
     this._resultState = now;
-    if (arrives) card.classList?.add("spf-arrive");
+    if (!arrives) return;
+    card.classList?.add("spf-arrive");
+    // Scan: a line of light runs down the card once. Decoration only: it
+    // takes no pointer events and is removed when its sweep ends.
+    const scan = card.ownerDocument?.createElement?.("span");
+    if (!scan) return;
+    scan.className = "spf-scan";
+    scan.setAttribute("aria-hidden", "true");
+    scan.addEventListener("animationend", () => scan.remove(), { once: true });
+    card.append(scan);
   }
 
   /**
@@ -398,6 +407,8 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._cueState = nextCueState(now, this._cueState ?? null);
     if (cue === "start") this._failureCancelled = false;
     if (!cue) return;
+    // Shake: an error that just appeared, with or without sound.
+    if (cue === "error") element.querySelector?.(".spf-error-notice")?.classList?.add("spf-shake");
     const level = interfaceSoundLevel();
     if (level !== "off") playCue(cue, { level, volume: interfaceSoundVolume() });
   }
@@ -407,7 +418,8 @@ export class SpfApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // The frame survives re-renders but not close and reopen, so bind once per frame.
     if (this._keysElement !== this.element && this.element?.addEventListener) {
       this._keysElement = this.element;
-      if (this.constructor.ARRIVE_ON_OPEN) this.element.querySelector?.(".spf-window-body")?.classList?.add("spf-arrive");
+      // On the frame's content element: it outlives every re-render, so the rise is never cut short or replayed.
+      if (this.constructor.ARRIVE_ON_OPEN) this.element.querySelector?.(".window-content")?.classList?.add("spf-open");
       this.element.addEventListener("keydown", (event) => {
         if (event.key !== "Enter" || !(event.ctrlKey || event.metaKey) || event.isComposing) return;
         const generate = this.element.querySelector("[data-action='generate']");
