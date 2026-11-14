@@ -224,6 +224,13 @@
       "Disable": "Don't show for updates",
       "Earlier": "Earlier changes ({count})",
       "Note": {
+        "LighterRequests": {
+          "Title": "Lighter AI requests",
+          "B1": "Each run sends and receives fewer tokens, so it costs less.",
+          "B2": "A spellcaster no longer needs a separate spell focus request.",
+          "B3": "A character request lists only the heritages of its drafted ancestry.",
+          "B4": "Every pick still comes only from your installed compendium."
+        },
         "TargetedActions": {
           "Title": "Abilities you can roll",
           "B1": "A bespoke ability against one creature now rolls: a save with damage, a condition or both.",

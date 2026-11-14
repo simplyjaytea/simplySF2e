@@ -46,7 +46,7 @@ try {
   assert.match(request.messages[0].content, /"id"/);
   assert.match(request.messages[1].content, /Replacing: Shock/);
   assert.match(request.messages[1].content, /Already has \(do not repeat\): Haste/);
-  assert.match(request.messages[1].content, /R2 \| Blur \(rank 2\)/);
+  assert.match(request.messages[1].content, /R2 Blur \(rank 2\)/);
   assert.doesNotMatch(request.messages[1].content, /c-[A-Za-z0-9+/]{8,}/, "no opaque c- id reaches the model");
   assert.match(request.messages[1].content, /Tradition: arcane/);
   assert.equal(request.max_tokens, 512);

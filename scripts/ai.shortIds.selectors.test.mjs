@@ -45,7 +45,7 @@ try {
   replies.push({ ids: ["S2", "S99", items[0].id, "Battery", "S2"] });
   const shop = await selectShopStock({ concept, candidates: items, count: 3 });
   assert.doesNotMatch(bodyText(), opaque, "no opaque c- id in the shop request");
-  assert.match(bodyText(), /S1 \| Medkit/);
+  assert.match(bodyText(), /equipment L1: S1 Medkit/);
   const stock = pickShopStock(shop.ids, items, 3);
   assert.deepEqual(stock.stock.map((entry) => entry.name), ["Laser Pistol", "Battery"],
     "S2 and the exact name resolve; S99 and the typed-back catalog id do not");
@@ -56,7 +56,7 @@ try {
   replies.push({ ids: ["T3", "T1", items[1].id, "forged"] });
   const treasure = await selectTreasureItems({ concept: { ...concept, name: "Cache" }, candidates: items, count: 3 });
   assert.doesNotMatch(bodyText(), opaque);
-  assert.match(bodyText(), /T3 \| Battery/);
+  assert.match(bodyText(), /T3 Battery/);
   const { issued, unknown } = resolveIssuedPicks(treasure.ids, items);
   assert.deepEqual(issued.map((entry) => entry.name), ["Battery", "Medkit"]);
   assert.equal(unknown.length, 2);
@@ -67,7 +67,7 @@ try {
   const lootConcept = { name: "Raider", level: 5, rarity: "common", blurb: "", traits: [], loot: [{ name: "Spell Gem of Fireball (Rank 3)", quantity: 1 }], equipment: [] };
   const loot = await selectLoot({ concept: lootConcept, candidates: items, scrollCandidates: [spell], jevConfig: null });
   assert.doesNotMatch(bodyText(), opaque);
-  assert.match(bodyText(), /L4 \| Fireball \| 3/, "the spell-gem list continues the loot ids");
+  assert.match(bodyText(), /L4 Fireball \(3\)/, "the spell-gem list continues the loot ids");
   assert.deepEqual(loot.loot.map((row) => row.name), ["Laser Pistol", "Spell Gem of Fireball (Rank 3)"],
     "L2 and the gem spell L4 resolve; the typed-back catalog id and gem id resolve nothing");
 
@@ -84,7 +84,7 @@ try {
     ancestryCandidates: ancestry, heritageCandidates: heritage, backgroundCandidates: background, classCandidates: pcClass
   });
   assert.doesNotMatch(bodyText(), opaque);
-  assert.match(bodyText(), /C3 \| Chosen background/);
+  assert.match(bodyText(), /C3 Chosen background/);
   assert.equal(abc.ancestryCandidate, ancestry[0].ref);
   assert.equal(abc.heritageCandidate, heritage[0].ref);
   assert.equal(abc.backgroundCandidate, background[0].ref);

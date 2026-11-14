@@ -286,7 +286,7 @@ async function loadIndex(packId) {
   if (!pack) return null;
   const index = await pack.getIndex({
     fields: [
-      "name", "type", "system.slug", "system.level.value",
+      "name", "type", "system.slug", "system.level.value", "system.ancestry.uuid",
       "system.traits.value", "system.traits.traditions", "system.ritual",
       "system.category", "system.spell", "system.traits.rarity", "system.traits.otherTags", "system.prerequisites.value",
       "system.group", "system.price.value"
@@ -932,7 +932,15 @@ async function getFullCandidates(category, type, maxRarity) {
       if ((RARITY_RANK[rarity] ?? 0) > maxRank) continue;
       if (seen.has(entry.normalized)) continue;
       seen.add(entry.normalized);
-      candidates.push(candidateRecord(entry, { name: entry.name, traits: entry.system?.traits?.value ?? [] }));
+      candidates.push(candidateRecord(entry, {
+        name: entry.name,
+        traits: entry.system?.traits?.value ?? [],
+        // A heritage links its ancestry by compendium uuid (`system.ancestry.uuid`), the first thing
+        // heritageMatchesAncestry (pc-builder.mjs) compares. The slug is not used here: an ancestry's
+        // slugified name is not always its pack slug (G'folian is "gfolian"). Versatile heritages have no link.
+        ...(type === "ancestry" ? { uuid: `Compendium.${entry.packId}.Item.${entry._id}` } : {}),
+        ...(type === "heritage" && entry.system?.ancestry?.uuid ? { ancestryUuid: entry.system.ancestry.uuid } : {})
+      }));
     }
   }
   candidates.sort((a, b) => a.name.localeCompare(b.name));

@@ -88,7 +88,8 @@ async function draftConcept(ctx, { prompt, level, rarity, allowSpellcasting, pre
 }
 
 /**
- * Caster spells: a focus pass (optional, fails open to the draft names), then
+ * Caster spells: spell themes (drafted with the concept, or asked for in a
+ * focus pass when the draft carried none; fails open to the draft names), then
  * a grounded candidate list and selection. Fail closed: no candidates or an AI
  * failure drops the spellcasting block unless a known class plan must stay visible.
  */
@@ -99,19 +100,23 @@ export async function refineSpells(concept, ctxIn) {
   try {
     // Two AI calls share the "Spell selection" step. Sub-labels distinguish
     // them in the detail line; the bar stays on phase fill, not extra steps.
-    let keywords = [];
-    try {
-      const focusLabel = ctx.labels.spellFocus;
-      const focus = await ctx.ai.chooseSpellFocus({
-        concept,
-        tradition: spellcasting.tradition,
-        onProgress: progressFor(ctx, focusLabel), signal: ctx.signal
-      });
-      keywords = focus.keywords;
-      recordUsage(ctx, focusLabel, focus.usage);
-    } catch (err) {
-      if (err?.cancelled || err?.runLimit) throw err;
-      console.warn(`${MODULE_ID} | spell focus selection failed, using first-draft spell names only`, err);
+    // The concept request already asks for spell themes, so a compliant draft costs no
+    // extra request here. The focus pass stays for a draft without them.
+    let keywords = Array.isArray(spellcasting.keywords) ? spellcasting.keywords : [];
+    if (!keywords.length) {
+      try {
+        const focusLabel = ctx.labels.spellFocus;
+        const focus = await ctx.ai.chooseSpellFocus({
+          concept,
+          tradition: spellcasting.tradition,
+          onProgress: progressFor(ctx, focusLabel), signal: ctx.signal
+        });
+        keywords = focus.keywords;
+        recordUsage(ctx, focusLabel, focus.usage);
+      } catch (err) {
+        if (err?.cancelled || err?.runLimit) throw err;
+        console.warn(`${MODULE_ID} | spell focus selection failed, using first-draft spell names only`, err);
+      }
     }
     const selectionPicks = spellcasting.selectionPicks ?? spellcasting.plannedPicks;
     const candidates = await getSpellCandidates(

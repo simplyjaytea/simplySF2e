@@ -47,7 +47,7 @@
       "equipment.2.name": "Baton",
       "equipment.2.quantity": 1
     },
-    "bodyExcludes": ["e1 | "],
-    "bodyContains": ["weapon: E1 | Assault Rifle (L3)", "consumable: E3 | Medpatch (L2)"]
+    "bodyExcludes": ["e1 Assault Rifle"],
+    "bodyContains": ["weapon L3: E1 Assault Rifle", "weapon L0: E2 Baton", "consumable L2: E3 Medpatch"]
   }
 }
